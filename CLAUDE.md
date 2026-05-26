@@ -400,3 +400,22 @@ A few notes for any session picking this up:
 - **Commit often, push often.** This is a hobby project; we won't always finish in one session.
 
 When in doubt about a design call, lean toward: simpler, more local, more boring, more reversible.
+
+### Mandatory workflow: architect → developer → reviewer
+
+Any work that counts as a **project phase** (Phase 0/1/2/…) or a **feature request** (a new capability, a non-trivial UI change, anything that touches more than ~2 files) MUST go through three subagents, in order. Trivial fixes (typo, single-line bug, doc tweak) are exempt — use judgement; if you're unsure whether the work qualifies, run the flow.
+
+The agents live in `.claude/agents/`:
+
+1. **`hovimestari-architect`** — Designs the plan. Read-only. Output: a markdown plan with goal, files to touch, key decisions, non-goals, acceptance check, risks.
+2. **`hovimestari-developer`** — Executes the architect's plan. Writes code and runs the acceptance check. Does NOT commit unless told to.
+3. **`hovimestari-reviewer`** — Independently re-runs the acceptance check and reviews the diff against the plan and this brief. Output: APPROVE or REQUEST CHANGES with specific findings.
+
+Flow rules:
+
+- **Never skip a step.** Don't write code before the architect plans. Don't commit before the reviewer approves.
+- **Show the architect's plan to the user before dispatching the developer.** The user gets a chance to redirect cheaply, before any code is written. Implicit approval is fine for small steps inside an already-approved phase.
+- **Pass the architect's plan verbatim to the developer.** Don't paraphrase it.
+- **If the reviewer requests changes**, send the findings back to the developer (not a fresh architect pass) unless the findings reveal a design flaw — then re-architect.
+- **The main session orchestrates, it does not implement.** Prefer spawning subagents over doing the work in the main context. The main context is for routing, summarizing back to the user, and holding the long-horizon thread.
+- **Keep the main context focused.** Ask subagents for short summaries. Don't pull large file contents or command output into the main context unless you need it to make a decision.
