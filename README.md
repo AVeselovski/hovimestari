@@ -39,3 +39,36 @@ docker compose -f infra/compose.yaml down
 
 Postgres data persists in a named Docker volume (`pgdata`); it survives `down` but
 is removed by `down -v`.
+
+## Phase 1
+
+The web UI is the ported meal-planner artifact: four tabs (Suunnitelma · Reseptit ·
+Vakiot · Lista), recipes split into Arki/Erikois, and per-staple-group toggles.
+
+```bash
+cp .env.example .env
+docker compose -f infra/compose.yaml up --build
+```
+
+Then open `http://<host-lan-ip>:5173/` from a phone on the same Wi-Fi.
+
+The API runs database migrations on boot when `MIGRATE_ON_BOOT=true` (the default
+in `compose.yaml`). The seed migration only writes to `household_state` while the
+row still contains the pristine empty-state JSON inserted by the init migration —
+so it's safe to re-run, and won't overwrite a populated database.
+
+To force a re-seed (drops your data):
+
+```bash
+docker compose -f infra/compose.yaml exec db \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  -c "DELETE FROM pgmigrations WHERE name LIKE '%seed%'; \
+      UPDATE household_state SET state = '{ \"recipes\": [], \"stapleGroups\": [], \"staples\": [], \"plan\": { \"selectedRecipeIds\": [] } }'::jsonb WHERE id = 1;"
+docker compose -f infra/compose.yaml restart api
+```
+
+### PWA notes
+
+The service worker registers on `localhost` and HTTPS origins. iOS Safari refuses
+to register a worker on `http://<lan-ip>:5173/`; the app still works fine, but
+"Add to home screen" with full PWA behaviour needs HTTPS (Phase 2 will add Caddy).

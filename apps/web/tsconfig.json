@@ -8,6 +8,5 @@
     "types": ["vite/client"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/meal-planner.jsx"],
   "references": [{ "path": "../../packages/shared" }]
 }
