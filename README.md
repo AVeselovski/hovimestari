@@ -6,8 +6,12 @@ Local-first household butler. See `CLAUDE.md` for the full brief.
 
 ```bash
 cp .env.example .env
-docker compose -f infra/compose.yaml up --build
+docker compose --env-file .env -f infra/compose.yaml up --build
 ```
+
+`--env-file .env` is required because the compose file lives under `infra/`, so
+Compose looks for `.env` in `infra/` by default — not at the repo root where the
+file actually is.
 
 Then open:
 
@@ -34,7 +38,7 @@ LAN-to-LAN traffic via "AP isolation" — disable it in the router admin.
 To stop and clean up:
 
 ```bash
-docker compose -f infra/compose.yaml down
+docker compose --env-file .env -f infra/compose.yaml down
 ```
 
 Postgres data persists in a named Docker volume (`pgdata`); it survives `down` but
@@ -47,7 +51,7 @@ Vakiot · Lista), recipes split into Arki/Erikois, and per-staple-group toggles.
 
 ```bash
 cp .env.example .env
-docker compose -f infra/compose.yaml up --build
+docker compose --env-file .env -f infra/compose.yaml up --build
 ```
 
 Then open `http://<host-lan-ip>:5173/` from a phone on the same Wi-Fi.
@@ -60,12 +64,33 @@ so it's safe to re-run, and won't overwrite a populated database.
 To force a re-seed (drops your data):
 
 ```bash
-docker compose -f infra/compose.yaml exec db \
+docker compose --env-file .env -f infra/compose.yaml exec db \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   -c "DELETE FROM pgmigrations WHERE name LIKE '%seed%'; \
       UPDATE household_state SET state = '{ \"recipes\": [], \"stapleGroups\": [], \"staples\": [], \"plan\": { \"selectedRecipeIds\": [] } }'::jsonb WHERE id = 1;"
-docker compose -f infra/compose.yaml restart api
+docker compose --env-file .env -f infra/compose.yaml restart api
 ```
+
+### Troubleshooting
+
+**`Cannot find module '/repo/apps/web/node_modules/vite/bin/vite.js'`** — the
+`web_node_modules` named volume was populated from a previous build that didn't
+include the current set of dependencies (common after a Phase bump). Docker only
+seeds a named volume from the image on first creation, so re-running `up --build`
+doesn't refresh it. Drop just the node_modules volumes and bring the stack back
+up:
+
+```bash
+docker compose --env-file .env -f infra/compose.yaml down
+docker volume rm hovimestari_web_node_modules hovimestari_shared_node_modules
+docker compose --env-file .env -f infra/compose.yaml up --build
+```
+
+`pgdata` is left alone so seeded recipes survive.
+
+**`required variable POSTGRES_PASSWORD is missing a value`** — you forgot
+`--env-file .env`, or your `.env` is in `infra/` (it should be at the repo root).
+See the top-of-readme command.
 
 ### PWA notes
 
