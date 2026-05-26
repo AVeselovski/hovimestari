@@ -1,11 +1,11 @@
 import type { State } from "@hovi/shared";
 
-const BASE = import.meta.env.VITE_API_BASE ?? "/api";
+export const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 export type StateResponse = { state: State; updatedAt: string };
 
 export async function getState(): Promise<StateResponse> {
-  const res = await fetch(`${BASE}/state`);
+  const res = await fetch(`${API_BASE}/state`);
   if (!res.ok) throw new Error(`GET /state failed: ${res.status}`);
   return (await res.json()) as StateResponse;
 }
@@ -19,7 +19,7 @@ export async function putState(
   state: State,
   updatedAt: string,
 ): Promise<PutResult> {
-  const res = await fetch(`${BASE}/state`, {
+  const res = await fetch(`${API_BASE}/state`, {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ state, updatedAt }),

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 exports.shorthands = undefined;
 
-// IMPORTANT: This sentinel must match the empty-state JSON inserted by
-// 1700000000000_init.cjs. If you change one, change the other — otherwise
-// this seed will silently no-op on a fresh DB.
+// `down` resets the household_state row back to a pristine empty shape. The
+// constant is used only by `down`; `up` no longer relies on string equality
+// (see seed gate below — we check for an empty recipes array instead).
 const EMPTY_STATE_SENTINEL =
   '{ "recipes": [], "stapleGroups": [], "staples": [], "plan": { "selectedRecipeIds": [] } }';
 
@@ -250,15 +250,15 @@ const SEED = {
 };
 
 exports.up = (pgm) => {
-  // Only seed if the row is still in the pristine empty-state shape inserted
-  // by the init migration. Comparing with `=` on JSONB does shape-aware
-  // equality (whitespace doesn't matter).
+  // Only seed if the user has not added any recipes yet. This is a semantic
+  // proxy for "still pristine, safe to seed" and avoids fragile string
+  // equality on the JSONB blob (see review #9).
   pgm.sql(
     `UPDATE household_state
        SET state = '${JSON.stringify(SEED).replace(/'/g, "''")}'::jsonb,
            updated_at = now()
      WHERE id = 1
-       AND state = '${EMPTY_STATE_SENTINEL.replace(/'/g, "''")}'::jsonb`,
+       AND jsonb_array_length(state->'recipes') = 0`,
   );
 };
 

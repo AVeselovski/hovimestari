@@ -75,6 +75,82 @@ describe("buildShoppingList", () => {
     expect(order.indexOf("dairy")).toBeLessThan(order.indexOf("pantry"));
   });
 
+  it("merges same-unit duplicates into 'X + Y' with unit preserved", () => {
+    const s = baseState();
+    // Add a recipe that contributes another Maito in litres (matches staple unit).
+    s.recipes.push({
+      id: "r3",
+      name: "Maitojuoma",
+      time: 5,
+      servings: 4,
+      category: "common",
+      ingredients: [
+        { name: "Maito", amount: "2", unit: "l", category: "dairy" },
+      ],
+    });
+    s.plan.selectedRecipeIds = ["r3"];
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const maito = dairy?.items.find((i) => i.name === "Maito");
+    expect(maito?.amount).toBe("1 + 2");
+    expect(maito?.unit).toBe("l");
+  });
+
+  it("merges mixed-unit duplicates inline (amount carries both units, unit cleared)", () => {
+    const s = baseState();
+    // Recipe contributes Maito in dl; staple has Maito in l.
+    s.recipes.push({
+      id: "r4",
+      name: "Lettutaikina",
+      time: 5,
+      servings: 4,
+      category: "common",
+      ingredients: [
+        { name: "Maito", amount: "2", unit: "dl", category: "dairy" },
+      ],
+    });
+    s.plan.selectedRecipeIds = ["r4"];
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const maito = dairy?.items.find((i) => i.name === "Maito");
+    expect(maito?.amount).toBe("1 l + 2 dl");
+    expect(maito?.unit).toBe("");
+  });
+
+  it("three-way mixed merge keeps inlining units", () => {
+    const s = baseState();
+    s.recipes.push({
+      id: "r5",
+      name: "Maitokerma",
+      time: 5,
+      servings: 4,
+      category: "common",
+      ingredients: [
+        { name: "Maito", amount: "2", unit: "dl", category: "dairy" },
+        { name: "Maito", amount: "100", unit: "ml", category: "dairy" },
+      ],
+    });
+    s.plan.selectedRecipeIds = ["r5"];
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const maito = dairy?.items.find((i) => i.name === "Maito");
+    expect(maito?.amount).toBe("1 l + 2 dl + 100 ml");
+    expect(maito?.unit).toBe("");
+  });
+
+  it("produces stable category::name keys across re-derivations", () => {
+    const s = baseState();
+    s.plan.selectedRecipeIds = ["r1", "r2"];
+    s.stapleGroups[1].enabled = true;
+    const a = buildShoppingList(s);
+    const b = buildShoppingList(s);
+    const keysFrom = (
+      list: ReturnType<typeof buildShoppingList>,
+    ): string[] =>
+      list.flatMap((g) => g.items.map((it) => `${g.id}::${it.name}`));
+    expect(keysFrom(a)).toEqual(keysFrom(b));
+  });
+
   it("sorts items within a group alphabetically (Finnish locale)", () => {
     const s = baseState();
     s.plan.selectedRecipeIds = ["r1", "r2"];

@@ -43,12 +43,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation: network-first, fall back to cached shell.
+  // Navigation: network-first, fall back to cached shell. Refresh the cached
+  // shell on every successful navigation so future deploys self-heal (#7).
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const fresh = await fetch(req);
+          if (fresh.ok) {
+            const cache = await caches.open(SHELL_CACHE);
+            cache.put("/index.html", fresh.clone());
+          }
           return fresh;
         } catch {
           const cache = await caches.open(SHELL_CACHE);
@@ -60,7 +65,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets: stale-while-revalidate.
+  // Static assets: stale-while-revalidate. Guard against `undefined` returns
+  // when neither cache nor network resolves (#4).
   event.respondWith(
     (async () => {
       const cache = await caches.open(ASSET_CACHE);
@@ -70,7 +76,7 @@ self.addEventListener("fetch", (event) => {
           if (res.ok) cache.put(req, res.clone());
           return res;
         })
-        .catch(() => cached);
+        .catch(() => cached ?? Response.error());
       return cached ?? network;
     })(),
   );

@@ -59,4 +59,22 @@ describe("shuffle", () => {
     const recipes: Recipe[] = [makeRecipe("s1", undefined, "special")];
     expect(shuffle(recipes, 2)).toEqual([]);
   });
+
+  it("returns [] when common pool smaller than n (1 common, n=2)", () => {
+    const recipes: Recipe[] = [
+      makeRecipe("a"),
+      makeRecipe("s1", undefined, "special"),
+      makeRecipe("s2", undefined, "special"),
+    ];
+    expect(shuffle(recipes, 2)).toEqual([]);
+  });
+
+  it("returns [] when n=3 and pool has 2 common recipes", () => {
+    const recipes: Recipe[] = [
+      makeRecipe("a"),
+      makeRecipe("b"),
+      makeRecipe("s1", undefined, "special"),
+    ];
+    expect(shuffle(recipes, 3)).toEqual([]);
+  });
 });

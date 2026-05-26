@@ -2,7 +2,7 @@ import type { Recipe } from "@hovi/shared";
 
 export function shuffle(recipes: Recipe[], n: 2 | 3): string[] {
   const pool = recipes.filter((r) => r.category === "common");
-  if (pool.length === 0) return [];
+  if (pool.length < n) return [];
 
   const ranked = [...pool].sort((a, b) => {
     const ta = a.lastUsed ? new Date(a.lastUsed).getTime() : 0;

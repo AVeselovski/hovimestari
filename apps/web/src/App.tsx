@@ -26,6 +26,11 @@ export function App(): JSX.Element {
   const { state, status, mutate, dismissConflict } = useStateStore();
   const [tab, setTab] = useState<Tab>("plan");
   const [editingRecipe, setEditingRecipe] = useState<RecipeDraft | null>(null);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+
+  const toggleChecked = (key: string): void =>
+    setChecked((c) => ({ ...c, [key]: !c[key] }));
+  const clearChecked = (): void => setChecked({});
 
   useEffect(() => {
     if (status !== "conflict") return;
@@ -67,14 +72,32 @@ export function App(): JSX.Element {
 
   return (
     <div className="min-h-screen w-full font-body bg-paper text-ink">
-      {status === "conflict" && (
-        <div
-          className="fixed top-0 inset-x-0 z-40 px-5 py-2 text-center text-xs"
-          style={{ background: "var(--berry)", color: "var(--paper)" }}
-        >
-          Tila päivitetty palvelimelta.
-        </div>
-      )}
+      <div className="fixed top-0 inset-x-0 z-40 flex flex-col">
+        {status === "conflict" && (
+          <div
+            className="px-5 py-2 text-center text-xs"
+            style={{ background: "var(--berry)", color: "var(--paper)" }}
+          >
+            Tila päivitetty palvelimelta.
+          </div>
+        )}
+        {state !== null && status === "saving" && (
+          <div
+            className="px-5 py-2 text-center text-xs"
+            style={{ background: "var(--muted)", color: "var(--paper)" }}
+          >
+            Tallennetaan…
+          </div>
+        )}
+        {state !== null && status === "error" && (
+          <div
+            className="px-5 py-2 text-center text-xs"
+            style={{ background: "var(--berry)", color: "var(--paper)" }}
+          >
+            Tallennus epäonnistui — yritetään uudelleen.
+          </div>
+        )}
+      </div>
 
       <header className="px-5 pt-7 pb-4">
         <div className="flex items-baseline justify-between">
@@ -130,7 +153,16 @@ export function App(): JSX.Element {
               />
             )}
             {tab === "staples" && <StaplesTab state={state} mutate={mutate} />}
-            {tab === "list" && <ListTab state={state} mutate={mutate} />}
+            {tab === "list" && (
+              <ListTab
+                state={state}
+                mutate={mutate}
+                checked={checked}
+                toggleChecked={toggleChecked}
+                clearChecked={clearChecked}
+                goPlan={() => setTab("plan")}
+              />
+            )}
           </>
         )}
       </main>
