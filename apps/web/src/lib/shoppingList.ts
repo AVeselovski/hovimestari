@@ -61,7 +61,16 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
     const key = `${it.category}::${it.name.toLowerCase().trim()}`;
     const existing = merged.get(key);
     if (existing) {
-      existing.amount = `${existing.amount} + ${it.amount}`;
+      if (existing.unit === it.unit) {
+        existing.amount = `${existing.amount} + ${it.amount}`;
+      } else {
+        const left = existing.unit
+          ? `${existing.amount} ${existing.unit}`
+          : existing.amount;
+        const right = it.unit ? `${it.amount} ${it.unit}` : it.amount;
+        existing.amount = `${left} + ${right}`;
+        existing.unit = "";
+      }
       if (!existing.sources.includes(it.source)) existing.sources.push(it.source);
     } else {
       merged.set(key, {

@@ -6,14 +6,21 @@ import { buildShoppingList } from "../lib/shoppingList.js";
 export function ListTab({
   state,
   mutate,
+  checked,
+  toggleChecked,
+  clearChecked,
+  goPlan,
 }: {
   state: State;
   mutate: (updater: (s: State) => State) => void;
+  checked: Record<string, boolean>;
+  toggleChecked: (key: string) => void;
+  clearChecked: () => void;
+  goPlan: () => void;
 }): JSX.Element {
   const list = useMemo(() => buildShoppingList(state), [state]);
   const totalItems = list.reduce((sum, g) => sum + g.items.length, 0);
 
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
 
   const selectedRecipes = state.plan.selectedRecipeIds
@@ -25,7 +32,10 @@ export function ListTab({
       .map(
         (g) =>
           `${g.label.toUpperCase()}\n${g.items
-            .map((it) => `  ☐ ${it.name} — ${it.amount} ${it.unit}`)
+            .map(
+              (it) =>
+                `  ☐ ${it.name} — ${it.amount}${it.unit ? " " + it.unit : ""}`,
+            )
             .join("\n")}`,
       )
       .join("\n\n");
@@ -47,7 +57,8 @@ export function ListTab({
       ),
       plan: { ...s.plan, selectedRecipeIds: [] },
     }));
-    setChecked({});
+    clearChecked();
+    goPlan();
   };
 
   if (totalItems === 0) {
@@ -66,9 +77,6 @@ export function ListTab({
       </div>
     );
   }
-
-  const toggle = (key: string): void =>
-    setChecked((c) => ({ ...c, [key]: !c[key] }));
 
   return (
     <div className="space-y-5 mt-2">
@@ -107,13 +115,13 @@ export function ListTab({
             {group.label}
           </p>
           <ul className="mt-1 font-mono">
-            {group.items.map((it, i) => {
-              const key = `${group.id}::${it.name}::${i}`;
+            {group.items.map((it) => {
+              const key = `${group.id}::${it.name}`;
               const isChecked = checked[key];
               return (
                 <li
                   key={key}
-                  onClick={() => toggle(key)}
+                  onClick={() => toggleChecked(key)}
                   className="flex items-center gap-3 py-2.5 border-b cursor-pointer"
                   style={{ borderColor: "var(--rule)" }}
                 >
@@ -139,7 +147,8 @@ export function ListTab({
                     className="text-xs tabular-nums"
                     style={{ color: "var(--muted)" }}
                   >
-                    {it.amount} {it.unit}
+                    {it.amount}
+                    {it.unit ? ` ${it.unit}` : ""}
                   </p>
                 </li>
               );

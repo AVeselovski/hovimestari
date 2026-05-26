@@ -37,10 +37,11 @@ export function PlanTab({
   };
 
   const doShuffle = (n: 2 | 3): void => {
-    mutate((s) => ({
-      ...s,
-      plan: { ...s.plan, selectedRecipeIds: shuffle(s.recipes, n) },
-    }));
+    mutate((s) => {
+      const picks = shuffle(s.recipes, n);
+      if (picks.length === 0) return s;
+      return { ...s, plan: { ...s.plan, selectedRecipeIds: picks } };
+    });
   };
 
   const toggleGroup = (id: string): void => {
