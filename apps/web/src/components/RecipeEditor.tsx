@@ -11,10 +11,12 @@ export function RecipeEditor({
   initial,
   onSave,
   onCancel,
+  warnings,
 }: {
   initial: RecipeDraft;
   onSave: (r: RecipeDraft) => void;
   onCancel: () => void;
+  warnings?: string[];
 }): JSX.Element {
   const [r, setR] = useState<RecipeDraft>({
     ...initial,
@@ -72,6 +74,32 @@ export function RecipeEditor({
         </button>
       </header>
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5 pb-24">
+        {warnings && warnings.length > 0 && (
+          <div
+            className="rounded-lg border-l-4 px-3 py-2 text-xs"
+            style={{
+              borderColor: "var(--berry)",
+              background: "var(--paper-2)",
+              color: "var(--ink)",
+            }}
+          >
+            <p
+              className="uppercase tracking-widest mb-1"
+              style={{
+                color: "var(--berry)",
+                letterSpacing: "0.15em",
+                fontSize: "10px",
+              }}
+            >
+              AI-tuonnin huomiot
+            </p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              {warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Field label="Nimi">
           <input
             className="w-full px-3 py-2.5 rounded-lg border bg-transparent"

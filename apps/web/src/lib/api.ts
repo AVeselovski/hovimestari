@@ -1,4 +1,4 @@
-import type { State } from "@hovi/shared";
+import type { RecipeImportResponse, State } from "@hovi/shared";
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
@@ -33,4 +33,38 @@ export async function putState(
     return { ok: false, conflict: true, state: body.state, updatedAt: body.updatedAt };
   }
   return { ok: false, conflict: false, error: `HTTP ${res.status}` };
+}
+
+export class RecipeImportError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "RecipeImportError";
+  }
+}
+
+export async function importRecipeFromText(
+  text: string,
+): Promise<RecipeImportResponse> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/recipes/from-text`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (err) {
+    throw new RecipeImportError(0, (err as Error).message);
+  }
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = JSON.stringify(await res.json());
+    } catch {
+      detail = res.statusText;
+    }
+    throw new RecipeImportError(res.status, detail);
+  }
+  return (await res.json()) as RecipeImportResponse;
 }

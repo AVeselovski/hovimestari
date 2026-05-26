@@ -1,0 +1,176 @@
+import { describe, it, expect } from "vitest";
+import {
+  recipeFromTextTask,
+  stripJsonFences,
+  computeConfidence,
+} from "./recipe-from-text.js";
+
+describe("recipeFromTextTask prompt", () => {
+  it("builds a system + user message pair", () => {
+    const task = recipeFromTextTask("Jauhelihapasta 20 min");
+    expect(task.messages).toHaveLength(2);
+    expect(task.messages[0].role).toBe("system");
+    expect(task.messages[1].role).toBe("user");
+    expect(task.messages[1].content).toBe("Jauhelihapasta 20 min");
+  });
+
+  it("system prompt enumerates the eight aisle categories", () => {
+    const task = recipeFromTextTask("x");
+    const sys = task.messages[0].content;
+    for (const cat of [
+      "produce",
+      "bakery",
+      "meat-fish",
+      "dairy",
+      "frozen",
+      "pantry",
+      "drinks",
+      "other",
+    ]) {
+      expect(sys).toContain(cat);
+    }
+  });
+
+  it("requests JSON output mode and low temperature", () => {
+    const task = recipeFromTextTask("x");
+    expect(task.opts?.jsonMode).toBe(true);
+    expect(task.opts?.temperature).toBeLessThanOrEqual(0.2);
+  });
+});
+
+describe("recipeFromTextTask.parse", () => {
+  const goodJson = JSON.stringify({
+    name: "Jauheliha-tomaattipasta",
+    time: 20,
+    servings: 4,
+    category: "common",
+    ingredients: [
+      { name: "Naudan jauheliha", amount: "400", unit: "g", category: "meat-fish" },
+      { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+    ],
+  });
+
+  it("validates a well-formed response", () => {
+    const task = recipeFromTextTask("source text 20 min");
+    const result = task.parse(goodJson);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.name).toBe("Jauheliha-tomaattipasta");
+    expect(result.value.ingredients).toHaveLength(2);
+    expect(result.confidence).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it("rejects invalid JSON", () => {
+    const task = recipeFromTextTask("x");
+    const result = task.parse("not json {");
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects schema mismatches", () => {
+    const task = recipeFromTextTask("x");
+    const result = task.parse(
+      JSON.stringify({
+        name: "x",
+        time: 10,
+        servings: 4,
+        category: "common",
+        ingredients: [{ name: "a", amount: "1", unit: "g", category: "not-a-category" }],
+      }),
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("strips markdown JSON fences before parsing", () => {
+    const task = recipeFromTextTask("x");
+    const wrapped = "```json\n" + goodJson + "\n```";
+    const result = task.parse(wrapped);
+    expect(result.ok).toBe(true);
+  });
+
+  it("applies defaults and emits Finnish warnings when fields are missing", () => {
+    const task = recipeFromTextTask("Jauhelihapasta");
+    const result = task.parse(
+      JSON.stringify({
+        name: "Jauhelihapasta",
+        ingredients: [
+          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.servings).toBe(4);
+    expect(result.value.time).toBe(30);
+    expect(result.value.category).toBe("common");
+    expect(result.warnings.some((w) => w.includes("Annoskoko"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("Valmistusaika"))).toBe(true);
+    expect(result.warnings.some((w) => w.includes("Kategoria"))).toBe(true);
+  });
+
+  it("reports low confidence and a warning when ingredients are empty", () => {
+    const task = recipeFromTextTask("Pasta on hyvä");
+    const result = task.parse(
+      JSON.stringify({
+        name: "Pasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.confidence).toBeLessThan(0.6);
+    expect(result.warnings.some((w) => w.toLowerCase().includes("ainek"))).toBe(true);
+  });
+});
+
+describe("stripJsonFences", () => {
+  it("removes ```json prefix and trailing ``` ", () => {
+    expect(stripJsonFences("```json\n{\"a\":1}\n```")).toBe('{"a":1}');
+  });
+  it("removes bare ``` fences", () => {
+    expect(stripJsonFences("```\n{\"a\":1}\n```")).toBe('{"a":1}');
+  });
+  it("leaves unfenced text untouched", () => {
+    expect(stripJsonFences('{"a":1}')).toBe('{"a":1}');
+  });
+});
+
+describe("computeConfidence", () => {
+  it("starts at 1.0 for a complete draft", () => {
+    const { confidence, warnings } = computeConfidence(
+      {
+        name: "Pasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+        ],
+      },
+      "Pasta 20 min, 400 g pastaa",
+    );
+    expect(confidence).toBe(1);
+    expect(warnings).toEqual([]);
+  });
+
+  it("caps the missing-amount penalty at 0.4", () => {
+    const { confidence } = computeConfidence(
+      {
+        name: "x",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "a", amount: "", unit: "g", category: "pantry" },
+          { name: "b", amount: "", unit: "g", category: "pantry" },
+          { name: "c", amount: "", unit: "g", category: "pantry" },
+          { name: "d", amount: "", unit: "g", category: "pantry" },
+        ],
+      },
+      "abcd",
+    );
+    expect(confidence).toBeCloseTo(0.6, 5);
+  });
+});
