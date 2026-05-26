@@ -12,6 +12,8 @@ export const AisleCategorySchema = z.enum([
 ]);
 export type AisleCategory = z.infer<typeof AisleCategorySchema>;
 
+export const AISLE_CATEGORIES = AisleCategorySchema.options;
+
 export const IngredientSchema = z.object({
   name: z.string(),
   amount: z.string(),
@@ -31,6 +33,9 @@ export const RecipeSchema = z.object({
   lastUsed: z.string().optional(),
 });
 export type Recipe = z.infer<typeof RecipeSchema>;
+
+export const RecipeDraftSchema = RecipeSchema.omit({ id: true, lastUsed: true });
+export type RecipeDraft = z.infer<typeof RecipeDraftSchema>;
 
 export const StapleGroupSchema = z.object({
   id: z.string(),

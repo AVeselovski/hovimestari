@@ -12,6 +12,7 @@ import {
   RecipeEditor,
   type RecipeDraft,
 } from "./components/RecipeEditor.js";
+import { RecipeImportSheet } from "./components/RecipeImportSheet.js";
 import { PlanTab } from "./tabs/PlanTab.js";
 import { RecipesTab } from "./tabs/RecipesTab.js";
 import { StaplesTab } from "./tabs/StaplesTab.js";
@@ -26,6 +27,8 @@ export function App(): JSX.Element {
   const { state, status, mutate, dismissConflict } = useStateStore();
   const [tab, setTab] = useState<Tab>("plan");
   const [editingRecipe, setEditingRecipe] = useState<RecipeDraft | null>(null);
+  const [editorWarnings, setEditorWarnings] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
   const toggleChecked = (key: string): void =>
@@ -68,6 +71,18 @@ export function App(): JSX.Element {
       return { ...s, recipes: [...s.recipes, newRecipe] };
     });
     setEditingRecipe(null);
+    setEditorWarnings([]);
+  };
+
+  const openBlankEditor = (): void => {
+    setEditorWarnings([]);
+    setEditingRecipe({
+      name: "",
+      time: 20,
+      servings: 4,
+      category: "common",
+      ingredients: [],
+    });
   };
 
   return (
@@ -139,17 +154,12 @@ export function App(): JSX.Element {
             {tab === "recipes" && (
               <RecipesTab
                 recipes={state.recipes}
-                onEdit={(r) => setEditingRecipe(r)}
+                onEdit={(r) => {
+                  setEditorWarnings([]);
+                  setEditingRecipe(r);
+                }}
                 onDelete={onDeleteRecipe}
-                onNew={() =>
-                  setEditingRecipe({
-                    name: "",
-                    time: 20,
-                    servings: 4,
-                    category: "common",
-                    ingredients: [],
-                  })
-                }
+                onNew={() => setImporting(true)}
               />
             )}
             {tab === "staples" && <StaplesTab state={state} mutate={mutate} />}
@@ -167,11 +177,30 @@ export function App(): JSX.Element {
         )}
       </main>
 
+      {importing && (
+        <RecipeImportSheet
+          onDraft={(draft, warnings) => {
+            setImporting(false);
+            setEditorWarnings(warnings);
+            setEditingRecipe({ ...draft, id: uid() });
+          }}
+          onBlank={() => {
+            setImporting(false);
+            openBlankEditor();
+          }}
+          onCancel={() => setImporting(false)}
+        />
+      )}
+
       {editingRecipe && (
         <RecipeEditor
           initial={editingRecipe}
+          warnings={editorWarnings}
           onSave={onSaveRecipe}
-          onCancel={() => setEditingRecipe(null)}
+          onCancel={() => {
+            setEditingRecipe(null);
+            setEditorWarnings([]);
+          }}
         />
       )}
 
