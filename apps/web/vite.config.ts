@@ -1,10 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { printLanUrls } from "./vite-plugins/print-lan-urls.js";
 
 const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://api:3000";
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), printLanUrls()],
   server: {
     host: true,
     port: 5173,

@@ -18,17 +18,32 @@ Then open:
 - Web UI: <http://localhost:5173> (or `http://<lan-ip>:5173` from a phone on the same LAN)
 - API: <http://localhost:3000/healthz>
 
-Postgres is exposed on `5432` for local tooling.
+Postgres is exposed on `5001` for local tooling (override via `POSTGRES_PORT`
+in `.env`; the default avoids clashing with other dev Postgres instances on
+5432). The container always listens on `5432` internally.
 
 ### Reaching it from your phone
 
-Use your **host machine's LAN IP**, not the "Network" address Vite prints — that's
-the Docker bridge IP and is unreachable from outside the container.
+Easiest path is **mDNS** (`*.local`), which works out of the box on macOS and on
+Linux with Avahi installed. Set `HOST_HOSTNAME` in `.env` to your host machine's
+short name and Vite will print a clickable LAN URL on boot.
+
+- macOS: `scutil --get LocalHostName` — set `HOST_HOSTNAME=<that>`.
+- Linux: `hostname` — set `HOST_HOSTNAME=<that>` (requires Avahi/mDNS on host).
+
+Then on the phone: `http://<HOST_HOSTNAME>.local:5173`.
+
+If mDNS doesn't resolve (Windows host, locked-down router, no Avahi), fall back
+to the manual LAN IP. Set `HOST_LAN_IP` and Vite prints that URL too.
 
 - macOS: `ipconfig getifaddr en0` (Wi-Fi) — e.g. `192.168.1.42`
 - Linux: `hostname -I | awk '{print $1}'`
 
-Then on the phone: `http://192.168.1.42:5173`.
+Then on the phone: `http://<HOST_LAN_IP>:5173`.
+
+Note: the "Network" line Vite prints by default is the Docker bridge IP and is
+unreachable from outside the container — only the `HOST_HOSTNAME` / `HOST_LAN_IP`
+lines printed alongside it work from the phone.
 
 If it times out: check the host firewall (macOS System Settings → Network →
 Firewall, or `sudo ufw status` on Linux) and allow inbound TCP on `5173` (and
@@ -41,8 +56,14 @@ To stop and clean up:
 docker compose --env-file .env -f infra/compose.yaml down
 ```
 
-Postgres data persists in a named Docker volume (`pgdata`); it survives `down` but
-is removed by `down -v`.
+Postgres data persists in a named Docker volume (`hovimestari_pgdata`); it
+survives `down` but is removed by `down -v`. The web and shared `node_modules`
+caches use `hovimestari_web_node_modules` and `hovimestari_shared_node_modules`
+respectively. These names are declared explicitly in `compose.yaml` and match
+the names Compose has auto-generated since the project was first scaffolded —
+so no data migration is needed for existing stacks. If you started the stack
+with a non-default `COMPOSE_PROJECT_NAME`, your existing volumes will be
+prefixed differently and you'll need to migrate them manually.
 
 ## Phase 1
 

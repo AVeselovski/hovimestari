@@ -38,6 +38,33 @@ Guidance:
 
 amount and unit are separate strings ("400" and "g", "1" and "tlk", "2" and "kynttä"). If amount is unclear, use an empty string. Output the JSON object and nothing else.`;
 
+export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  required: ["name", "time", "servings", "category", "ingredients"],
+  properties: {
+    name: { type: "string" },
+    time: { type: "number" },
+    servings: { type: "number" },
+    category: { type: "string", enum: ["common", "special"] },
+    keepsOvernight: { type: "boolean" },
+    ingredients: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "amount", "unit", "category"],
+        properties: {
+          name: { type: "string" },
+          amount: { type: "string" },
+          unit: { type: "string" },
+          category: { type: "string", enum: [...AISLE_CATEGORIES] },
+        },
+      },
+    },
+  },
+};
+
 export function recipeFromTextTask(text: string): LLMTask<RecipeDraft> {
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
@@ -47,7 +74,14 @@ export function recipeFromTextTask(text: string): LLMTask<RecipeDraft> {
   return {
     name: "recipe-from-text",
     messages,
-    opts: { temperature: 0.1, jsonMode: true, maxTokens: 2048 },
+    opts: {
+      temperature: 0.1,
+      maxTokens: 2048,
+      responseSchema: {
+        name: "recipe_draft",
+        schema: RECIPE_DRAFT_JSON_SCHEMA,
+      },
+    },
     parse: (raw: string): LLMTaskParseResult<RecipeDraft> => {
       const cleaned = stripJsonFences(raw).trim();
       if (cleaned.length === 0) {

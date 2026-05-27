@@ -31,9 +31,10 @@ describe("recipeFromTextTask prompt", () => {
     }
   });
 
-  it("requests JSON output mode and low temperature", () => {
+  it("requests a json_schema response format and low temperature", () => {
     const task = recipeFromTextTask("x");
-    expect(task.opts?.jsonMode).toBe(true);
+    expect(task.opts?.responseSchema?.name).toBe("recipe_draft");
+    expect(task.opts?.responseSchema?.schema).toBeDefined();
     expect(task.opts?.temperature).toBeLessThanOrEqual(0.2);
   });
 });
