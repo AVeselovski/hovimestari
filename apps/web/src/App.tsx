@@ -182,7 +182,7 @@ export function App(): JSX.Element {
           onDraft={(draft, warnings) => {
             setImporting(false);
             setEditorWarnings(warnings);
-            setEditingRecipe({ ...draft, id: uid() });
+            setEditingRecipe({ ...draft });
           }}
           onBlank={() => {
             setImporting(false);

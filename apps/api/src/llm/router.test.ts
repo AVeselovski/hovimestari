@@ -3,6 +3,7 @@ import {
   Router,
   LLMTaskFailedError,
   NoProvidersConfiguredError,
+  ForcedProviderUnavailableError,
 } from "./router.js";
 import { LLMUnavailableError, type LLMProvider } from "./types.js";
 import type { LLMTask } from "./tasks/types.js";
@@ -151,6 +152,34 @@ describe("Router", () => {
       LLMTaskFailedError,
     );
     expect(local.chat).not.toHaveBeenCalled();
+  });
+
+  it("throws ForcedProviderUnavailableError when forced provider is null", async () => {
+    const local = fakeProvider("lmstudio", "ok-local");
+    const router = new Router({
+      local,
+      anthropic: null,
+      logger: silentLogger(),
+      forcedProvider: "anthropic",
+    });
+    await expect(router.run(boxTask())).rejects.toBeInstanceOf(
+      ForcedProviderUnavailableError,
+    );
+    expect(local.chat).not.toHaveBeenCalled();
+  });
+
+  it("forced=local with no local configured throws ForcedProviderUnavailableError", async () => {
+    const anthropic = fakeProvider("anthropic", "ok-anthropic");
+    const router = new Router({
+      local: null,
+      anthropic,
+      logger: silentLogger(),
+      forcedProvider: "local",
+    });
+    await expect(router.run(boxTask())).rejects.toBeInstanceOf(
+      ForcedProviderUnavailableError,
+    );
+    expect(anthropic.chat).not.toHaveBeenCalled();
   });
 
   it("with only one provider, uses it regardless of confidence", async () => {

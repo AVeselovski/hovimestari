@@ -20,9 +20,18 @@ export type RouterOpts = {
 };
 
 export class NoProvidersConfiguredError extends Error {
-  constructor() {
-    super("no LLM providers configured");
+  constructor(message = "no LLM providers configured") {
+    super(message);
     this.name = "NoProvidersConfiguredError";
+  }
+}
+
+export class ForcedProviderUnavailableError extends NoProvidersConfiguredError {
+  readonly forced: "anthropic" | "local";
+  constructor(forced: "anthropic" | "local") {
+    super(`forced provider '${forced}' is not configured`);
+    this.name = "ForcedProviderUnavailableError";
+    this.forced = forced;
   }
 }
 
@@ -62,6 +71,9 @@ export class Router {
     if (!this.hasAnyProvider()) throw new NoProvidersConfiguredError();
 
     const order = this.providerOrder();
+    if (order.length === 0 && this.forced !== null) {
+      throw new ForcedProviderUnavailableError(this.forced);
+    }
     const attempts: Array<{ provider: string; error: string }> = [];
     let lastLowConfidence: RouterRunResult<T> | null = null;
 

@@ -1,6 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic, { APIConnectionError, APIError } from "@anthropic-ai/sdk";
 import type { FastifyBaseLogger } from "fastify";
-import type { ChatMessage, ChatOpts, ChatResponse, LLMProvider } from "./types.js";
+import {
+  LLMUnavailableError,
+  type ChatMessage,
+  type ChatOpts,
+  type ChatResponse,
+  type LLMProvider,
+} from "./types.js";
 
 export type AnthropicProviderOpts = {
   apiKey: string;
@@ -39,13 +45,31 @@ export class AnthropicProvider implements LLMProvider {
     }
 
     const startedAt = Date.now();
-    const res = await this.client.messages.create({
-      model: this.model,
-      max_tokens: opts?.maxTokens ?? 2048,
-      temperature: opts?.temperature ?? 0.2,
-      system,
-      messages: apiMessages,
-    });
+    let res: Awaited<ReturnType<typeof this.client.messages.create>>;
+    try {
+      res = await this.client.messages.create({
+        model: this.model,
+        max_tokens: opts?.maxTokens ?? 2048,
+        temperature: opts?.temperature ?? 0.2,
+        system,
+        messages: apiMessages,
+      });
+    } catch (err) {
+      if (err instanceof APIConnectionError) {
+        throw new LLMUnavailableError(
+          `Anthropic connection error: ${(err as Error).message}`,
+        );
+      }
+      if (err instanceof APIError) {
+        const status = err.status;
+        if (typeof status === "number" && (status >= 500 || status === 429)) {
+          throw new LLMUnavailableError(
+            `Anthropic transient ${status}: ${err.message}`,
+          );
+        }
+      }
+      throw err;
+    }
     const latencyMs = Date.now() - startedAt;
 
     const raw = res.content

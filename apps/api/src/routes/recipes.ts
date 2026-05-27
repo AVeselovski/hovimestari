@@ -4,6 +4,7 @@ import {
   type RecipeImportResponse,
 } from "@hovi/shared";
 import {
+  ForcedProviderUnavailableError,
   LLMTaskFailedError,
   NoProvidersConfiguredError,
   recipeFromTextTask,
@@ -40,6 +41,14 @@ export async function recipesRoutes(
       };
       return body;
     } catch (err) {
+      if (err instanceof ForcedProviderUnavailableError) {
+        reply.code(503);
+        return {
+          error: "forced_provider_unavailable",
+          forced: err.forced,
+          detail: err.message,
+        };
+      }
       if (err instanceof NoProvidersConfiguredError) {
         reply.code(503);
         return { error: "no_llm_provider_configured" };

@@ -52,8 +52,13 @@ export class LMStudioProvider implements LLMProvider {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60_000),
       });
     } catch (err) {
+      const name = (err as { name?: string } | null)?.name;
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new LLMUnavailableError("LM Studio request timed out after 60s");
+      }
       throw new LLMUnavailableError(
         `LM Studio fetch failed: ${(err as Error).message}`,
       );
