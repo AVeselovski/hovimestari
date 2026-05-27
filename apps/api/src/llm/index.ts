@@ -3,7 +3,12 @@ import { AnthropicProvider } from "./anthropic.js";
 import { LMStudioProvider } from "./lmstudio.js";
 import { Router, type ForcedProvider } from "./router.js";
 
-export { Router, NoProvidersConfiguredError, LLMTaskFailedError } from "./router.js";
+export {
+  Router,
+  NoProvidersConfiguredError,
+  ForcedProviderUnavailableError,
+  LLMTaskFailedError,
+} from "./router.js";
 export { recipeFromTextTask } from "./tasks/recipe-from-text.js";
 export type { LLMProvider } from "./types.js";
 export { LLMUnavailableError } from "./types.js";
