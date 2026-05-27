@@ -19,6 +19,13 @@ type ChatCompletionResponse = {
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 };
 
+type ResponseFormat =
+  | { type: "text" }
+  | {
+      type: "json_schema";
+      json_schema: { name: string; strict: true; schema: Record<string, unknown> };
+    };
+
 export class LMStudioProvider implements LLMProvider {
   readonly name = "lmstudio";
   private readonly baseUrl: string;
@@ -34,34 +41,35 @@ export class LMStudioProvider implements LLMProvider {
   }
 
   async chat(messages: ChatMessage[], opts?: ChatOpts): Promise<ChatResponse> {
-    const body: Record<string, unknown> = {
-      model: this.model,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      temperature: opts?.temperature ?? 0.2,
-    };
-    if (opts?.maxTokens !== undefined) body.max_tokens = opts.maxTokens;
-    if (opts?.jsonMode === true) {
-      body.response_format = { type: "json_object" };
-    }
-
     const url = `${this.baseUrl}/chat/completions`;
     const startedAt = Date.now();
-    let res: Response;
-    try {
-      res = await this.fetchImpl(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(60_000),
-      });
-    } catch (err) {
-      const name = (err as { name?: string } | null)?.name;
-      if (name === "TimeoutError" || name === "AbortError") {
-        throw new LLMUnavailableError("LM Studio request timed out after 60s");
+
+    const initialFormat: ResponseFormat = opts?.responseSchema
+      ? {
+          type: "json_schema",
+          json_schema: {
+            name: opts.responseSchema.name,
+            strict: true,
+            schema: opts.responseSchema.schema,
+          },
+        }
+      : { type: "text" };
+
+    let res = await this.send(url, messages, opts, initialFormat);
+
+    if (!res.ok && res.status === 400 && initialFormat.type === "json_schema") {
+      const text = await res.text().catch(() => "");
+      if (text.toLowerCase().includes("response_format")) {
+        this.logger.warn(
+          { provider: this.name, body: text.slice(0, 200) },
+          "lmstudio rejected json_schema response_format, retrying with text",
+        );
+        res = await this.send(url, messages, opts, { type: "text" });
+      } else {
+        throw new LLMUnavailableError(
+          `LM Studio HTTP 400: ${text.slice(0, 200)}`,
+        );
       }
-      throw new LLMUnavailableError(
-        `LM Studio fetch failed: ${(err as Error).message}`,
-      );
     }
 
     if (!res.ok) {
@@ -89,5 +97,37 @@ export class LMStudioProvider implements LLMProvider {
     );
 
     return { content, usage: { inputTokens, outputTokens } };
+  }
+
+  private async send(
+    url: string,
+    messages: ChatMessage[],
+    opts: ChatOpts | undefined,
+    responseFormat: ResponseFormat,
+  ): Promise<Response> {
+    const body: Record<string, unknown> = {
+      model: this.model,
+      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      temperature: opts?.temperature ?? 0.2,
+      response_format: responseFormat,
+    };
+    if (opts?.maxTokens !== undefined) body.max_tokens = opts.maxTokens;
+
+    try {
+      return await this.fetchImpl(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (err) {
+      const name = (err as { name?: string } | null)?.name;
+      if (name === "TimeoutError" || name === "AbortError") {
+        throw new LLMUnavailableError("LM Studio request timed out after 60s");
+      }
+      throw new LLMUnavailableError(
+        `LM Studio fetch failed: ${(err as Error).message}`,
+      );
+    }
   }
 }

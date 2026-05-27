@@ -39,6 +39,7 @@ export class AnthropicProvider implements LLMProvider {
     // Without tool-use we coax JSON via system prompt + assistant prefill.
     // The prefill is reflected back as the first character of the response so
     // we restore it before returning to the caller.
+    // responseSchema is LM-Studio-only for now.
     const wantsJson = opts?.jsonMode === true;
     if (wantsJson) {
       apiMessages.push({ role: "assistant", content: "{" });

@@ -7,6 +7,7 @@ export type ChatOpts = {
   temperature?: number;
   maxTokens?: number;
   jsonMode?: boolean;
+  responseSchema?: { name: string; schema: Record<string, unknown> };
 };
 
 export type ChatResponse = {
