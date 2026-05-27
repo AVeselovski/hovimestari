@@ -71,7 +71,71 @@ docker compose --env-file .env -f infra/compose.yaml exec db \
 docker compose --env-file .env -f infra/compose.yaml restart api
 ```
 
-### Troubleshooting
+## Phase 2 — AI recipe import
+
+The Reseptit tab's "Uusi" button now opens an import sheet with three options:
+
+- **Kirjoita / liitä** — paste a Finnish recipe blob; the API parses it into a draft `Recipe` and opens the editor for review.
+- **Kuva** / **Ääni** — placeholders ("tulossa"), not wired up yet.
+- **tyhjästä** — skip AI and open a blank editor (the Phase 1 flow).
+
+Text import calls `POST /recipes/from-text`, which routes through an
+`LLMProvider`. Two providers ship at day one and either can be used alone:
+
+| Env vars set                              | Behaviour                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------- |
+| Neither                                   | Route returns 503; the UI shows an error                                  |
+| `LMSTUDIO_BASE_URL` only                  | Local-only; no fallback                                                   |
+| `ANTHROPIC_API_KEY` only                  | Anthropic-only; no fallback                                               |
+| Both                                      | Local first; Anthropic fallback on parse failure or `confidence < 0.6`    |
+| `HOVI_FORCE_PROVIDER=anthropic` or `local`| Forces that provider; no fallback. 503 if the forced target is unset      |
+
+### Option A — LM Studio (local, free)
+
+1. Install [LM Studio](https://lmstudio.ai) on the host machine.
+2. Download a model that supports JSON-mode output. A small Finnish-capable
+   instruct model is enough for recipe parsing.
+3. Start the server (LM Studio → Developer → Start Server). Default port `1234`.
+4. In `.env` at the repo root:
+
+   ```
+   LMSTUDIO_BASE_URL=http://host.docker.internal:1234/v1
+   LMSTUDIO_MODEL=
+   ```
+
+   `LMSTUDIO_MODEL` can stay empty; LM Studio uses whatever model is currently
+   loaded. The `host.docker.internal` host is mapped to the host gateway via
+   `extra_hosts` in `compose.yaml`, so the API container can reach LM Studio
+   on Linux as well as macOS.
+
+5. `docker compose --env-file .env -f infra/compose.yaml up --build`.
+
+### Option B — Anthropic API (cloud, paid)
+
+1. Create a key at <https://console.anthropic.com>.
+2. In `.env`:
+
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...
+   ANTHROPIC_MODEL=claude-sonnet-4-6
+   ```
+
+3. `docker compose --env-file .env -f infra/compose.yaml up --build`.
+
+Costs apply per call. Running without `LMSTUDIO_BASE_URL` set means *every*
+import hits Anthropic — set both if you want the local-first behaviour.
+
+### Debugging
+
+- `HOVI_FORCE_PROVIDER=anthropic` (or `=local`) pins the router to one provider
+  and skips fallback. Useful for reproducing provider-specific bugs.
+- The API logs one structured line per provider call:
+  `{ task: 'recipe-from-text', provider, inputTokens, outputTokens, latencyMs }`.
+- 502 responses include an `attempts` array showing what each provider returned.
+- LM Studio requests have a 60-second timeout; if the model is mid-load the
+  router falls back to Anthropic (when configured).
+
+## Troubleshooting
 
 **`Cannot find module '/repo/apps/web/node_modules/vite/bin/vite.js'`** — the
 `web_node_modules` named volume was populated from a previous build that didn't
