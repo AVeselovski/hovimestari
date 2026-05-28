@@ -10,6 +10,7 @@ function makeRecipe(id: string, lastUsed?: string, category: "common" | "special
     servings: 4,
     category,
     ingredients: [],
+    instructions: [],
     lastUsed,
   };
 }

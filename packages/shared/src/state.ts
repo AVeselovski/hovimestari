@@ -30,6 +30,7 @@ export const RecipeSchema = z.object({
   category: z.enum(["common", "special"]),
   keepsOvernight: z.boolean().optional(),
   ingredients: z.array(IngredientSchema),
+  instructions: z.array(z.string().min(1).max(1000)).default([]),
   lastUsed: z.string().optional(),
 });
 export type Recipe = z.infer<typeof RecipeSchema>;
