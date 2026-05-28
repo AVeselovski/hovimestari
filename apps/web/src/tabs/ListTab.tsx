@@ -130,7 +130,7 @@ export function ListTab({
                     target={SKAUPAT_TAB_NAME}
                     rel="noopener noreferrer"
                     onClick={() => toggleChecked(key)}
-                    className="flex items-center gap-3 py-2.5"
+                    className="flex items-center gap-3 py-2.5 no-underline"
                     style={{ color: "var(--ink)" }}
                   >
                     <span
