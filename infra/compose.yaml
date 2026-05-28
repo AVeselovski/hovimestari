@@ -54,15 +54,11 @@ services:
     volumes:
       - ../apps/web:/repo/apps/web
       - ../packages/shared:/repo/packages/shared
-      - web_node_modules:/repo/apps/web/node_modules
-      - shared_node_modules:/repo/packages/shared/node_modules
+      - /repo/apps/web/node_modules
+      - /repo/packages/shared/node_modules
     depends_on:
       - api
 
 volumes:
   pgdata:
     name: hovimestari_pgdata
-  web_node_modules:
-    name: hovimestari_web_node_modules
-  shared_node_modules:
-    name: hovimestari_shared_node_modules

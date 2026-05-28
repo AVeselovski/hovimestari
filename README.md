@@ -103,13 +103,13 @@ The Reseptit tab's "Uusi" button now opens an import sheet with three options:
 Text import calls `POST /recipes/from-text`, which routes through an
 `LLMProvider`. Two providers ship at day one and either can be used alone:
 
-| Env vars set                              | Behaviour                                                                 |
-| ----------------------------------------- | ------------------------------------------------------------------------- |
-| Neither                                   | Route returns 503; the UI shows an error                                  |
-| `LMSTUDIO_BASE_URL` only                  | Local-only; no fallback                                                   |
-| `ANTHROPIC_API_KEY` only                  | Anthropic-only; no fallback                                               |
-| Both                                      | Local first; Anthropic fallback on parse failure or `confidence < 0.6`    |
-| `HOVI_FORCE_PROVIDER=anthropic` or `local`| Forces that provider; no fallback. 503 if the forced target is unset      |
+| Env vars set                               | Behaviour                                                              |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| Neither                                    | Route returns 503; the UI shows an error                               |
+| `LMSTUDIO_BASE_URL` only                   | Local-only; no fallback                                                |
+| `ANTHROPIC_API_KEY` only                   | Anthropic-only; no fallback                                            |
+| Both                                       | Local first; Anthropic fallback on parse failure or `confidence < 0.6` |
+| `HOVI_FORCE_PROVIDER=anthropic` or `local` | Forces that provider; no fallback. 503 if the forced target is unset   |
 
 ### Option A — LM Studio (local, free)
 
@@ -122,7 +122,7 @@ Text import calls `POST /recipes/from-text`, which routes through an
 3. Start the server (LM Studio → Developer → Start Server). Default port `1234`.
 4. In `.env` at the repo root:
 
-   ```
+   ```text
    LMSTUDIO_BASE_URL=http://host.docker.internal:1234/v1
    LMSTUDIO_MODEL=qwen/qwen3.5-9b
    ```
@@ -142,14 +142,14 @@ Text import calls `POST /recipes/from-text`, which routes through an
 1. Create a key at <https://console.anthropic.com>.
 2. In `.env`:
 
-   ```
+   ```text
    ANTHROPIC_API_KEY=sk-ant-...
    ANTHROPIC_MODEL=claude-sonnet-4-6
    ```
 
 3. `docker compose --env-file .env -f infra/compose.yaml up --build`.
 
-Costs apply per call. Running without `LMSTUDIO_BASE_URL` set means *every*
+Costs apply per call. Running without `LMSTUDIO_BASE_URL` set means _every_
 import hits Anthropic — set both if you want the local-first behaviour.
 
 ### Debugging
