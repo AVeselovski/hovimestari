@@ -114,20 +114,26 @@ Text import calls `POST /recipes/from-text`, which routes through an
 ### Option A — LM Studio (local, free)
 
 1. Install [LM Studio](https://lmstudio.ai) on the host machine.
-2. Download a model that supports JSON-mode output. A small Finnish-capable
-   instruct model is enough for recipe parsing.
+2. Download a model. Recommended: **Qwen 3.5 9B** (dense, ~6 GB at Q4_K_M).
+   Qwen-family dense models handle Finnish-to-structured-JSON reliably; some
+   larger MoE / heavily-quantized variants (e.g. Gemma 4 26B-a4b) look
+   bigger on paper but derail mid-output on this kind of task. Dense in the
+   8–14B range is the sweet spot.
 3. Start the server (LM Studio → Developer → Start Server). Default port `1234`.
 4. In `.env` at the repo root:
 
    ```
    LMSTUDIO_BASE_URL=http://host.docker.internal:1234/v1
-   LMSTUDIO_MODEL=
+   LMSTUDIO_MODEL=qwen/qwen3.5-9b
    ```
 
-   `LMSTUDIO_MODEL` can stay empty; LM Studio uses whatever model is currently
-   loaded. The `host.docker.internal` host is mapped to the host gateway via
-   `extra_hosts` in `compose.yaml`, so the API container can reach LM Studio
-   on Linux as well as macOS.
+   `LMSTUDIO_MODEL` must match the exact model ID shown in LM Studio's
+   Developer tab (the string under each loaded model, e.g. `qwen/qwen3.5-9b`).
+   If only one model is loaded you can leave it empty and LM Studio will use
+   that one; with multiple models loaded, set it explicitly so requests are
+   routed correctly. The `host.docker.internal` host is mapped to the host
+   gateway via `extra_hosts` in `compose.yaml`, so the API container can
+   reach LM Studio on Linux as well as macOS.
 
 5. `docker compose --env-file .env -f infra/compose.yaml up --build`.
 
