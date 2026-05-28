@@ -125,10 +125,13 @@ export function ListTab({
                   className="border-b"
                   style={{ borderColor: "var(--rule)" }}
                 >
+                  {/* No rel="noopener" here on purpose: per the HTML spec, named-target
+                       lookup skips noopener-opened browsing contexts, so each click would
+                       spawn a fresh tab in Chrome. Modern browsers still apply implicit
+                       noopener to cross-origin target navigations, so security is intact. */}
                   <a
                     href={skaupatSearchUrl(it.name)}
                     target={SKAUPAT_TAB_NAME}
-                    rel="noopener noreferrer"
                     onClick={() => toggleChecked(key)}
                     className="flex items-center gap-3 py-2.5 no-underline"
                     style={{ color: "var(--ink)" }}
