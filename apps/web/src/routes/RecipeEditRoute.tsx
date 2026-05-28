@@ -3,7 +3,7 @@ import type { State } from "@hovi/shared";
 import { useStore } from "../lib/stateContext.js";
 import {
   RecipeEditor,
-  type RecipeDraft,
+  type RecipeEditorDraft,
 } from "../components/RecipeEditor.js";
 import { NotFound } from "./NotFound.js";
 
@@ -15,12 +15,12 @@ export function RecipeEditRoute(): JSX.Element | null {
   const recipe = state.recipes.find((r) => r.id === id);
   if (!recipe) return <NotFound />;
 
-  const initial: RecipeDraft = {
+  const initial: RecipeEditorDraft = {
     ...recipe,
     instructions: recipe.instructions ?? [],
   };
 
-  const onSave = (draft: RecipeDraft): void => {
+  const onSave = (draft: RecipeEditorDraft): void => {
     mutate((s: State) => ({
       ...s,
       recipes: s.recipes.map((r) =>

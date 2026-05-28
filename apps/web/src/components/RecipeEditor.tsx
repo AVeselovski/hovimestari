@@ -12,7 +12,7 @@ import { CATEGORIES } from "../lib/categories.js";
 import { Field } from "./Field.js";
 import { SectionHead } from "./SectionHead.js";
 
-export type RecipeDraft = Omit<Recipe, "id"> & { id?: string };
+export type RecipeEditorDraft = Omit<Recipe, "id"> & { id?: string };
 
 export function RecipeEditor({
   initial,
@@ -20,12 +20,12 @@ export function RecipeEditor({
   onCancel,
   warnings,
 }: {
-  initial: RecipeDraft;
-  onSave: (r: RecipeDraft) => void;
+  initial: RecipeEditorDraft;
+  onSave: (r: RecipeEditorDraft) => void;
   onCancel: () => void;
   warnings?: string[];
 }): JSX.Element {
-  const [r, setR] = useState<RecipeDraft>({
+  const [r, setR] = useState<RecipeEditorDraft>({
     ...initial,
     ingredients: initial.ingredients ?? [],
     instructions: initial.instructions ?? [],
@@ -80,7 +80,7 @@ export function RecipeEditor({
     });
 
   const save = (): void => {
-    const cleaned: RecipeDraft = {
+    const cleaned: RecipeEditorDraft = {
       ...r,
       instructions: (r.instructions ?? [])
         .map((s) => s.trim())
@@ -304,6 +304,7 @@ export function RecipeEditor({
                   style={{ borderColor: "var(--rule)" }}
                   placeholder={`Vaihe ${i + 1}`}
                   value={step}
+                  maxLength={1000}
                   onChange={(e) => updateStep(i, e.target.value)}
                 />
                 <button
