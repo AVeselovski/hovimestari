@@ -15,7 +15,10 @@ export type LMStudioProviderOpts = {
 };
 
 type ChatCompletionResponse = {
-  choices: Array<{ message: { content: string | null } }>;
+  choices: Array<{
+    message: { content: string | null };
+    finish_reason?: string;
+  }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
 };
 
@@ -82,8 +85,15 @@ export class LMStudioProvider implements LLMProvider {
     const data = (await res.json()) as ChatCompletionResponse;
     const latencyMs = Date.now() - startedAt;
     const content = data.choices?.[0]?.message?.content ?? "";
+    const finishReason = data.choices?.[0]?.finish_reason;
     const inputTokens = data.usage?.prompt_tokens ?? 0;
     const outputTokens = data.usage?.completion_tokens ?? 0;
+
+    if (finishReason === "length") {
+      throw new LLMUnavailableError(
+        `LM Studio output truncated at ${outputTokens} tokens (finish_reason=length) — raise maxTokens`,
+      );
+    }
 
     this.logger.info(
       {

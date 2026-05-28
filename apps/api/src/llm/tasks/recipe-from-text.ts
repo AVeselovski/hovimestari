@@ -82,7 +82,7 @@ export function recipeFromTextTask(text: string): LLMTask<RecipeDraft> {
     messages,
     opts: {
       temperature: 0.1,
-      maxTokens: 2048,
+      maxTokens: 4096,
       responseSchema: {
         name: "recipe_draft",
         schema: RECIPE_DRAFT_JSON_SCHEMA,
