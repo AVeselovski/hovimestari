@@ -1,16 +1,18 @@
 import { Edit2, Plus, Trash2 } from "lucide-react";
+import type { MouseEvent } from "react";
 import type { Recipe } from "@hovi/shared";
 import { SectionHead } from "../components/SectionHead.js";
-import type { RecipeDraft } from "../components/RecipeEditor.js";
 
 export function RecipesTab({
   recipes,
+  onOpen,
   onEdit,
   onDelete,
   onNew,
 }: {
   recipes: Recipe[];
-  onEdit: (r: RecipeDraft) => void;
+  onOpen: (id: string) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onNew: () => void;
 }): JSX.Element {
@@ -33,12 +35,14 @@ export function RecipesTab({
       <RecipeGroup
         title="Arki"
         recipes={common}
+        onOpen={onOpen}
         onEdit={onEdit}
         onDelete={onDelete}
       />
       <RecipeGroup
         title="Erikois"
         recipes={special}
+        onOpen={onOpen}
         onEdit={onEdit}
         onDelete={onDelete}
       />
@@ -49,14 +53,21 @@ export function RecipesTab({
 function RecipeGroup({
   title,
   recipes,
+  onOpen,
   onEdit,
   onDelete,
 }: {
   title: string;
   recipes: Recipe[];
-  onEdit: (r: Recipe) => void;
+  onOpen: (id: string) => void;
+  onEdit: (id: string) => void;
   onDelete: (id: string) => void;
 }): JSX.Element {
+  const stop = (e: MouseEvent): void => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
     <section className="space-y-2">
       <SectionHead>{title}</SectionHead>
@@ -68,7 +79,8 @@ function RecipeGroup({
       {recipes.map((r) => (
         <div
           key={r.id}
-          className="rounded-xl p-4 border"
+          onClick={() => onOpen(r.id)}
+          className="rounded-xl p-4 border cursor-pointer"
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           <div className="flex items-start justify-between gap-3">
@@ -86,7 +98,10 @@ function RecipeGroup({
             </div>
             <div className="flex gap-1 shrink-0">
               <button
-                onClick={() => onEdit(r)}
+                onClick={(e) => {
+                  stop(e);
+                  onEdit(r.id);
+                }}
                 className="p-2 rounded-lg"
                 style={{ color: "var(--muted)" }}
                 aria-label="Muokkaa reseptiä"
@@ -94,7 +109,10 @@ function RecipeGroup({
                 <Edit2 size={15} />
               </button>
               <button
-                onClick={() => onDelete(r.id)}
+                onClick={(e) => {
+                  stop(e);
+                  onDelete(r.id);
+                }}
                 className="p-2 rounded-lg"
                 style={{ color: "var(--muted)" }}
                 aria-label="Poista resepti"

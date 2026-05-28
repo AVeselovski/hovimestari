@@ -36,7 +36,9 @@ Guidance:
 - "drinks" = beverages including wine.
 - "other" = anything that does not fit above.
 
-amount and unit are separate strings ("400" and "g", "1" and "tlk", "2" and "kynttä"). If amount is unclear, use an empty string. Output the JSON object and nothing else.`;
+amount and unit are separate strings ("400" and "g", "1" and "tlk", "2" and "kynttä"). If amount is unclear, use an empty string. Output the JSON object and nothing else.
+
+Jos teksti sisältää valmistusohjeet, palauta ne instructions-kentässä numeroimattomana stringien listana — yksi vaihe per merkkijono, ei markdown-muotoilua. Jos ohjeita ei ole, jätä kenttä pois tai palauta tyhjä lista.`;
 
 export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -61,6 +63,10 @@ export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
           category: { type: "string", enum: [...AISLE_CATEGORIES] },
         },
       },
+    },
+    instructions: {
+      type: "array",
+      items: { type: "string" },
     },
   },
 };

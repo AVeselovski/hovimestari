@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { ArrowLeft, Check, Plus, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  X,
+} from "lucide-react";
 import type { Recipe, Ingredient, AisleCategory } from "@hovi/shared";
 import { CATEGORIES } from "../lib/categories.js";
 import { Field } from "./Field.js";
@@ -21,6 +28,7 @@ export function RecipeEditor({
   const [r, setR] = useState<RecipeDraft>({
     ...initial,
     ingredients: initial.ingredients ?? [],
+    instructions: initial.instructions ?? [],
   });
 
   const updateIng = (idx: number, patch: Partial<Ingredient>): void => {
@@ -45,7 +53,44 @@ export function RecipeEditor({
       ingredients: rr.ingredients.filter((_, i) => i !== idx),
     }));
 
+  const updateStep = (idx: number, value: string): void =>
+    setR((rr) => ({
+      ...rr,
+      instructions: (rr.instructions ?? []).map((s, i) =>
+        i === idx ? value : s,
+      ),
+    }));
+  const addStep = (): void =>
+    setR((rr) => ({
+      ...rr,
+      instructions: [...(rr.instructions ?? []), ""],
+    }));
+  const removeStep = (idx: number): void =>
+    setR((rr) => ({
+      ...rr,
+      instructions: (rr.instructions ?? []).filter((_, i) => i !== idx),
+    }));
+  const moveStep = (idx: number, dir: -1 | 1): void =>
+    setR((rr) => {
+      const list = [...(rr.instructions ?? [])];
+      const target = idx + dir;
+      if (target < 0 || target >= list.length) return rr;
+      [list[idx], list[target]] = [list[target], list[idx]];
+      return { ...rr, instructions: list };
+    });
+
+  const save = (): void => {
+    const cleaned: RecipeDraft = {
+      ...r,
+      instructions: (r.instructions ?? [])
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    };
+    onSave(cleaned);
+  };
+
   const canSave = r.name.trim().length > 0;
+  const steps = r.instructions ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "var(--paper)" }}>
@@ -62,7 +107,7 @@ export function RecipeEditor({
         </button>
         <p className="font-display text-lg">{initial.id ? "Muokkaa" : "Uusi resepti"}</p>
         <button
-          onClick={() => canSave && onSave(r)}
+          onClick={() => canSave && save()}
           disabled={!canSave}
           className="text-sm px-3 py-1.5 rounded-full"
           style={{
@@ -229,6 +274,69 @@ export function RecipeEditor({
             {r.ingredients.length === 0 && (
               <p className="text-xs text-center py-4" style={{ color: "var(--muted)" }}>
                 Ei vielä aineksia.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <SectionHead>Ohjeet</SectionHead>
+            <button
+              onClick={addStep}
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ background: "var(--ink)", color: "var(--paper)" }}
+            >
+              <Plus size={12} className="inline -mt-0.5" /> Lisää vaihe
+            </button>
+          </div>
+          <div className="space-y-2">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span
+                  className="font-mono text-xs w-6 text-right shrink-0"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {i + 1}.
+                </span>
+                <input
+                  className="flex-1 min-w-0 px-2 py-1.5 rounded border bg-transparent text-sm"
+                  style={{ borderColor: "var(--rule)" }}
+                  placeholder={`Vaihe ${i + 1}`}
+                  value={step}
+                  onChange={(e) => updateStep(i, e.target.value)}
+                />
+                <button
+                  onClick={() => moveStep(i, -1)}
+                  disabled={i === 0}
+                  className="p-1.5 disabled:opacity-30"
+                  style={{ color: "var(--muted)" }}
+                  aria-label="Siirrä ylös"
+                >
+                  <ChevronUp size={16} />
+                </button>
+                <button
+                  onClick={() => moveStep(i, 1)}
+                  disabled={i === steps.length - 1}
+                  className="p-1.5 disabled:opacity-30"
+                  style={{ color: "var(--muted)" }}
+                  aria-label="Siirrä alas"
+                >
+                  <ChevronDown size={16} />
+                </button>
+                <button
+                  onClick={() => removeStep(i)}
+                  className="p-1.5"
+                  style={{ color: "var(--muted)" }}
+                  aria-label="Poista vaihe"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {steps.length === 0 && (
+              <p className="text-xs text-center py-4" style={{ color: "var(--muted)" }}>
+                Ei vielä ohjeita.
               </p>
             )}
           </div>

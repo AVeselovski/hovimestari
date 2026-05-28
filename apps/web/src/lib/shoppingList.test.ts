@@ -15,6 +15,7 @@ function baseState(): State {
           { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
           { name: "Tomaattimurska", amount: "1", unit: "tlk", category: "pantry" },
         ],
+        instructions: [],
       },
       {
         id: "r2",
@@ -26,6 +27,7 @@ function baseState(): State {
           { name: "Pasta", amount: "200", unit: "g", category: "pantry" },
           { name: "Sipuli", amount: "1", unit: "kpl", category: "produce" },
         ],
+        instructions: [],
       },
     ],
     stapleGroups: [
@@ -87,6 +89,7 @@ describe("buildShoppingList", () => {
       ingredients: [
         { name: "Maito", amount: "2", unit: "l", category: "dairy" },
       ],
+      instructions: [],
     });
     s.plan.selectedRecipeIds = ["r3"];
     const list = buildShoppingList(s);
@@ -108,6 +111,7 @@ describe("buildShoppingList", () => {
       ingredients: [
         { name: "Maito", amount: "2", unit: "dl", category: "dairy" },
       ],
+      instructions: [],
     });
     s.plan.selectedRecipeIds = ["r4"];
     const list = buildShoppingList(s);
@@ -129,6 +133,7 @@ describe("buildShoppingList", () => {
         { name: "Maito", amount: "2", unit: "dl", category: "dairy" },
         { name: "Maito", amount: "100", unit: "ml", category: "dairy" },
       ],
+      instructions: [],
     });
     s.plan.selectedRecipeIds = ["r5"];
     const list = buildShoppingList(s);

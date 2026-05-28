@@ -3,6 +3,7 @@ import {
   recipeFromTextTask,
   stripJsonFences,
   computeConfidence,
+  RECIPE_DRAFT_JSON_SCHEMA,
 } from "./recipe-from-text.js";
 
 describe("recipeFromTextTask prompt", () => {
@@ -126,6 +127,60 @@ describe("recipeFromTextTask.parse", () => {
   });
 });
 
+describe("recipeFromTextTask instructions", () => {
+  it("includes instructions in the JSON schema but not as required", () => {
+    const props = (
+      RECIPE_DRAFT_JSON_SCHEMA as {
+        properties: Record<string, unknown>;
+        required: string[];
+      }
+    );
+    expect(props.properties.instructions).toEqual({
+      type: "array",
+      items: { type: "string" },
+    });
+    expect(props.required).not.toContain("instructions");
+  });
+
+  it("defaults instructions to [] when absent in the response", () => {
+    const task = recipeFromTextTask("x");
+    const result = task.parse(
+      JSON.stringify({
+        name: "Pasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.instructions).toEqual([]);
+  });
+
+  it("round-trips a non-empty instructions array", () => {
+    const task = recipeFromTextTask("x");
+    const steps = ["Keitä pasta.", "Paista jauheliha.", "Sekoita kastike."];
+    const result = task.parse(
+      JSON.stringify({
+        name: "Jauhelihapasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+        ],
+        instructions: steps,
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.instructions).toEqual(steps);
+  });
+});
+
 describe("stripJsonFences", () => {
   it("removes ```json prefix and trailing ``` ", () => {
     expect(stripJsonFences("```json\n{\"a\":1}\n```")).toBe('{"a":1}');
@@ -149,6 +204,7 @@ describe("computeConfidence", () => {
         ingredients: [
           { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
         ],
+        instructions: [],
       },
       "Pasta 20 min, 400 g pastaa",
     );
@@ -169,6 +225,7 @@ describe("computeConfidence", () => {
           { name: "c", amount: "", unit: "g", category: "pantry" },
           { name: "d", amount: "", unit: "g", category: "pantry" },
         ],
+        instructions: [],
       },
       "abcd",
     );
