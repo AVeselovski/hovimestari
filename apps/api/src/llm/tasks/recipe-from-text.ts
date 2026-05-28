@@ -38,6 +38,12 @@ Guidance:
 
 amount and unit are separate strings ("400" and "g", "1" and "tlk", "2" and "kynttä"). If amount is unclear, use an empty string. Output the JSON object and nothing else.
 
+Ingredient-name canonicalization (the name is what gets searched in a grocery store, so keep it clean):
+- Strip retailer brand prefixes: "Pirkka tomaattimurska" → "tomaattimurska", "Atria broileri" → "broileri", "Saarioinen lihapullat" → "lihapullat".
+- Strip parentheticals that describe form, packaging, or preparation: "oliivit (kivettömät)" → "oliivit", "sipulikuutiot (pakaste)" → "sipulikuutiot", "tonnikala (vedessä)" → "tonnikala". The form may be useful but it's not part of the searchable name.
+- Use Finnish nominative case, plural where natural: "oliivit" not "oliiveja", "tomaatit" not "tomaatteja", "porkkanat" not "porkkanaa".
+- Keep "X tai Y" (either/or) constructs intact as one ingredient — do not split them into two rows: "mustat tai vihreät oliivit" stays as written.
+
 If the text includes preparation instructions, return them in the "instructions" field as a flat list of strings — one step per string, no numbering, no markdown. Keep the original language (Finnish stays Finnish). If no instructions are present, omit the field or return an empty list.`;
 
 export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
