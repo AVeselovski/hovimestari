@@ -4,16 +4,16 @@ import type { State } from "@hovi/shared";
 import { useStore } from "../lib/stateContext.js";
 import {
   RecipeEditor,
-  type RecipeDraft,
+  type RecipeEditorDraft,
 } from "../components/RecipeEditor.js";
 import { RecipeImportSheet } from "../components/RecipeImportSheet.js";
 import { uid } from "../lib/uid.js";
 
 type Phase =
   | { kind: "import" }
-  | { kind: "editor"; initial: RecipeDraft; warnings: string[] };
+  | { kind: "editor"; initial: RecipeEditorDraft; warnings: string[] };
 
-const BLANK: RecipeDraft = {
+const BLANK: RecipeEditorDraft = {
   name: "",
   time: 20,
   servings: 4,
@@ -29,7 +29,7 @@ export function RecipeNewRoute(): JSX.Element | null {
 
   if (!state) return null;
 
-  const onSave = (draft: RecipeDraft): void => {
+  const onSave = (draft: RecipeEditorDraft): void => {
     const id = uid();
     mutate((s: State) => ({
       ...s,
