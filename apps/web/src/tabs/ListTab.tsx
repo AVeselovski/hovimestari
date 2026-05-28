@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Check, Copy, RotateCcw, ShoppingCart } from "lucide-react";
 import type { State } from "@hovi/shared";
 import { buildShoppingList } from "../lib/shoppingList.js";
+import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
 
 export function ListTab({
   state,
@@ -121,35 +122,43 @@ export function ListTab({
               return (
                 <li
                   key={key}
-                  onClick={() => toggleChecked(key)}
-                  className="flex items-center gap-3 py-2.5 border-b cursor-pointer"
+                  className="border-b"
                   style={{ borderColor: "var(--rule)" }}
                 >
-                  <span
-                    className="w-4 h-4 rounded-sm border flex items-center justify-center shrink-0"
-                    style={{
-                      borderColor: "var(--ink)",
-                      background: isChecked ? "var(--ink)" : "transparent",
-                    }}
+                  <a
+                    href={skaupatSearchUrl(it.name)}
+                    target={SKAUPAT_TAB_NAME}
+                    rel="noopener noreferrer"
+                    onClick={() => toggleChecked(key)}
+                    className="flex items-center gap-3 py-2.5"
+                    style={{ color: "var(--ink)" }}
                   >
-                    {isChecked && (
-                      <Check size={11} style={{ color: "var(--paper)" }} />
-                    )}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm leading-tight ${isChecked ? "line-through opacity-50" : ""}`}
+                    <span
+                      className="w-4 h-4 rounded-sm border flex items-center justify-center shrink-0"
+                      style={{
+                        borderColor: "var(--ink)",
+                        background: isChecked ? "var(--ink)" : "transparent",
+                      }}
                     >
-                      {it.name}
+                      {isChecked && (
+                        <Check size={11} style={{ color: "var(--paper)" }} />
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-sm leading-tight ${isChecked ? "line-through opacity-50" : ""}`}
+                      >
+                        {it.name}
+                      </p>
+                    </div>
+                    <p
+                      className="text-xs tabular-nums"
+                      style={{ color: "var(--muted)" }}
+                    >
+                      {it.amount}
+                      {it.unit ? ` ${it.unit}` : ""}
                     </p>
-                  </div>
-                  <p
-                    className="text-xs tabular-nums"
-                    style={{ color: "var(--muted)" }}
-                  >
-                    {it.amount}
-                    {it.unit ? ` ${it.unit}` : ""}
-                  </p>
+                  </a>
                 </li>
               );
             })}
