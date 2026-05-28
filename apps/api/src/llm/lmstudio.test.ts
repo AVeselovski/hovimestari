@@ -168,6 +168,28 @@ describe("LMStudioProvider", () => {
     expect(calls[1].response_format).toEqual({ type: "text" });
   });
 
+  it("throws LLMUnavailableError when finish_reason is length", async () => {
+    const fetchImpl = (async () =>
+      jsonResponse({
+        choices: [
+          {
+            message: { content: '{"name": "trun' },
+            finish_reason: "length",
+          },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 2048 },
+      })) as unknown as typeof fetch;
+    const p = new LMStudioProvider({
+      baseUrl: "http://localhost:1234/v1",
+      model: "x",
+      logger: silentLogger(),
+      fetchImpl,
+    });
+    await expect(
+      p.chat([{ role: "user", content: "hi" }]),
+    ).rejects.toThrow(/truncated.*finish_reason=length/);
+  });
+
   it("does not retry on 400 unrelated to response_format", async () => {
     let calls = 0;
     const fetchImpl = (async () => {
