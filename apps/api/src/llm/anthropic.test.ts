@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { APIConnectionError, APIError } from "@anthropic-ai/sdk";
 import { AnthropicProvider } from "./anthropic.js";
+import { buildRouterFromEnv } from "./index.js";
 import { LLMUnavailableError } from "./types.js";
 import type { FastifyBaseLogger } from "fastify";
 
@@ -23,10 +24,12 @@ function silentLogger(): FastifyBaseLogger {
 
 function providerWithCreate(
   create: (...args: unknown[]) => Promise<unknown>,
+  models?: { textModel?: string; visionModel?: string },
 ): AnthropicProvider {
   const p = new AnthropicProvider({
     apiKey: "test",
-    model: "claude-test",
+    textModel: models?.textModel ?? "claude-test-text",
+    visionModel: models?.visionModel ?? "claude-test-vision",
     logger: silentLogger(),
   });
   // Swap the SDK client for a minimal stub on the messages.create path.
@@ -141,5 +144,104 @@ describe("AnthropicProvider", () => {
       );
       expect(res.content).toBe('{"name":"Pasta"}');
     });
+  });
+
+  describe("model selection", () => {
+    it("chat() uses textModel and vision() uses visionModel", async () => {
+      const captured: Array<Record<string, unknown>> = [];
+      const create = async (args: Record<string, unknown>) => {
+        captured.push(args);
+        return {
+          content: [{ type: "text", text: "ok" }],
+          usage: { input_tokens: 1, output_tokens: 1 },
+        };
+      };
+      const p = providerWithCreate(create as never, {
+        textModel: "t-model",
+        visionModel: "v-model",
+      });
+      await p.chat([{ role: "user", content: "hi" }]);
+      await p.vision(
+        { data: Buffer.from([0]), mediaType: "image/png" },
+        [{ role: "user", content: "Parse it." }],
+      );
+      expect(captured).toHaveLength(2);
+      expect(captured[0].model).toBe("t-model");
+      expect(captured[1].model).toBe("v-model");
+    });
+  });
+});
+
+describe("buildRouterFromEnv model precedence", () => {
+  const ENV_KEYS = [
+    "ANTHROPIC_API_KEY",
+    "ANTHROPIC_MODEL",
+    "ANTHROPIC_TEXT_MODEL",
+    "ANTHROPIC_VISION_MODEL",
+  ] as const;
+  let saved: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    saved = {};
+    for (const k of ENV_KEYS) {
+      saved[k] = process.env[k];
+      delete process.env[k];
+    }
+    process.env.ANTHROPIC_API_KEY = "test-key";
+  });
+
+  afterEach(() => {
+    for (const k of ENV_KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  });
+
+  function getProviderModels(): { textModel: string; visionModel: string } {
+    const router = buildRouterFromEnv(silentLogger());
+    const provider = (
+      router as unknown as { anthropic: AnthropicProvider | null }
+    ).anthropic;
+    if (provider === null) {
+      throw new Error("expected anthropic provider");
+    }
+    const internals = provider as unknown as {
+      textModel: string;
+      visionModel: string;
+    };
+    return {
+      textModel: internals.textModel,
+      visionModel: internals.visionModel,
+    };
+  }
+
+  it("falls back both methods to legacy ANTHROPIC_MODEL when set alone", () => {
+    process.env.ANTHROPIC_MODEL = "foo";
+    const m = getProviderModels();
+    expect(m.textModel).toBe("foo");
+    expect(m.visionModel).toBe("foo");
+  });
+
+  it("uses task-specific vars when set", () => {
+    process.env.ANTHROPIC_TEXT_MODEL = "t-model";
+    process.env.ANTHROPIC_VISION_MODEL = "v-model";
+    const m = getProviderModels();
+    expect(m.textModel).toBe("t-model");
+    expect(m.visionModel).toBe("v-model");
+  });
+
+  it("task-specific vars override legacy ANTHROPIC_MODEL", () => {
+    process.env.ANTHROPIC_MODEL = "legacy";
+    process.env.ANTHROPIC_TEXT_MODEL = "t-model";
+    process.env.ANTHROPIC_VISION_MODEL = "v-model";
+    const m = getProviderModels();
+    expect(m.textModel).toBe("t-model");
+    expect(m.visionModel).toBe("v-model");
+  });
+
+  it("defaults to Haiku for text and Sonnet for vision when nothing is set", () => {
+    const m = getProviderModels();
+    expect(m.textModel).toBe("claude-haiku-4-5-20251001");
+    expect(m.visionModel).toBe("claude-sonnet-4-6");
   });
 });

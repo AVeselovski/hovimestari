@@ -17,8 +17,15 @@ export { LLMUnavailableError } from "./types.js";
 
 export function buildRouterFromEnv(logger: FastifyBaseLogger): Router {
   const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-  const anthropicModel =
-    process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-6";
+  const legacyAnthropicModel = process.env.ANTHROPIC_MODEL?.trim();
+  const anthropicTextModel =
+    process.env.ANTHROPIC_TEXT_MODEL?.trim() ||
+    legacyAnthropicModel ||
+    "claude-haiku-4-5-20251001";
+  const anthropicVisionModel =
+    process.env.ANTHROPIC_VISION_MODEL?.trim() ||
+    legacyAnthropicModel ||
+    "claude-sonnet-4-6";
   const lmstudioBase = process.env.LMSTUDIO_BASE_URL?.trim();
   const lmstudioModel = process.env.LMSTUDIO_MODEL?.trim() || "local-model";
   const forcedRaw = process.env.HOVI_FORCE_PROVIDER?.trim().toLowerCase();
@@ -29,7 +36,8 @@ export function buildRouterFromEnv(logger: FastifyBaseLogger): Router {
     anthropicKey !== undefined && anthropicKey.length > 0
       ? new AnthropicProvider({
           apiKey: anthropicKey,
-          model: anthropicModel,
+          textModel: anthropicTextModel,
+          visionModel: anthropicVisionModel,
           logger,
         })
       : null;

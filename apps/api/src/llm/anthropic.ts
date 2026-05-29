@@ -11,19 +11,22 @@ import {
 
 export type AnthropicProviderOpts = {
   apiKey: string;
-  model: string;
+  textModel: string;
+  visionModel: string;
   logger: FastifyBaseLogger;
 };
 
 export class AnthropicProvider implements LLMProvider {
   readonly name = "anthropic";
   private readonly client: Anthropic;
-  private readonly model: string;
+  private readonly textModel: string;
+  private readonly visionModel: string;
   private readonly logger: FastifyBaseLogger;
 
   constructor(opts: AnthropicProviderOpts) {
     this.client = new Anthropic({ apiKey: opts.apiKey });
-    this.model = opts.model;
+    this.textModel = opts.textModel;
+    this.visionModel = opts.visionModel;
     this.logger = opts.logger;
   }
 
@@ -50,7 +53,7 @@ export class AnthropicProvider implements LLMProvider {
     let res: Awaited<ReturnType<typeof this.client.messages.create>>;
     try {
       res = await this.client.messages.create({
-        model: this.model,
+        model: this.textModel,
         max_tokens: opts?.maxTokens ?? 2048,
         temperature: opts?.temperature ?? 0.2,
         system,
@@ -82,7 +85,7 @@ export class AnthropicProvider implements LLMProvider {
     this.logger.info(
       {
         provider: this.name,
-        model: this.model,
+        model: this.textModel,
         inputTokens: res.usage.input_tokens,
         outputTokens: res.usage.output_tokens,
         latencyMs,
@@ -145,7 +148,7 @@ export class AnthropicProvider implements LLMProvider {
     let res: Awaited<ReturnType<typeof this.client.messages.create>>;
     try {
       res = await this.client.messages.create({
-        model: this.model,
+        model: this.visionModel,
         max_tokens: opts?.maxTokens ?? 2048,
         temperature: opts?.temperature ?? 0.2,
         system,
@@ -176,7 +179,7 @@ export class AnthropicProvider implements LLMProvider {
     this.logger.info(
       {
         provider: this.name,
-        model: this.model,
+        model: this.visionModel,
         mode: "vision",
         inputTokens: res.usage.input_tokens,
         outputTokens: res.usage.output_tokens,

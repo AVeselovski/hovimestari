@@ -144,8 +144,13 @@ Text import calls `POST /recipes/from-text`, which routes through an
 
    ```text
    ANTHROPIC_API_KEY=sk-ant-...
-   ANTHROPIC_MODEL=claude-sonnet-4-6
+   ANTHROPIC_TEXT_MODEL=claude-haiku-4-5-20251001
+   ANTHROPIC_VISION_MODEL=claude-sonnet-4-6
    ```
+
+   The two vars split model choice per API surface — Haiku is plenty for text
+   recipes; Sonnet earns its keep on photo parsing. The legacy `ANTHROPIC_MODEL`
+   still works as a single fallback when neither per-method var is set.
 
 3. `docker compose --env-file .env -f infra/compose.yaml up --build`.
 
