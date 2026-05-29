@@ -40,7 +40,7 @@ type OpenAIMessage =
       >;
     };
 
-const VISION_REJECTION_HINTS = ["image", "vision", "multimodal", "content"];
+const VISION_REJECTION_HINTS = ["image", "vision", "multimodal"];
 
 export class LMStudioProvider implements LLMProvider {
   readonly name = "lmstudio";
