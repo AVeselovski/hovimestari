@@ -8,9 +8,9 @@ import type { LLMTask, LLMTaskParseResult } from "./types.js";
 
 const CATEGORY_LIST = AISLE_CATEGORIES.join(", ");
 
-const SYSTEM_PROMPT = `You parse recipes into structured JSON.
+export const RECIPE_DRAFT_PROMPT_CORE = `You parse recipes into structured JSON.
 
-The user supplies a recipe as free-form text. The text may be Finnish. Your output JSON must keep Finnish text Finnish — recipe name, ingredient names, and units stay in their original language.
+The recipe text may be Finnish. Your output JSON must keep Finnish text Finnish — recipe name, ingredient names, and units stay in their original language.
 
 Return one JSON object only (no prose, no markdown fences) with this shape:
 {
@@ -45,6 +45,8 @@ Ingredient-name canonicalization (the name is what gets searched in a grocery st
 - Keep "X tai Y" (either/or) constructs intact as one ingredient — do not split them into two rows: "mustat tai vihreät oliivit" stays as written.
 
 If the text includes preparation instructions, return them in the "instructions" field as a flat list of strings — one step per string, no numbering, no markdown. Keep the original language (Finnish stays Finnish). If no instructions are present, omit the field or return an empty list.`;
+
+const SYSTEM_PROMPT = RECIPE_DRAFT_PROMPT_CORE;
 
 export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
   type: "object",
@@ -141,7 +143,7 @@ export function stripJsonFences(raw: string): string {
   return s;
 }
 
-function applyDefaults(
+export function applyDefaults(
   parsed: unknown,
   warnings: string[],
 ): Record<string, unknown> {

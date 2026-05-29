@@ -1,5 +1,9 @@
 import type { FastifyBaseLogger } from "fastify";
-import { LLMUnavailableError, type LLMProvider } from "./types.js";
+import {
+  LLMUnavailableError,
+  type LLMProvider,
+  type VisionImage,
+} from "./types.js";
 import type { LLMTask } from "./tasks/types.js";
 
 export type ForcedProvider = "anthropic" | "local" | null;
@@ -32,6 +36,13 @@ export class ForcedProviderUnavailableError extends NoProvidersConfiguredError {
     super(`forced provider '${forced}' is not configured`);
     this.name = "ForcedProviderUnavailableError";
     this.forced = forced;
+  }
+}
+
+export class NoVisionProviderError extends NoProvidersConfiguredError {
+  constructor(message = "no LLM provider with vision support configured") {
+    super(message);
+    this.name = "NoVisionProviderError";
   }
 }
 
@@ -121,6 +132,92 @@ export class Router {
         this.logger.warn(
           { provider: provider.name, task: task.name, error: msg },
           "llm call failed",
+        );
+      }
+    }
+
+    if (lastLowConfidence !== null) {
+      return lastLowConfidence;
+    }
+    throw new LLMTaskFailedError(attempts);
+  }
+
+  async runVision<T>(
+    task: LLMTask<T>,
+    image: VisionImage,
+  ): Promise<RouterRunResult<T>> {
+    if (!this.hasAnyProvider()) throw new NoProvidersConfiguredError();
+
+    const baseOrder = this.providerOrder();
+    if (baseOrder.length === 0 && this.forced !== null) {
+      throw new ForcedProviderUnavailableError(this.forced);
+    }
+
+    if (this.forced !== null) {
+      const forcedProvider = baseOrder[0];
+      if (forcedProvider !== undefined && forcedProvider.vision === undefined) {
+        throw new ForcedProviderUnavailableError(this.forced);
+      }
+    }
+
+    const order = baseOrder.filter((p) => p.vision !== undefined);
+    if (order.length === 0) {
+      throw new NoVisionProviderError();
+    }
+
+    const attempts: Array<{ provider: string; error: string }> = [];
+    let lastLowConfidence: RouterRunResult<T> | null = null;
+
+    for (const provider of order) {
+      try {
+        const visionFn = provider.vision;
+        if (visionFn === undefined) continue;
+        const res = await visionFn.call(
+          provider,
+          image,
+          task.messages,
+          task.opts,
+        );
+        const parsed = task.parse(res.content);
+        if (!parsed.ok) {
+          attempts.push({ provider: provider.name, error: parsed.error });
+          this.logger.warn(
+            { provider: provider.name, task: task.name, error: parsed.error },
+            "llm vision parse failed",
+          );
+          continue;
+        }
+        const result: RouterRunResult<T> = {
+          value: parsed.value,
+          confidence: parsed.confidence,
+          warnings: parsed.warnings,
+          provider: provider.name,
+        };
+        if (parsed.confidence >= this.threshold) {
+          return result;
+        }
+        lastLowConfidence = result;
+        attempts.push({
+          provider: provider.name,
+          error: `low confidence ${parsed.confidence.toFixed(2)}`,
+        });
+        this.logger.info(
+          {
+            provider: provider.name,
+            task: task.name,
+            confidence: parsed.confidence,
+          },
+          "low confidence, trying vision fallback",
+        );
+      } catch (err) {
+        const msg =
+          err instanceof LLMUnavailableError
+            ? `unavailable: ${err.message}`
+            : `error: ${(err as Error).message}`;
+        attempts.push({ provider: provider.name, error: msg });
+        this.logger.warn(
+          { provider: provider.name, task: task.name, error: msg },
+          "llm vision call failed",
         );
       }
     }

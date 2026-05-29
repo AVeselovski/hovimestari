@@ -15,9 +15,24 @@ export type ChatResponse = {
   usage: { inputTokens: number; outputTokens: number };
 };
 
+export type SupportedImageMediaType =
+  | "image/jpeg"
+  | "image/png"
+  | "image/webp";
+
+export type VisionImage = {
+  data: Buffer;
+  mediaType: SupportedImageMediaType;
+};
+
 export interface LLMProvider {
   name: string;
   chat(messages: ChatMessage[], opts?: ChatOpts): Promise<ChatResponse>;
+  vision?(
+    image: VisionImage,
+    messages: ChatMessage[],
+    opts?: ChatOpts,
+  ): Promise<ChatResponse>;
 }
 
 export class LLMUnavailableError extends Error {

@@ -94,10 +94,10 @@ docker compose --env-file .env -f infra/compose.yaml restart api
 
 ## Phase 2 — AI recipe import
 
-The Reseptit tab's "Uusi" button now opens an import sheet with three options:
+The Reseptit tab's "Uusi" button now opens an import sheet with two AI options:
 
 - **Kirjoita / liitä** — paste a Finnish recipe blob; the API parses it into a draft `Recipe` and opens the editor for review.
-- **Kuva** / **Ääni** — placeholders ("tulossa"), not wired up yet.
+- **Kuva** — pick or snap a photo of a recipe; see "Phase 2b" below.
 - **tyhjästä** — skip AI and open a blank editor (the Phase 1 flow).
 
 Text import calls `POST /recipes/from-text`, which routes through an
@@ -160,7 +160,22 @@ import hits Anthropic — set both if you want the local-first behaviour.
   `{ task: 'recipe-from-text', provider, inputTokens, outputTokens, latencyMs }`.
 - 502 responses include an `attempts` array showing what each provider returned.
 - LM Studio requests have a 60-second timeout; if the model is mid-load the
-  router falls back to Anthropic (when configured).
+  router falls back to Anthropic (when configured). Vision calls get 90 seconds.
+
+## Phase 2b — image recipe import
+
+Tap **Kuva** in the import sheet, pick (or snap) a photo of a recipe — cookbook
+page, handwritten card, printed sheet — review the thumbnail, and tap **Tuo**.
+The image is downscaled in the browser (long edge capped at 2000 px, re-encoded
+as JPEG at quality 0.85, capped at 5 MB) and POSTed as JSON base64 to
+`POST /recipes/from-image`. The same router routes through providers in this
+order: LM Studio vision-capable model first, Anthropic fallback if the local
+model rejects the image (or no local provider is configured, in which case
+Anthropic is used directly). The parsed draft lands in the same editor as text
+import — review, edit, save.
+
+Audio import is intentionally parked — this household does not use voice
+notes for recipes. It can ship later as a separate task if needed.
 
 ## Troubleshooting
 

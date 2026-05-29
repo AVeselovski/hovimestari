@@ -6,6 +6,26 @@ export const RecipeImportRequestSchema = z.object({
 });
 export type RecipeImportRequest = z.infer<typeof RecipeImportRequestSchema>;
 
+export const SUPPORTED_IMAGE_MEDIA_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+export const SupportedImageMediaTypeSchema = z.enum(SUPPORTED_IMAGE_MEDIA_TYPES);
+export type SupportedImageMediaType = z.infer<
+  typeof SupportedImageMediaTypeSchema
+>;
+
+export const RecipeImageImportRequestSchema = z.object({
+  image: z.object({
+    data: z.string().min(1),
+    mediaType: SupportedImageMediaTypeSchema,
+  }),
+});
+export type RecipeImageImportRequest = z.infer<
+  typeof RecipeImageImportRequestSchema
+>;
+
 export const RecipeImportResponseSchema = z.object({
   draft: RecipeDraftSchema,
   confidence: z.number().min(0).max(1),

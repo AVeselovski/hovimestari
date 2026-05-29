@@ -84,4 +84,62 @@ describe("AnthropicProvider", () => {
       original,
     );
   });
+
+  describe("vision()", () => {
+    it("builds an image source block with the correct base64 / media_type", async () => {
+      const captured: Array<Record<string, unknown>> = [];
+      const create = async (args: Record<string, unknown>) => {
+        captured.push(args);
+        return {
+          content: [{ type: "text", text: '{"ok":true}' }],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        };
+      };
+      const p = providerWithCreate(create as never);
+      const bytes = Buffer.from([0xff, 0xd8, 0xff]);
+      const res = await p.vision(
+        { data: bytes, mediaType: "image/jpeg" },
+        [
+          { role: "system", content: "sys" },
+          { role: "user", content: "Parse it." },
+        ],
+      );
+      expect(res.content).toBe('{"ok":true}');
+      expect(captured).toHaveLength(1);
+      expect(captured[0].system).toBe("sys");
+      const messages = captured[0].messages as Array<{
+        role: string;
+        content: unknown;
+      }>;
+      expect(messages).toHaveLength(1);
+      const userMsg = messages[0];
+      expect(userMsg.role).toBe("user");
+      const content = userMsg.content as Array<Record<string, unknown>>;
+      expect(content[0]).toEqual({ type: "text", text: "Parse it." });
+      const imgBlock = content[1] as {
+        type: string;
+        source: { type: string; media_type: string; data: string };
+      };
+      expect(imgBlock.type).toBe("image");
+      expect(imgBlock.source.type).toBe("base64");
+      expect(imgBlock.source.media_type).toBe("image/jpeg");
+      expect(imgBlock.source.data).toBe(bytes.toString("base64"));
+    });
+
+    it("joins text blocks from the response", async () => {
+      const create = async () => ({
+        content: [
+          { type: "text", text: '{"name":' },
+          { type: "text", text: '"Pasta"}' },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      });
+      const p = providerWithCreate(create as never);
+      const res = await p.vision(
+        { data: Buffer.from([0]), mediaType: "image/png" },
+        [{ role: "user", content: "Parse it." }],
+      );
+      expect(res.content).toBe('{"name":"Pasta"}');
+    });
+  });
 });

@@ -1,4 +1,8 @@
-import type { RecipeImportResponse, State } from "@hovi/shared";
+import type {
+  RecipeImportResponse,
+  State,
+  SupportedImageMediaType,
+} from "@hovi/shared";
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
@@ -67,4 +71,48 @@ export async function importRecipeFromText(
     throw new RecipeImportError(res.status, detail);
   }
   return (await res.json()) as RecipeImportResponse;
+}
+
+export async function importRecipeFromImage(
+  blob: Blob,
+  mediaType: SupportedImageMediaType,
+): Promise<RecipeImportResponse> {
+  const data = await blobToBase64(blob);
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/recipes/from-image`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ image: { data, mediaType } }),
+    });
+  } catch (err) {
+    throw new RecipeImportError(0, (err as Error).message);
+  }
+  if (!res.ok) {
+    let detail = "";
+    try {
+      detail = JSON.stringify(await res.json());
+    } catch {
+      detail = res.statusText;
+    }
+    throw new RecipeImportError(res.status, detail);
+  }
+  return (await res.json()) as RecipeImportResponse;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = reader.result;
+      if (typeof r !== "string") {
+        reject(new Error("FileReader returned non-string"));
+        return;
+      }
+      const comma = r.indexOf(",");
+      resolve(comma >= 0 ? r.slice(comma + 1) : r);
+    };
+    reader.onerror = () => reject(new Error("FileReader failed"));
+    reader.readAsDataURL(blob);
+  });
 }
