@@ -6,6 +6,7 @@ import {
   type ChatOpts,
   type ChatResponse,
   type LLMProvider,
+  type VisionImage,
 } from "./types.js";
 
 export type AnthropicProviderOpts = {
@@ -82,6 +83,101 @@ export class AnthropicProvider implements LLMProvider {
       {
         provider: this.name,
         model: this.model,
+        inputTokens: res.usage.input_tokens,
+        outputTokens: res.usage.output_tokens,
+        latencyMs,
+      },
+      "llm call",
+    );
+
+    return {
+      content,
+      usage: {
+        inputTokens: res.usage.input_tokens,
+        outputTokens: res.usage.output_tokens,
+      },
+    };
+  }
+
+  async vision(
+    image: VisionImage,
+    messages: ChatMessage[],
+    opts?: ChatOpts,
+  ): Promise<ChatResponse> {
+    const systemMessages = messages.filter((m) => m.role === "system");
+    const turnMessages = messages.filter((m) => m.role !== "system");
+
+    const system = systemMessages.map((m) => m.content).join("\n\n");
+
+    let lastUserIdx = -1;
+    for (let i = turnMessages.length - 1; i >= 0; i--) {
+      if (turnMessages[i].role === "user") {
+        lastUserIdx = i;
+        break;
+      }
+    }
+
+    const base64 = image.data.toString("base64");
+    const apiMessages = turnMessages.map((m, idx) => {
+      if (idx === lastUserIdx) {
+        return {
+          role: "user" as const,
+          content: [
+            { type: "text" as const, text: m.content },
+            {
+              type: "image" as const,
+              source: {
+                type: "base64" as const,
+                media_type: image.mediaType,
+                data: base64,
+              },
+            },
+          ],
+        };
+      }
+      return {
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      };
+    });
+
+    const startedAt = Date.now();
+    let res: Awaited<ReturnType<typeof this.client.messages.create>>;
+    try {
+      res = await this.client.messages.create({
+        model: this.model,
+        max_tokens: opts?.maxTokens ?? 2048,
+        temperature: opts?.temperature ?? 0.2,
+        system,
+        messages: apiMessages,
+      });
+    } catch (err) {
+      if (err instanceof APIConnectionError) {
+        throw new LLMUnavailableError(
+          `Anthropic connection error: ${(err as Error).message}`,
+        );
+      }
+      if (err instanceof APIError) {
+        const status = err.status;
+        if (typeof status === "number" && (status >= 500 || status === 429)) {
+          throw new LLMUnavailableError(
+            `Anthropic transient ${status}: ${err.message}`,
+          );
+        }
+      }
+      throw err;
+    }
+    const latencyMs = Date.now() - startedAt;
+
+    const content = res.content
+      .map((block) => (block.type === "text" ? block.text : ""))
+      .join("");
+
+    this.logger.info(
+      {
+        provider: this.name,
+        model: this.model,
+        mode: "vision",
         inputTokens: res.usage.input_tokens,
         outputTokens: res.usage.output_tokens,
         latencyMs,

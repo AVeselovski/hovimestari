@@ -5,6 +5,7 @@ import {
   type ChatOpts,
   type ChatResponse,
   type LLMProvider,
+  type VisionImage,
 } from "./types.js";
 
 export type LMStudioProviderOpts = {
@@ -29,6 +30,18 @@ type ResponseFormat =
       json_schema: { name: string; strict: true; schema: Record<string, unknown> };
     };
 
+type OpenAIMessage =
+  | { role: "system" | "user" | "assistant"; content: string }
+  | {
+      role: "user";
+      content: Array<
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
+      >;
+    };
+
+const VISION_REJECTION_HINTS = ["image", "vision", "multimodal", "content"];
+
 export class LMStudioProvider implements LLMProvider {
   readonly name = "lmstudio";
   private readonly baseUrl: string;
@@ -44,6 +57,27 @@ export class LMStudioProvider implements LLMProvider {
   }
 
   async chat(messages: ChatMessage[], opts?: ChatOpts): Promise<ChatResponse> {
+    const apiMessages: OpenAIMessage[] = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+    return this.runCompletion(apiMessages, opts, { kind: "chat" });
+  }
+
+  async vision(
+    image: VisionImage,
+    messages: ChatMessage[],
+    opts?: ChatOpts,
+  ): Promise<ChatResponse> {
+    const apiMessages = buildVisionMessages(messages, image);
+    return this.runCompletion(apiMessages, opts, { kind: "vision" });
+  }
+
+  private async runCompletion(
+    apiMessages: OpenAIMessage[],
+    opts: ChatOpts | undefined,
+    mode: { kind: "chat" | "vision" },
+  ): Promise<ChatResponse> {
     const url = `${this.baseUrl}/chat/completions`;
     const startedAt = Date.now();
 
@@ -58,7 +92,7 @@ export class LMStudioProvider implements LLMProvider {
         }
       : { type: "text" };
 
-    let res = await this.send(url, messages, opts, initialFormat);
+    let res = await this.send(url, apiMessages, opts, initialFormat, mode);
 
     if (!res.ok && res.status === 400 && initialFormat.type === "json_schema") {
       const text = await res.text().catch(() => "");
@@ -67,8 +101,20 @@ export class LMStudioProvider implements LLMProvider {
           { provider: this.name, body: text.slice(0, 200) },
           "lmstudio rejected json_schema response_format, retrying with text",
         );
-        res = await this.send(url, messages, opts, { type: "text" });
+        res = await this.send(url, apiMessages, opts, { type: "text" }, mode);
       } else {
+        if (
+          mode.kind === "vision" &&
+          containsVisionRejectionHint(text.toLowerCase())
+        ) {
+          this.logger.warn(
+            { provider: this.name, body: text.slice(0, 200) },
+            "lmstudio rejected vision request — falling back",
+          );
+          throw new LLMUnavailableError(
+            `LM Studio vision rejected: ${text.slice(0, 200)}`,
+          );
+        }
         throw new LLMUnavailableError(
           `LM Studio HTTP 400: ${text.slice(0, 200)}`,
         );
@@ -99,6 +145,7 @@ export class LMStudioProvider implements LLMProvider {
       {
         provider: this.name,
         model: this.model,
+        mode: mode.kind,
         inputTokens,
         outputTokens,
         latencyMs,
@@ -111,33 +158,70 @@ export class LMStudioProvider implements LLMProvider {
 
   private async send(
     url: string,
-    messages: ChatMessage[],
+    messages: OpenAIMessage[],
     opts: ChatOpts | undefined,
     responseFormat: ResponseFormat,
+    mode: { kind: "chat" | "vision" },
   ): Promise<Response> {
     const body: Record<string, unknown> = {
       model: this.model,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      messages,
       temperature: opts?.temperature ?? 0.2,
       response_format: responseFormat,
     };
     if (opts?.maxTokens !== undefined) body.max_tokens = opts.maxTokens;
+
+    const timeoutMs = mode.kind === "vision" ? 90_000 : 60_000;
 
     try {
       return await this.fetchImpl(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (err) {
       const name = (err as { name?: string } | null)?.name;
       if (name === "TimeoutError" || name === "AbortError") {
-        throw new LLMUnavailableError("LM Studio request timed out after 60s");
+        throw new LLMUnavailableError(
+          `LM Studio request timed out after ${Math.round(timeoutMs / 1000)}s`,
+        );
       }
       throw new LLMUnavailableError(
         `LM Studio fetch failed: ${(err as Error).message}`,
       );
     }
   }
+}
+
+function buildVisionMessages(
+  messages: ChatMessage[],
+  image: VisionImage,
+): OpenAIMessage[] {
+  const lastUserIdx = findLastUserIndex(messages);
+  const dataUrl = `data:${image.mediaType};base64,${image.data.toString("base64")}`;
+
+  return messages.map((m, idx) => {
+    if (idx === lastUserIdx) {
+      return {
+        role: "user" as const,
+        content: [
+          { type: "text" as const, text: m.content },
+          { type: "image_url" as const, image_url: { url: dataUrl } },
+        ],
+      };
+    }
+    return { role: m.role, content: m.content };
+  });
+}
+
+function findLastUserIndex(messages: ChatMessage[]): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") return i;
+  }
+  return messages.length - 1;
+}
+
+function containsVisionRejectionHint(lowerBody: string): boolean {
+  return VISION_REJECTION_HINTS.some((h) => lowerBody.includes(h));
 }

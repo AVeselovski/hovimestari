@@ -209,4 +209,86 @@ describe("LMStudioProvider", () => {
     ).rejects.toThrow(LLMUnavailableError);
     expect(calls).toBe(1);
   });
+
+  describe("vision()", () => {
+    it("builds OpenAI-compatible content blocks with the image data URL", async () => {
+      const calls: Array<Record<string, unknown>> = [];
+      const fetchImpl = (async (_url: string, init: RequestInit) => {
+        calls.push(JSON.parse(init.body as string) as Record<string, unknown>);
+        return jsonResponse({
+          choices: [{ message: { content: '{"name":"x"}' } }],
+          usage: { prompt_tokens: 100, completion_tokens: 5 },
+        });
+      }) as unknown as typeof fetch;
+      const p = new LMStudioProvider({
+        baseUrl: "http://localhost:1234/v1",
+        model: "x",
+        logger: silentLogger(),
+        fetchImpl,
+      });
+      const res = await p.vision(
+        { data: Buffer.from([0x89, 0x50, 0x4e, 0x47]), mediaType: "image/png" },
+        [
+          { role: "system", content: "sys" },
+          { role: "user", content: "Parse the image." },
+        ],
+      );
+      expect(res.content).toBe('{"name":"x"}');
+      expect(calls).toHaveLength(1);
+      const messages = calls[0].messages as Array<{
+        role: string;
+        content: unknown;
+      }>;
+      expect(messages[0]).toEqual({ role: "system", content: "sys" });
+      const userMsg = messages[1];
+      expect(userMsg.role).toBe("user");
+      expect(Array.isArray(userMsg.content)).toBe(true);
+      const content = userMsg.content as Array<Record<string, unknown>>;
+      expect(content[0]).toEqual({ type: "text", text: "Parse the image." });
+      expect(content[1].type).toBe("image_url");
+      const imgBlock = content[1].image_url as { url: string };
+      expect(imgBlock.url.startsWith("data:image/png;base64,")).toBe(true);
+      expect(imgBlock.url).toContain(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64"),
+      );
+    });
+
+    it("maps a 400 that mentions 'image' to LLMUnavailableError so the router falls through", async () => {
+      const fetchImpl = (async () =>
+        new Response("model does not support image content blocks", {
+          status: 400,
+        })) as unknown as typeof fetch;
+      const p = new LMStudioProvider({
+        baseUrl: "http://localhost:1234/v1",
+        model: "x",
+        logger: silentLogger(),
+        fetchImpl,
+      });
+      await expect(
+        p.vision(
+          { data: Buffer.from([0]), mediaType: "image/jpeg" },
+          [{ role: "user", content: "Parse the image." }],
+        ),
+      ).rejects.toThrow(LLMUnavailableError);
+    });
+
+    it("returns parsed content on success", async () => {
+      const fetchImpl = (async () =>
+        jsonResponse({
+          choices: [{ message: { content: "ok-vision" } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        })) as unknown as typeof fetch;
+      const p = new LMStudioProvider({
+        baseUrl: "http://localhost:1234/v1",
+        model: "x",
+        logger: silentLogger(),
+        fetchImpl,
+      });
+      const res = await p.vision(
+        { data: Buffer.from([1, 2, 3]), mediaType: "image/webp" },
+        [{ role: "user", content: "Parse it." }],
+      );
+      expect(res.content).toBe("ok-vision");
+    });
+  });
 });

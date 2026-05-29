@@ -8,9 +8,11 @@ export {
   NoProvidersConfiguredError,
   ForcedProviderUnavailableError,
   LLMTaskFailedError,
+  NoVisionProviderError,
 } from "./router.js";
 export { recipeFromTextTask } from "./tasks/recipe-from-text.js";
-export type { LLMProvider } from "./types.js";
+export { recipeFromImageTask } from "./tasks/recipe-from-image.js";
+export type { LLMProvider, VisionImage, SupportedImageMediaType } from "./types.js";
 export { LLMUnavailableError } from "./types.js";
 
 export function buildRouterFromEnv(logger: FastifyBaseLogger): Router {
