@@ -11,7 +11,12 @@ import { uid } from "../lib/uid.js";
 
 type Phase =
   | { kind: "import" }
-  | { kind: "editor"; initial: RecipeEditorDraft; warnings: string[] };
+  | {
+      kind: "editor";
+      initial: RecipeEditorDraft;
+      warnings: string[];
+      importSource?: { provider: string; model: string };
+    };
 
 const BLANK: RecipeEditorDraft = {
   name: "",
@@ -41,11 +46,12 @@ export function RecipeNewRoute(): JSX.Element | null {
   if (phase.kind === "import") {
     return (
       <RecipeImportSheet
-        onDraft={(draft, warnings) =>
+        onDraft={(draft, warnings, provider, model) =>
           setPhase({
             kind: "editor",
             initial: { ...draft, instructions: draft.instructions ?? [] },
             warnings,
+            importSource: { provider, model },
           })
         }
         onBlank={() =>
@@ -60,6 +66,7 @@ export function RecipeNewRoute(): JSX.Element | null {
     <RecipeEditor
       initial={phase.initial}
       warnings={phase.warnings}
+      importSource={phase.importSource}
       onSave={onSave}
       onCancel={() => navigate("/recipes")}
     />

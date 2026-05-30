@@ -11,6 +11,7 @@ import type { Recipe, Ingredient, AisleCategory } from "@hovi/shared";
 import { CATEGORIES } from "../lib/categories.js";
 import { Field } from "./Field.js";
 import { SectionHead } from "./SectionHead.js";
+import { formatImportSource } from "../lib/modelLabels.js";
 
 export type RecipeEditorDraft = Omit<Recipe, "id"> & { id?: string };
 
@@ -19,12 +20,15 @@ export function RecipeEditor({
   onSave,
   onCancel,
   warnings,
+  importSource,
 }: {
   initial: RecipeEditorDraft;
   onSave: (r: RecipeEditorDraft) => void;
   onCancel: () => void;
   warnings?: string[];
+  importSource?: { provider: string; model: string };
 }): JSX.Element {
+  const [importSourceDismissed, setImportSourceDismissed] = useState(false);
   const [r, setR] = useState<RecipeEditorDraft>({
     ...initial,
     ingredients: initial.ingredients ?? [],
@@ -343,6 +347,28 @@ export function RecipeEditor({
           </div>
         </div>
       </div>
+      {importSource !== undefined && !importSourceDismissed && (
+        <div
+          className="px-5 py-2 flex items-center justify-between gap-3 border-t border-dashed"
+          style={{
+            borderColor: "var(--rule)",
+            background: "var(--paper-2)",
+            color: "var(--muted)",
+          }}
+        >
+          <p className="text-xs truncate">
+            {formatImportSource(importSource.provider, importSource.model)}
+          </p>
+          <button
+            onClick={() => setImportSourceDismissed(true)}
+            aria-label="Sulje"
+            className="p-1 shrink-0"
+            style={{ color: "var(--muted)" }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

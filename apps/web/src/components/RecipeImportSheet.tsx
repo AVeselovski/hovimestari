@@ -25,7 +25,12 @@ export function RecipeImportSheet({
   onBlank,
   onCancel,
 }: {
-  onDraft: (draft: RecipeDraft, warnings: string[]) => void;
+  onDraft: (
+    draft: RecipeDraft,
+    warnings: string[],
+    provider: string,
+    model: string,
+  ) => void;
   onBlank: () => void;
   onCancel: () => void;
 }): JSX.Element {
@@ -50,7 +55,7 @@ export function RecipeImportSheet({
     setError(null);
     try {
       const res = await importRecipeFromText(text);
-      onDraft(res.draft, res.warnings);
+      onDraft(res.draft, res.warnings, res.provider, res.model);
     } catch (err) {
       setError(mapImportError(err));
     } finally {
@@ -86,7 +91,7 @@ export function RecipeImportSheet({
     setError(null);
     try {
       const res = await importRecipeFromImage(image.blob, image.mediaType);
-      onDraft(res.draft, res.warnings);
+      onDraft(res.draft, res.warnings, res.provider, res.model);
     } catch (err) {
       setError(mapImportError(err));
     } finally {

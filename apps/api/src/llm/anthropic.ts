@@ -95,6 +95,7 @@ export class AnthropicProvider implements LLMProvider {
 
     return {
       content,
+      model: this.textModel,
       usage: {
         inputTokens: res.usage.input_tokens,
         outputTokens: res.usage.output_tokens,
@@ -190,6 +191,7 @@ export class AnthropicProvider implements LLMProvider {
 
     return {
       content,
+      model: this.visionModel,
       usage: {
         inputTokens: res.usage.input_tokens,
         outputTokens: res.usage.output_tokens,
