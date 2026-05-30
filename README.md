@@ -173,11 +173,13 @@ Tap **Kuva** in the import sheet, pick (or snap) a photo of a recipe — cookboo
 page, handwritten card, printed sheet — review the thumbnail, and tap **Tuo**.
 The image is downscaled in the browser (long edge capped at 2000 px, re-encoded
 as JPEG at quality 0.85, capped at 5 MB) and POSTed as JSON base64 to
-`POST /recipes/from-image`. The same router routes through providers in this
-order: LM Studio vision-capable model first, Anthropic fallback if the local
-model rejects the image (or no local provider is configured, in which case
-Anthropic is used directly). The parsed draft lands in the same editor as text
-import — review, edit, save.
+`POST /recipes/from-image`. The same router routes through providers, but the
+vision surface is Anthropic-first (per the routing table in `CLAUDE.md` —
+photos are where the bigger model earns its keep): Anthropic vision model
+first, LM Studio vision-capable model as a fallback when Anthropic rejects the
+image or returns low confidence. If only one provider is configured the router
+uses it directly. The parsed draft lands in the same editor as text import —
+review, edit, save.
 
 Audio import is intentionally parked — this household does not use voice
 notes for recipes. It can ship later as a separate task if needed.
