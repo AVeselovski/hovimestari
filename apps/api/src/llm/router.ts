@@ -148,7 +148,7 @@ export class Router {
   ): Promise<RouterRunResult<T>> {
     if (!this.hasAnyProvider()) throw new NoProvidersConfiguredError();
 
-    const baseOrder = this.providerOrder();
+    const baseOrder = this.visionProviderOrder();
     if (baseOrder.length === 0 && this.forced !== null) {
       throw new ForcedProviderUnavailableError(this.forced);
     }
@@ -238,6 +238,19 @@ export class Router {
     const order: LLMProvider[] = [];
     if (this.local !== null) order.push(this.local);
     if (this.anthropic !== null) order.push(this.anthropic);
+    return order;
+  }
+
+  private visionProviderOrder(): LLMProvider[] {
+    if (this.forced === "anthropic") {
+      return this.anthropic !== null ? [this.anthropic] : [];
+    }
+    if (this.forced === "local") {
+      return this.local !== null ? [this.local] : [];
+    }
+    const order: LLMProvider[] = [];
+    if (this.anthropic !== null) order.push(this.anthropic);
+    if (this.local !== null) order.push(this.local);
     return order;
   }
 }

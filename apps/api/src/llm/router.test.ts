@@ -249,25 +249,55 @@ describe("Router.runVision", () => {
     expect(local.chat).not.toHaveBeenCalled();
   });
 
-  it("falls through to anthropic when local vision throws LLMUnavailableError", async () => {
-    const local = fakeVisionProvider(
-      "lmstudio",
+  it("falls through to local when anthropic vision throws LLMUnavailableError", async () => {
+    const local = fakeVisionProvider("lmstudio", "ok-local");
+    const anthropic = fakeVisionProvider(
+      "anthropic",
       "",
       new LLMUnavailableError("model rejected image"),
     );
-    const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
     const router = new Router({ local, anthropic, logger: silentLogger() });
     const result = await router.runVision(boxTask(), sampleImage);
-    expect(result.provider).toBe("anthropic");
+    expect(result.provider).toBe("lmstudio");
   });
 
-  it("uses local first when both providers have vision and confidence is high", async () => {
+  it("uses anthropic first when both providers have vision and confidence is high", async () => {
     const local = fakeVisionProvider("lmstudio", "ok-local");
     const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
     const router = new Router({ local, anthropic, logger: silentLogger() });
     const result = await router.runVision(boxTask(), sampleImage);
+    expect(result.provider).toBe("anthropic");
+    expect(local.vision).not.toHaveBeenCalled();
+  });
+
+  it("falls back to local when anthropic parse fails", async () => {
+    const local = fakeVisionProvider("lmstudio", "ok-local");
+    const anthropic = fakeVisionProvider("anthropic", "BAD");
+    const router = new Router({ local, anthropic, logger: silentLogger() });
+    const result = await router.runVision(boxTask(), sampleImage);
     expect(result.provider).toBe("lmstudio");
-    expect(anthropic.vision).not.toHaveBeenCalled();
+  });
+
+  it("uses local when only local is configured", async () => {
+    const local = fakeVisionProvider("lmstudio", "ok-local");
+    const router = new Router({
+      local,
+      anthropic: null,
+      logger: silentLogger(),
+    });
+    const result = await router.runVision(boxTask(), sampleImage);
+    expect(result.provider).toBe("lmstudio");
+  });
+
+  it("uses anthropic when only anthropic is configured", async () => {
+    const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
+    const router = new Router({
+      local: null,
+      anthropic,
+      logger: silentLogger(),
+    });
+    const result = await router.runVision(boxTask(), sampleImage);
+    expect(result.provider).toBe("anthropic");
   });
 
   it("respects forcedProvider=anthropic", async () => {
@@ -284,6 +314,20 @@ describe("Router.runVision", () => {
     expect(local.vision).not.toHaveBeenCalled();
   });
 
+  it("respects forcedProvider=local for vision", async () => {
+    const local = fakeVisionProvider("lmstudio", "ok-local");
+    const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
+    const router = new Router({
+      local,
+      anthropic,
+      logger: silentLogger(),
+      forcedProvider: "local",
+    });
+    const result = await router.runVision(boxTask(), sampleImage);
+    expect(result.provider).toBe("lmstudio");
+    expect(anthropic.vision).not.toHaveBeenCalled();
+  });
+
   it("throws ForcedProviderUnavailableError when the forced provider lacks vision", async () => {
     const local = fakeProvider("lmstudio", "ok"); // no vision
     const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
@@ -297,6 +341,15 @@ describe("Router.runVision", () => {
       router.runVision(boxTask(), sampleImage),
     ).rejects.toBeInstanceOf(ForcedProviderUnavailableError);
     expect(anthropic.vision).not.toHaveBeenCalled();
+  });
+
+  it("text run() still uses local first when both providers are configured", async () => {
+    const local = fakeVisionProvider("lmstudio", "ok-local");
+    const anthropic = fakeVisionProvider("anthropic", "ok-anthropic");
+    const router = new Router({ local, anthropic, logger: silentLogger() });
+    const result = await router.run(boxTask());
+    expect(result.provider).toBe("lmstudio");
+    expect(anthropic.chat).not.toHaveBeenCalled();
   });
 });
 
