@@ -182,6 +182,23 @@ The router exposes per-task overrides via env var (`HOVI_FORCE_PROVIDER=anthropi
 
 Add a confidence signal where possible — for structured outputs, if the local model returns invalid JSON or low-confidence categorization, the router automatically retries on Anthropic. This is the "infer when to use which" goal.
 
+### Deferred — two-step pipeline (local-vision path)
+
+Real-world testing of Phase 2b found that Haiku and Qwen-VL 9B fail on tricky vision inputs the same way: brand prefixes retained, "X tai Y"-joined rows not merged, occasional hallucinated ingredient. Sonnet handles the same image cleanly. The cause is capacity, not prompting — smaller VLMs have less attention budget to integrate canonicalization rules while also doing pixel-level OCR. The shipped fix was to default the vision path to Sonnet via `ANTHROPIC_VISION_MODEL`.
+
+A **two-step pipeline** addresses the same problem without needing a bigger model:
+
+1. **Vision call** — extract layout-preserving raw text from the image. Single objective: OCR.
+2. **Text call** — apply canonicalization rules (strip brands, merge `X tai Y`, emit recipe JSON) using a stronger *text-only* model.
+
+This is the **local-vision path**: Qwen-VL 9B for OCR, Qwen 3.5 9B (already validated on the text canonicalization path) for parsing. The bet: two capable-enough local models in series beat one larger one, fully offline.
+
+Deferred because the single-call Anthropic path with Sonnet works today, and the two-step adds a new task type, an intermediate result, and a second router pass — real surface-area for a problem we don't have on the Anthropic path. Revive when local-first vision becomes a priority (wanting recipe imports to work fully offline, or Anthropic vision cost starts to sting). Rough sketch when that day comes:
+
+- New task, e.g. `recipe-from-image-twostep`, opted into via `HOVI_TWOSTEP_VISION=1` or routed automatically when `HOVI_FORCE_PROVIDER=local` and the local vision model is known-weak.
+- Step 1's raw text is passed through the router a second time for canonicalization + JSON, hitting the existing text providers.
+- Keep the single-call Anthropic path as the default — it works, and the two-step would be ~2x round-trips for no quality gain there.
+
 ## Phased roadmap
 
 ### Phase 0 — Scaffold (one evening)
