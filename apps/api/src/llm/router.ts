@@ -13,6 +13,7 @@ export type RouterRunResult<T> = {
   confidence: number;
   warnings: string[];
   provider: string;
+  model: string;
 };
 
 export type RouterOpts = {
@@ -105,6 +106,7 @@ export class Router {
           confidence: parsed.confidence,
           warnings: parsed.warnings,
           provider: provider.name,
+          model: res.model,
         };
         if (parsed.confidence >= this.threshold) {
           return result;
@@ -192,6 +194,7 @@ export class Router {
           confidence: parsed.confidence,
           warnings: parsed.warnings,
           provider: provider.name,
+          model: res.model,
         };
         if (parsed.confidence >= this.threshold) {
           return result;

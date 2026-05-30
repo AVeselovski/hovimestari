@@ -43,6 +43,7 @@ export async function recipesRoutes(
         confidence: result.confidence,
         warnings: result.warnings,
         provider: result.provider,
+        model: result.model,
       };
       return body;
     } catch (err) {
@@ -109,6 +110,7 @@ export async function recipesRoutes(
           confidence: result.confidence,
           warnings: result.warnings,
           provider: result.provider,
+          model: result.model,
         };
         return body;
       } catch (err) {

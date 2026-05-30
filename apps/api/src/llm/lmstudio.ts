@@ -153,7 +153,7 @@ export class LMStudioProvider implements LLMProvider {
       "llm call",
     );
 
-    return { content, usage: { inputTokens, outputTokens } };
+    return { content, model: this.model, usage: { inputTokens, outputTokens } };
   }
 
   private async send(

@@ -31,5 +31,6 @@ export const RecipeImportResponseSchema = z.object({
   confidence: z.number().min(0).max(1),
   warnings: z.array(z.string()),
   provider: z.string(),
+  model: z.string(),
 });
 export type RecipeImportResponse = z.infer<typeof RecipeImportResponseSchema>;

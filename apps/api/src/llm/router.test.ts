@@ -44,7 +44,11 @@ function fakeProvider(
     chat: vi.fn(async () => {
       if (throws) throw throws;
       const content = typeof reply === "function" ? await reply() : reply;
-      return { content, usage: { inputTokens: 1, outputTokens: 1 } };
+      return {
+        content,
+        model: `${name}-model`,
+        usage: { inputTokens: 1, outputTokens: 1 },
+      };
     }),
   };
 }
@@ -213,12 +217,17 @@ function fakeVisionProvider(
   const vision = vi.fn(async () => {
     if (throws) throw throws;
     const content = typeof reply === "function" ? await reply() : reply;
-    return { content, usage: { inputTokens: 1, outputTokens: 1 } };
+    return {
+      content,
+      model: `${name}-vision-model`,
+      usage: { inputTokens: 1, outputTokens: 1 },
+    };
   }) as unknown as VisionFn;
   return {
     name,
     chat: vi.fn(async () => ({
       content: "chat",
+      model: `${name}-model`,
       usage: { inputTokens: 1, outputTokens: 1 },
     })),
     vision,
