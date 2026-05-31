@@ -17,6 +17,7 @@ export function RecipeDetail(): JSX.Element | null {
   if (!recipe) return <NotFound />;
   return (
     <RecipeDetailView
+      key={recipe.id}
       recipe={recipe}
       onBack={() => navigate("/recipes")}
       onEdit={() => navigate(`/recipes/${recipe.id}/edit`)}
@@ -33,9 +34,10 @@ export function RecipeDetailView({
   onBack: () => void;
   onEdit: () => void;
 }): JSX.Element {
-  // Ephemeral: scaling resets to base on every mount. We deliberately key
-  // useState by `recipe.id` via the parent re-mounting on navigation; remount
-  // → fresh state → reverts to base. No persistence here.
+  // Ephemeral: scaling resets to base on every mount. The parent passes
+  // key={recipe.id} so React unmounts and remounts when navigating between
+  // recipes, giving fresh useState even though React Router reuses the
+  // element instance across :id changes. No persistence here.
   const [servings, setServings] = useState<number>(recipe.servings);
   const instructions = recipe.instructions ?? [];
 
