@@ -1,7 +1,11 @@
 // Text-typed amount input over a numeric model. We do not use type="number"
 // because it fights commas/dots and Finnish locale. Empty string maps to null;
-// otherwise parseFloat. NaN-on-blur reverts to the previous valid value (held
-// in the parent state and re-pushed into the local string on next render).
+// otherwise Number(trimmed) — we use Number rather than parseFloat because
+// parseFloat is permissive ("1abc" → 1) which silently accepts garbage on
+// desktop. Number returns NaN for any non-numeric suffix, triggering the
+// existing revert-to-canonical-on-NaN path. NaN-on-blur reverts to the
+// previous valid value (held in the parent state and re-pushed into the
+// local string on next render).
 //
 // NOTE: `useState(initial)` does not re-sync if the parent pushes a new
 // `value` mid-mount. Today nothing programmatically changes the amount while
@@ -37,7 +41,7 @@ export function AmountInput({
           onChange(null);
           return;
         }
-        const parsed = parseFloat(trimmed);
+        const parsed = Number(trimmed);
         if (!Number.isNaN(parsed)) onChange(parsed);
       }}
       onBlur={() => {
@@ -47,7 +51,7 @@ export function AmountInput({
           setText("");
           return;
         }
-        const parsed = parseFloat(trimmed);
+        const parsed = Number(trimmed);
         if (Number.isNaN(parsed)) {
           // Revert local string to last known canonical value.
           setText(canonical);
