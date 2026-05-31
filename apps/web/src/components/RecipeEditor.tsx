@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { formatRecipeAmount } from "../lib/amount.js";
 import {
   ArrowLeft,
   Check,
@@ -13,6 +12,7 @@ import { CATEGORIES } from "../lib/categories.js";
 import { Field } from "./Field.js";
 import { SectionHead } from "./SectionHead.js";
 import { formatImportSource } from "../lib/modelLabels.js";
+import { AmountInput } from "./AmountInput.js";
 
 export type RecipeEditorDraft = Omit<Recipe, "id"> & { id?: string };
 
@@ -240,6 +240,7 @@ export function RecipeEditor({
                   <AmountInput
                     value={ing.amount}
                     onChange={(next) => updateIng(i, { amount: next })}
+                    className="px-2 py-1.5 rounded border bg-transparent text-sm"
                   />
                   <input
                     className="px-2 py-1.5 rounded border bg-transparent text-sm"
@@ -371,54 +372,3 @@ export function RecipeEditor({
   );
 }
 
-// Text-typed amount input over a numeric model. We do not use type="number"
-// because it fights commas/dots and Finnish locale. Empty string maps to null;
-// otherwise parseFloat. NaN-on-blur reverts to the previous valid value (held
-// in the parent state and re-pushed into the local string on next render).
-function AmountInput({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (next: number | null) => void;
-}): JSX.Element {
-  const canonical = value === null ? "" : formatRecipeAmount(value);
-  const [text, setText] = useState<string>(canonical);
-
-  return (
-    <input
-      className="px-2 py-1.5 rounded border bg-transparent text-sm"
-      style={{ borderColor: "var(--rule)" }}
-      placeholder="Määrä"
-      inputMode="decimal"
-      value={text}
-      onChange={(e) => {
-        const next = e.target.value;
-        setText(next);
-        const trimmed = next.trim().replace(",", ".");
-        if (trimmed === "") {
-          onChange(null);
-          return;
-        }
-        const parsed = parseFloat(trimmed);
-        if (!Number.isNaN(parsed)) onChange(parsed);
-      }}
-      onBlur={() => {
-        const trimmed = text.trim().replace(",", ".");
-        if (trimmed === "") {
-          onChange(null);
-          setText("");
-          return;
-        }
-        const parsed = parseFloat(trimmed);
-        if (Number.isNaN(parsed)) {
-          // Revert local string to last known canonical value.
-          setText(canonical);
-          return;
-        }
-        // Normalize displayed text to the canonical formatting.
-        setText(formatRecipeAmount(parsed));
-      }}
-    />
-  );
-}

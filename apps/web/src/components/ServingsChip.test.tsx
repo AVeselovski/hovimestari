@@ -64,20 +64,17 @@ describe("ServingsChip", () => {
     expect(selected[0]).toContain('aria-label="6 annosta"');
   });
 
-  it("fires onChange with the clicked value", () => {
-    // Manual handler simulation via dom-less invocation: render to a function
-    // by calling the component as a hook-free factory and pulling props.
-    // Easier: call onChange directly through the rendered React tree using a
-    // lightweight dispatch.
+  it("passes the clicked value to onChange (handler contract only — no DOM event)", () => {
+    // Without @testing-library/react we cannot dispatch a real click event
+    // against the SSR-rendered markup. This test asserts the handler contract
+    // only: for each option, calling `onChange(n)` (which mirrors the
+    // component's `onClick={() => onChange(n)}`) receives the option value.
     const calls: number[] = [];
-    // Re-use servingsOptions to mirror the component contract.
     const options = servingsOptions(4);
     for (const n of options) {
       const onChange = (next: number): void => {
         calls.push(next);
       };
-      // Simulate the button click handler by calling it directly — the
-      // component's onClick is `() => onChange(n)`.
       onChange(n);
     }
     expect(calls).toEqual([4, 6, 8]);
