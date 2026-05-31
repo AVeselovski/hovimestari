@@ -15,7 +15,7 @@ exports.up = (pgm) => {
     INSERT INTO household_state (id, state, updated_at)
     VALUES (
       1,
-      '{ "recipes": [], "stapleGroups": [], "staples": [], "plan": { "selectedRecipes": [] } }'::jsonb,
+      '{ "recipes": [], "stapleGroups": [], "staples": [], "plan": { "selectedRecipeIds": [] } }'::jsonb,
       now()
     )
     ON CONFLICT (id) DO NOTHING;

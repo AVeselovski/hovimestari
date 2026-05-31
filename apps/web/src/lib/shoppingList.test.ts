@@ -428,4 +428,40 @@ describe("buildShoppingList", () => {
     const maku = pantry?.items.find((i) => i.name === "Maku");
     expect(maku?.display).toBe("");
   });
+
+  it("editing a recipe's servings does not mutate PlanRecipe.servings (C5: decoupling)", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Jauheliha", amount: 400, unit: "g", category: "meat-fish" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [],
+      staples: [],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 6 }] },
+    };
+    // First build: 6/4 = 1.5 scale → 600 g.
+    const before = buildShoppingList(s);
+    expect(
+      before.find((g) => g.id === "meat-fish")?.items.find((i) => i.name === "Jauheliha")
+        ?.display,
+    ).toBe("600 g");
+    // Simulate the user editing the recipe's base servings to 2.
+    s.recipes[0].servings = 2;
+    const after = buildShoppingList(s);
+    // Scale is now 6/2 = 3 → 1200 g; the PlanRecipe.servings was untouched.
+    expect(
+      after.find((g) => g.id === "meat-fish")?.items.find((i) => i.name === "Jauheliha")
+        ?.display,
+    ).toBe("1200 g");
+    expect(s.plan.selectedRecipes[0].servings).toBe(6);
+  });
 });

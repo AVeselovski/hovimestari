@@ -3,6 +3,7 @@ import { Check, Edit2, Trash2 } from "lucide-react";
 import type { Staple } from "@hovi/shared";
 import { CATEGORIES, catLabel } from "../lib/categories.js";
 import { formatRecipeAmount } from "../lib/amount.js";
+import { AmountInput } from "./AmountInput.js";
 
 export function StapleRow({
   s,
@@ -120,48 +121,3 @@ export function StapleRow({
   );
 }
 
-function AmountInput({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (next: number | null) => void;
-}): JSX.Element {
-  const canonical = value === null ? "" : formatRecipeAmount(value);
-  const [text, setText] = useState<string>(canonical);
-
-  return (
-    <input
-      className="px-3 py-2 rounded-lg border bg-transparent text-sm"
-      style={{ borderColor: "var(--rule)" }}
-      placeholder="Määrä"
-      inputMode="decimal"
-      value={text}
-      onChange={(e) => {
-        const next = e.target.value;
-        setText(next);
-        const trimmed = next.trim().replace(",", ".");
-        if (trimmed === "") {
-          onChange(null);
-          return;
-        }
-        const parsed = parseFloat(trimmed);
-        if (!Number.isNaN(parsed)) onChange(parsed);
-      }}
-      onBlur={() => {
-        const trimmed = text.trim().replace(",", ".");
-        if (trimmed === "") {
-          onChange(null);
-          setText("");
-          return;
-        }
-        const parsed = parseFloat(trimmed);
-        if (Number.isNaN(parsed)) {
-          setText(canonical);
-          return;
-        }
-        setText(formatRecipeAmount(parsed));
-      }}
-    />
-  );
-}
