@@ -24,8 +24,8 @@ export function ListTab({
 
   const [copied, setCopied] = useState(false);
 
-  const selectedRecipes = state.plan.selectedRecipeIds
-    .map((id) => state.recipes.find((r) => r.id === id))
+  const selectedRecipes = state.plan.selectedRecipes
+    .map((pr) => state.recipes.find((r) => r.id === pr.recipeId))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
 
   const copyList = async (): Promise<void> => {
@@ -33,9 +33,8 @@ export function ListTab({
       .map(
         (g) =>
           `${g.label.toUpperCase()}\n${g.items
-            .map(
-              (it) =>
-                `  ☐ ${it.name} — ${it.amount}${it.unit ? " " + it.unit : ""}`,
+            .map((it) =>
+              it.display ? `  ☐ ${it.name} — ${it.display}` : `  ☐ ${it.name}`,
             )
             .join("\n")}`,
       )
@@ -51,13 +50,16 @@ export function ListTab({
 
   const markCooked = (): void => {
     const now = new Date().toISOString();
-    mutate((s) => ({
-      ...s,
-      recipes: s.recipes.map((r) =>
-        s.plan.selectedRecipeIds.includes(r.id) ? { ...r, lastUsed: now } : r,
-      ),
-      plan: { ...s.plan, selectedRecipeIds: [] },
-    }));
+    mutate((s) => {
+      const ids = new Set(s.plan.selectedRecipes.map((pr) => pr.recipeId));
+      return {
+        ...s,
+        recipes: s.recipes.map((r) =>
+          ids.has(r.id) ? { ...r, lastUsed: now } : r,
+        ),
+        plan: { ...s.plan, selectedRecipes: [] },
+      };
+    });
     clearChecked();
     goPlan();
   };
@@ -158,8 +160,7 @@ export function ListTab({
                       className="text-xs tabular-nums"
                       style={{ color: "var(--muted)" }}
                     >
-                      {it.amount}
-                      {it.unit ? ` ${it.unit}` : ""}
+                      {it.display}
                     </p>
                   </a>
                 </li>

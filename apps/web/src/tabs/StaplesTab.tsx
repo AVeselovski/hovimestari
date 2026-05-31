@@ -82,7 +82,7 @@ export function StaplesTab({
           id: uid(),
           groupId,
           name: "Uusi tuote",
-          amount: "1",
+          amount: 1,
           unit: "kpl",
           category: "other",
           enabled: true,

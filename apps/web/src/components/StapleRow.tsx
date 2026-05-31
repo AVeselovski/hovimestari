@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Edit2, Trash2 } from "lucide-react";
 import type { Staple } from "@hovi/shared";
 import { CATEGORIES, catLabel } from "../lib/categories.js";
+import { formatRecipeAmount } from "../lib/amount.js";
 
 export function StapleRow({
   s,
@@ -30,12 +31,9 @@ export function StapleRow({
           placeholder="Nimi"
         />
         <div className="grid grid-cols-3 gap-2">
-          <input
-            className="px-3 py-2 rounded-lg border bg-transparent text-sm"
-            style={{ borderColor: "var(--rule)" }}
+          <AmountInput
             value={s.amount}
-            onChange={(e) => update(s.id, { amount: e.target.value })}
-            placeholder="Määrä"
+            onChange={(next) => update(s.id, { amount: next })}
           />
           <input
             className="px-3 py-2 rounded-lg border bg-transparent text-sm"
@@ -82,6 +80,8 @@ export function StapleRow({
     );
   }
 
+  const amountText = s.amount === null ? "" : formatRecipeAmount(s.amount);
+
   return (
     <div
       className="rounded-xl p-3 border flex items-center gap-3"
@@ -105,7 +105,7 @@ export function StapleRow({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{s.name}</p>
         <p className="text-[11px]" style={{ color: "var(--muted)" }}>
-          {s.amount} {s.unit} · {catLabel(s.category)}
+          {amountText} {s.unit} · {catLabel(s.category)}
         </p>
       </div>
       <button
@@ -117,5 +117,51 @@ export function StapleRow({
         <Edit2 size={14} />
       </button>
     </div>
+  );
+}
+
+function AmountInput({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (next: number | null) => void;
+}): JSX.Element {
+  const canonical = value === null ? "" : formatRecipeAmount(value);
+  const [text, setText] = useState<string>(canonical);
+
+  return (
+    <input
+      className="px-3 py-2 rounded-lg border bg-transparent text-sm"
+      style={{ borderColor: "var(--rule)" }}
+      placeholder="Määrä"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        const trimmed = next.trim().replace(",", ".");
+        if (trimmed === "") {
+          onChange(null);
+          return;
+        }
+        const parsed = parseFloat(trimmed);
+        if (!Number.isNaN(parsed)) onChange(parsed);
+      }}
+      onBlur={() => {
+        const trimmed = text.trim().replace(",", ".");
+        if (trimmed === "") {
+          onChange(null);
+          setText("");
+          return;
+        }
+        const parsed = parseFloat(trimmed);
+        if (Number.isNaN(parsed)) {
+          setText(canonical);
+          return;
+        }
+        setText(formatRecipeAmount(parsed));
+      }}
+    />
   );
 }

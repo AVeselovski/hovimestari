@@ -378,7 +378,7 @@ describe("Router with recipe-from-text task", () => {
       servings: 4,
       category: "common",
       ingredients: [
-        { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+        { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
       ],
     });
     const local = fakeProvider("lmstudio", lowDraft);

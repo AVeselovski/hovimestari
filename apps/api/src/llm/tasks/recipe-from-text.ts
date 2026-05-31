@@ -20,7 +20,7 @@ Return one JSON object only (no prose, no markdown fences) with this shape:
   "category": "common" | "special",  // "common" for everyday meals, "special" for celebratory dishes
   "keepsOvernight": boolean | undefined,  // omit unless the recipe is clearly meal-prep-friendly
   "ingredients": [
-    { "name": string, "amount": string, "unit": string, "category": AisleCategory }
+    { "name": string, "amount": number | null, "unit": string, "category": AisleCategory }
   ]
 }
 
@@ -36,7 +36,7 @@ Guidance:
 - "drinks" = beverages including wine.
 - "other" = anything that does not fit above.
 
-amount and unit are separate strings ("400" and "g", "1" and "tlk", "2" and "kynttä"). If amount is unclear, use an empty string. Output the JSON object and nothing else.
+amount is a JSON number (e.g. 400, 1, 2, 0.5) or null when the recipe gives no countable quantity (a pinch of salt, "to taste", garnish). unit is a separate string ("g", "tlk", "kynttä"). Never put units into amount, never use strings like "n. 400" or "1 nippu" — split them: amount: 1, unit: "nippu". Output the JSON object and nothing else.
 
 Ingredient-name canonicalization (the name is what gets searched in a grocery store, so keep it clean):
 - Strip retailer brand prefixes: "Pirkka tomaattimurska" → "tomaattimurska", "Atria broileri" → "broileri", "Saarioinen lihapullat" → "lihapullat".
@@ -66,7 +66,7 @@ export const RECIPE_DRAFT_JSON_SCHEMA: Record<string, unknown> = {
         required: ["name", "amount", "unit", "category"],
         properties: {
           name: { type: "string" },
-          amount: { type: "string" },
+          amount: { type: ["number", "null"] },
           unit: { type: "string" },
           category: { type: "string", enum: [...AISLE_CATEGORIES] },
         },
@@ -187,7 +187,9 @@ export function computeConfidence(
   let missingAmountPenalty = 0;
   let missingAmounts = 0;
   for (const ing of draft.ingredients) {
-    if (ing.amount.trim() === "") {
+    // Strict null check: 0 is a valid scaled amount, only `null` means
+    // "the recipe specifies no countable quantity".
+    if (ing.amount === null) {
       missingAmounts++;
       missingAmountPenalty = Math.min(0.4, missingAmountPenalty + 0.2);
     }

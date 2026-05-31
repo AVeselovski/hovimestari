@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Recipe } from "@hovi/shared";
 import { useStore } from "../lib/stateContext.js";
 import { SectionHead } from "../components/SectionHead.js";
+import { ServingsChip } from "../components/ServingsChip.js";
+import { formatRecipeAmount, scaleAmount } from "../lib/amount.js";
 import { NotFound } from "./NotFound.js";
 
 export function RecipeDetail(): JSX.Element | null {
@@ -30,6 +33,10 @@ export function RecipeDetailView({
   onBack: () => void;
   onEdit: () => void;
 }): JSX.Element {
+  // Ephemeral: scaling resets to base on every mount. We deliberately key
+  // useState by `recipe.id` via the parent re-mounting on navigation; remount
+  // → fresh state → reverts to base. No persistence here.
+  const [servings, setServings] = useState<number>(recipe.servings);
   const instructions = recipe.instructions ?? [];
 
   return (
@@ -55,9 +62,15 @@ export function RecipeDetailView({
         <h2 className="font-display text-3xl leading-tight">{recipe.name}</h2>
         <div className="flex flex-wrap gap-1.5 mt-3">
           <Chip>{recipe.time} min</Chip>
-          <Chip>{recipe.servings} ann.</Chip>
           <Chip>{recipe.category === "common" ? "Arki" : "Erikois"}</Chip>
           {recipe.keepsOvernight && <Chip accent>Yön yli ok</Chip>}
+        </div>
+        <div className="mt-3">
+          <ServingsChip
+            base={recipe.servings}
+            value={servings}
+            onChange={setServings}
+          />
         </div>
       </div>
 
@@ -70,22 +83,26 @@ export function RecipeDetailView({
             background: "var(--paper-2)",
           }}
         >
-          {recipe.ingredients.map((ing, i) => (
-            <li
-              key={i}
-              className="px-3 py-2 flex items-baseline justify-between gap-3"
-              style={{ borderColor: "var(--rule)" }}
-            >
-              <span className="text-sm leading-tight">{ing.name}</span>
-              <span
-                className="text-xs tabular-nums shrink-0"
-                style={{ color: "var(--muted)" }}
+          {recipe.ingredients.map((ing, i) => {
+            const scaled = scaleAmount(ing.amount, servings, recipe.servings);
+            const amt = formatRecipeAmount(scaled);
+            return (
+              <li
+                key={i}
+                className="px-3 py-2 flex items-baseline justify-between gap-3"
+                style={{ borderColor: "var(--rule)" }}
               >
-                {ing.amount}
-                {ing.unit ? ` ${ing.unit}` : ""}
-              </span>
-            </li>
-          ))}
+                <span className="text-sm leading-tight">{ing.name}</span>
+                <span
+                  className="text-xs tabular-nums shrink-0"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {amt}
+                  {ing.unit ? (amt ? ` ${ing.unit}` : ing.unit) : ""}
+                </span>
+              </li>
+            );
+          })}
           {recipe.ingredients.length === 0 && (
             <li
               className="px-3 py-3 text-xs"
