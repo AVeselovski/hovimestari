@@ -1,10 +1,20 @@
 import type { AisleCategory, State } from "@hovi/shared";
 import { CATEGORIES } from "./categories.js";
+import { formatShoppingAmount, scaleAmount } from "./amount.js";
+
+export type ShoppingContributor = {
+  amount: number | null;
+  unit: string;
+};
 
 export type ShoppingItem = {
   name: string;
-  amount: string;
+  contributors: ShoppingContributor[];
+  // First contributor's unit, retained for backward-compat / debugging. The
+  // canonical render string is `display`, which already encodes units across
+  // every contributor.
   unit: string;
+  display: string;
   category: AisleCategory;
   sources: string[];
 };
@@ -17,11 +27,29 @@ export type ShoppingGroup = {
 
 type Raw = {
   name: string;
-  amount: string;
+  amount: number | null;
   unit: string;
   category: AisleCategory;
   source: string;
 };
+
+type Working = {
+  name: string;
+  contributors: ShoppingContributor[];
+  category: AisleCategory;
+  sources: string[];
+};
+
+function renderContributor(c: ShoppingContributor): string {
+  const amt = formatShoppingAmount(c.amount, c.unit);
+  if (amt === "") return c.unit;
+  if (c.unit === "") return amt;
+  return `${amt} ${c.unit}`;
+}
+
+function buildDisplay(contributors: ShoppingContributor[]): string {
+  return contributors.map(renderContributor).join(" + ");
+}
 
 export function buildShoppingList(state: State): ShoppingGroup[] {
   const items: Raw[] = [];
@@ -42,13 +70,14 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
     });
   }
 
-  for (const rid of state.plan.selectedRecipeIds) {
-    const r = state.recipes.find((rr) => rr.id === rid);
+  for (const pr of state.plan.selectedRecipes) {
+    const r = state.recipes.find((rr) => rr.id === pr.recipeId);
     if (!r) continue;
+    const base = r.servings;
     for (const ing of r.ingredients) {
       items.push({
         name: ing.name,
-        amount: ing.amount,
+        amount: scaleAmount(ing.amount, pr.servings, base),
         unit: ing.unit,
         category: ing.category,
         source: r.name,
@@ -56,34 +85,32 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
     }
   }
 
-  const merged = new Map<string, ShoppingItem>();
+  const merged = new Map<string, Working>();
   for (const it of items) {
     const key = `${it.category}::${it.name.toLowerCase().trim()}`;
     const existing = merged.get(key);
     if (existing) {
-      if (existing.unit === it.unit) {
-        existing.amount = `${existing.amount} + ${it.amount}`;
-      } else {
-        const left = existing.unit
-          ? `${existing.amount} ${existing.unit}`
-          : existing.amount;
-        const right = it.unit ? `${it.amount} ${it.unit}` : it.amount;
-        existing.amount = `${left} + ${right}`;
-        existing.unit = "";
-      }
+      existing.contributors.push({ amount: it.amount, unit: it.unit });
       if (!existing.sources.includes(it.source)) existing.sources.push(it.source);
     } else {
       merged.set(key, {
         name: it.name,
-        amount: it.amount,
-        unit: it.unit,
+        contributors: [{ amount: it.amount, unit: it.unit }],
         category: it.category,
         sources: [it.source],
       });
     }
   }
 
-  const all = [...merged.values()];
+  const all: ShoppingItem[] = [...merged.values()].map((w) => ({
+    name: w.name,
+    contributors: w.contributors,
+    unit: w.contributors[0]?.unit ?? "",
+    display: buildDisplay(w.contributors),
+    category: w.category,
+    sources: w.sources,
+  }));
+
   return CATEGORIES.map((c) => ({
     id: c.id,
     label: c.label,

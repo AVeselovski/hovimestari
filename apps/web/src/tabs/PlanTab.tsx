@@ -15,32 +15,68 @@ export function PlanTab({
   mutate: (updater: (s: State) => State) => void;
   goList: () => void;
 }): JSX.Element {
-  const selectedRecipes = state.plan.selectedRecipeIds
-    .map((id) => state.recipes.find((r) => r.id === id))
-    .filter((r): r is NonNullable<typeof r> => Boolean(r));
+  const selectedPairs = state.plan.selectedRecipes
+    .map((pr) => {
+      const r = state.recipes.find((rr) => rr.id === pr.recipeId);
+      return r ? { recipe: r, planRecipe: pr } : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+  const selectedIds = new Set(state.plan.selectedRecipes.map((pr) => pr.recipeId));
   const common = state.recipes.filter((r) => r.category === "common");
   const special = state.recipes.filter((r) => r.category === "special");
 
   const toggleRecipe = (id: string): void => {
     mutate((s) => {
-      const has = s.plan.selectedRecipeIds.includes(id);
+      const has = s.plan.selectedRecipes.some((pr) => pr.recipeId === id);
+      if (has) {
+        return {
+          ...s,
+          plan: {
+            ...s.plan,
+            selectedRecipes: s.plan.selectedRecipes.filter(
+              (pr) => pr.recipeId !== id,
+            ),
+          },
+        };
+      }
+      const r = s.recipes.find((rr) => rr.id === id);
+      if (!r) return s;
       return {
         ...s,
         plan: {
           ...s.plan,
-          selectedRecipeIds: has
-            ? s.plan.selectedRecipeIds.filter((x) => x !== id)
-            : [...s.plan.selectedRecipeIds, id],
+          selectedRecipes: [
+            ...s.plan.selectedRecipes,
+            { recipeId: id, servings: r.servings },
+          ],
         },
       };
     });
+  };
+
+  const setServings = (recipeId: string, n: number): void => {
+    mutate((s) => ({
+      ...s,
+      plan: {
+        ...s.plan,
+        selectedRecipes: s.plan.selectedRecipes.map((pr) =>
+          pr.recipeId === recipeId ? { ...pr, servings: n } : pr,
+        ),
+      },
+    }));
   };
 
   const doShuffle = (n: 2 | 3): void => {
     mutate((s) => {
       const picks = shuffle(s.recipes, n);
       if (picks.length === 0) return s;
-      return { ...s, plan: { ...s.plan, selectedRecipeIds: picks } };
+      const selectedRecipes = picks
+        .map((id) => {
+          const r = s.recipes.find((rr) => rr.id === id);
+          return r ? { recipeId: id, servings: r.servings } : null;
+        })
+        .filter((x): x is { recipeId: string; servings: number } => x !== null);
+      return { ...s, plan: { ...s.plan, selectedRecipes } };
     });
   };
 
@@ -64,7 +100,7 @@ export function PlanTab({
             Tämän viikon valinnat
           </p>
           <p className="font-display text-5xl mt-1 leading-none">
-            {selectedRecipes.length}
+            {selectedPairs.length}
           </p>
           <div className="mt-4 flex gap-2">
             <button
@@ -92,15 +128,17 @@ export function PlanTab({
         />
       </section>
 
-      {selectedRecipes.length > 0 && (
+      {selectedPairs.length > 0 && (
         <section>
           <SectionHead>Valitut</SectionHead>
           <div className="space-y-2 mt-2">
-            {selectedRecipes.map((r) => (
+            {selectedPairs.map(({ recipe, planRecipe }) => (
               <SelectedCard
-                key={r.id}
-                recipe={r}
-                onRemove={() => toggleRecipe(r.id)}
+                key={recipe.id}
+                recipe={recipe}
+                planRecipe={planRecipe}
+                onRemove={() => toggleRecipe(recipe.id)}
+                onServingsChange={(n) => setServings(recipe.id, n)}
               />
             ))}
           </div>
@@ -130,7 +168,7 @@ export function PlanTab({
             <RecipeChip
               key={r.id}
               recipe={r}
-              selected={state.plan.selectedRecipeIds.includes(r.id)}
+              selected={selectedIds.has(r.id)}
               onClick={() => toggleRecipe(r.id)}
             />
           ))}
@@ -143,7 +181,7 @@ export function PlanTab({
                 <RecipeChip
                   key={r.id}
                   recipe={r}
-                  selected={state.plan.selectedRecipeIds.includes(r.id)}
+                  selected={selectedIds.has(r.id)}
                   onClick={() => toggleRecipe(r.id)}
                 />
               ))}

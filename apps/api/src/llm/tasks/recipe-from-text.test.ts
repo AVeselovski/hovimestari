@@ -38,6 +38,26 @@ describe("recipeFromTextTask prompt", () => {
     expect(task.opts?.responseSchema?.schema).toBeDefined();
     expect(task.opts?.temperature).toBeLessThanOrEqual(0.2);
   });
+
+  it("instructs the model to emit numeric (or null) amounts", () => {
+    const task = recipeFromTextTask("x");
+    const sys = task.messages[0].content;
+    expect(sys).toMatch(/number/i);
+    expect(sys).toMatch(/null/i);
+  });
+
+  it("declares amount as number-or-null in the JSON schema", () => {
+    const ingProps = (
+      RECIPE_DRAFT_JSON_SCHEMA as {
+        properties: {
+          ingredients: {
+            items: { properties: { amount: { type: string[] | string } } };
+          };
+        };
+      }
+    ).properties.ingredients.items.properties.amount;
+    expect(ingProps.type).toEqual(["number", "null"]);
+  });
 });
 
 describe("recipeFromTextTask.parse", () => {
@@ -47,8 +67,8 @@ describe("recipeFromTextTask.parse", () => {
     servings: 4,
     category: "common",
     ingredients: [
-      { name: "Naudan jauheliha", amount: "400", unit: "g", category: "meat-fish" },
-      { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+      { name: "Naudan jauheliha", amount: 400, unit: "g", category: "meat-fish" },
+      { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
     ],
   });
 
@@ -59,7 +79,27 @@ describe("recipeFromTextTask.parse", () => {
     if (!result.ok) return;
     expect(result.value.name).toBe("Jauheliha-tomaattipasta");
     expect(result.value.ingredients).toHaveLength(2);
+    expect(result.value.ingredients[0].amount).toBe(400);
     expect(result.confidence).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it("accepts a null amount as the explicit 'no quantity' sentinel", () => {
+    const task = recipeFromTextTask("Pasta, ripaus suolaa");
+    const result = task.parse(
+      JSON.stringify({
+        name: "Pasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
+          { name: "Suolaa", amount: null, unit: "ripaus", category: "pantry" },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.ingredients[1].amount).toBeNull();
   });
 
   it("rejects invalid JSON", () => {
@@ -76,7 +116,7 @@ describe("recipeFromTextTask.parse", () => {
         time: 10,
         servings: 4,
         category: "common",
-        ingredients: [{ name: "a", amount: "1", unit: "g", category: "not-a-category" }],
+        ingredients: [{ name: "a", amount: 1, unit: "g", category: "not-a-category" }],
       }),
     );
     expect(result.ok).toBe(false);
@@ -95,7 +135,7 @@ describe("recipeFromTextTask.parse", () => {
       JSON.stringify({
         name: "Jauhelihapasta",
         ingredients: [
-          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+          { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
         ],
       }),
     );
@@ -151,7 +191,7 @@ describe("recipeFromTextTask instructions", () => {
         servings: 4,
         category: "common",
         ingredients: [
-          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+          { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
         ],
       }),
     );
@@ -170,7 +210,7 @@ describe("recipeFromTextTask instructions", () => {
         servings: 4,
         category: "common",
         ingredients: [
-          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+          { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
         ],
         instructions: steps,
       }),
@@ -202,11 +242,29 @@ describe("computeConfidence", () => {
         servings: 4,
         category: "common",
         ingredients: [
-          { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+          { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
         ],
         instructions: [],
       },
       "Pasta 20 min, 400 g pastaa",
+    );
+    expect(confidence).toBe(1);
+    expect(warnings).toEqual([]);
+  });
+
+  it("treats amount: 0 as a real amount (no penalty)", () => {
+    const { confidence, warnings } = computeConfidence(
+      {
+        name: "Pasta",
+        time: 20,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "Pasta", amount: 0, unit: "g", category: "pantry" },
+        ],
+        instructions: [],
+      },
+      "Pasta 20 min",
     );
     expect(confidence).toBe(1);
     expect(warnings).toEqual([]);
@@ -220,10 +278,10 @@ describe("computeConfidence", () => {
         servings: 4,
         category: "common",
         ingredients: [
-          { name: "a", amount: "", unit: "g", category: "pantry" },
-          { name: "b", amount: "", unit: "g", category: "pantry" },
-          { name: "c", amount: "", unit: "g", category: "pantry" },
-          { name: "d", amount: "", unit: "g", category: "pantry" },
+          { name: "a", amount: null, unit: "g", category: "pantry" },
+          { name: "b", amount: null, unit: "g", category: "pantry" },
+          { name: "c", amount: null, unit: "g", category: "pantry" },
+          { name: "d", amount: null, unit: "g", category: "pantry" },
         ],
         instructions: [],
       },

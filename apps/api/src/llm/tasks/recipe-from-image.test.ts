@@ -32,8 +32,8 @@ describe("recipeFromImageTask.parse", () => {
     servings: 4,
     category: "common",
     ingredients: [
-      { name: "Naudan jauheliha", amount: "400", unit: "g", category: "meat-fish" },
-      { name: "Pasta", amount: "400", unit: "g", category: "pantry" },
+      { name: "Naudan jauheliha", amount: 400, unit: "g", category: "meat-fish" },
+      { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
     ],
   });
 

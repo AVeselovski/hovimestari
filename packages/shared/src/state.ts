@@ -16,7 +16,7 @@ export const AISLE_CATEGORIES = AisleCategorySchema.options;
 
 export const IngredientSchema = z.object({
   name: z.string(),
-  amount: z.string(),
+  amount: z.number().nullable(),
   unit: z.string(),
   category: AisleCategorySchema,
 });
@@ -50,15 +50,21 @@ export const StapleSchema = z.object({
   id: z.string(),
   groupId: z.string(),
   name: z.string(),
-  amount: z.string(),
+  amount: z.number().nullable(),
   unit: z.string(),
   category: AisleCategorySchema,
   enabled: z.boolean(),
 });
 export type Staple = z.infer<typeof StapleSchema>;
 
+export const PlanRecipeSchema = z.object({
+  recipeId: z.string(),
+  servings: z.number().int().min(1),
+});
+export type PlanRecipe = z.infer<typeof PlanRecipeSchema>;
+
 export const PlanSchema = z.object({
-  selectedRecipeIds: z.array(z.string()),
+  selectedRecipes: z.array(PlanRecipeSchema),
 });
 export type Plan = z.infer<typeof PlanSchema>;
 
@@ -74,5 +80,5 @@ export const EMPTY_STATE: State = {
   recipes: [],
   stapleGroups: [],
   staples: [],
-  plan: { selectedRecipeIds: [] },
+  plan: { selectedRecipes: [] },
 };

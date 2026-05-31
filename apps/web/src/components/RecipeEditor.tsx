@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatRecipeAmount } from "../lib/amount.js";
 import {
   ArrowLeft,
   Check,
@@ -48,7 +49,7 @@ export function RecipeEditor({
       ...rr,
       ingredients: [
         ...rr.ingredients,
-        { name: "", amount: "", unit: "", category: "pantry" },
+        { name: "", amount: null, unit: "", category: "pantry" },
       ],
     }));
   const removeIng = (idx: number): void =>
@@ -236,12 +237,9 @@ export function RecipeEditor({
                   onChange={(e) => updateIng(i, { name: e.target.value })}
                 />
                 <div className="grid grid-cols-[1fr_1fr_2fr_auto] gap-1.5">
-                  <input
-                    className="px-2 py-1.5 rounded border bg-transparent text-sm"
-                    style={{ borderColor: "var(--rule)" }}
-                    placeholder="Määrä"
+                  <AmountInput
                     value={ing.amount}
-                    onChange={(e) => updateIng(i, { amount: e.target.value })}
+                    onChange={(next) => updateIng(i, { amount: next })}
                   />
                   <input
                     className="px-2 py-1.5 rounded border bg-transparent text-sm"
@@ -370,5 +368,57 @@ export function RecipeEditor({
         </div>
       )}
     </div>
+  );
+}
+
+// Text-typed amount input over a numeric model. We do not use type="number"
+// because it fights commas/dots and Finnish locale. Empty string maps to null;
+// otherwise parseFloat. NaN-on-blur reverts to the previous valid value (held
+// in the parent state and re-pushed into the local string on next render).
+function AmountInput({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (next: number | null) => void;
+}): JSX.Element {
+  const canonical = value === null ? "" : formatRecipeAmount(value);
+  const [text, setText] = useState<string>(canonical);
+
+  return (
+    <input
+      className="px-2 py-1.5 rounded border bg-transparent text-sm"
+      style={{ borderColor: "var(--rule)" }}
+      placeholder="Määrä"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        const trimmed = next.trim().replace(",", ".");
+        if (trimmed === "") {
+          onChange(null);
+          return;
+        }
+        const parsed = parseFloat(trimmed);
+        if (!Number.isNaN(parsed)) onChange(parsed);
+      }}
+      onBlur={() => {
+        const trimmed = text.trim().replace(",", ".");
+        if (trimmed === "") {
+          onChange(null);
+          setText("");
+          return;
+        }
+        const parsed = parseFloat(trimmed);
+        if (Number.isNaN(parsed)) {
+          // Revert local string to last known canonical value.
+          setText(canonical);
+          return;
+        }
+        // Normalize displayed text to the canonical formatting.
+        setText(formatRecipeAmount(parsed));
+      }}
+    />
   );
 }

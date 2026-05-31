@@ -14,7 +14,9 @@ export function RecipesRoute(): JSX.Element | null {
       recipes: s.recipes.filter((r) => r.id !== id),
       plan: {
         ...s.plan,
-        selectedRecipeIds: s.plan.selectedRecipeIds.filter((x) => x !== id),
+        selectedRecipes: s.plan.selectedRecipes.filter(
+          (pr) => pr.recipeId !== id,
+        ),
       },
     }));
   };
