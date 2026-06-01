@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Copy, RotateCcw, ShoppingCart } from "lucide-react";
+import { Check, Copy, ExternalLink, RotateCcw, ShoppingCart } from "lucide-react";
 import type { State } from "@hovi/shared";
 import { buildShoppingList } from "../lib/shoppingList.js";
 import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
@@ -92,21 +92,32 @@ export function ListTab({
             {selectedRecipes.length} reseptiä
           </p>
         </div>
-        <button
-          onClick={() => void copyList()}
-          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border"
-          style={{ borderColor: "var(--ink)", color: "var(--ink)" }}
-        >
-          {copied ? (
-            <>
-              <Check size={14} /> Kopioitu
-            </>
-          ) : (
-            <>
-              <Copy size={14} /> Kopioi
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void copyList()}
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border"
+            style={{ borderColor: "var(--ink)", color: "var(--ink)" }}
+          >
+            {copied ? (
+              <>
+                <Check size={14} /> Kopioitu
+              </>
+            ) : (
+              <>
+                <Copy size={14} /> Kopioi
+              </>
+            )}
+          </button>
+          <a
+            href="https://www.s-kaupat.fi/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border no-underline"
+            style={{ borderColor: "var(--ink)", color: "var(--ink)" }}
+          >
+            <ExternalLink size={14} /> Kauppaan
+          </a>
+        </div>
       </div>
 
       {list.map((group) => (
