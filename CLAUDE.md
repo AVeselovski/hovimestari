@@ -436,3 +436,31 @@ Flow rules:
 - **If the reviewer requests changes**, send the findings back to the developer (not a fresh architect pass) unless the findings reveal a design flaw — then re-architect.
 - **The main session orchestrates, it does not implement.** Prefer spawning subagents over doing the work in the main context. The main context is for routing, summarizing back to the user, and holding the long-horizon thread.
 - **Keep the main context focused.** Ask subagents for short summaries. Don't pull large file contents or command output into the main context unless you need it to make a decision.
+
+### Branch hygiene: check before committing
+
+Long sessions cycle through multiple PRs. The trap: a PR gets merged, the conversation continues onto the next item, and the next commit lands on the already-merged branch. The PR for the next item then either fails to open or contains a polluted history (old merged commits plus the new one).
+
+**Before every commit, verify:**
+
+1. `git branch --show-current` — what branch am I on?
+2. `git status` — are there unrelated stale changes?
+3. Has the PR for the *previous* item already been merged? If yes, the current branch is **dead** — do NOT commit on it.
+
+**When starting a new feature/fix/phase that is logically separate from the last one:**
+
+1. `git fetch origin master` — pull latest base.
+2. `git checkout master && git pull --ff-only origin master` — get onto a clean base.
+3. `git checkout -b claude/<short-kebab-name>` — create a fresh branch for this unit of work.
+4. Do the work, commit, push with `-u origin claude/<short-kebab-name>`.
+5. Open the PR from that branch.
+
+**One PR = one logical unit of work = one branch.** Reusing a branch across merged PRs is the failure mode that has bitten this project multiple times. If in doubt, branch — branches are free.
+
+**If the harness instructions name a specific working branch** (e.g. "develop on branch `claude/exciting-ride-dumti`"), that name is a *default starting point*, not a forever-binding. Once a PR off that branch is merged, the next unit of work starts a new branch with a name describing it. Tell the user the new branch name.
+
+**Recovery if a branch already contains merged-and-rebased commits before your new work:**
+
+- `git fetch origin master` then `git rebase origin/master` will skip already-applied commits (git detects them by patch-id even if SHAs differ from rebase-merging).
+- Then `git push --force-with-lease` to update the PR.
+- Never `--force` without `--lease`.
