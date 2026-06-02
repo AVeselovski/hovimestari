@@ -3,6 +3,7 @@ import { Check, Edit2, Trash2 } from "lucide-react";
 import type { Staple } from "@hovi/shared";
 import { CATEGORIES, catLabel } from "../lib/categories.js";
 import { formatRecipeAmount } from "../lib/amount.js";
+import { capitalize } from "../lib/format.js";
 import { AmountInput } from "./AmountInput.js";
 
 export function StapleRow({
@@ -114,7 +115,7 @@ export function StapleRow({
         {s.enabled && <Check size={13} style={{ color: "var(--paper)" }} />}
       </button>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{s.name}</p>
+        <p className="text-sm font-medium truncate">{capitalize(s.name)}</p>
         <p className="text-[11px]" style={{ color: "var(--muted)" }}>
           {suppress
             ? s.enabled

@@ -6,6 +6,7 @@ import { useStore } from "../lib/stateContext.js";
 import { SectionHead } from "../components/SectionHead.js";
 import { ServingsChip } from "../components/ServingsChip.js";
 import { formatRecipeAmount, scaleAmount } from "../lib/amount.js";
+import { capitalize } from "../lib/format.js";
 import { NotFound } from "./NotFound.js";
 
 export function RecipeDetail(): JSX.Element | null {
@@ -94,7 +95,7 @@ export function RecipeDetailView({
                 className="px-3 py-2 flex items-baseline justify-between gap-3"
                 style={{ borderColor: "var(--rule)" }}
               >
-                <span className="text-sm leading-tight">{ing.name}</span>
+                <span className="text-sm leading-tight">{capitalize(ing.name)}</span>
                 <span
                   className="text-xs tabular-nums shrink-0"
                   style={{ color: "var(--muted)" }}

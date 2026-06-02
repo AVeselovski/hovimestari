@@ -3,6 +3,7 @@ import { Check, Copy, ExternalLink, RotateCcw, ShoppingCart } from "lucide-react
 import type { State } from "@hovi/shared";
 import { buildShoppingList } from "../lib/shoppingList.js";
 import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
+import { capitalize } from "../lib/format.js";
 
 export function ListTab({
   state,
@@ -34,7 +35,7 @@ export function ListTab({
         (g) =>
           `${g.label.toUpperCase()}\n${g.items
             .map((it) =>
-              it.display ? `  ☐ ${it.name} — ${it.display}` : `  ☐ ${it.name}`,
+              it.display ? `  ☐ ${capitalize(it.name)} — ${it.display}` : `  ☐ ${capitalize(it.name)}`,
             )
             .join("\n")}`,
       )
@@ -164,7 +165,7 @@ export function ListTab({
                       <p
                         className={`text-sm leading-tight ${isChecked ? "line-through opacity-50" : ""}`}
                       >
-                        {it.name}
+                        {capitalize(it.name)}
                       </p>
                     </div>
                     <p
