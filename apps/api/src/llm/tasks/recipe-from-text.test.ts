@@ -370,6 +370,20 @@ describe("collapseDuplicateIngredients", () => {
     ]);
     expect(out).toHaveLength(1);
     expect(out[0].amount).toBe(3);
+    expect(out[0].name).toBe("öljy");
+    expect(out[0].unit).toBe("rkl");
+  });
+
+  it("collapses three or more occurrences of the same ingredient into one row", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 0.5, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 1, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 1.5, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toBe("öljy");
+    expect(out[0].amount).toBe(3);
+    expect(out[0].unit).toBe("rkl");
   });
 
   it("preserves first occurrence's original casing for name and unit", () => {
