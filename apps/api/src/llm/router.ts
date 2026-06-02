@@ -14,6 +14,8 @@ export type RouterRunResult<T> = {
   warnings: string[];
   provider: string;
   model: string;
+  /** Set when a prior provider was tried but had confidence below the threshold. */
+  fallback?: { provider: string; model: string; confidence: number };
 };
 
 export type RouterOpts = {
@@ -88,6 +90,7 @@ export class Router {
     }
     const attempts: Array<{ provider: string; error: string }> = [];
     let lastLowConfidence: RouterRunResult<T> | null = null;
+    let lowConfidenceFallback: { provider: string; model: string; confidence: number } | undefined;
 
     for (const provider of order) {
       try {
@@ -107,11 +110,13 @@ export class Router {
           warnings: parsed.warnings,
           provider: provider.name,
           model: res.model,
+          fallback: lowConfidenceFallback,
         };
         if (parsed.confidence >= this.threshold) {
           return result;
         }
         // Low confidence: remember it, but try next provider if any.
+        lowConfidenceFallback = { provider: provider.name, model: res.model, confidence: parsed.confidence };
         lastLowConfidence = result;
         attempts.push({
           provider: provider.name,
@@ -169,6 +174,7 @@ export class Router {
 
     const attempts: Array<{ provider: string; error: string }> = [];
     let lastLowConfidence: RouterRunResult<T> | null = null;
+    let lowConfidenceFallback: { provider: string; model: string; confidence: number } | undefined;
 
     for (const provider of order) {
       try {
@@ -195,10 +201,12 @@ export class Router {
           warnings: parsed.warnings,
           provider: provider.name,
           model: res.model,
+          fallback: lowConfidenceFallback,
         };
         if (parsed.confidence >= this.threshold) {
           return result;
         }
+        lowConfidenceFallback = { provider: provider.name, model: res.model, confidence: parsed.confidence };
         lastLowConfidence = result;
         attempts.push({
           provider: provider.name,

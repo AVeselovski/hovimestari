@@ -27,7 +27,12 @@ export function RecipeEditor({
   onSave: (r: RecipeEditorDraft) => void;
   onCancel: () => void;
   warnings?: string[];
-  importSource?: { provider: string; model: string };
+  importSource?: {
+    provider: string;
+    model: string;
+    confidence: number;
+    fallback?: { provider: string; model: string; confidence: number };
+  };
 }): JSX.Element {
   const [importSourceDismissed, setImportSourceDismissed] = useState(false);
   const [r, setR] = useState<RecipeEditorDraft>({
@@ -356,7 +361,7 @@ export function RecipeEditor({
           }}
         >
           <p className="text-xs truncate">
-            {formatImportSource(importSource.provider, importSource.model)}
+            {formatImportSource(importSource.provider, importSource.model, importSource.confidence, importSource.fallback)}
           </p>
           <button
             onClick={() => setImportSourceDismissed(true)}

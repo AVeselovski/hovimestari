@@ -46,7 +46,7 @@ Ingredient-name canonicalization (the name is what gets searched in a grocery st
 - Keep "X tai Y" (either/or) constructs intact as one ingredient — do not split them into two rows: "mustat tai vihreät oliivit" stays as written.
 - If the same ingredient (same name and unit) appears in multiple sections of the recipe (e.g. öljy listed once under "kastike" and once under "marinadi"), emit a single row with the summed amount. Sections in the source describe cooking order, not separate shopping items.
 
-If the text includes preparation instructions, return them in the "instructions" field as a flat list of strings — one step per string, no numbering, no markdown. Keep the original language (Finnish stays Finnish). If no instructions are present, omit the field or return an empty list.`;
+If the text includes preparation instructions, return them in the "instructions" field as a flat list of strings. Map each numbered step in the source to exactly one string — never split a numbered step across multiple strings even if it contains several sentences. Example: source "1. Kiehauta vesi. Lisää suola. 2. Lisää pasta." → ["Kiehauta vesi. Lisää suola.", "Lisää pasta."]. No step numbers, no markdown. Keep the original language (Finnish stays Finnish). If no instructions are present, omit the field or return an empty list.`;
 
 const SYSTEM_PROMPT = RECIPE_DRAFT_PROMPT_CORE;
 
@@ -195,7 +195,9 @@ export function computeConfidence(
   for (const ing of draft.ingredients) {
     // Strict null check: 0 is a valid scaled amount, only `null` means
     // "the recipe specifies no countable quantity".
-    if (ing.amount === null) {
+    // Pantry items (spices, seasonings) frequently have no countable amount by
+    // design — don't penalise them, as null is the correct answer there.
+    if (ing.amount === null && ing.category !== "pantry") {
       missingAmounts++;
       missingAmountPenalty = Math.min(0.4, missingAmountPenalty + 0.2);
     }

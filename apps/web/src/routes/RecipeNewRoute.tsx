@@ -15,7 +15,12 @@ type Phase =
       kind: "editor";
       initial: RecipeEditorDraft;
       warnings: string[];
-      importSource?: { provider: string; model: string };
+      importSource?: {
+        provider: string;
+        model: string;
+        confidence: number;
+        fallback?: { provider: string; model: string; confidence: number };
+      };
     };
 
 const BLANK: RecipeEditorDraft = {
@@ -46,12 +51,12 @@ export function RecipeNewRoute(): JSX.Element | null {
   if (phase.kind === "import") {
     return (
       <RecipeImportSheet
-        onDraft={(draft, warnings, provider, model) =>
+        onDraft={(draft, warnings, provider, model, confidence, fallback) =>
           setPhase({
             kind: "editor",
             initial: { ...draft, instructions: draft.instructions ?? [] },
             warnings,
-            importSource: { provider, model },
+            importSource: { provider, model, confidence, fallback },
           })
         }
         onBlank={() =>

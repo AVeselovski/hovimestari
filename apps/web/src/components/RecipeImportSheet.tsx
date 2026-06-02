@@ -30,6 +30,8 @@ export function RecipeImportSheet({
     warnings: string[],
     provider: string,
     model: string,
+    confidence: number,
+    fallback?: { provider: string; model: string; confidence: number },
   ) => void;
   onBlank: () => void;
   onCancel: () => void;
@@ -55,7 +57,7 @@ export function RecipeImportSheet({
     setError(null);
     try {
       const res = await importRecipeFromText(text);
-      onDraft(res.draft, res.warnings, res.provider, res.model);
+      onDraft(res.draft, res.warnings, res.provider, res.model, res.confidence, res.fallback);
     } catch (err) {
       setError(mapImportError(err));
     } finally {
@@ -91,7 +93,7 @@ export function RecipeImportSheet({
     setError(null);
     try {
       const res = await importRecipeFromImage(image.blob, image.mediaType);
-      onDraft(res.draft, res.warnings, res.provider, res.model);
+      onDraft(res.draft, res.warnings, res.provider, res.model, res.confidence, res.fallback);
     } catch (err) {
       setError(mapImportError(err));
     } finally {

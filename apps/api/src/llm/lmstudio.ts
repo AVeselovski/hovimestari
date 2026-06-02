@@ -17,7 +17,7 @@ export type LMStudioProviderOpts = {
 
 type ChatCompletionResponse = {
   choices: Array<{
-    message: { content: string | null };
+    message: { content: string | null; reasoning_content?: string | null };
     finish_reason?: string;
   }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
@@ -130,7 +130,10 @@ export class LMStudioProvider implements LLMProvider {
 
     const data = (await res.json()) as ChatCompletionResponse;
     const latencyMs = Date.now() - startedAt;
-    const content = data.choices?.[0]?.message?.content ?? "";
+    const message = data.choices?.[0]?.message;
+    // Qwen3 thinking mode puts the answer in reasoning_content and leaves content empty.
+    // Fall back to reasoning_content so structured-output tasks still work.
+    const content = message?.content || message?.reasoning_content || "";
     const finishReason = data.choices?.[0]?.finish_reason;
     const inputTokens = data.usage?.prompt_tokens ?? 0;
     const outputTokens = data.usage?.completion_tokens ?? 0;

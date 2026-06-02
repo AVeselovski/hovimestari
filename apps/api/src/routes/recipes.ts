@@ -44,6 +44,7 @@ export async function recipesRoutes(
         warnings: result.warnings,
         provider: result.provider,
         model: result.model,
+        fallback: result.fallback,
       };
       return body;
     } catch (err) {
@@ -111,6 +112,7 @@ export async function recipesRoutes(
           warnings: result.warnings,
           provider: result.provider,
           model: result.model,
+          fallback: result.fallback,
         };
         return body;
       } catch (err) {
