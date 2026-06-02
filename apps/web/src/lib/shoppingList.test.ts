@@ -31,8 +31,8 @@ function baseState(): State {
       },
     ],
     stapleGroups: [
-      { id: "weekly", name: "Viikko", enabled: true, order: 0 },
-      { id: "brunch", name: "Brunssi", enabled: false, order: 1 },
+      { id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false },
+      { id: "brunch", name: "Brunssi", enabled: false, order: 1, suppress: false },
     ],
     staples: [
       { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
@@ -267,7 +267,7 @@ describe("buildShoppingList", () => {
           instructions: [],
         },
       ],
-      stapleGroups: [{ id: "weekly", name: "Viikko", enabled: true, order: 0 }],
+      stapleGroups: [{ id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false }],
       staples: [
         {
           id: "w-banaani",
@@ -427,6 +427,169 @@ describe("buildShoppingList", () => {
     const pantry = list.find((g) => g.id === "pantry");
     const maku = pantry?.items.find((i) => i.name === "Maku");
     expect(maku?.display).toBe("");
+  });
+
+  // -- New: Kaapista suppression cases --------------------------------------
+
+  it("suppresses a recipe ingredient when Kaapista has a matching disabled staple", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 5,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    expect(dairy).toBeUndefined();
+  });
+
+  it("does NOT suppress when Kaapista staple is enabled (Loppu — osta)", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 5,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: true },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const voi = dairy?.items.find((i) => i.name === "Voi");
+    expect(voi?.display).toBe("1 pkt + 1 pkt");
+  });
+
+  it("does NOT suppress when the Kaapista group itself is disabled", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 5,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: false, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const voi = dairy?.items.find((i) => i.name === "Voi");
+    expect(voi?.display).toBe("1 pkt");
+  });
+
+  it("suppresses staples from non-suppress groups too", () => {
+    const s: State = {
+      recipes: [],
+      stapleGroups: [
+        { id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false },
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 1, suppress: true },
+      ],
+      staples: [
+        { id: "w-maito", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
+        { id: "k-maito", groupId: "kaapista", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    expect(dairy).toBeUndefined();
+  });
+
+  it("matches case-insensitively and trim-insensitively", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 5,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "  voi  ", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    expect(dairy).toBeUndefined();
+  });
+
+  it("scopes suppression by category (Kaapista pantry-Voi does not suppress dairy-Voi)", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 5,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "pantry", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const list = buildShoppingList(s);
+    const dairy = list.find((g) => g.id === "dairy");
+    const voi = dairy?.items.find((i) => i.name === "Voi");
+    expect(voi?.display).toBe("1 pkt");
   });
 
   it("editing a recipe's servings does not mutate PlanRecipe.servings (C5: decoupling)", () => {

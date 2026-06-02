@@ -10,11 +10,13 @@ export function StapleRow({
   toggle,
   update,
   remove,
+  suppress,
 }: {
   s: Staple;
   toggle: (id: string) => void;
   update: (id: string, patch: Partial<Staple>) => void;
   remove: (id: string) => void;
+  suppress?: boolean;
 }): JSX.Element {
   const [editing, setEditing] = useState(false);
 
@@ -99,14 +101,26 @@ export function StapleRow({
           borderColor: "var(--ink)",
           background: s.enabled ? "var(--ink)" : "transparent",
         }}
-        aria-label={s.enabled ? "Poista listalta" : "Lisää listalle"}
+        aria-label={
+          suppress
+            ? s.enabled
+              ? "Merkitse kaapissa olevaksi"
+              : "Merkitse loppuneeksi"
+            : s.enabled
+              ? "Poista listalta"
+              : "Lisää listalle"
+        }
       >
         {s.enabled && <Check size={13} style={{ color: "var(--paper)" }} />}
       </button>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{s.name}</p>
         <p className="text-[11px]" style={{ color: "var(--muted)" }}>
-          {amountText} {s.unit} · {catLabel(s.category)}
+          {suppress
+            ? s.enabled
+              ? "Loppu — osta"
+              : "Kaapissa"
+            : `${amountText} ${s.unit} · ${catLabel(s.category)}`}
         </p>
       </div>
       <button

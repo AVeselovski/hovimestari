@@ -67,7 +67,7 @@ export function StaplesTab({
         ...s,
         stapleGroups: [
           ...s.stapleGroups,
-          { id: uid(), name, enabled: true, order: maxOrder + 1 },
+          { id: uid(), name, enabled: true, order: maxOrder + 1, suppress: false },
         ],
       };
     });
@@ -198,6 +198,14 @@ function GroupSection({
           className="flex-1 text-left"
         >
           <p className="font-display text-xl leading-tight">{group.name}</p>
+          {group.suppress && (
+            <p
+              className="text-[11px] italic"
+              style={{ color: "var(--muted)" }}
+            >
+              Kaapissa olevat tuotteet suodatetaan ostoslistalta.
+            </p>
+          )}
         </button>
         <button
           onClick={() => moveGroup(group.id, -1)}
@@ -234,6 +242,7 @@ function GroupSection({
             toggle={toggleStaple}
             update={updateStaple}
             remove={removeStaple}
+            suppress={group.suppress}
           />
         ))}
       </div>

@@ -43,6 +43,7 @@ export const StapleGroupSchema = z.object({
   name: z.string(),
   enabled: z.boolean(),
   order: z.number().int(),
+  suppress: z.boolean().default(false),
 });
 export type StapleGroup = z.infer<typeof StapleGroupSchema>;
 

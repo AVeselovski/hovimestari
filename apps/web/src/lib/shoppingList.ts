@@ -53,14 +53,33 @@ function buildDisplay(contributors: ShoppingContributor[]): string {
 
 export function buildShoppingList(state: State): ShoppingGroup[] {
   const items: Raw[] = [];
+  // Suppression keys use the same `category::lowercased-trimmed-name` shape as
+  // the merge key below. This is intentional: a Kaapista "Voi" (dairy) does not
+  // suppress a recipe "Voi" categorized as pantry, mirroring the merge contract.
+  const suppressed = new Set<string>();
 
-  const enabledGroupIds = new Set(
-    state.stapleGroups.filter((g) => g.enabled).map((g) => g.id),
-  );
+  const groupsById = new Map(state.stapleGroups.map((g) => [g.id, g]));
 
+  // First pass: collect suppressions from enabled suppress-groups.
   for (const s of state.staples) {
-    if (!s.enabled) continue;
-    if (!enabledGroupIds.has(s.groupId)) continue;
+    const g = groupsById.get(s.groupId);
+    if (!g || !g.enabled) continue;
+    if (g.suppress && !s.enabled) {
+      suppressed.add(`${s.category}::${s.name.toLowerCase().trim()}`);
+    }
+  }
+
+  // Second pass: collect additions. For suppress-groups, a disabled staple is
+  // a suppression marker (handled above), not "off"; an enabled staple means
+  // "Loppu — osta" and behaves as a normal addition.
+  for (const s of state.staples) {
+    const g = groupsById.get(s.groupId);
+    if (!g || !g.enabled) continue;
+    if (g.suppress) {
+      if (!s.enabled) continue;
+    } else {
+      if (!s.enabled) continue;
+    }
     items.push({
       name: s.name,
       amount: s.amount,
@@ -88,6 +107,7 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
   const merged = new Map<string, Working>();
   for (const it of items) {
     const key = `${it.category}::${it.name.toLowerCase().trim()}`;
+    if (suppressed.has(key)) continue;
     const existing = merged.get(key);
     if (existing) {
       existing.contributors.push({ amount: it.amount, unit: it.unit });
