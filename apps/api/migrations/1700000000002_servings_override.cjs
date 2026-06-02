@@ -2,10 +2,33 @@
 exports.shorthands = undefined;
 
 // Pre-flight: a numeric amount in this codebase is "an integer or decimal,
-// optionally negative". Anything else (composite strings like "1 nippu", "n. 400",
-// "~2") is rejected loudly — silently dropping suffixes via parseFloat would
-// be data loss. The user can re-edit the row by hand and re-run the migration.
+// optionally negative". Unicode vulgar fractions (½, ¼, ¾, …) and mixed
+// numbers (1½) are also accepted and converted to decimals. Anything else
+// (composite strings like "1 nippu", "n. 400", "~2") is rejected loudly —
+// silently dropping suffixes via parseFloat would be data loss. The user can
+// re-edit the row by hand and re-run the migration.
 const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
+
+const VULGAR_FRACTIONS = {
+  "½": 0.5,
+  "⅓": 1 / 3,
+  "⅔": 2 / 3,
+  "¼": 0.25,
+  "¾": 0.75,
+  "⅕": 0.2,
+  "⅖": 0.4,
+  "⅗": 0.6,
+  "⅘": 0.8,
+  "⅙": 1 / 6,
+  "⅚": 5 / 6,
+  "⅛": 0.125,
+  "⅜": 0.375,
+  "⅝": 0.625,
+  "⅞": 0.875,
+};
+
+// Matches an optional integer part followed by a Unicode vulgar fraction, e.g. "1½" or "½"
+const MIXED_FRACTION_RE = /^(\d+)?([\u00BC-\u00BE\u2150-\u215E])$/;
 
 function parseAmount(raw, context) {
   if (raw === null || raw === undefined) return null;
@@ -22,17 +45,30 @@ function parseAmount(raw, context) {
   }
   const trimmed = raw.trim();
   if (trimmed === "") return null;
-  if (!NUMERIC_RE.test(trimmed)) {
-    throw new Error(
-      `cannot migrate non-numeric amount at ${context}: ${JSON.stringify(raw)}. ` +
-        `Edit the row in place (or via the API) to use a plain number, then re-run migrations.`,
-    );
+
+  // Plain integer or decimal
+  if (NUMERIC_RE.test(trimmed)) {
+    const parsed = Number(trimmed);
+    if (Number.isNaN(parsed)) {
+      throw new Error(`amount parses to NaN at ${context}: ${JSON.stringify(raw)}`);
+    }
+    return parsed;
   }
-  const parsed = Number(trimmed);
-  if (Number.isNaN(parsed)) {
-    throw new Error(`amount parses to NaN at ${context}: ${JSON.stringify(raw)}`);
+
+  // Unicode vulgar fraction, optionally preceded by an integer (e.g. "½", "1½")
+  const mixedMatch = trimmed.match(MIXED_FRACTION_RE);
+  if (mixedMatch) {
+    const fractionChar = mixedMatch[2];
+    if (fractionChar in VULGAR_FRACTIONS) {
+      const whole = mixedMatch[1] ? parseInt(mixedMatch[1], 10) : 0;
+      return whole + VULGAR_FRACTIONS[fractionChar];
+    }
   }
-  return parsed;
+
+  throw new Error(
+    `cannot migrate non-numeric amount at ${context}: ${JSON.stringify(raw)}. ` +
+      `Edit the row in place (or via the API) to use a plain number, then re-run migrations.`,
+  );
 }
 
 function migrateState(state) {
