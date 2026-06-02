@@ -228,14 +228,16 @@ function GroupSection({
         >
           <ChevronDown size={16} />
         </button>
-        <button
-          onClick={() => deleteGroup(group.id)}
-          className="p-1.5"
-          style={{ color: "var(--muted)" }}
-          aria-label="Poista ryhmä"
-        >
-          <Trash2 size={15} />
-        </button>
+        {group.id !== "kaapista" && (
+          <button
+            onClick={() => deleteGroup(group.id)}
+            className="p-1.5"
+            style={{ color: "var(--muted)" }}
+            aria-label="Poista ryhmä"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
       <div className="mt-2 space-y-1.5">
         {items.map((s) => (
