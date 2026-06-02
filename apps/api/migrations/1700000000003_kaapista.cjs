@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 exports.shorthands = undefined;
 
-const KAAPISTA_GROUP = { id: "kaapista", name: "Kaapista", enabled: true, order: 2, suppress: true };
+const KAAPISTA_GROUP = { id: "kaapista", name: "Kaapista", enabled: true, suppress: true };
 const KAAPISTA_STAPLES = [
   { id: "k-oljy",     groupId: "kaapista", name: "Öljy",      amount: 1, unit: "plo", category: "pantry", enabled: false },
   { id: "k-suola",    groupId: "kaapista", name: "Suola",     amount: 1, unit: "prk", category: "pantry", enabled: false },

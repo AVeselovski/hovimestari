@@ -74,21 +74,24 @@ export function StaplesTab({
   };
 
   const addStaple = (groupId: string): void =>
-    mutate((s) => ({
-      ...s,
-      staples: [
-        ...s.staples,
-        {
-          id: uid(),
-          groupId,
-          name: "Uusi tuote",
-          amount: 1,
-          unit: "kpl",
-          category: "other",
-          enabled: true,
-        },
-      ],
-    }));
+    mutate((s) => {
+      const group = s.stapleGroups.find((g) => g.id === groupId);
+      return {
+        ...s,
+        staples: [
+          ...s.staples,
+          {
+            id: uid(),
+            groupId,
+            name: "Uusi tuote",
+            amount: 1,
+            unit: "kpl",
+            category: "other",
+            enabled: !group?.suppress,
+          },
+        ],
+      };
+    });
 
   const toggleStaple = (id: string): void =>
     mutate((s) => ({
