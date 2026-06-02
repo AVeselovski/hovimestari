@@ -234,7 +234,7 @@ export function collapseDuplicateIngredients(
     const key = `${ing.name.trim().toLowerCase()}::${ing.unit.trim().toLowerCase()}`;
     const prior = byKey.get(key);
     if (!prior) {
-      byKey.set(key, { ...ing });
+      byKey.set(key, { ...ing, name: ing.name.trim(), unit: ing.unit.trim() });
       order.push(key);
       continue;
     }
