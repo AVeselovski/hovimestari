@@ -75,11 +75,10 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
   for (const s of state.staples) {
     const g = groupsById.get(s.groupId);
     if (!g || !g.enabled) continue;
-    if (g.suppress) {
-      if (!s.enabled) continue;
-    } else {
-      if (!s.enabled) continue;
-    }
+    // Disabled staples are skipped either way: in suppress groups they're
+    // already recorded as suppression markers (pass 1); in normal groups
+    // they're simply "off."
+    if (!s.enabled) continue;
     items.push({
       name: s.name,
       amount: s.amount,
