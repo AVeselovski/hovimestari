@@ -16,6 +16,12 @@ describe("recipeFromImageTask prompt", () => {
     expect(sys.toLowerCase()).toContain("ocr");
   });
 
+  it("system prompt inherits the duplicate-collapse rule from the core", () => {
+    const task = recipeFromImageTask();
+    const sys = task.messages[0].content;
+    expect(sys).toMatch(/same\s+ingredient.+(multiple sections|summed amount)/is);
+  });
+
   it("reuses the recipe_draft response schema with vision-friendly options", () => {
     const task = recipeFromImageTask();
     expect(task.opts?.responseSchema?.name).toBe("recipe_draft");
@@ -77,5 +83,29 @@ describe("recipeFromImageTask.parse", () => {
     const wrapped = "```json\n" + goodJson + "\n```";
     const result = task.parse(wrapped);
     expect(result.ok).toBe(true);
+  });
+
+  it("collapses Larb-Gai-shaped duplicate öljy rows end-to-end", () => {
+    const task = recipeFromImageTask();
+    const result = task.parse(
+      JSON.stringify({
+        name: "Larb Gai",
+        time: 25,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "broileri", amount: 400, unit: "g", category: "meat-fish" },
+          { name: "öljy", amount: 0.5, unit: "rkl", category: "pantry" },
+          { name: "limetti", amount: 1, unit: "kpl", category: "produce" },
+          { name: "öljy", amount: 1.5, unit: "rkl", category: "pantry" },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const oljyRows = result.value.ingredients.filter((i) => i.name === "öljy");
+    expect(oljyRows).toHaveLength(1);
+    expect(oljyRows[0].amount).toBe(2);
+    expect(result.value.ingredients).toHaveLength(3);
   });
 });

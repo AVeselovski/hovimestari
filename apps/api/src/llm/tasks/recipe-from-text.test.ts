@@ -3,6 +3,7 @@ import {
   recipeFromTextTask,
   stripJsonFences,
   computeConfidence,
+  collapseDuplicateIngredients,
   RECIPE_DRAFT_JSON_SCHEMA,
 } from "./recipe-from-text.js";
 
@@ -44,6 +45,12 @@ describe("recipeFromTextTask prompt", () => {
     const sys = task.messages[0].content;
     expect(sys).toMatch(/number/i);
     expect(sys).toMatch(/null/i);
+  });
+
+  it("tells the model to collapse duplicate ingredients across sections", () => {
+    const task = recipeFromTextTask("x");
+    const sys = task.messages[0].content;
+    expect(sys).toMatch(/same\s+ingredient.+(multiple sections|summed amount)/is);
   });
 
   it("declares amount as number-or-null in the JSON schema", () => {
@@ -288,5 +295,137 @@ describe("computeConfidence", () => {
       "abcd",
     );
     expect(confidence).toBeCloseTo(0.6, 5);
+  });
+});
+
+describe("collapseDuplicateIngredients", () => {
+  it("merges same name + unit with numeric amounts by summing", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 0.5, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 1.5, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toBe("öljy");
+    expect(out[0].amount).toBe(2);
+    expect(out[0].unit).toBe("rkl");
+  });
+
+  it("rounds the sum to 2 decimals", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 0.33, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 0.34, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].amount).toBe(0.67);
+  });
+
+  it("prefers the numeric amount when one side is null", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 2, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: null, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].amount).toBe(2);
+
+    const out2 = collapseDuplicateIngredients([
+      { name: "öljy", amount: null, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 3, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out2).toHaveLength(1);
+    expect(out2[0].amount).toBe(3);
+  });
+
+  it("keeps null when both amounts are null", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "suolaa", amount: null, unit: "ripaus", category: "pantry" },
+      { name: "suolaa", amount: null, unit: "ripaus", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].amount).toBeNull();
+  });
+
+  it("does not merge across different units", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 2, unit: "dl", category: "pantry" },
+      { name: "öljy", amount: 1, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out[0].unit).toBe("dl");
+    expect(out[1].unit).toBe("rkl");
+  });
+
+  it("matches names case-insensitively", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "Öljy", amount: 1, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 2, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].amount).toBe(3);
+  });
+
+  it("trims whitespace on name and unit before comparing", () => {
+    const out = collapseDuplicateIngredients([
+      { name: " öljy ", amount: 1, unit: "rkl ", category: "pantry" },
+      { name: "öljy", amount: 2, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].amount).toBe(3);
+  });
+
+  it("preserves first occurrence's original casing for name and unit", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "Öljy", amount: 1, unit: "RKL", category: "pantry" },
+      { name: "öljy", amount: 2, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].name).toBe("Öljy");
+    expect(out[0].unit).toBe("RKL");
+  });
+
+  it("keeps the first occurrence's category on conflict", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "öljy", amount: 1, unit: "rkl", category: "pantry" },
+      { name: "öljy", amount: 1, unit: "rkl", category: "other" },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].category).toBe("pantry");
+  });
+
+  it("preserves order: collapsed rows sit where the first occurrence sat", () => {
+    const out = collapseDuplicateIngredients([
+      { name: "sipuli", amount: 1, unit: "kpl", category: "produce" },
+      { name: "öljy", amount: 1, unit: "rkl", category: "pantry" },
+      { name: "valkosipuli", amount: 2, unit: "kynttä", category: "produce" },
+      { name: "öljy", amount: 1, unit: "rkl", category: "pantry" },
+    ]);
+    expect(out.map((i) => i.name)).toEqual(["sipuli", "öljy", "valkosipuli"]);
+    expect(out[1].amount).toBe(2);
+  });
+});
+
+describe("recipeFromTextTask.parse — duplicate collapse", () => {
+  it("collapses Larb-Gai-shaped duplicate öljy rows end-to-end", () => {
+    const task = recipeFromTextTask("Larb Gai");
+    const result = task.parse(
+      JSON.stringify({
+        name: "Larb Gai",
+        time: 25,
+        servings: 4,
+        category: "common",
+        ingredients: [
+          { name: "broileri", amount: 400, unit: "g", category: "meat-fish" },
+          { name: "öljy", amount: 0.5, unit: "rkl", category: "pantry" },
+          { name: "limetti", amount: 1, unit: "kpl", category: "produce" },
+          { name: "öljy", amount: 1.5, unit: "rkl", category: "pantry" },
+        ],
+      }),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const oljyRows = result.value.ingredients.filter((i) => i.name === "öljy");
+    expect(oljyRows).toHaveLength(1);
+    expect(oljyRows[0].amount).toBe(2);
+    expect(oljyRows[0].unit).toBe("rkl");
+    expect(result.value.ingredients).toHaveLength(3);
   });
 });

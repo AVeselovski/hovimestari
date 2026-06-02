@@ -1,6 +1,7 @@
 import {
   AISLE_CATEGORIES,
   RecipeDraftSchema,
+  type Ingredient,
   type RecipeDraft,
 } from "@hovi/shared";
 import type { ChatMessage } from "../types.js";
@@ -43,6 +44,7 @@ Ingredient-name canonicalization (the name is what gets searched in a grocery st
 - Strip parentheticals that describe form, packaging, or preparation: "oliivit (kivettömät)" → "oliivit", "sipulikuutiot (pakaste)" → "sipulikuutiot", "tonnikala (vedessä)" → "tonnikala". The form may be useful but it's not part of the searchable name.
 - Use Finnish nominative case, plural where natural: "oliivit" not "oliiveja", "tomaatit" not "tomaatteja", "porkkanat" not "porkkanaa".
 - Keep "X tai Y" (either/or) constructs intact as one ingredient — do not split them into two rows: "mustat tai vihreät oliivit" stays as written.
+- If the same ingredient (same name and unit) appears in multiple sections of the recipe (e.g. öljy listed once under "kastike" and once under "marinadi"), emit a single row with the summed amount. Sections in the source describe cooking order, not separate shopping items.
 
 If the text includes preparation instructions, return them in the "instructions" field as a flat list of strings — one step per string, no numbering, no markdown. Keep the original language (Finnish stays Finnish). If no instructions are present, omit the field or return an empty list.`;
 
@@ -120,13 +122,17 @@ export function recipeFromTextTask(text: string): LLMTask<RecipeDraft> {
         };
       }
 
+      const collapsed = {
+        ...result.data,
+        ingredients: collapseDuplicateIngredients(result.data.ingredients),
+      };
       const { confidence, warnings: confWarnings } = computeConfidence(
-        result.data,
+        collapsed,
         text,
       );
       return {
         ok: true,
-        value: result.data,
+        value: collapsed,
         confidence,
         warnings: [...warnings, ...confWarnings],
       };
@@ -212,4 +218,32 @@ export function computeConfidence(
     confidence: Math.max(0, Math.min(1, score)),
     warnings,
   };
+}
+
+// Collapses duplicate ingredients sharing a normalized (name, unit) key by
+// summing numeric amounts. Normalization is intentionally shallow: it lowercases
+// and trims, but does not unify abbreviations (e.g. "rkl" vs "rkl." vs
+// "ruokalusikka") nor convert units (dl ↔ rkl). Those richer normalizations
+// would risk merging things that shouldn't merge.
+export function collapseDuplicateIngredients(
+  ingredients: Ingredient[],
+): Ingredient[] {
+  const byKey = new Map<string, Ingredient>();
+  const order: string[] = [];
+  for (const ing of ingredients) {
+    const key = `${ing.name.trim().toLowerCase()}::${ing.unit.trim().toLowerCase()}`;
+    const prior = byKey.get(key);
+    if (!prior) {
+      byKey.set(key, { ...ing });
+      order.push(key);
+      continue;
+    }
+    let amount: number | null;
+    if (prior.amount === null && ing.amount === null) amount = null;
+    else if (prior.amount === null) amount = ing.amount;
+    else if (ing.amount === null) amount = prior.amount;
+    else amount = Math.round((prior.amount + ing.amount) * 100) / 100;
+    byKey.set(key, { ...prior, amount });
+  }
+  return order.map((k) => byKey.get(k)!);
 }
