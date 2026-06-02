@@ -5,6 +5,7 @@ import {
   RECIPE_DRAFT_JSON_SCHEMA,
   RECIPE_DRAFT_PROMPT_CORE,
   applyDefaults,
+  collapseDuplicateIngredients,
   computeConfidence,
   stripJsonFences,
 } from "./recipe-from-text.js";
@@ -58,13 +59,17 @@ export function recipeFromImageTask(): LLMTask<RecipeDraft> {
         };
       }
 
+      const collapsed = {
+        ...result.data,
+        ingredients: collapseDuplicateIngredients(result.data.ingredients),
+      };
       const { confidence, warnings: confWarnings } = computeConfidence(
-        result.data,
+        collapsed,
         "",
       );
       return {
         ok: true,
-        value: result.data,
+        value: collapsed,
         confidence,
         warnings: [...warnings, ...confWarnings],
       };
