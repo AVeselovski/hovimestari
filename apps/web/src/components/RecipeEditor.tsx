@@ -241,42 +241,42 @@ export function RecipeEditor({
                   value={ing.name}
                   onChange={(e) => updateIng(i, { name: e.target.value })}
                 />
-                <div className="grid grid-cols-[1fr_1fr_2fr_auto] gap-1.5">
+                <div className="flex items-center gap-1.5">
                   <AmountInput
                     value={ing.amount}
                     onChange={(next) => updateIng(i, { amount: next })}
-                    className="px-2 py-1.5 rounded border bg-transparent text-sm"
+                    className="flex-1 min-w-0 px-2 py-1.5 rounded border bg-transparent text-sm"
                   />
                   <input
-                    className="px-2 py-1.5 rounded border bg-transparent text-sm"
+                    className="w-16 shrink-0 px-2 py-1.5 rounded border bg-transparent text-sm"
                     style={{ borderColor: "var(--rule)" }}
                     placeholder="Yks."
                     value={ing.unit}
                     onChange={(e) => updateIng(i, { unit: e.target.value })}
                   />
-                  <select
-                    className="px-1 py-1.5 rounded border bg-transparent text-xs"
-                    style={{ borderColor: "var(--rule)" }}
-                    value={ing.category}
-                    onChange={(e) =>
-                      updateIng(i, { category: e.target.value as AisleCategory })
-                    }
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
                   <button
                     onClick={() => removeIng(i)}
-                    className="p-1.5"
+                    className="p-1.5 shrink-0"
                     style={{ color: "var(--berry)" }}
                     aria-label="Poista aines"
                   >
                     <X size={14} />
                   </button>
                 </div>
+                <select
+                  className="w-full min-w-0 px-2 py-1.5 rounded border bg-transparent text-xs"
+                  style={{ borderColor: "var(--rule)" }}
+                  value={ing.category}
+                  onChange={(e) =>
+                    updateIng(i, { category: e.target.value as AisleCategory })
+                  }
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
             {r.ingredients.length === 0 && (
