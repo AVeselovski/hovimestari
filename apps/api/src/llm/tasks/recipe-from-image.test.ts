@@ -29,6 +29,38 @@ describe("recipeFromImageTask prompt", () => {
     expect(task.opts?.maxTokens).toBe(4096);
     expect(task.opts?.temperature).toBeLessThanOrEqual(0.2);
   });
+
+  it("no notes: user message is exactly the bare OCR instruction", () => {
+    const task = recipeFromImageTask();
+    expect(task.messages[1].content).toBe(
+      "Parse the recipe in the attached image.",
+    );
+  });
+
+  it("no notes: undefined and whitespace-only notes preserve the bare prompt", () => {
+    const base = recipeFromImageTask().messages[1].content;
+    expect(recipeFromImageTask(undefined).messages[1].content).toBe(base);
+    expect(recipeFromImageTask("").messages[1].content).toBe(base);
+    expect(recipeFromImageTask("   \n\t  ").messages[1].content).toBe(base);
+  });
+
+  it("with notes: appended verbatim inside a <user_notes> block after the OCR instruction", () => {
+    const notes = "Cropped off bottom — also 100g feta. 4 servings not 2.";
+    const task = recipeFromImageTask(notes);
+    const userContent = task.messages[1].content;
+    expect(userContent.startsWith("Parse the recipe in the attached image.")).toBe(true);
+    expect(userContent).toContain("<user_notes>\n" + notes + "\n</user_notes>");
+    expect(userContent.indexOf("Parse the recipe")).toBeLessThan(
+      userContent.indexOf("<user_notes>"),
+    );
+  });
+
+  it("with notes: trims surrounding whitespace before inserting", () => {
+    const task = recipeFromImageTask("  ohita viini  \n");
+    expect(task.messages[1].content).toContain(
+      "<user_notes>\nohita viini\n</user_notes>",
+    );
+  });
 });
 
 describe("recipeFromImageTask.parse", () => {

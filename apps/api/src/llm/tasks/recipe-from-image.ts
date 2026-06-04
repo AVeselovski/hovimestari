@@ -18,10 +18,25 @@ const SYSTEM_PROMPT = IMAGE_PROMPT_PREAMBLE + RECIPE_DRAFT_PROMPT_CORE;
 
 const USER_INSTRUCTION = "Parse the recipe in the attached image.";
 
-export function recipeFromImageTask(): LLMTask<RecipeDraft> {
+function buildUserMessage(notes?: string): string {
+  const trimmed = notes?.trim();
+  if (trimmed === undefined || trimmed.length === 0) {
+    return USER_INSTRUCTION;
+  }
+  return (
+    USER_INSTRUCTION +
+    "\n\n" +
+    "The user provided this additional context about the photo or the recipe. Treat it as authoritative when it conflicts with the image (e.g. corrected servings, missing ingredients cropped out, items to skip):\n\n" +
+    "<user_notes>\n" +
+    trimmed +
+    "\n</user_notes>"
+  );
+}
+
+export function recipeFromImageTask(notes?: string): LLMTask<RecipeDraft> {
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: USER_INSTRUCTION },
+    { role: "user", content: buildUserMessage(notes) },
   ];
 
   return {

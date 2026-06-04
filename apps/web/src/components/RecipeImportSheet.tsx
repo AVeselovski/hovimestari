@@ -39,12 +39,14 @@ export function RecipeImportSheet({
   const [mode, setMode] = useState<Mode>("menu");
   const [text, setText] = useState("");
   const [image, setImage] = useState<PreparedImage | null>(null);
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetImageState = (): void => {
     setImage(null);
+    setNotes("");
     setError(null);
     if (fileInputRef.current !== null) {
       fileInputRef.current.value = "";
@@ -92,7 +94,7 @@ export function RecipeImportSheet({
     setLoading(true);
     setError(null);
     try {
-      const res = await importRecipeFromImage(image.blob, image.mediaType);
+      const res = await importRecipeFromImage(image.blob, image.mediaType, notes);
       onDraft(res.draft, res.warnings, res.provider, res.model, res.confidence, res.fallback);
     } catch (err) {
       setError(mapImportError(err));
@@ -246,6 +248,28 @@ export function RecipeImportSheet({
               <p className="text-xs" style={{ color: "var(--muted)" }}>
                 {image.fileName}
               </p>
+              <div className="space-y-1.5">
+                <label
+                  className="block text-[10px] uppercase"
+                  style={{ color: "var(--muted)", letterSpacing: "0.2em" }}
+                  htmlFor="recipe-import-notes"
+                >
+                  Lisätiedot (vapaaehtoinen)
+                </label>
+                <textarea
+                  id="recipe-import-notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  disabled={loading}
+                  rows={3}
+                  maxLength={500}
+                  placeholder={
+                    "Esim. \"Reseptin alaosa jäi pois — tarvitaan myös 100g fetaa\", \"4 annosta, ei 2\", \"ohita viini\"."
+                  }
+                  className="w-full px-3 py-2.5 rounded-lg border bg-transparent text-sm"
+                  style={{ borderColor: "var(--rule)", fontFamily: "inherit" }}
+                />
+              </div>
             </div>
           )}
 
