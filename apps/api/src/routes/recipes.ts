@@ -102,10 +102,13 @@ export async function recipesRoutes(
       }
 
       try {
-        const result = await router.runVision(recipeFromImageTask(), {
-          data: buffer,
-          mediaType: parsed.data.image.mediaType,
-        });
+        const result = await router.runVision(
+          recipeFromImageTask(parsed.data.notes),
+          {
+            data: buffer,
+            mediaType: parsed.data.image.mediaType,
+          },
+        );
         const body: RecipeImportResponse = {
           draft: result.value,
           confidence: result.confidence,

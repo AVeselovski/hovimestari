@@ -21,6 +21,7 @@ export const RecipeImageImportRequestSchema = z.object({
     data: z.string().min(1),
     mediaType: SupportedImageMediaTypeSchema,
   }),
+  notes: z.string().trim().min(1).max(500).optional(),
 });
 export type RecipeImageImportRequest = z.infer<
   typeof RecipeImageImportRequestSchema

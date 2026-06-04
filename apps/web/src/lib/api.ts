@@ -76,14 +76,22 @@ export async function importRecipeFromText(
 export async function importRecipeFromImage(
   blob: Blob,
   mediaType: SupportedImageMediaType,
+  notes?: string,
 ): Promise<RecipeImportResponse> {
   const data = await blobToBase64(blob);
+  const trimmed = notes?.trim();
+  const body: { image: { data: string; mediaType: SupportedImageMediaType }; notes?: string } = {
+    image: { data, mediaType },
+  };
+  if (trimmed !== undefined && trimmed.length > 0) {
+    body.notes = trimmed;
+  }
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/recipes/from-image`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ image: { data, mediaType } }),
+      body: JSON.stringify(body),
     });
   } catch (err) {
     throw new RecipeImportError(0, (err as Error).message);
