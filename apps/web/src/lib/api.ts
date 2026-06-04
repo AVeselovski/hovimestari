@@ -1,4 +1,5 @@
 import type {
+  RecipeImageImportRequest,
   RecipeImportResponse,
   State,
   SupportedImageMediaType,
@@ -79,13 +80,10 @@ export async function importRecipeFromImage(
   notes?: string,
 ): Promise<RecipeImportResponse> {
   const data = await blobToBase64(blob);
-  const trimmed = notes?.trim();
-  const body: { image: { data: string; mediaType: SupportedImageMediaType }; notes?: string } = {
+  const body: RecipeImageImportRequest = {
     image: { data, mediaType },
+    ...(notes?.trim() ? { notes } : {}),
   };
-  if (trimmed !== undefined && trimmed.length > 0) {
-    body.notes = trimmed;
-  }
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/recipes/from-image`, {

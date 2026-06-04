@@ -308,6 +308,7 @@ export function RecipeImportSheet({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file !== undefined) {
+            setNotes("");
             void handleFile(file);
           }
         }}
