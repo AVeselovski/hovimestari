@@ -161,6 +161,9 @@ export function buildShoppingListByRecipe(state: State): RecipeShoppingSection[]
     if (!r) continue;
     const base = r.servings;
     const items: ShoppingItem[] = [];
+    // Items follow recipe-definition order, not alphabetical — the aisle view
+    // already gives the shopper an aisle-sorted list; this view's purpose is
+    // the per-section saved-list handoff, where ingredient order is irrelevant.
     for (const ing of r.ingredients) {
       const key = `${ing.category}::${ing.name.toLowerCase().trim()}`;
       if (suppressed.has(key)) continue;
@@ -175,6 +178,7 @@ export function buildShoppingListByRecipe(state: State): RecipeShoppingSection[]
         sources: [r.name],
       });
     }
+    if (items.length === 0) continue;
     sections.push({
       kind: "recipe",
       id: r.id,

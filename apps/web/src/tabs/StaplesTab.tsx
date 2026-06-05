@@ -249,6 +249,14 @@ function GroupSection({
               );
               if (next === null) return;
               const trimmed = next.trim();
+              if (trimmed.length > 0) {
+                try {
+                  new URL(trimmed);
+                } catch {
+                  window.alert("Tarkista osoite — ei ole kelvollinen URL");
+                  return;
+                }
+              }
               setGroupShoppingListUrl(
                 group.id,
                 trimmed.length > 0 ? trimmed : undefined,
