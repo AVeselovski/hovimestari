@@ -149,6 +149,18 @@ type Plan = {
 
 **Backups:** `pg_dump` cron job nightly to a Time Machine'd or Dropbox-synced folder. Three independent copies (live DB + local snapshot + cloud sync) is appropriate paranoia. A simple compose service running `postgres:16` with a named volume + a small `pg_dump` sidecar (or a cron on the host) does the job.
 
+### Deferred — separate cooking name and shopping name on Ingredient
+
+Some Finnish ingredient terms are precise cooking units that don't map to any S-Kaupat SKU: `valkosipulinkynsi` (clove of garlic — you buy the whole bulb), `inkivääripala` (piece of ginger — you buy the root), `sitruunan kuori` (lemon zest — you buy the lemon). Renaming the ingredient to the purchasable form loses recipe clarity ("hienonna valkosipulinkynnet" no longer matches "valkosipuli 1 kpl" in the ingredient list); leaving it as-is means the shopping-list search returns nothing.
+
+The structural fix is to stop sharing the field. Add optional `shoppingName?: string` (and probably `shoppingAmount?: string` / `shoppingUnit?: string`) overrides on `Ingredient`. Recipe view keeps the cooking term, shopping list uses the override when set with `name`/`amount`/`unit` as the fallback. The recipe-from-image LLM can pre-fill the overrides for a small known allowlist of these patterns; user can edit either side in the recipe editor.
+
+Deferred because the workaround — manually replacing the ingredient at import-preview time with the purchasable form — is acceptable until this bites in real use multiple times. Revive once we've used the app for a while and have a feel for how common the long tail is. When that day comes:
+
+- Schema lives next to the existing optional Ingredient fields (the same place the unit / amount additions would have to go anyway).
+- Shopping-list builders fall back to `name`/`amount`/`unit` when the override is absent, so existing data needs no migration.
+- LLM canonicalization rule joins the existing brand-strip and `X tai Y` merge rules — same prompt section, same retry-with-Anthropic path on low confidence.
+
 ## AI layer
 
 The single most important architectural decision: **the model is swappable**. Everything that calls a model goes through an interface:
