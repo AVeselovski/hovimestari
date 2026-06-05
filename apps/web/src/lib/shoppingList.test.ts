@@ -876,4 +876,30 @@ describe("buildShoppingListByRecipe", () => {
     expect(sections[0].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/abc");
     expect(sections[1].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/xyz");
   });
+
+  it("omits a recipe section when every ingredient is suppressed by Kaapista", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    expect(buildShoppingListByRecipe(s)).toEqual([]);
+  });
 });

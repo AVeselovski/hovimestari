@@ -91,6 +91,14 @@ export function RecipeEditor({
 
   const save = (): void => {
     const trimmedUrl = (r.shoppingListUrl ?? "").trim();
+    if (trimmedUrl.length > 0) {
+      try {
+        new URL(trimmedUrl);
+      } catch {
+        window.alert("Tarkista S-Kaupat lista — osoite ei ole kelvollinen");
+        return;
+      }
+    }
     const cleaned: RecipeEditorDraft = {
       ...r,
       instructions: (r.instructions ?? [])
