@@ -32,6 +32,7 @@ export const RecipeSchema = z.object({
   ingredients: z.array(IngredientSchema),
   instructions: z.array(z.string().min(1).max(1000)).default([]),
   lastUsed: z.string().optional(),
+  shoppingListUrl: z.string().url().optional(),
 });
 export type Recipe = z.infer<typeof RecipeSchema>;
 
@@ -44,6 +45,7 @@ export const StapleGroupSchema = z.object({
   enabled: z.boolean(),
   order: z.number().int(),
   suppress: z.boolean().default(false),
+  shoppingListUrl: z.string().url().optional(),
 });
 export type StapleGroup = z.infer<typeof StapleGroupSchema>;
 

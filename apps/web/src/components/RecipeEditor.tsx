@@ -90,11 +90,13 @@ export function RecipeEditor({
     });
 
   const save = (): void => {
+    const trimmedUrl = (r.shoppingListUrl ?? "").trim();
     const cleaned: RecipeEditorDraft = {
       ...r,
       instructions: (r.instructions ?? [])
         .map((s) => s.trim())
         .filter((s) => s.length > 0),
+      shoppingListUrl: trimmedUrl.length > 0 ? trimmedUrl : undefined,
     };
     onSave(cleaned);
   };
@@ -215,6 +217,16 @@ export function RecipeEditor({
           </button>
           <span className="text-sm">Kestää yön yli (sopii lounaaksi)</span>
         </label>
+        <Field label="S-Kaupat lista (valinnainen)">
+          <input
+            className="w-full px-3 py-2.5 rounded-lg border bg-transparent"
+            style={{ borderColor: "var(--rule)" }}
+            value={r.shoppingListUrl ?? ""}
+            onChange={(e) => setR({ ...r, shoppingListUrl: e.target.value })}
+            placeholder="https://www.s-kaupat.fi/ostoslistat/..."
+            inputMode="url"
+          />
+        </Field>
 
         <div>
           <div className="flex items-center justify-between mb-2">

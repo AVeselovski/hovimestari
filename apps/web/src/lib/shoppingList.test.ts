@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { State } from "@hovi/shared";
-import { buildShoppingList } from "./shoppingList.js";
+import { buildShoppingList, buildShoppingListByRecipe } from "./shoppingList.js";
 
 function baseState(): State {
   return {
@@ -626,5 +626,254 @@ describe("buildShoppingList", () => {
         ?.display,
     ).toBe("1200 g");
     expect(s.plan.selectedRecipes[0].servings).toBe(6);
+  });
+});
+
+describe("buildShoppingListByRecipe", () => {
+  it("returns empty array when nothing is planned and no staples enabled", () => {
+    const s: State = {
+      recipes: [],
+      stapleGroups: [],
+      staples: [],
+      plan: { selectedRecipes: [] },
+    };
+    expect(buildShoppingListByRecipe(s)).toEqual([]);
+  });
+
+  it("emits one section per selected recipe in plan order, then staple groups by order", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "a",
+          name: "Alpha",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Sipuli", amount: 1, unit: "kpl", category: "produce" },
+          ],
+          instructions: [],
+        },
+        {
+          id: "b",
+          name: "Beta",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "brunch", name: "Brunssi", enabled: true, order: 1, suppress: false },
+        { id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false },
+      ],
+      staples: [
+        { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
+        { id: "s2", groupId: "brunch", name: "Pekoni", amount: 1, unit: "pkt", category: "meat-fish", enabled: true },
+      ],
+      plan: {
+        selectedRecipes: [
+          { recipeId: "b", servings: 4 },
+          { recipeId: "a", servings: 4 },
+        ],
+      },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections.map((sec) => sec.id)).toEqual(["b", "a", "weekly", "brunch"]);
+    expect(sections[0].kind).toBe("recipe");
+    expect(sections[2].kind).toBe("staple-group");
+  });
+
+  it("skips disabled staple groups and groups with no enabled staples", () => {
+    const s: State = {
+      recipes: [],
+      stapleGroups: [
+        { id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false },
+        { id: "brunch", name: "Brunssi", enabled: false, order: 1, suppress: false },
+        { id: "empty", name: "Tyhjä", enabled: true, order: 2, suppress: false },
+      ],
+      staples: [
+        { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
+        { id: "s2", groupId: "brunch", name: "Pekoni", amount: 1, unit: "pkt", category: "meat-fish", enabled: true },
+      ],
+      plan: { selectedRecipes: [] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections.map((sec) => sec.id)).toEqual(["weekly"]);
+  });
+
+  it("excludes the Kaapista (suppress) group from sections", () => {
+    const s: State = {
+      recipes: [],
+      stapleGroups: [
+        { id: "weekly", name: "Viikko", enabled: true, order: 0, suppress: false },
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 1, suppress: true },
+      ],
+      staples: [
+        { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
+        { id: "k1", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: true },
+      ],
+      plan: { selectedRecipes: [] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections.map((sec) => sec.id)).toEqual(["weekly"]);
+  });
+
+  it("applies Kaapista suppression to recipe ingredients per section", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Voi", amount: 1, unit: "pkt", category: "dairy" },
+            { name: "Pasta", amount: 400, unit: "g", category: "pantry" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [
+        { id: "kaapista", name: "Kaapista", enabled: true, order: 0, suppress: true },
+      ],
+      staples: [
+        { id: "k-voi", groupId: "kaapista", name: "Voi", amount: 1, unit: "pkt", category: "dairy", enabled: false },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].items.map((i) => i.name)).toEqual(["Pasta"]);
+  });
+
+  it("does NOT merge ingredients shared across recipes — each appears in its own section", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "a",
+          name: "A",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Sipuli", amount: 1, unit: "kpl", category: "produce" },
+          ],
+          instructions: [],
+        },
+        {
+          id: "b",
+          name: "B",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Sipuli", amount: 2, unit: "kpl", category: "produce" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [],
+      staples: [],
+      plan: {
+        selectedRecipes: [
+          { recipeId: "a", servings: 4 },
+          { recipeId: "b", servings: 4 },
+        ],
+      },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections).toHaveLength(2);
+    expect(sections[0].items[0].display).toBe("1 kpl");
+    expect(sections[1].items[0].display).toBe("2 kpl");
+  });
+
+  it("renders contributor display per item without ' + ' joins", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Jauheliha", amount: 400, unit: "g", category: "meat-fish" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [],
+      staples: [],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 6 }] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections[0].items[0].display).toBe("600 g");
+    expect(sections[0].items[0].display).not.toContain(" + ");
+  });
+
+  it("includes a recipe section even when the recipe has no shoppingListUrl", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Sipuli", amount: 1, unit: "kpl", category: "produce" },
+          ],
+          instructions: [],
+        },
+      ],
+      stapleGroups: [],
+      staples: [],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].shoppingListUrl).toBeUndefined();
+    expect(sections[0].items).toHaveLength(1);
+  });
+
+  it("passes through shoppingListUrl when set on recipe and staple group", () => {
+    const s: State = {
+      recipes: [
+        {
+          id: "r",
+          name: "R",
+          time: 20,
+          servings: 4,
+          category: "common",
+          ingredients: [
+            { name: "Sipuli", amount: 1, unit: "kpl", category: "produce" },
+          ],
+          instructions: [],
+          shoppingListUrl: "https://www.s-kaupat.fi/ostoslistat/abc",
+        },
+      ],
+      stapleGroups: [
+        {
+          id: "weekly",
+          name: "Viikko",
+          enabled: true,
+          order: 0,
+          suppress: false,
+          shoppingListUrl: "https://www.s-kaupat.fi/ostoslistat/xyz",
+        },
+      ],
+      staples: [
+        { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
+      ],
+      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
+    };
+    const sections = buildShoppingListByRecipe(s);
+    expect(sections[0].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/abc");
+    expect(sections[1].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/xyz");
   });
 });
