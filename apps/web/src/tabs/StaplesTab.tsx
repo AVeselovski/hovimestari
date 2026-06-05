@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Link2, Plus, Trash2 } from "lucide-react";
 import type { Staple, StapleGroup, State } from "@hovi/shared";
 import { SectionHead } from "../components/SectionHead.js";
 import { StapleRow } from "../components/StapleRow.js";
@@ -25,6 +25,14 @@ export function StaplesTab({
     mutate((s) => ({
       ...s,
       stapleGroups: s.stapleGroups.map((g) => (g.id === id ? { ...g, name } : g)),
+    }));
+
+  const setGroupShoppingListUrl = (id: string, url: string | undefined): void =>
+    mutate((s) => ({
+      ...s,
+      stapleGroups: s.stapleGroups.map((g) =>
+        g.id === id ? { ...g, shoppingListUrl: url } : g,
+      ),
     }));
 
   const moveGroup = (id: string, dir: -1 | 1): void => {
@@ -135,6 +143,7 @@ export function StaplesTab({
           items={state.staples.filter((s) => s.groupId === g.id)}
           toggleGroup={toggleGroup}
           renameGroup={renameGroup}
+          setGroupShoppingListUrl={setGroupShoppingListUrl}
           moveGroup={moveGroup}
           deleteGroup={deleteGroup}
           addStaple={addStaple}
@@ -154,6 +163,7 @@ function GroupSection({
   items,
   toggleGroup,
   renameGroup,
+  setGroupShoppingListUrl,
   moveGroup,
   deleteGroup,
   addStaple,
@@ -167,6 +177,7 @@ function GroupSection({
   items: Staple[];
   toggleGroup: (id: string) => void;
   renameGroup: (id: string, name: string) => void;
+  setGroupShoppingListUrl: (id: string, url: string | undefined) => void;
   moveGroup: (id: string, dir: -1 | 1) => void;
   deleteGroup: (id: string) => void;
   addStaple: (groupId: string) => void;
@@ -228,6 +239,30 @@ function GroupSection({
         >
           <ChevronDown size={16} />
         </button>
+        {/* Suppress groups (e.g. Kaapista) have no shopping-list semantics. */}
+        {!group.suppress && (
+          <button
+            onClick={() => {
+              const next = window.prompt(
+                "S-Kaupat lista?",
+                group.shoppingListUrl ?? "",
+              );
+              if (next === null) return;
+              const trimmed = next.trim();
+              setGroupShoppingListUrl(
+                group.id,
+                trimmed.length > 0 ? trimmed : undefined,
+              );
+            }}
+            className="p-1.5"
+            style={{
+              color: group.shoppingListUrl ? "var(--ink)" : "var(--muted)",
+            }}
+            aria-label="S-Kaupat lista"
+          >
+            <Link2 size={15} />
+          </button>
+        )}
         {group.id !== "kaapista" && (
           <button
             onClick={() => deleteGroup(group.id)}
