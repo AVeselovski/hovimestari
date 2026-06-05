@@ -5,6 +5,7 @@ import {
   Copy,
   ExternalLink,
   LayoutList,
+  Link2,
   ListChecks,
   RotateCcw,
   ShoppingCart,
@@ -18,6 +19,7 @@ import {
 } from "../lib/shoppingList.js";
 import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
 import { capitalize } from "../lib/format.js";
+import { useShoppingListUrls } from "../lib/useShoppingListUrls.js";
 
 type ViewMode = "aisle" | "recipe";
 type ShopMode = "online" | "store";
@@ -68,6 +70,7 @@ export function ListTab({
   const [shopMode, setShopMode] = useState<ShopMode>(() => loadShopMode());
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const urls = useShoppingListUrls();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -118,9 +121,8 @@ export function ListTab({
         : recipeSections
             .map((sec) => {
               const heading = sec.name.toUpperCase();
-              const urlLine = sec.shoppingListUrl
-                ? `\n${sec.shoppingListUrl}`
-                : "";
+              const url = urls.get(sec.kind, sec.id);
+              const urlLine = url ? `\n${url}` : "";
               const rows = sec.items
                 .map((it) =>
                   it.display
@@ -311,6 +313,8 @@ export function ListTab({
               }
               onBulkCheck={() => bulkCheck(sec.items)}
               shopMode={shopMode}
+              shoppingListUrl={urls.get(sec.kind, sec.id)}
+              setShoppingListUrl={(url) => urls.set(sec.kind, sec.id, url)}
             />
           ))}
 
@@ -448,21 +452,24 @@ function RecipeSectionView({
   onToggleItem,
   onBulkCheck,
   shopMode,
+  shoppingListUrl,
+  setShoppingListUrl,
 }: {
   section: RecipeShoppingSection;
   checked: Record<string, boolean>;
   onToggleItem: (it: ShoppingItem) => void;
   onBulkCheck: () => void;
   shopMode: ShopMode;
+  shoppingListUrl: string | undefined;
+  setShoppingListUrl: (url: string | undefined) => void;
 }): JSX.Element {
-  const hasUrl = Boolean(section.shoppingListUrl);
-  const headerClass =
-    "flex items-center justify-between gap-2 pb-2 border-b w-full text-left no-underline";
-  const headerStyle = {
-    color: "var(--berry)",
-    borderColor: "var(--rule)",
-  } as const;
-  const headerInner = (
+  const hasUrl = Boolean(shoppingListUrl);
+  // No suppress-group guard needed: buildShoppingListByRecipe already filters
+  // suppress groups out, so this view never receives a Kaapista section.
+  const labelClass =
+    "flex-1 flex items-center gap-2 text-left no-underline";
+  const labelStyle = { color: "var(--berry)" } as const;
+  const labelInner = (
     <>
       <span className="text-[10px] uppercase tracking-[0.2em]">
         {section.name}
@@ -471,23 +478,55 @@ function RecipeSectionView({
     </>
   );
 
+  const onEditUrl = (): void => {
+    const next = window.prompt("S-Kaupat lista?", shoppingListUrl ?? "");
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (trimmed.length > 0) {
+      try {
+        new URL(trimmed);
+      } catch {
+        window.alert("Tarkista osoite — ei ole kelvollinen URL");
+        return;
+      }
+    }
+    setShoppingListUrl(trimmed.length > 0 ? trimmed : undefined);
+  };
+
   return (
     <section>
-      {hasUrl && shopMode === "online" ? (
-        <a
-          href={section.shoppingListUrl}
-          target={SKAUPAT_TAB_NAME}
-          onClick={onBulkCheck}
-          className={headerClass}
-          style={headerStyle}
+      <div
+        className="flex items-center gap-2 pb-2 border-b"
+        style={{ borderColor: "var(--rule)" }}
+      >
+        {hasUrl && shopMode === "online" ? (
+          <a
+            href={shoppingListUrl}
+            target={SKAUPAT_TAB_NAME}
+            onClick={onBulkCheck}
+            className={labelClass}
+            style={labelStyle}
+          >
+            {labelInner}
+          </a>
+        ) : (
+          <button
+            onClick={onBulkCheck}
+            className={labelClass}
+            style={labelStyle}
+          >
+            {labelInner}
+          </button>
+        )}
+        <button
+          onClick={onEditUrl}
+          className="p-1.5"
+          style={{ color: hasUrl ? "var(--ink)" : "var(--muted)" }}
+          aria-label="S-Kaupat lista"
         >
-          {headerInner}
-        </a>
-      ) : (
-        <button onClick={onBulkCheck} className={headerClass} style={headerStyle}>
-          {headerInner}
+          <Link2 size={13} />
         </button>
-      )}
+      </div>
       <ul className="mt-1 font-mono">
         {section.items.map((it) => (
           <ShoppingRow

@@ -3,6 +3,7 @@ import type { Staple, StapleGroup, State } from "@hovi/shared";
 import { SectionHead } from "../components/SectionHead.js";
 import { StapleRow } from "../components/StapleRow.js";
 import { uid } from "../lib/uid.js";
+import { useShoppingListUrls } from "../lib/useShoppingListUrls.js";
 
 export function StaplesTab({
   state,
@@ -12,6 +13,7 @@ export function StaplesTab({
   mutate: (updater: (s: State) => State) => void;
 }): JSX.Element {
   const groups = [...state.stapleGroups].sort((a, b) => a.order - b.order);
+  const urls = useShoppingListUrls();
 
   const toggleGroup = (id: string): void =>
     mutate((s) => ({
@@ -25,14 +27,6 @@ export function StaplesTab({
     mutate((s) => ({
       ...s,
       stapleGroups: s.stapleGroups.map((g) => (g.id === id ? { ...g, name } : g)),
-    }));
-
-  const setGroupShoppingListUrl = (id: string, url: string | undefined): void =>
-    mutate((s) => ({
-      ...s,
-      stapleGroups: s.stapleGroups.map((g) =>
-        g.id === id ? { ...g, shoppingListUrl: url } : g,
-      ),
     }));
 
   const moveGroup = (id: string, dir: -1 | 1): void => {
@@ -141,9 +135,10 @@ export function StaplesTab({
           isFirst={i === 0}
           isLast={i === groups.length - 1}
           items={state.staples.filter((s) => s.groupId === g.id)}
+          shoppingListUrl={urls.get("staple-group", g.id)}
+          setShoppingListUrl={(url) => urls.set("staple-group", g.id, url)}
           toggleGroup={toggleGroup}
           renameGroup={renameGroup}
-          setGroupShoppingListUrl={setGroupShoppingListUrl}
           moveGroup={moveGroup}
           deleteGroup={deleteGroup}
           addStaple={addStaple}
@@ -161,9 +156,10 @@ function GroupSection({
   isFirst,
   isLast,
   items,
+  shoppingListUrl,
+  setShoppingListUrl,
   toggleGroup,
   renameGroup,
-  setGroupShoppingListUrl,
   moveGroup,
   deleteGroup,
   addStaple,
@@ -175,9 +171,10 @@ function GroupSection({
   isFirst: boolean;
   isLast: boolean;
   items: Staple[];
+  shoppingListUrl: string | undefined;
+  setShoppingListUrl: (url: string | undefined) => void;
   toggleGroup: (id: string) => void;
   renameGroup: (id: string, name: string) => void;
-  setGroupShoppingListUrl: (id: string, url: string | undefined) => void;
   moveGroup: (id: string, dir: -1 | 1) => void;
   deleteGroup: (id: string) => void;
   addStaple: (groupId: string) => void;
@@ -245,7 +242,7 @@ function GroupSection({
             onClick={() => {
               const next = window.prompt(
                 "S-Kaupat lista?",
-                group.shoppingListUrl ?? "",
+                shoppingListUrl ?? "",
               );
               if (next === null) return;
               const trimmed = next.trim();
@@ -257,14 +254,11 @@ function GroupSection({
                   return;
                 }
               }
-              setGroupShoppingListUrl(
-                group.id,
-                trimmed.length > 0 ? trimmed : undefined,
-              );
+              setShoppingListUrl(trimmed.length > 0 ? trimmed : undefined);
             }}
             className="p-1.5"
             style={{
-              color: group.shoppingListUrl ? "var(--ink)" : "var(--muted)",
+              color: shoppingListUrl ? "var(--ink)" : "var(--muted)",
             }}
             aria-label="S-Kaupat lista"
           >

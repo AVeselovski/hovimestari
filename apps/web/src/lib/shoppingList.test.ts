@@ -816,7 +816,7 @@ describe("buildShoppingListByRecipe", () => {
     expect(sections[0].items[0].display).not.toContain(" + ");
   });
 
-  it("includes a recipe section even when the recipe has no shoppingListUrl", () => {
+  it("includes a recipe section for a recipe with ingredients", () => {
     const s: State = {
       recipes: [
         {
@@ -837,44 +837,7 @@ describe("buildShoppingListByRecipe", () => {
     };
     const sections = buildShoppingListByRecipe(s);
     expect(sections).toHaveLength(1);
-    expect(sections[0].shoppingListUrl).toBeUndefined();
     expect(sections[0].items).toHaveLength(1);
-  });
-
-  it("passes through shoppingListUrl when set on recipe and staple group", () => {
-    const s: State = {
-      recipes: [
-        {
-          id: "r",
-          name: "R",
-          time: 20,
-          servings: 4,
-          category: "common",
-          ingredients: [
-            { name: "Sipuli", amount: 1, unit: "kpl", category: "produce" },
-          ],
-          instructions: [],
-          shoppingListUrl: "https://www.s-kaupat.fi/ostoslistat/abc",
-        },
-      ],
-      stapleGroups: [
-        {
-          id: "weekly",
-          name: "Viikko",
-          enabled: true,
-          order: 0,
-          suppress: false,
-          shoppingListUrl: "https://www.s-kaupat.fi/ostoslistat/xyz",
-        },
-      ],
-      staples: [
-        { id: "s1", groupId: "weekly", name: "Maito", amount: 1, unit: "l", category: "dairy", enabled: true },
-      ],
-      plan: { selectedRecipes: [{ recipeId: "r", servings: 4 }] },
-    };
-    const sections = buildShoppingListByRecipe(s);
-    expect(sections[0].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/abc");
-    expect(sections[1].shoppingListUrl).toBe("https://www.s-kaupat.fi/ostoslistat/xyz");
   });
 
   it("omits a recipe section when every ingredient is suppressed by Kaapista", () => {
