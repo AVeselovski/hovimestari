@@ -144,11 +144,12 @@ export function buildShoppingList(state: State): ShoppingGroup[] {
   })).filter((g) => g.items.length > 0);
 }
 
+export type RecipeSectionKind = "recipe" | "staple-group";
+
 export type RecipeShoppingSection = {
-  kind: "recipe" | "staple-group";
+  kind: RecipeSectionKind;
   id: string;
   name: string;
-  shoppingListUrl?: string;
   items: ShoppingItem[];
 };
 
@@ -183,7 +184,6 @@ export function buildShoppingListByRecipe(state: State): RecipeShoppingSection[]
       kind: "recipe",
       id: r.id,
       name: r.name,
-      shoppingListUrl: r.shoppingListUrl,
       items,
     });
   }
@@ -213,7 +213,6 @@ export function buildShoppingListByRecipe(state: State): RecipeShoppingSection[]
       kind: "staple-group",
       id: g.id,
       name: g.name,
-      shoppingListUrl: g.shoppingListUrl,
       items,
     });
   }
