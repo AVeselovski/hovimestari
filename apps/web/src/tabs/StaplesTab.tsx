@@ -3,7 +3,10 @@ import type { Staple, StapleGroup, State } from "@hovi/shared";
 import { SectionHead } from "../components/SectionHead.js";
 import { StapleRow } from "../components/StapleRow.js";
 import { uid } from "../lib/uid.js";
-import { useShoppingListUrls } from "../lib/useShoppingListUrls.js";
+import {
+  promptShoppingListUrl,
+  useShoppingListUrls,
+} from "../lib/useShoppingListUrls.js";
 
 export function StaplesTab({
   state,
@@ -240,21 +243,9 @@ function GroupSection({
         {!group.suppress && (
           <button
             onClick={() => {
-              const next = window.prompt(
-                "S-Kaupat lista?",
-                shoppingListUrl ?? "",
-              );
+              const next = promptShoppingListUrl(shoppingListUrl);
               if (next === null) return;
-              const trimmed = next.trim();
-              if (trimmed.length > 0) {
-                try {
-                  new URL(trimmed);
-                } catch {
-                  window.alert("Tarkista osoite — ei ole kelvollinen URL");
-                  return;
-                }
-              }
-              setShoppingListUrl(trimmed.length > 0 ? trimmed : undefined);
+              setShoppingListUrl(next);
             }}
             className="p-1.5"
             style={{

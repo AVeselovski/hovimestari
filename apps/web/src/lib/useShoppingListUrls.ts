@@ -64,3 +64,28 @@ export function useShoppingListUrls(): {
 
   return { get, set, urls };
 }
+
+// Three-state return: `null` = canceled / invalid (no-op for the caller),
+// `undefined` = user cleared the URL, `string` = user set a new URL.
+// Validates that input is an https URL — javascript: and other schemes are
+// rejected even though Hovimestari is LAN-only.
+export function promptShoppingListUrl(
+  current: string | undefined,
+): string | undefined | null {
+  const next = window.prompt("S-Kaupat lista?", current ?? "");
+  if (next === null) return null;
+  const trimmed = next.trim();
+  if (trimmed.length === 0) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    window.alert("Tarkista osoite — anna kelvollinen https-osoite");
+    return null;
+  }
+  if (parsed.protocol !== "https:") {
+    window.alert("Tarkista osoite — anna kelvollinen https-osoite");
+    return null;
+  }
+  return trimmed;
+}
