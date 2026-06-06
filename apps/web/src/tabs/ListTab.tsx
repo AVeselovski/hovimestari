@@ -19,7 +19,10 @@ import {
 } from "../lib/shoppingList.js";
 import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
 import { capitalize } from "../lib/format.js";
-import { useShoppingListUrls } from "../lib/useShoppingListUrls.js";
+import {
+  promptShoppingListUrl,
+  useShoppingListUrls,
+} from "../lib/useShoppingListUrls.js";
 
 type ViewMode = "aisle" | "recipe";
 type ShopMode = "online" | "store";
@@ -479,18 +482,9 @@ function RecipeSectionView({
   );
 
   const onEditUrl = (): void => {
-    const next = window.prompt("S-Kaupat lista?", shoppingListUrl ?? "");
+    const next = promptShoppingListUrl(shoppingListUrl);
     if (next === null) return;
-    const trimmed = next.trim();
-    if (trimmed.length > 0) {
-      try {
-        new URL(trimmed);
-      } catch {
-        window.alert("Tarkista osoite — ei ole kelvollinen URL");
-        return;
-      }
-    }
-    setShoppingListUrl(trimmed.length > 0 ? trimmed : undefined);
+    setShoppingListUrl(next);
   };
 
   return (
