@@ -1,20 +1,31 @@
+import { Coffee } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, ScrollRestoration } from "react-router-dom";
-import { Coffee } from "lucide-react";
-import { useStateStore } from "../lib/useStateStore.js";
-import { StateStoreContext } from "../lib/stateContext.js";
 import { buildShoppingList } from "../lib/shoppingList.js";
+import { StateStoreContext } from "../lib/stateContext.js";
+import { useStateStore } from "../lib/useStateStore.js";
 import { BottomTabs } from "./BottomTabs.js";
 
 export function AppLayout(): JSX.Element {
   const store = useStateStore();
   const { state, status, dismissConflict } = store;
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [checked, setChecked] = useState<Record<string, boolean>>(() => {
+    try {
+      const raw = window.localStorage.getItem("hovi:list-checked");
+      return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
   const toggleChecked = useCallback(
     (key: string) => setChecked((c) => ({ ...c, [key]: !c[key] })),
     [],
   );
   const clearChecked = useCallback(() => setChecked({}), []);
+
+  useEffect(() => {
+    window.localStorage.setItem("hovi:list-checked", JSON.stringify(checked));
+  }, [checked]);
 
   const ctxValue = useMemo(
     () => ({ ...store, checked, toggleChecked, clearChecked }),
@@ -68,16 +79,20 @@ export function AppLayout(): JSX.Element {
                 className="font-display text-3xl leading-none tracking-tight"
                 style={{ color: "var(--ink)" }}
               >
-                Kauppalista<span style={{ color: "var(--berry)" }}>.</span>
+                Hovi<span style={{ color: "var(--berry)" }}>.</span>
               </h1>
               <p
                 className="text-xs tracking-widest uppercase mt-1.5"
                 style={{ color: "var(--muted)", letterSpacing: "0.15em" }}
               >
-                Torstain toimitus · S-Kaupat
+                Kotiapuri
               </p>
             </div>
-            <Coffee size={22} style={{ color: "var(--ink)" }} strokeWidth={1.5} />
+            <Coffee
+              size={22}
+              style={{ color: "var(--ink)" }}
+              strokeWidth={1.5}
+            />
           </div>
           <div
             className="mt-4 h-px"

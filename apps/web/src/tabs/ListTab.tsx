@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { AisleCategory, State } from "@hovi/shared";
 import {
   Check,
   ChevronDown,
@@ -10,7 +10,8 @@ import {
   RotateCcw,
   ShoppingCart,
 } from "lucide-react";
-import type { AisleCategory, State } from "@hovi/shared";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { capitalize } from "../lib/format.js";
 import {
   buildShoppingList,
   buildShoppingListByRecipe,
@@ -18,7 +19,6 @@ import {
   type ShoppingItem,
 } from "../lib/shoppingList.js";
 import { SKAUPAT_TAB_NAME, skaupatSearchUrl } from "../lib/skaupat.js";
-import { capitalize } from "../lib/format.js";
 import {
   promptShoppingListUrl,
   useShoppingListUrls,
@@ -469,16 +469,17 @@ function RecipeSectionView({
   const hasUrl = Boolean(shoppingListUrl);
   // No suppress-group guard needed: buildShoppingListByRecipe already filters
   // suppress groups out, so this view never receives a Kaapista section.
-  const labelClass =
-    "flex-1 flex items-center gap-2 text-left no-underline";
+  const labelClass = "flex-1 flex items-center gap-2 text-left no-underline";
   const labelStyle = { color: "var(--berry)" } as const;
   const labelInner = (
-    <>
+    <span className="flex items-center justify-between w-full gap-2">
       <span className="text-[10px] uppercase tracking-[0.2em]">
         {section.name}
       </span>
-      {hasUrl && shopMode === "online" && <ExternalLink size={12} />}
-    </>
+      {hasUrl && shopMode === "online" && (
+        <ExternalLink size={11} className="shrink-0" />
+      )}
+    </span>
   );
 
   const onEditUrl = (): void => {

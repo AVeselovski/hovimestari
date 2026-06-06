@@ -1,12 +1,16 @@
-import { useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
 import type { Recipe } from "@hovi/shared";
-import { useStore } from "../lib/stateContext.js";
+import { ArrowLeft, Link2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { SectionHead } from "../components/SectionHead.js";
 import { ServingsChip } from "../components/ServingsChip.js";
 import { formatRecipeAmount, scaleAmount } from "../lib/amount.js";
 import { capitalize } from "../lib/format.js";
+import { useStore } from "../lib/stateContext.js";
+import {
+  promptShoppingListUrl,
+  useShoppingListUrls,
+} from "../lib/useShoppingListUrls.js";
 import { NotFound } from "./NotFound.js";
 
 export function RecipeDetail(): JSX.Element | null {
@@ -41,6 +45,14 @@ export function RecipeDetailView({
   // element instance across :id changes. No persistence here.
   const [servings, setServings] = useState<number>(recipe.servings);
   const instructions = recipe.instructions ?? [];
+  const urls = useShoppingListUrls();
+  const shoppingListUrl = urls.get("recipe", recipe.id);
+
+  const onEditUrl = (): void => {
+    const next = promptShoppingListUrl(shoppingListUrl);
+    if (next === null) return;
+    urls.set("recipe", recipe.id, next);
+  };
 
   return (
     <div className="space-y-5 mt-2">
@@ -52,13 +64,23 @@ export function RecipeDetailView({
         >
           <ArrowLeft size={16} /> Takaisin
         </button>
-        <button
-          onClick={onEdit}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
-          style={{ background: "var(--ink)", color: "var(--paper)" }}
-        >
-          <Pencil size={13} /> Muokkaa
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onEditUrl}
+            className="p-1.5"
+            style={{ color: shoppingListUrl ? "var(--ink)" : "var(--muted)" }}
+            aria-label="S-Kaupat lista"
+          >
+            <Link2 size={15} />
+          </button>
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
+            style={{ background: "var(--ink)", color: "var(--paper)" }}
+          >
+            <Pencil size={13} /> Muokkaa
+          </button>
+        </div>
       </div>
 
       <div>
@@ -95,7 +117,9 @@ export function RecipeDetailView({
                 className="px-3 py-2 flex items-baseline justify-between gap-3"
                 style={{ borderColor: "var(--rule)" }}
               >
-                <span className="text-sm leading-tight">{capitalize(ing.name)}</span>
+                <span className="text-sm leading-tight">
+                  {capitalize(ing.name)}
+                </span>
                 <span
                   className="text-xs tabular-nums shrink-0"
                   style={{ color: "var(--muted)" }}
@@ -107,10 +131,7 @@ export function RecipeDetailView({
             );
           })}
           {recipe.ingredients.length === 0 && (
-            <li
-              className="px-3 py-3 text-xs"
-              style={{ color: "var(--muted)" }}
-            >
+            <li className="px-3 py-3 text-xs" style={{ color: "var(--muted)" }}>
               Ei aineksia.
             </li>
           )}
