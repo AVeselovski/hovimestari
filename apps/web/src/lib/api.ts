@@ -114,10 +114,11 @@ export function recipeImageUrl(imageId: string): string {
 
 export async function uploadRecipeImage(
   blob: Blob,
-  mediaType: SupportedImageMediaType,
 ): Promise<ImageUploadResponse> {
   const data = await blobToBase64(blob);
-  const body: ImageUploadRequest = { image: { data, mediaType } };
+  const body: ImageUploadRequest = {
+    image: { data, mediaType: "image/jpeg" },
+  };
   const res = await fetch(`${API_BASE}/images`, {
     method: "POST",
     headers: { "content-type": "application/json" },

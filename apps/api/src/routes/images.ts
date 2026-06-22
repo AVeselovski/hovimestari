@@ -55,6 +55,12 @@ export async function imagesRoutes(app: FastifyInstance): Promise<void> {
         reply.code(400);
         return { error: "invalid_image_data" };
       }
+      // Defence in depth: a valid mediaType doesn't prove the bytes are a JPEG.
+      // Reject anything missing the JPEG SOI marker before it lands on disk.
+      if (buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+        reply.code(400);
+        return { error: "invalid_image_data" };
+      }
       if (buffer.length > MAX_IMAGE_BYTES) {
         reply.code(400);
         return { error: "image_too_large" };

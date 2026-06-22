@@ -27,10 +27,13 @@ export type RecipeImageImportRequest = z.infer<
   typeof RecipeImageImportRequestSchema
 >;
 
+// Cover-image uploads are always re-encoded to JPEG client-side, so the upload
+// endpoint accepts only JPEG (unlike the vision import path, which accepts the
+// broader SupportedImageMediaType set).
 export const ImageUploadRequestSchema = z.object({
   image: z.object({
     data: z.string().min(1),
-    mediaType: SupportedImageMediaTypeSchema,
+    mediaType: z.literal("image/jpeg"),
   }),
 });
 export type ImageUploadRequest = z.infer<typeof ImageUploadRequestSchema>;

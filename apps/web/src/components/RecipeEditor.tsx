@@ -54,7 +54,7 @@ export function RecipeEditor({
     setImageUploading(true);
     try {
       const { blob } = await preprocessImage(file);
-      const { imageId } = await uploadRecipeImage(blob, "image/jpeg");
+      const { imageId } = await uploadRecipeImage(blob);
       setR((rr) => ({ ...rr, imageId }));
     } catch (err) {
       setImageError(
@@ -249,6 +249,7 @@ export function RecipeEditor({
               type="file"
               accept="image/*"
               className="hidden"
+              disabled={imageUploading}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file !== undefined) void handleImageFile(file);
