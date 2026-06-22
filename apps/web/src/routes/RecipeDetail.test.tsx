@@ -110,6 +110,17 @@ describe("RecipeDetail", () => {
     expect(b).toContain("400");
   });
 
+  it("renders a cover banner when imageId is set", () => {
+    const html = render(baseRecipe({ imageId: "abc-123.jpg" }));
+    expect(html).toContain("/images/abc-123.jpg");
+    expect(html).toContain('alt="Jauhelihapasta"');
+  });
+
+  it("renders no cover banner when imageId is absent", () => {
+    const html = render(baseRecipe());
+    expect(html).not.toContain("/images/");
+  });
+
   it("scales amounts correctly via the scaleAmount helper for the interactive case", async () => {
     // The full DOM-interaction test would require @testing-library/react.
     // We assert the underlying contract (scaleAmount + formatRecipeAmount

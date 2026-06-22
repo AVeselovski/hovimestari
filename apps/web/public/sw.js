@@ -1,6 +1,6 @@
 // Minimal hand-written service worker for Hovimestari.
 // Bump CACHE_VERSION whenever index.html structure or cached precache list changes.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const ASSET_CACHE = `hovi-assets-${CACHE_VERSION}`;
 const SHELL_CACHE = `hovi-shell-${CACHE_VERSION}`;
 const PRECACHE = [
@@ -38,8 +38,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache API calls — stale household state is dangerous.
-  if (url.pathname.startsWith("/api/")) {
+  // Never cache API calls — stale household state is dangerous. Recipe cover
+  // images (/api/images/) are immutable content-addressed files, so let them
+  // fall through to the stale-while-revalidate asset path for offline reads.
+  if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/images/")) {
     return;
   }
 
