@@ -27,6 +27,19 @@ export type RecipeImageImportRequest = z.infer<
   typeof RecipeImageImportRequestSchema
 >;
 
+export const ImageUploadRequestSchema = z.object({
+  image: z.object({
+    data: z.string().min(1),
+    mediaType: SupportedImageMediaTypeSchema,
+  }),
+});
+export type ImageUploadRequest = z.infer<typeof ImageUploadRequestSchema>;
+
+export const ImageUploadResponseSchema = z.object({
+  imageId: z.string(),
+});
+export type ImageUploadResponse = z.infer<typeof ImageUploadResponseSchema>;
+
 export const RecipeImportResponseSchema = z.object({
   draft: RecipeDraftSchema,
   confidence: z.number().min(0).max(1),

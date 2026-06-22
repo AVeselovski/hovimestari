@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { SectionHead } from "../components/SectionHead.js";
 import { ServingsChip } from "../components/ServingsChip.js";
+import { recipeImageUrl } from "../lib/api.js";
 import { formatRecipeAmount, scaleAmount } from "../lib/amount.js";
 import { capitalize } from "../lib/format.js";
 import { useStore } from "../lib/stateContext.js";
@@ -82,6 +83,23 @@ export function RecipeDetailView({
           </button>
         </div>
       </div>
+
+      {recipe.imageId && (
+        <div
+          className="rounded-xl border overflow-hidden aspect-[3/2]"
+          style={{
+            borderColor: "var(--rule)",
+            background: "var(--paper-2)",
+          }}
+        >
+          <img
+            src={recipeImageUrl(recipe.imageId)}
+            alt={recipe.name}
+            className="w-full h-full object-cover"
+            style={{ objectPosition: "center" }}
+          />
+        </div>
+      )}
 
       <div>
         <h2 className="font-display text-3xl leading-tight">{recipe.name}</h2>

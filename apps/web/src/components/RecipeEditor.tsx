@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -13,6 +13,11 @@ import { Field } from "./Field.js";
 import { SectionHead } from "./SectionHead.js";
 import { formatImportSource } from "../lib/modelLabels.js";
 import { AmountInput } from "./AmountInput.js";
+import { recipeImageUrl, uploadRecipeImage } from "../lib/api.js";
+import {
+  ImageTooLargeError,
+  preprocessImage,
+} from "../lib/imagePreprocess.js";
 
 export type RecipeEditorDraft = Omit<Recipe, "id"> & { id?: string };
 
@@ -40,6 +45,36 @@ export function RecipeEditor({
     ingredients: initial.ingredients ?? [],
     instructions: initial.instructions ?? [],
   });
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImageFile = async (file: File): Promise<void> => {
+    setImageError(null);
+    setImageUploading(true);
+    try {
+      const { blob } = await preprocessImage(file);
+      const { imageId } = await uploadRecipeImage(blob, "image/jpeg");
+      setR((rr) => ({ ...rr, imageId }));
+    } catch (err) {
+      setImageError(
+        err instanceof ImageTooLargeError
+          ? "Kuva on liian iso"
+          : "Kuvan lataus epäonnistui",
+      );
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current !== null) imageInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (): void => {
+    setR((rr) => {
+      const { imageId: _drop, ...rest } = rr;
+      return rest;
+    });
+    setImageError(null);
+  };
 
   const updateIng = (idx: number, patch: Partial<Ingredient>): void => {
     setR((rr) => ({
@@ -164,6 +199,63 @@ export function RecipeEditor({
             placeholder="Esim. Kasviscurry"
           />
         </Field>
+        <div>
+          <SectionHead>Kansikuva</SectionHead>
+          <div className="mt-2">
+            {r.imageId ? (
+              <div className="space-y-2">
+                <div
+                  className="rounded-xl border overflow-hidden aspect-[3/2]"
+                  style={{
+                    borderColor: "var(--rule)",
+                    background: "var(--paper-2)",
+                  }}
+                >
+                  <img
+                    src={recipeImageUrl(r.imageId)}
+                    alt="Kansikuva"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  onClick={removeImage}
+                  className="text-xs"
+                  style={{ color: "var(--berry)" }}
+                >
+                  Poista kuva
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => imageInputRef.current?.click()}
+                disabled={imageUploading}
+                className="w-full rounded-xl border border-dashed py-6 text-sm"
+                style={{
+                  borderColor: "var(--rule)",
+                  color: "var(--muted)",
+                  background: "var(--paper-2)",
+                }}
+              >
+                {imageUploading ? "Ladataan…" : "Lisää kansikuva"}
+              </button>
+            )}
+            {imageError !== null && (
+              <p className="text-xs mt-1.5" style={{ color: "var(--berry)" }}>
+                {imageError}
+              </p>
+            )}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file !== undefined) void handleImageFile(file);
+              }}
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Aika (min)">
             <input

@@ -1,4 +1,6 @@
 import type {
+  ImageUploadRequest,
+  ImageUploadResponse,
   RecipeImageImportRequest,
   RecipeImportResponse,
   State,
@@ -104,6 +106,27 @@ export async function importRecipeFromImage(
     throw new RecipeImportError(res.status, detail);
   }
   return (await res.json()) as RecipeImportResponse;
+}
+
+export function recipeImageUrl(imageId: string): string {
+  return `${API_BASE}/images/${imageId}`;
+}
+
+export async function uploadRecipeImage(
+  blob: Blob,
+  mediaType: SupportedImageMediaType,
+): Promise<ImageUploadResponse> {
+  const data = await blobToBase64(blob);
+  const body: ImageUploadRequest = { image: { data, mediaType } };
+  const res = await fetch(`${API_BASE}/images`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`POST /images failed: ${res.status}`);
+  }
+  return (await res.json()) as ImageUploadResponse;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
