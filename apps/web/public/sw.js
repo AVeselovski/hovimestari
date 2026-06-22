@@ -39,7 +39,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   // Never cache API calls — stale household state is dangerous. Recipe cover
-  // images (/api/images/) are immutable content-addressed files, so let them
+  // images (/api/images/) are immutable UUID-named files, so let them
   // fall through to the stale-while-revalidate asset path for offline reads.
   if (url.pathname.startsWith("/api/") && !url.pathname.startsWith("/api/images/")) {
     return;
