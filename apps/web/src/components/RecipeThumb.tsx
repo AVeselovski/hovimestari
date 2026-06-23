@@ -1,5 +1,5 @@
 import { Image as ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { recipeImageUrl } from "../lib/api.js";
 
 type Size = "sm" | "md";
@@ -20,6 +20,10 @@ export function RecipeThumb({
   className?: string;
 }): JSX.Element {
   const [failed, setFailed] = useState(false);
+  // Reset on imageId change so replacing a broken image in-place (the
+  // editor's "Poista kuva" → "Lisää kansikuva" flow) shows the new one
+  // instead of sticking on the placeholder.
+  useEffect(() => setFailed(false), [imageId]);
   const px = SIZE_PX[size];
   const boxStyle = {
     width: `${px}px`,
