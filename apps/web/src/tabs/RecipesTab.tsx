@@ -1,6 +1,7 @@
 import { Edit2, Plus, Trash2 } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { Recipe } from "@hovi/shared";
+import { RecipeThumb } from "../components/RecipeThumb.js";
 import { SectionHead } from "../components/SectionHead.js";
 
 export function RecipesTab({
@@ -84,7 +85,8 @@ function RecipeGroup({
           style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <RecipeThumb imageId={r.imageId} alt={r.name} size="md" />
+            <div className="min-w-0 flex-1">
               <p className="font-display text-lg leading-tight">{r.name}</p>
               <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
                 {r.time} min · {r.servings} annosta · {r.ingredients.length} ainesta

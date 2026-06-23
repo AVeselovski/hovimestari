@@ -1,5 +1,6 @@
 import { Clock, X } from "lucide-react";
 import type { PlanRecipe, Recipe } from "@hovi/shared";
+import { RecipeThumb } from "./RecipeThumb.js";
 import { ServingsChip } from "./ServingsChip.js";
 
 export function SelectedCard({
@@ -19,7 +20,8 @@ export function SelectedCard({
       style={{ background: "var(--paper-2)", borderColor: "var(--rule)" }}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+        <RecipeThumb imageId={recipe.imageId} alt={recipe.name} size="sm" />
+        <div className="min-w-0 flex-1">
           <p className="font-display text-lg leading-tight truncate">{recipe.name}</p>
           <p
             className="text-xs flex items-center gap-1 mt-0.5"
