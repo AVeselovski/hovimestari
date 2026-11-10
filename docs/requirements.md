@@ -130,9 +130,9 @@ There is no shared space between users and no administrator role in the app.
 - **FR-AI-04**: The system shall list a user's connections with their name, access, expiry and last use, and let the user revoke one at once.
 - **FR-AI-05**: The system shall limit how many live keys a user can hold.
 - **FR-AI-06**: The system shall expose to a connected assistant, over the Model Context Protocol, the user's targets, days with totals and gaps, the food catalogue search, saved meals, recipes and grocery list.
-- **FR-AI-07**: The system shall let an assistant with a writing key add foods of the user's own, create and edit saved meals and recipes, and add, change, move and remove entries on days.
+- **FR-AI-07**: The system shall let an assistant with a writing key add foods of the user's own, create and edit saved meals and recipes, add, change, move and remove entries on days, and change the user's targets.
 - **FR-AI-08**: The system shall hold an assistant to the same rules as the app's own screens. A recipe from an assistant needs every ingredient pointed at a food or marked as not counted, and the app computes its figures.
-- **FR-AI-09**: The system shall keep the targets, the account, the connections and the deletion of recipes, saved meals and foods out of an assistant's reach.
+- **FR-AI-09**: The system shall keep the account, the connections and the deletion of recipes, saved meals and foods out of an assistant's reach.
 - **FR-AI-10**: The system shall record every change an assistant makes, with the connection's name and the time, and show the record to the user.
 - **FR-AI-11**: The system shall make a repeated write with the same request key apply once, so that an assistant's retry does not duplicate an entry.
 - **FR-AI-12**: The system shall limit how fast a key can write.
@@ -165,6 +165,7 @@ There is no shared space between users and no administrator role in the app.
 - **NFR-UX-04**: Light and dark themes are both first-class.
 - **NFR-ADV-01**: No screen, message, suggestion or tool response states or implies what a user's targets or intake should be. The app reports figures against the user's own targets and attaches no judgement.
 - **NFR-ADV-02**: The app shows that it is not a source of nutrition or medical advice, where targets are set and in the rules given to an assistant.
+- **NFR-ADV-03**: A target an assistant sets is the user's own assistant acting for the user. The app applies it under the same rules as a target typed on screen, records it under the connection's name and adds no view of its own.
 - **NFR-AI-01**: The app runs no model inference and stores no model provider credentials.
 - **NFR-AI-02**: Every figure an assistant reads comes from the same service the app's own screen reads, so the two can never disagree.
 - **NFR-AI-03**: Every feature a user can reach on screen ships with its assistant tools in the same change, unless the requirement keeps it out of an assistant's reach.
@@ -198,7 +199,7 @@ The feature catalog lists what is built today. This section says what is planned
 | ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Targets          | Calorie and protein ranges, dated changes                       | Different targets by weekday                                                        |
 | Foods            | Fineli catalogue, own foods, portions, favourites               | More open food databases                                                            |
-| Days and logging | Entries of three kinds, totals, gauge, week view, quick logging | Meal slots within a day, a planned and eaten state per entry                        |
+| Days and logging | Entries of three kinds, totals, gauge, week view, quick logging | Meal slots within a day                                                             |
 | Barcode scanning | Camera scan, Open Food Facts lookup, label entry                | Scanning several products in a row                                                  |
 | Saved meals      | Create, log, tag by source                                      | Import of a delivery service's menu                                                 |
 | Recipes          | Editor, computed figures, scaling, tags, cover image            | Sharing a recipe by link                                                            |

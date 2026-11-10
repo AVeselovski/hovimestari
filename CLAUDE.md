@@ -42,7 +42,7 @@ Delete this section when the scaffold lands and the earlier app is gone.
 
 These come from `docs/overview.md` and `docs/requirements.md`. They are here because breaking one is easy to do by accident.
 
-- **No advice.** Nothing the app shows or returns says what a user's targets or intake should be. No default targets, no calculators, no judgement words on a day. The app reports figures against the user's own numbers.
+- **No advice.** Nothing the app shows or returns says what a user's targets or intake should be. No default targets, no calculators, no judgement words on a day. The app reports figures against the user's own numbers. A connected assistant may set targets for its user. That is the user's own assistant acting, and the app adds no view of its own.
 - **No inference.** The app calls no language model and stores no model provider key. AI reaches the app only through a user's connection key, over MCP.
 - **No chat in the app.**
 - **Figures come from foods.** A recipe's figures are computed from ingredients that point at foods. A day's figures are computed from its entries. The only typed-in totals are a saved meal's and a user's own food's label values.
@@ -164,7 +164,7 @@ Process language (decision numbers, slice numbers, citations) belongs in `docs/d
 - Measure layout live, at real widths, in a real browser. Reading the source to predict layout has been wrong often enough that it does not count as verification.
 - Validate mobile-facing changes on a real device when you can. Emulation has missed several real-device issues at once.
 
-**The design direction is a working direction.** Artur has not confirmed the look of the new app. Until he does, follow this and expect it to change:
+**The design direction is a working direction.** Artur confirmed it for now. Follow it as it stands and expect it to change:
 
 - **Identity carries over from the earlier app.** Nordic kitchen counter: warm paper background, dark forest-green ink, an oxblood accent. Display type is Fraunces, body type is Instrument Sans, figures and lists use JetBrains Mono. The palette values are in `docs/design/legacy-brief.md` under Design language. The dark theme is new and is designed with the first screens.
 - **Layout follows a four-tab phone shell**, in the manner of the reference screens from the pivot conversation: a day or plan tab, a recipes tab, a groceries tab and settings. Below the `md` breakpoint, dialogs are bottom sheets.

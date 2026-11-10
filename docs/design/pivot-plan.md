@@ -19,19 +19,27 @@ Decisions Artur made in that conversation, in his words where it matters:
 - **A calorie counter when needed.** Quick logging of a single food, with barcode scanning, because "not all rahka are the same, and amounts differ".
 - **Hosted, with login.** Same auth, backend and hosting approach as `finanssiappisV2`, "whatever gets us moving faster".
 - **PWA first.** A store app wrapper only once the app is more or less feature complete, and no dedicated desktop variant.
+- **Targets over MCP.** A connected assistant may change the user's targets. The app still gives no advice: the assistant is the user's own.
 - **This workflow kit.** The agent pipeline, docs system and playbook come from `my-agentic-workflow`.
 
 Mise (the reference app) screens that informed the information architecture: a plan tab with day cards, a recipe detail with macros per serving and an ingredients and instructions toggle, a grocery list grouped by aisle with "needed" amounts, an edit-plan mode with move and double up, and a preferences page. Take the layout ideas. Do not take the budget, the generated content or the visual style.
 
-## Assumptions the drafts make
+## Settled on 2026-11-10
 
-These are in the requirements draft because something had to be written. Each is also an open question in `TODO.md`. Do not treat them as settled.
+Artur answered these after reading the first summary of the drafts:
 
-- Accounts are personal. No shared household in the MVP.
-- An entry has no planned or eaten state. A future date is a plan, a past date is a log.
-- An assistant cannot change targets or delete recipes, saved meals or foods.
-- UI copy is English, as in finanssi.
-- The earlier app's visual identity carries over.
+- Accounts are personal. No shared household.
+- An entry has no planned or eaten state. A future date is a plan, a past date is a log. "Let's keep it simple."
+- A connected assistant may change targets.
+- UI copy is English.
+- The earlier app's visual identity carries over, for now.
+- The build order is the orchestrator's call. Recipes come before barcode scanning, because recipes unlock the gap and the plan, and step 3 already covers logging a food by search.
+
+## Assumptions the drafts still make
+
+Each is an open question in `TODO.md`. Do not treat them as settled.
+
+- An assistant cannot delete recipes, saved meals or foods.
 - The grocery list buys for planned servings, adjustable per recipe on the list.
 
 ## Build order
@@ -46,8 +54,6 @@ Each step is one or more PRs through the full pipeline. A step is usable on its 
 6. **Barcode scanning.** Camera scan, Open Food Facts lookup, label entry (FR-SCAN).
 7. **The gap.** Gap figures and ranked suggestions (FR-GAP).
 8. **Grocery list.** From planned recipes, with the salvaged merge and S-kaupat linking (FR-GROC).
-
-Steps 5 and 6 can swap if scanning turns out to matter more day to day. Artur decides.
 
 ## What to lift from finanssiappisV2
 
