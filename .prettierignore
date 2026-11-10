@@ -1,0 +1,12 @@
+node_modules
+dist
+.next
+pnpm-lock.yaml
+**/migrations/**
+
+# The earlier app keeps its own formatting until the scaffold removes it.
+apps/api
+apps/web
+packages/shared
+infra
+docs/design/legacy-brief.md
