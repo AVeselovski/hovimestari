@@ -8,7 +8,6 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 
 - **Confirm the overview and the requirements.** `docs/overview.md` and `docs/requirements.md` are drafts written from the pivot conversation. Both are marked as drafts at the top. They become the foundation when Artur has read them, corrected them and removed the draft notes. Nothing should be built on a requirement he has not seen. Who decides: Artur.
 - **How does the grocery list handle someone who eats but does not log?** The drafts buy for the planned servings and let the user change that number per recipe on the list (FR-GROC-02). A household size setting is the alternative. Who decides: Artur.
-- **Which model do the agents run on?** Every agent is set to `opus`, copied from finanssi's rule. Who decides: Artur.
 - **Hosting accounts and a domain.** The plan is a new Fly.io app with Postgres and a new Vercel project, as in finanssi. Someone has to create them and choose a domain before the scaffold can deploy. Who decides: Artur.
 
 ## Ready to pick up
