@@ -31,6 +31,7 @@ Artur answered these after reading the first summary of the drafts:
 - Accounts are personal. No shared household.
 - An entry has no planned or eaten state. A future date is a plan, a past date is a log. "Let's keep it simple."
 - A connected assistant may change targets.
+- A connected assistant may delete recipes, saved meals and the user's own foods, but only with the user's approval. Artur: "Lesson learned from finanssi.app - let it do it, but requiring approval from user." Finanssi keeps deletion out of an assistant's reach altogether, and that turned out too strict.
 - UI copy is English.
 - The earlier app's visual identity carries over, for now.
 - The build order is the orchestrator's call. Recipes come before barcode scanning, because recipes unlock the gap and the plan, and step 3 already covers logging a food by search.
@@ -39,7 +40,6 @@ Artur answered these after reading the first summary of the drafts:
 
 Each is an open question in `TODO.md`. Do not treat them as settled.
 
-- An assistant cannot delete recipes, saved meals or foods.
 - The grocery list buys for planned servings, adjustable per recipe on the list.
 
 ## Build order
@@ -109,4 +109,5 @@ Not carried over: the LLM provider and router layer, the single JSONB state row 
 - **Raw and cooked weights.** Fineli lists raw and cooked forms of many foods. A recipe weighs ingredients raw and a plate is weighed cooked. The design for recipes must say which the user is asked for and make the choice visible.
 - **Food search quality.** Fineli names are formal ("Rahka, maustamaton, rasvaton"). Search has to rank the everyday match first. Trigram or full-text search in Postgres is likely enough.
 - **Next.js version.** Finanssi runs Next 15 while the `developing-nextjs` skill describes Next 16. Pick the version at scaffold time and correct the skill if needed.
+- **How a deletion is approved.** FR-AI-17 says nothing is deleted on an assistant's request until the user approves. Two mechanisms fit. The app can hold the request as pending and show it to the user, who approves or declines in the app. Or the assistant can be told to ask in its own conversation and wait for a yes, as finanssi's server instructions do for every write. Only the first is something the app can enforce, because the app cannot see the assistant's conversation. The Connected AI design doc picks one and puts the choice among the resolved defaults Artur may veto. Removing an entry from a day needs no approval.
 - **Image storage on Fly.** Decide between a volume and object storage before step 5.

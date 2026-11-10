@@ -132,7 +132,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-AI-06**: The system shall expose to a connected assistant, over the Model Context Protocol, the user's targets, days with totals and gaps, the food catalogue search, saved meals, recipes and grocery list.
 - **FR-AI-07**: The system shall let an assistant with a writing key add foods of the user's own, create and edit saved meals and recipes, add, change, move and remove entries on days, and change the user's targets.
 - **FR-AI-08**: The system shall hold an assistant to the same rules as the app's own screens. A recipe from an assistant needs every ingredient pointed at a food or marked as not counted, and the app computes its figures.
-- **FR-AI-09**: The system shall keep the account, the connections and the deletion of recipes, saved meals and foods out of an assistant's reach.
+- **FR-AI-09**: The system shall keep the account and the connections out of an assistant's reach.
 - **FR-AI-10**: The system shall record every change an assistant makes, with the connection's name and the time, and show the record to the user.
 - **FR-AI-11**: The system shall make a repeated write with the same request key apply once, so that an assistant's retry does not duplicate an entry.
 - **FR-AI-12**: The system shall limit how fast a key can write.
@@ -140,6 +140,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-AI-14**: The system shall show the user ready-made setup steps for connecting common assistants with their new key.
 - **FR-AI-15**: The system shall revoke every connection a user made when that user changes or resets their password.
 - **FR-AI-16**: The system shall let the operator switch connected AI off, and switch its writing off, for the whole deployment.
+- **FR-AI-17**: The system shall let an assistant with a writing key ask to delete a recipe, a saved meal or one of the user's own foods, and shall delete nothing on an assistant's request until the user has approved that deletion.
 
 ### 3.11 Authentication and account
 
