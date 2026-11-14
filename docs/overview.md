@@ -2,8 +2,6 @@
 
 This file frames what is being built. It belongs to Artur. Agents read it and never edit it without explicit permission. When it drifts from what is built, an agent reports what is wrong and proposes the wording, and Artur decides.
 
-> **Draft.** Written from the pivot conversation of November 2026. It becomes the foundation once Artur has read and corrected it. The open questions are in `TODO.md`.
-
 ## The product
 
 Hovimestari is a food planner and food log for people who already know their numbers. The user sets a daily calorie range and a daily protein range. The app then answers one question, every day: what is left, and what closes it.

@@ -196,16 +196,16 @@ There is no shared space between users and no administrator role in the app.
 
 The feature catalog lists what is built today. This section says what is planned. The build order within the MVP is in `docs/design/pivot-plan.md`.
 
-| Area             | MVP                                                             | Later                                                                               |
-| ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Targets          | Calorie and protein ranges, dated changes                       | Different targets by weekday                                                        |
-| Foods            | Fineli catalogue, own foods, portions, favourites               | More open food databases                                                            |
-| Days and logging | Entries of three kinds, totals, gauge, week view, quick logging | Meal slots within a day                                                             |
-| Barcode scanning | Camera scan, Open Food Facts lookup, label entry                | Scanning several products in a row                                                  |
-| Saved meals      | Create, log, tag by source                                      | Import of a delivery service's menu                                                 |
-| Recipes          | Editor, computed figures, scaling, tags, cover image            | Sharing a recipe by link                                                            |
-| The gap          | Gap figures, ranked suggestions from the user's library         | Suggestions that combine several items, preferences such as dislikes and appliances |
-| Grocery list     | From planned recipes, aisles, ticks, S-kaupat links             | K-Ruoka and Lidl links, recurring staples                                           |
-| Connected AI     | Keys, read and write tools for every MVP feature, change record | Assistant access to preferences                                                     |
-| Account          | Password and Google sign-in, reset, delete account              | A shared household, data export                                                     |
-| App              | Installable PWA with an offline shell                           | Offline reading of today and the grocery list, a store app wrapper                  |
+| Area             | MVP                                                             | Later                                                                                                             |
+| ---------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Targets          | Calorie and protein ranges, dated changes                       | Optional carbohydrate and fat ranges, with the user choosing which targets to track. Different targets by weekday |
+| Foods            | Fineli catalogue, own foods, portions, favourites               | More open food databases                                                                                          |
+| Days and logging | Entries of three kinds, totals, gauge, week view, quick logging | Meal slots within a day                                                                                           |
+| Barcode scanning | Camera scan, Open Food Facts lookup, label entry                | Scanning several products in a row                                                                                |
+| Saved meals      | Create, log, tag by source                                      | Import of a delivery service's menu                                                                               |
+| Recipes          | Editor, computed figures, scaling, tags, cover image            | Sharing a recipe by link                                                                                          |
+| The gap          | Gap figures, ranked suggestions from the user's library         | Suggestions that combine several items, preferences such as dislikes and appliances                               |
+| Grocery list     | From planned recipes, aisles, ticks, S-kaupat links             | K-Ruoka and Lidl links, recurring staples                                                                         |
+| Connected AI     | Keys, read and write tools for every MVP feature, change record | Assistant access to preferences                                                                                   |
+| Account          | Password and Google sign-in, reset, delete account              | A shared household, data export                                                                                   |
+| App              | Installable PWA with an offline shell                           | Offline reading of today and the grocery list, a store app wrapper                                                |

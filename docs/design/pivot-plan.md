@@ -34,6 +34,8 @@ Artur answered these after reading the first summary of the drafts:
 - A connected assistant may delete recipes, saved meals and the user's own foods, but only with the user's approval. Artur: "Lesson learned from finanssi.app - let it do it, but requiring approval from user." Finanssi keeps deletion out of an assistant's reach altogether, and that turned out too strict.
 - UI copy is English.
 - The earlier app's visual identity carries over, for now.
+- Artur read the overview on 2026-11-14 and accepted it. Wording can be ironed out during development.
+- Targets cover calories and protein now. Later, carbohydrates and fat get optional ranges too, and the user chooses what to track: calories only, calories with every macro, or part of it. Design the targets model in step 2 so that adding a macro is a new row or column, not a rewrite.
 - The build order is the orchestrator's call. Recipes come before barcode scanning, because recipes unlock the gap and the plan, and step 3 already covers logging a food by search.
 
 ## Assumptions the drafts still make
