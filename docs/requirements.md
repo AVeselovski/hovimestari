@@ -4,8 +4,6 @@
 
 Every requirement has a stable ID so designs, tests and feature docs can cite it. The format is `FR-AREA-NN` for functional requirements and `NFR-AREA-NN` for non-functional ones, for example `FR-AUTH-01` or `NFR-PERF-02`. An ID is never reused once retired.
 
-> **Draft.** Written from the pivot conversation of November 2026. It becomes the source of truth once Artur has read and corrected it. Until then an agent treats a requirement here as a proposal and raises anything that looks wrong. The open questions are in `TODO.md`.
-
 ## 1. Scope
 
 In scope: a hosted web app, installable on a phone, in which a signed-in user sets calorie and protein targets, logs what they eat, keeps recipes with computed nutrition figures, plans days against the targets, builds a grocery list from the plan, and may connect their own AI assistant.
@@ -164,6 +162,8 @@ There is no shared space between users and no administrator role in the app.
 - **NFR-UX-02**: The phone is the primary surface. Every screen is designed for a phone held in one hand first and widened for larger screens second.
 - **NFR-UX-03**: Logging a recent or favourite food takes at most three taps from opening the app.
 - **NFR-UX-04**: Light and dark themes are both first-class.
+- **NFR-UX-05**: The interactive pieces that are hard to get right on a phone come from an established, accessible component library and are not built by hand: sheets that slide up from the bottom with a drag handle, dialogs, menus, pickers, comboboxes and toasts. Building one by hand needs a stated reason.
+- **NFR-UX-06**: The app feels native on a phone. Sheets follow the finger, nothing jumps when the keyboard opens, and no tap lands on the wrong thing.
 - **NFR-ADV-01**: No screen, message, suggestion or tool response states or implies what a user's targets or intake should be. The app reports figures against the user's own targets and attaches no judgement.
 - **NFR-ADV-02**: The app shows that it is not a source of nutrition or medical advice, where targets are set and in the rules given to an assistant.
 - **NFR-ADV-03**: A target an assistant sets is the user's own assistant acting for the user. The app applies it under the same rules as a target typed on screen, records it under the connection's name and adds no view of its own.

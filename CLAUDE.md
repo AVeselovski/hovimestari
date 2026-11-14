@@ -34,7 +34,6 @@ The stack is the one `finanssiappisV2` runs, on purpose. Its auth, its connected
 - Do not extend the earlier app. No new feature goes into it.
 - The first task of the pivot replaces it with the new scaffold. `docs/design/pivot-plan.md` holds the build order, what to salvage from the earlier app and what to lift from `finanssiappisV2`.
 - `docs/design/legacy-brief.md` is the earlier project brief, kept for reference while salvaging. It describes nothing that binds new work.
-- `docs/requirements.md` is a draft until Artur confirms it. Raise anything in it that looks wrong. He has accepted `docs/overview.md`.
 
 Delete this section when the scaffold lands and the earlier app is gone.
 
