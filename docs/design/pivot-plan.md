@@ -61,6 +61,8 @@ Each step is one or more PRs through the full pipeline. A step is usable on its 
 
 The repository is `AVeselovski/finanssiappisV2`. A session needs it attached to read it. Lift means copy and adapt, keeping the tests. Its "vault" becomes the user here, because Hovimestari has no shared space.
 
+Read `docs/design/mobile-ui-lessons.md` in this repository before anything in the web app. It distils finanssi's mobile lessons and says which UI pieces to lift, adapt or replace.
+
 Read these first. They describe the behaviour better than the code does:
 
 - `docs/features/authentication.md` and `docs/features/connected-ai.md`
