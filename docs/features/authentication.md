@@ -6,7 +6,7 @@ How a person gets into Hovimestari and stays in: signing up, signing in with a p
 
 ### Signing up and signing in
 
-Signing up takes an email address and a password. The password is at least 8 characters and at most 72 bytes, which is 72 plain letters or fewer accented ones. The address is stored in lower case, so `Anna@Example.com` and `anna@example.com` are one account. A new account is signed in straight away.
+Signing up takes an email address and a password. The password is at least 8 characters and at most 72 bytes, which is 72 plain letters or fewer accented ones. The address is stored in lower case, so `Anna@Example.com` and `anna@example.com` are one account. A new account is signed in straight away. Signing up with an address that already has an account is refused, and the refusal says whether that account uses a password or Google. Sign-up therefore does tell someone that an address has an account. That is accepted, because a form that cannot say an address is taken leaves an honest person stuck, and sign-up is limited to a few attempts an hour per network.
 
 Signing in takes the same two. A wrong password, an unknown address and a password typed for a Google-only account all get one answer: "Invalid email or password." Each takes about as long as the others, so neither the words nor the wait tell which addresses have an account.
 
@@ -47,7 +47,7 @@ Deleting the account removes it and everything it owns, at once and for good. A 
 
 Two JWTs with separate secrets carry `sub`, the user id, in `apps/backend/src/lib/jwt.ts`. The access token lasts `JWT_ACCESS_EXPIRES_IN`, `15m` by default. The refresh token lasts `JWT_REFRESH_EXPIRES_IN`, `7d` by default, and carries a random `jti`, so two signed in the same second differ.
 
-The server stores only a SHA-256 hash of each refresh token, one row per session. A refresh token works while its signature checks out and its row exists. `issueSession` in `apps/backend/src/lib/sessions.ts` writes every session in one transaction: it deletes the spent row and requires that the delete removed it, sweeps the user's expired rows and inserts the new one. Two refreshes racing with one token therefore give exactly one new session. The loser waits on the row's lock, finds it gone and gets 401.
+The server stores only a SHA-256 hash of each refresh token, one row per session. A refresh token works while its signature checks out and its row exists. `issueSession` in `apps/backend/src/lib/sessions.ts` writes every session in one transaction: it deletes the spent row and requires that the delete removed it, sweeps the user's expired rows and inserts the new one. Two refreshes racing with one token therefore give exactly one new session. The loser waits on the row's lock, finds it gone and gets 401. A spent refresh token that is presented again is refused in the same way and nothing else happens: the server does not treat it as a sign of theft and does not end the user's other sessions.
 
 `endAllSessions` in the same file deletes every refresh row of a user. Password change, password reset and sign out everywhere call it inside their transactions. An access token already handed out stays valid until it expires, which is the 15-minute window above.
 
@@ -76,6 +76,8 @@ A sign-in is tied to the browser twice:
 ### Linking Google
 
 Linking is bound to the starting browser in the same way. The web server relays the signed-in user's bearer and the hash of a fresh nonce to `POST /auth/link/google/start`, which answers Google's consent URL with a signed state over the user id and `bind`. The callback learns which Google account consented and links nothing. It hands the web server a link code bound to the user, the Google id and `bind`. `POST /auth/link/google/exchange` spends the code, checks the nonce, refuses a Google account another user holds, and only then links it.
+
+The link callback sets no cookie of its own and checks none, unlike the sign-in callback. It does not need one. A linking flow starts from the web server, so the backend never has the starting browser in front of it to give a cookie to. The nonce does the same job one step later. Take someone who starts a link for their own account and gets another person to open the consent URL and approve it. The link code then goes to that other person's browser, which does not hold the starter's nonce, so the exchange is refused and the code is spent. The starter holds the nonce and never sees the code. Neither can finish, and nothing is linked.
 
 ### One-time codes
 

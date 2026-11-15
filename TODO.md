@@ -20,7 +20,7 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 - **Refresh-token reuse detection.** A spent refresh token presented again only gets a 401 today. The common hardening treats that as a sign of theft and ends every session of the user, which needs a short record of spent token hashes. Who decides: Artur.
 
 - **Exact sign-out on every device.** "Sign out on all devices", a password change and a reset end other sessions at their next refresh, within 15 minutes, and only on a device that is open. Making it exact needs a session-version column checked on every API request, one database read each. Who decides: Artur, if the window ever matters.
-- **Decide whether removing the password ends other sessions.** Changing or resetting the password ends every session, removing it does not. Settle it in the account-settings pull request, together with how this device stays signed in when it has no password to sign back in with. Who decides: the architect of that pull request.
+- **Decide whether adding or removing a password ends other sessions.** Changing or resetting the password ends every session. Adding a first password to a Google account does not, and neither does removing the password. Someone who adds a password because they fear the account is compromised would expect other devices to be signed out. Settle it in the account-settings pull request, together with how this device stays signed in when it has no password to sign back in with. Who decides: Artur, on the architect's proposal in that pull request.
 
 ## Ready to pick up
 
@@ -32,6 +32,7 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 - **Match the backend's pool to the database the Fly runbook creates.** `docs/setup/fly-backend.md` creates a 256 MB Postgres machine. `apps/backend/fly.toml` sets `DB_POOL_MAX` to 8, which its own comment and `apps/backend/src/lib/env.ts` size for a 1 GB machine. Either `fly.toml` goes to 5 or the runbook creates a 1 GB machine, which costs more. Who decides: Artur on the cost, then a backend engineer.
 - **Give Fly time for the graceful shutdown.** The backend finishes requests in flight for up to ten seconds on SIGTERM or SIGINT, but `apps/backend/fly.toml` sets no `kill_timeout`, and Fly's default hard stop comes after five. Setting `kill_timeout` to at least 10 lets the shutdown finish. Who decides: a backend engineer.
 - **Upgrade TypeScript to 7 and Base UI to 1.9.** Both are pinned below their latest on purpose: ts-jest, typescript-eslint and the Next plugin are unverified on TypeScript 7, and the sheet facts in `docs/design/mobile-ui-lessons.md` were verified on Base UI 1.8.0. Each upgrade is its own task that re-checks those. Who decides: whoever picks it up.
+- **Rate limit the reset-password route.** `POST /auth/reset-password` has no limiter. A reset link is 256 random bits and is stored hashed, so guessing one is not feasible and nothing is exposed today. A small per-network limiter would make it consistent with the other open routes. Found in review. No product decision. Who decides: whoever picks it up.
 
 ## Known gaps, deliberately unbuilt
 
