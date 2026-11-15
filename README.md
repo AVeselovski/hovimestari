@@ -4,7 +4,7 @@ Hovimestari is a food planner and food log for people who bring their own calori
 
 ## Where the project stands
 
-The backend and its authentication are built. The web app comes next. [The feature catalog](docs/features.md) lists what is built.
+The backend is built with authentication, targets and the food catalogue, without the Fineli import yet. The web app comes next. [The feature catalog](docs/features.md) lists what is built.
 
 - [The overview](docs/overview.md) frames the product.
 - [The requirements](docs/requirements.md) say what it must do.

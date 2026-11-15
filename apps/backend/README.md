@@ -13,13 +13,17 @@ src/
 │   ├── types.ts                Db, the type of the database or a transaction, without the pool
 │   └── schema/
 │       ├── index.ts            Re-exports every table
-│       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs
+│       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs, the food-name language and the time zone
+│       ├── targets.ts          target_changes: one row per dated change of a user's targets
+│       ├── foods.ts            foods, food_portions and food_favourites, with the generated search columns
 │       ├── refresh-tokens.ts   One row per session, the refresh token stored as a hash
 │       └── password-reset-tokens.ts  One row per reset link, stored as a hash
 ├── lib/
 │   ├── env.ts                  Typed env vars, parsed with Zod. Google all or none, Resend required in production
 │   ├── errors.ts               AppError (message, status, code), ERROR_MESSAGES and appError(code, status)
-│   ├── parseBody.ts            Parses a body with a shared schema, answering its error code on failure
+│   ├── parseBody.ts            parseBody and parseQuery: a body or a query string parsed with a shared schema, answering its error code on failure
+│   ├── requestContext.ts       contextForUser(user, now), the pure service context, and contextFor(req), which reads the user first
+│   ├── userTime.ts             calendarDate(now, zone), the fallback zone and the stored-zone check
 │   ├── failureOf.ts            What an unexpected error logs: stack, code and constraint, never the row values in `detail`
 │   ├── lastResort.ts           Logs an unhandled rejection or uncaught exception through failureOf, then exits 1
 │   ├── shutdown.ts             On SIGTERM or SIGINT: finish requests in flight, end the pool, exit. Ten seconds at most
@@ -44,17 +48,30 @@ src/
 │   ├── error.ts                Global error handler: { message, code }, 503 when the database is busy, 500 otherwise
 │   └── requestLog.ts           One line per request: method, route key, status, duration
 ├── routes/
-│   ├── index.ts                Mounts /auth and /users
+│   ├── index.ts                Mounts /auth, /users, /targets and /foods
+│   ├── targets.ts              Targets: the overview for a date, set a dated change, remove one
+│   ├── foods.ts                Food search, favourites, own foods, one food, own food writes, portions, favourite toggles
 │   ├── auth.ts                 Sign-up, sign-in, refresh, sign-out, password reset, password link, unlink
 │   ├── authGoogle.ts           Google sign-in and linking, and their code exchanges
-│   └── users.ts                The signed-in user: read, change password, delete the account
+│   └── users.ts                The signed-in user: read, change settings, change password, delete the account
+├── services/                   What a route does, without Express. The assistant's tools will call the same functions
+│   ├── reads/context.ts        ReadContext: the user, the database, now, the time zone and today
+│   ├── reads/targets.ts        targetsOn, the in-force rule, and targetsOverview
+│   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
+│   ├── writes/context.ts       WriteContext and WriteOutcome
+│   ├── writes/targets.ts       setTargets and removeTargetChange
+│   ├── writes/foods.ts         Own foods, portions and favourites
+│   ├── writes/settings.ts      updateSettings: the food-name language and the time zone
+│   ├── foodScope.ts            visibleTo and portionVisibleTo, the only place the visibility rules are written
+│   ├── foodRows.ts             The selection every food read answers with, names in the user's language
+│   └── foodSearch.ts           The query's words and the ranked search query
 └── types/
     └── express.d.ts            req.user and req.relay
 ```
 
 ## Endpoints
 
-Every route is under `/api/v1`, and the [authentication feature doc](../../docs/features/authentication.md#api) lists them with who may call each. Two more routes live outside it, with no auth:
+Every route is under `/api/v1`. The feature docs list them with who may call each: [authentication](../../docs/features/authentication.md#api), [targets](../../docs/features/targets.md#api) and [foods](../../docs/features/foods.md#api). A route parses its input, builds the service context with `contextFor(req)`, calls one service in `src/services/` and sends the answer. It holds no SQL. Two more routes live outside it, with no auth:
 
 - `GET /livez` answers 200 while the process serves HTTP. It never touches the database, so Fly's routing check cannot fail on a busy pool.
 - `GET /health` answers 200 when the database answers `SELECT 1`, and 503 otherwise. It is for monitoring.
@@ -80,11 +97,27 @@ Local setup, from `pnpm env:init` to a running server, is in [the local developm
 
 ## Database and migrations
 
-The schema lives in `src/db/schema/`, and the migrations it produces in `drizzle/migrations/`. To change the schema:
+The schema lives in `src/db/schema/`, and the migrations it produces in `drizzle/migrations/`. The schema imports constants from `@hovimestari/types`, so `db:generate` needs that package built first. To change the schema:
 
 1. Edit `src/db/schema/*.ts`.
-2. Run `db:generate` and commit the SQL file and the `meta/` snapshot together.
+2. Build the shared types and generate the migration, then commit the SQL file and the `meta/` snapshot together:
+
+   ```bash
+   pnpm --filter @hovimestari/types build
+   pnpm --filter @hovimestari/backend db:generate
+   ```
+
 3. Run `db:migrate` locally.
+
+If a migration fails on an existing local database, recreate it from the repository root. This deletes everything in the local database:
+
+```bash
+docker compose down -v
+pnpm db:up
+pnpm --filter @hovimestari/backend db:migrate
+```
+
+Migration `0001_search_functions.sql` is written by hand: it was generated empty with `db:generate --custom` and installs `pg_trgm`, `unaccent` and the search functions the generated columns of `foods` call. It fails on a database that is not UTF-8. The Postgres server must ship both extensions, as the official image and Fly's do.
 
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
 
@@ -96,7 +129,10 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 
 - `src/__tests__/env-setup.ts` gives every suite its environment: fixed values that are not secret, and secrets generated with `randomBytes` at start-up. Google is off and mail goes to the console. A suite that needs Google calls `enableGoogle()` from `src/__tests__/support/google.ts` before it imports the app.
 - No test holds a literal password, key or secret. `testPassword()` in `src/__tests__/support/credentials.ts` makes passwords at run time, and `relayHeaders()` in `src/__tests__/support/relay.ts` presents the generated relay secret.
-- Suites named `*.db.test.ts` run on a real Postgres through `describeWithDb` in `src/db/__tests__/support/throwawayDb.ts`. It creates a throwaway database next to the one `TEST_DATABASE_URL` names, migrates it, points `DATABASE_URL` at it, then imports the app for the suite, and drops the database at the end. Such a file never imports the app or the database statically. `TEST_DATABASE_URL` defaults to `postgresql://postgres@localhost:5433/postgres`, the compose database. With no Postgres there the suites are skipped with a warning, and in CI they fail.
+- Suites named `*.db.test.ts` run on a real Postgres through `describeWithDb` in `src/db/__tests__/support/throwawayDb.ts`. It creates a throwaway UTF-8 database with the `C.UTF-8` locale next to the one `TEST_DATABASE_URL` names, so every machine sorts and folds names alike, migrates it, points `DATABASE_URL` at it, then imports the app for the suite, and drops the database at the end. Such a file never imports the app or the database statically. `TEST_DATABASE_URL` defaults to `postgresql://postgres@localhost:5433/postgres`, the compose database. With no Postgres there the suites are skipped with a warning, and in CI they fail.
+- `signUp(client)` in `src/__tests__/support/apiUser.ts` makes a user directly in a suite's database and signs an access token for it, past the sign-up rate limit. The targets, foods and search suites use it.
+- `src/services/__tests__/foodWrites.db.test.ts` changes a row's owner between a write's check and the write itself, and proves the write still touches only the caller's rows.
+- `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment

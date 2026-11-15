@@ -21,8 +21,11 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 ## Modules
 
 ```text
-auth.ts      Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the session grant and the browser session
+auth.ts      Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
+dates.ts     IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
 errors.ts    ERROR_CODES, ErrorCode, ApiError and isErrorCode
+foods.ts     Food sources, Fineli portion units, food-name languages, the food, portion and list shapes, the search query, and the own food and portion bodies
+targets.ts   The target ranges, the set-targets body, a dated change and the targets overview
 ```
 
 ## Tests
