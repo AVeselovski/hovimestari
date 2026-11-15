@@ -44,7 +44,14 @@ export function grant(): { accessToken: string; refreshToken: string; user: Reco
   return {
     accessToken: `access-${randomValue()}`,
     refreshToken: `refresh-${randomValue()}`,
-    user: { id: crypto.randomUUID(), email: "ada@example.com", hasPassword: true, hasGoogle: false },
+    user: {
+      id: crypto.randomUUID(),
+      email: "ada@example.com",
+      hasPassword: true,
+      hasGoogle: false,
+      foodNameLanguage: "en",
+      timeZone: "Europe/Helsinki",
+    },
   };
 }
 

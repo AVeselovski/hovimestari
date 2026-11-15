@@ -6,6 +6,8 @@ export const TEST_USER: Me = {
   email: "ada@example.com",
   hasPassword: true,
   hasGoogle: false,
+  foodNameLanguage: "en",
+  timeZone: "Europe/Helsinki",
 };
 
 /** An auth context value for a component test that mocks `useAuth`. */
