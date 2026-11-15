@@ -17,7 +17,7 @@ A scheduled task named "Continue Hovimestari build" (`trig_01Bt57gUR7tYJ1LES2BRN
 
 Agent definitions for this project are in `.claude/agents/`. If the Agent tool offers roles from another repository, tell the agent in its brief to read `/home/user/hovimestari/.claude/agents/<role>.md` and `/home/user/hovimestari/CLAUDE.md` and to work from those.
 
-The container has no Docker daemon. Postgres 16 server binaries are in `/usr/lib/postgresql/16/bin` and have to be started by hand as a non-root user for backend tests.
+The container has no Docker daemon. Run `/home/user/start-local-postgres.sh` to start a throwaway Postgres 16 on `localhost:5432`, user `postgres`, trust auth. If the script is gone, the binaries are in `/usr/lib/postgresql/16/bin` and must run as the `postgres` user with a data directory under `/var/lib/postgresql`.
 
 ## Hand-over point
 

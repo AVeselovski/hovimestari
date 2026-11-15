@@ -1,2 +1,3 @@
 [general-purpose STARTED] (2026-11-14T11:12:52Z) distil finanssi's mobile UI and component-library lessons into docs/design/mobile-ui-lessons.md
 [general-purpose DONE] (2026-11-14T11:17:18Z) wrote docs/design/mobile-ui-lessons.md, 142 lines (256k tokens)
+[architect STARTED] (2026-11-15T18:09:47Z) design doc for build step 1, scaffold and auth
