@@ -106,8 +106,22 @@ export interface ThrowawayDb {
   drop(): Promise<void>;
 }
 
+/**
+ * How a throwaway database is created: UTF-8 with the C.UTF-8 locale, which
+ * both the agent container's Postgres and CI's postgres:16 image have, so
+ * every run sorts and folds names alike. The migrations refuse any other
+ * encoding, and a test of that refusal asks for SQL_ASCII.
+ */
+const ENCODINGS = {
+  UTF8: "ENCODING 'UTF8' LOCALE 'C.UTF-8'",
+  SQL_ASCII: "ENCODING 'SQL_ASCII' LOCALE 'C'",
+} as const;
+
 /** Creates database `dbName` next to the one TEST_DATABASE_URL names and connects to it. */
-export async function createThrowawayDb(dbName: string): Promise<ThrowawayDb> {
+export async function createThrowawayDb(
+  dbName: string,
+  encoding: keyof typeof ENCODINGS = "UTF8",
+): Promise<ThrowawayDb> {
   const baseUrl = testDatabaseUrl();
   const admin = new pg.Client({ connectionString: baseUrl });
   await admin.connect();
@@ -115,7 +129,7 @@ export async function createThrowawayDb(dbName: string): Promise<ThrowawayDb> {
   url.pathname = `/${dbName}`;
   const client = new pg.Client({ connectionString: url.toString() });
   try {
-    await admin.query(`CREATE DATABASE "${dbName}"`);
+    await admin.query(`CREATE DATABASE "${dbName}" TEMPLATE template0 ${ENCODINGS[encoding]}`);
     await client.connect();
   } catch (err) {
     await client.end().catch(() => {});

@@ -1,0 +1,116 @@
+import { describe, expect, it } from "@jest/globals";
+import {
+  FoodListQuerySchema,
+  FoodSearchQuerySchema,
+  hasAtMostDecimals,
+  OwnFoodBodySchema,
+  PortionBodySchema,
+  SettingsBodySchema,
+} from "../index.js";
+
+function firstMessage(result: { success: boolean; error?: { issues: { message: string }[] } }): string | undefined {
+  return result.success ? undefined : result.error?.issues[0]?.message;
+}
+
+const per100g = { energyKcal: 59.31, proteinG: 10.5, carbsG: 3.6, fatG: 0.2 };
+
+describe("OwnFoodBodySchema", () => {
+  it("accepts a name and four values, trims the name and defaults the barcode to null", () => {
+    expect(OwnFoodBodySchema.parse({ name: "  Rahka  ", per100g })).toEqual({ name: "Rahka", per100g, barcode: null });
+  });
+
+  it("accepts zero values and the caps", () => {
+    const edge = { energyKcal: 1000, proteinG: 0, carbsG: 100, fatG: 0 };
+    expect(OwnFoodBodySchema.safeParse({ name: "Edge", per100g: edge }).success).toBe(true);
+  });
+
+  it.each([
+    [{ name: " ", per100g }, "food_name_required"],
+    [{ per100g }, "food_name_required"],
+    [{ name: "x".repeat(121), per100g }, "food_name_too_long"],
+    [{ name: "A", per100g: { ...per100g, energyKcal: undefined } }, "food_value_required"],
+    [{ name: "A", per100g: { ...per100g, energyKcal: 1000.1 } }, "food_energy_invalid"],
+    [{ name: "A", per100g: { ...per100g, energyKcal: -1 } }, "food_energy_invalid"],
+    [{ name: "A", per100g: { ...per100g, fatG: 100.5 } }, "food_macro_invalid"],
+    [{ name: "A", per100g: { ...per100g, proteinG: "9" } }, "food_macro_invalid"],
+    [{ name: "A", per100g: { ...per100g, energyKcal: 59.315 } }, "food_energy_invalid"],
+    [{ name: "A", per100g: { ...per100g, proteinG: 1.2345 } }, "food_macro_invalid"],
+    [{ name: "A", per100g, barcode: "1234567" }, "barcode_invalid"],
+    [{ name: "A", per100g, barcode: "12345678901234x" }, "barcode_invalid"],
+  ])("refuses %j with %p", (input, code) => {
+    expect(firstMessage(OwnFoodBodySchema.safeParse(input))).toBe(code);
+  });
+
+  it("accepts a barcode of 8 to 14 digits", () => {
+    expect(OwnFoodBodySchema.parse({ name: "A", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
+  });
+});
+
+describe("PortionBodySchema", () => {
+  it("accepts a name and grams with one decimal", () => {
+    expect(PortionBodySchema.parse({ name: " one tub ", grams: 200.5 })).toEqual({ name: "one tub", grams: 200.5 });
+  });
+
+  it.each([
+    [{ name: "", grams: 1 }, "portion_name_required"],
+    [{ name: "x".repeat(61), grams: 1 }, "portion_name_too_long"],
+    [{ name: "a", grams: 0 }, "portion_grams_invalid"],
+    [{ name: "a", grams: 5000.1 }, "portion_grams_invalid"],
+    [{ name: "a", grams: 1.25 }, "portion_grams_invalid"],
+    [{ name: "a", grams: 0.00000001 }, "portion_grams_invalid"],
+    [{ name: "a" }, "portion_grams_invalid"],
+  ])("refuses %j with %p", (input, code) => {
+    expect(firstMessage(PortionBodySchema.safeParse(input))).toBe(code);
+  });
+});
+
+describe("hasAtMostDecimals", () => {
+  it("is exact", () => {
+    expect([0.1, 1.1, 142.5, 99_999.9].every((v) => hasAtMostDecimals(v, 1))).toBe(true);
+    expect(hasAtMostDecimals(0.29, 2)).toBe(true);
+    expect(hasAtMostDecimals(0.00000001, 1)).toBe(false);
+    expect(hasAtMostDecimals(1.2345, 3)).toBe(false);
+    expect(hasAtMostDecimals(Number.NaN, 1)).toBe(false);
+  });
+});
+
+describe("FoodListQuerySchema", () => {
+  it("defaults the limit to 100 and caps it at 200", () => {
+    expect(FoodListQuerySchema.parse({})).toEqual({ limit: 100 });
+    expect(FoodListQuerySchema.parse({ limit: "200" })).toEqual({ limit: 200 });
+    expect(FoodListQuerySchema.safeParse({ limit: "201" }).success).toBe(false);
+  });
+});
+
+describe("FoodSearchQuerySchema", () => {
+  it("trims the query and defaults the limit to 30", () => {
+    expect(FoodSearchQuerySchema.parse({ q: " rahka " })).toEqual({ q: "rahka", limit: 30 });
+    expect(FoodSearchQuerySchema.parse({ q: "rahka", limit: "5" })).toEqual({ q: "rahka", limit: 5 });
+  });
+
+  it.each([{}, { q: "   " }, { q: "x".repeat(101) }, { q: "a", limit: "51" }, { q: ["a", "b"] }])(
+    "refuses %j",
+    (input) => {
+      expect(FoodSearchQuerySchema.safeParse(input).success).toBe(false);
+    },
+  );
+});
+
+describe("SettingsBodySchema", () => {
+  it("accepts either field or both", () => {
+    expect(SettingsBodySchema.safeParse({ foodNameLanguage: "en" }).success).toBe(true);
+    expect(SettingsBodySchema.safeParse({ timeZone: "America/New_York" }).success).toBe(true);
+    expect(SettingsBodySchema.safeParse({ foodNameLanguage: "fi", timeZone: "UTC" }).success).toBe(true);
+  });
+
+  it("refuses an empty body and an unknown language", () => {
+    expect(SettingsBodySchema.safeParse({}).success).toBe(false);
+    expect(SettingsBodySchema.safeParse({ foodNameLanguage: "sv" }).success).toBe(false);
+  });
+
+  it("refuses a zone Intl does not know with invalid_time_zone", () => {
+    expect(firstMessage(SettingsBodySchema.safeParse({ timeZone: "Mars/Olympus" }))).toBe("invalid_time_zone");
+    expect(firstMessage(SettingsBodySchema.safeParse({ timeZone: "+02:00" }))).toBe("invalid_time_zone");
+    expect(SettingsBodySchema.parse({ timeZone: "america/new_york" })).toEqual({ timeZone: "America/New_York" });
+  });
+});

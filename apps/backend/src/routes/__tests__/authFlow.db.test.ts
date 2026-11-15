@@ -64,7 +64,14 @@ await describeWithDb("authFlow", (suite) => {
     const res = await register(email.toUpperCase(), testPassword());
 
     expect(res.status).toBe(201);
-    expect(res.body.user).toEqual({ id: expect.any(String), email, hasPassword: true, hasGoogle: false });
+    expect(res.body.user).toEqual({
+      id: expect.any(String),
+      email,
+      hasPassword: true,
+      hasGoogle: false,
+      foodNameLanguage: "fi",
+      timeZone: "Europe/Helsinki",
+    });
     expect(res.body.accessToken).toEqual(expect.any(String));
     expect(res.body.refreshToken).toEqual(expect.any(String));
     const { rows } = await suite.client.query("SELECT email FROM users WHERE id = $1", [res.body.user.id]);
@@ -233,7 +240,14 @@ await describeWithDb("authFlow", (suite) => {
 
     const added = await api().post("/api/v1/auth/link/password").set(auth).send({ password: testPassword() });
     expect(added.status).toBe(200);
-    expect(added.body).toEqual({ id: google.id, email: google.email, hasPassword: true, hasGoogle: true });
+    expect(added.body).toEqual({
+      id: google.id,
+      email: google.email,
+      hasPassword: true,
+      hasGoogle: true,
+      foodNameLanguage: "fi",
+      timeZone: "Europe/Helsinki",
+    });
     const again = await api().post("/api/v1/auth/link/password").set(auth).send({ password: testPassword() });
     expect(again.status).toBe(409);
 

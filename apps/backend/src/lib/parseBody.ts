@@ -13,3 +13,11 @@ export function parseBody<T extends z.ZodType>(schema: T, body: unknown): z.infe
   const message = result.error.issues[0]?.message;
   throw appError(isErrorCode(message) ? message : "invalid_request", 400);
 }
+
+/**
+ * A request's query string parsed with `schema`, on the same terms as
+ * `parseBody`: a 400 with the first issue's code, or `invalid_request`.
+ */
+export function parseQuery<T extends z.ZodType>(schema: T, query: unknown): z.infer<T> {
+  return parseBody(schema, query);
+}
