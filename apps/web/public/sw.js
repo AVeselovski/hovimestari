@@ -12,10 +12,15 @@
 //   fallback, else a one-line offline page. An app path falls back to the
 //   cached Day tab ("/"). A guest path under /auth/ falls back to the cached
 //   sign-in page, never to the app shell.
-// - Build assets and fonts (/_next/static/), the icons and the manifest:
-//   cache first. Build assets are content hashed, so a cached copy never goes
-//   stale. The asset cache keeps the 300 most recent entries, trimmed after
-//   each new one, because deploys do not change CACHE_VERSION.
+// - Build assets and fonts (/_next/static/): cache first. They are content
+//   hashed, so a cached copy never goes stale.
+// - The manifest and the icons: stale while revalidate. They keep one name
+//   across deploys, so the cached copy answers at once and a fresh one is
+//   fetched in the background for next time. A changed name, colour or icon
+//   reaches an installed app on its next launch.
+// - The asset cache keeps the 300 most recent entries, trimmed after each new
+//   one, because deploys do not change CACHE_VERSION. The manifest and icons
+//   are never trimmed.
 //
 // Signed-in pages carry no user data in their HTML, which is what makes
 // caching them safe. Whether the app or the guest side shows offline is the
@@ -23,7 +28,7 @@
 //
 // Bump CACHE_VERSION whenever this file's logic changes. Activation deletes
 // every cache from another version.
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const PAGE_CACHE = `hovi-pages-${CACHE_VERSION}`;
 const ASSET_CACHE = `hovi-assets-${CACHE_VERSION}`;
 const PAGE_CACHE_LIMIT = 50;
@@ -59,11 +64,16 @@ self.addEventListener("install", (event) => {
   );
 });
 
-/** Drops the oldest entries until the cache holds at most `limit`. Cache keys keep insertion order. */
+/**
+ * Drops the oldest entries until the cache holds at most `limit`, never one
+ * whose path is in `keep`. Only kept paths actually in the cache count towards
+ * the limit. Cache keys keep insertion order.
+ */
 async function trim(cache, limit, keep = []) {
-  const keys = (await cache.keys()).filter((key) => !keep.includes(new URL(key.url).pathname));
-  const excess = keys.length + keep.length - limit;
-  if (excess > 0) await Promise.all(keys.slice(0, excess).map((key) => cache.delete(key)));
+  const all = await cache.keys();
+  const droppable = all.filter((key) => !keep.includes(new URL(key.url).pathname));
+  const excess = all.length - limit;
+  if (excess > 0) await Promise.all(droppable.slice(0, excess).map((key) => cache.delete(key)));
 }
 
 self.addEventListener("activate", (event) => {
@@ -81,10 +91,9 @@ function isGuestPath(pathname) {
   return pathname === "/auth" || pathname.startsWith("/auth/");
 }
 
-function isAsset(pathname) {
-  return (
-    pathname.startsWith("/_next/static/") || /^\/icon-\d+\.png$/.test(pathname) || pathname === "/manifest.webmanifest"
-  );
+/** The manifest and the icons: same name on every deploy. */
+function isAppIdentity(pathname) {
+  return /^\/icon-\d+\.png$/.test(pathname) || pathname === "/manifest.webmanifest";
 }
 
 async function networkFirstPage(request) {
@@ -109,16 +118,28 @@ async function networkFirstPage(request) {
   }
 }
 
-async function cacheFirstAsset(request) {
-  const cache = await caches.open(ASSET_CACHE);
-  const cached = await cache.match(request);
-  if (cached) return cached;
+async function fetchAndCacheAsset(cache, request) {
   const fresh = await fetch(request);
   if (fresh.ok) {
     await cache.put(request, fresh.clone());
-    await trim(cache, ASSET_CACHE_LIMIT);
+    await trim(cache, ASSET_CACHE_LIMIT, PRECACHE_ASSETS);
   }
   return fresh;
+}
+
+async function cacheFirstAsset(request) {
+  const cache = await caches.open(ASSET_CACHE);
+  return (await cache.match(request)) ?? fetchAndCacheAsset(cache, request);
+}
+
+/** Answers from the cache when it can, and refreshes the copy in the background. */
+async function staleWhileRevalidate(event) {
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(event.request);
+  if (!cached) return fetchAndCacheAsset(cache, event.request);
+  // Offline, the refresh fails quietly and the cached copy stays.
+  event.waitUntil(fetchAndCacheAsset(cache, event.request).catch(() => undefined));
+  return cached;
 }
 
 self.addEventListener("fetch", (event) => {
@@ -131,7 +152,9 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstPage(request));
     return;
   }
-  if (isAsset(url.pathname)) {
+  if (isAppIdentity(url.pathname)) {
+    event.respondWith(staleWhileRevalidate(event));
+  } else if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(cacheFirstAsset(request));
   }
 });

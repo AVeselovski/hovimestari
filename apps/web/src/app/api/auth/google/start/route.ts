@@ -7,6 +7,12 @@ import { GOOGLE_NONCE_COOKIE, googleNonceCookieOptions } from "../../_constants"
  * browser, and only its SHA-256 travels to the backend and Google. The
  * finished sign-in is exchanged with the nonce itself (`google/complete`), so
  * a flow finished in one browser is useless in any other.
+ *
+ * This GET is deliberately unguarded: no origin check and no CSRF token,
+ * because the browser arrives here by a plain link click. The worst a
+ * third-party page can do by starting a flow is overwrite the nonce of a flow
+ * already open in this browser. That makes the open sign-in fail and
+ * completes nobody's.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const nonce = randomBytes(32).toString("base64url");

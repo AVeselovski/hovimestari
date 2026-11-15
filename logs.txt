@@ -71,3 +71,4 @@
 [ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed
 [frontend-engineer STARTED] (2026-11-15T20:59:47Z) fix the web build after merging the targets and foods types
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
+[frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO

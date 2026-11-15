@@ -34,6 +34,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 // token rotates on use, so a second tab renewing with the cookie the first
 // just spent would be refused and signed out. Under the lock the second tab
 // sends the rotated cookie instead.
+//
+// Sign-out takes the same lock, so it never overlaps a renewal in any tab: a
+// renewal in flight sets its cookie first, and the sign-out then ends that
+// latest session and deletes the cookie last. Each sign-out also starts a new
+// generation. A renewal answer from an older generation is discarded, so a
+// late answer can never sign the tab back in.
 // ---------------------------------------------------------------------------
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "offline" | "error";
@@ -124,25 +130,26 @@ async function postSessionHandler(path: string, body?: unknown, signal?: AbortSi
 }
 
 /**
- * Asks the refresh handler for a new session, aborting after
- * `RENEWAL_TIMEOUT_MS`. The abort rejects like a failed fetch, so the caller
- * reads it as the server being out of reach. The timer is cleared once the
- * request settles.
+ * Posts to a session handler with no body, aborting after
+ * `RENEWAL_TIMEOUT_MS`, because both callers hold the renewal lock. The abort
+ * rejects like a failed fetch, so the caller reads it as the server being out
+ * of reach. The timer is cleared once the request settles.
  */
-async function postRefresh(): Promise<Response> {
+async function postUnderLock(path: "/api/auth/refresh" | "/api/auth/sign-out"): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(new DOMException("The session renewal timed out.", "TimeoutError")),
     RENEWAL_TIMEOUT_MS,
   );
   try {
-    return await postSessionHandler("/api/auth/refresh", undefined, controller.signal);
+    return await postSessionHandler(path, undefined, controller.signal);
   } finally {
     clearTimeout(timer);
   }
 }
 
-type RenewalOutcome = "renewed" | "ended" | "unreachable" | "failed";
+/** `superseded`: a sign-out began after this renewal did, so its answer was discarded. */
+type RenewalOutcome = "renewed" | "ended" | "unreachable" | "failed" | "superseded";
 
 export function AuthProvider({ children }: { children: ReactNode }): React.ReactElement {
   const router = useRouter();
@@ -155,6 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const renewRef = useRef<() => Promise<RenewalOutcome>>(async () => "unreachable");
+  // Advanced by every sign-out. A renewal applies its answer only while the
+  // generation it started in is still current.
+  const generationRef = useRef(0);
+  const signingOutRef = useRef(false);
 
   const clearTimers = useCallback(() => {
     for (const ref of [renewTimerRef, retryTimerRef]) {
@@ -203,10 +214,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const inFlightRef = useRef<Promise<RenewalOutcome> | null>(null);
 
   const renewOnce = useCallback(async (): Promise<RenewalOutcome> => {
+    const generation = generationRef.current;
+    const current = (): boolean => generation === generationRef.current && !signingOutRef.current;
+    if (!current()) return "superseded";
     const outcome = await underRenewalLock(async (): Promise<RenewalOutcome | BrowserSession> => {
+      // Queued behind a sign-out: its cookie is gone, so there is nothing to renew.
+      if (!current()) return "superseded";
       let res: Response;
       try {
-        res = await postRefresh();
+        res = await postUnderLock("/api/auth/refresh");
       } catch {
         return "unreachable";
       }
@@ -214,6 +230,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       if (res.status === 401) return "ended";
       return (await saysUnreachable(res)) ? "unreachable" : "failed";
     });
+    // A sign-out began while this renewal was out: its answer, whatever it
+    // is, belongs to a session that has ended.
+    if (!current() || outcome === "superseded") return "superseded";
     if (typeof outcome === "object") {
       applySession(outcome);
       return "renewed";
@@ -262,17 +281,30 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
   const signOut = useCallback(
     async ({ everywhere = false }: { everywhere?: boolean } = {}) => {
+      // Before the new generation: this call may need a renewal on a 401.
       if (everywhere) await endAllSessions();
+      generationRef.current += 1;
+      signingOutRef.current = true;
+      clearTimers();
       try {
-        await postSessionHandler("/api/auth/sign-out");
-      } catch {
-        // The handler always deletes the cookie. Out of reach, the local session still ends.
+        // Under the lock, a renewal in flight in any tab has finished and set
+        // its cookie. Without Web Locks, this tab's own renewal is awaited.
+        await underRenewalLock(async () => {
+          await inFlightRef.current?.catch(() => undefined);
+          try {
+            await postUnderLock("/api/auth/sign-out");
+          } catch {
+            // The handler always deletes the cookie. Out of reach, the local session still ends.
+          }
+        });
+      } finally {
+        signingOutRef.current = false;
       }
       setSignedOut(true);
       endLocalSession();
       router.replace("/auth/sign-in");
     },
-    [endLocalSession, router],
+    [clearTimers, endLocalSession, router],
   );
 
   useEffect(() => {

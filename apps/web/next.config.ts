@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          // No page may be framed, so the sign-in and reset forms cannot be
+          // overlaid by another site. X-Frame-Options covers older browsers.
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
         ],
       },
       {

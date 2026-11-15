@@ -71,13 +71,18 @@ async function boot(network: (url: string) => Promise<Response>) {
     });
     return answer;
   }
+  /** Fetches an asset, and waits for any background work the worker started for it. */
   async function asset(p: string): Promise<Response | undefined> {
     let answer: Promise<Response> | undefined;
+    const background: Promise<unknown>[] = [];
     listeners.fetch({
       request: { url: `${ORIGIN}${p}`, method: "GET", mode: "cors" },
       respondWith: (x) => (answer = x),
+      waitUntil: (x) => background.push(x),
     });
-    return answer;
+    const res = await answer;
+    await Promise.all(background);
+    return res;
   }
   const pages = () => [...([...caches.stores.entries()].find(([n]) => n.startsWith("hovi-pages"))?.[1].keys() ?? [])];
   const assets = () => [...([...caches.stores.entries()].find(([n]) => n.startsWith("hovi-assets"))?.[1].keys() ?? [])];
@@ -152,6 +157,51 @@ describe("the service worker", () => {
     for (let i = 0; i < 310; i++) await sw.asset(`/_next/static/chunks/${i}.js`);
     expect(sw.assets()).toHaveLength(300);
     expect(sw.assets()).toContain(`${ORIGIN}/_next/static/chunks/309.js`);
+  });
+
+  it.each(["/manifest.webmanifest", "/icon-192.png"])(
+    "answers %s from the cache and refreshes it in the background",
+    async (file) => {
+      let deploy = 1;
+      const sw = await boot(async (url) => {
+        if (!online) throw new TypeError("Failed to fetch");
+        return page(`deploy ${deploy} ${new URL(url).pathname}`);
+      });
+      deploy = 2;
+      // The installed copy answers at once, and the new one is fetched for next time.
+      expect(await (await sw.asset(file))!.text()).toBe(`page ${file}`);
+      expect(await (await sw.asset(file))!.text()).toBe(`deploy 2 ${file}`);
+      // Offline, the cached copy still answers.
+      online = false;
+      expect(await (await sw.asset(file))!.text()).toBe(`deploy 2 ${file}`);
+    },
+  );
+
+  it("keeps hashed build assets cache first", async () => {
+    let deploy = 1;
+    const sw = await boot(async (url) => page(`deploy ${deploy} ${new URL(url).pathname}`));
+    expect(await (await sw.asset("/_next/static/chunks/a.js"))!.text()).toBe("deploy 1 /_next/static/chunks/a.js");
+    deploy = 2;
+    expect(await (await sw.asset("/_next/static/chunks/a.js"))!.text()).toBe("deploy 1 /_next/static/chunks/a.js");
+  });
+
+  it("never trims the manifest or icons out of the asset cache", async () => {
+    const sw = await boot(network);
+    for (let i = 0; i < 310; i++) await sw.asset(`/_next/static/chunks/${i}.js`);
+    expect(sw.assets()).toEqual(
+      expect.arrayContaining(["/manifest.webmanifest", "/icon-192.png", "/icon-512.png"].map((p) => `${ORIGIN}${p}`)),
+    );
+  });
+
+  it("counts only the fallback pages that are actually cached towards the 50", async () => {
+    // Installed while the fallbacks could not be fetched, so neither is cached.
+    const sw = await boot(async (url) => {
+      const { pathname } = new URL(url);
+      if (pathname === "/" || pathname === "/auth/sign-in") throw new TypeError("Failed to fetch");
+      return page(`fresh ${pathname}`);
+    });
+    for (let i = 0; i < 70; i++) await sw.navigate(`/recipes/${i}`);
+    expect(sw.pages()).toHaveLength(50);
   });
 
   it("handles nothing under /api/", async () => {
