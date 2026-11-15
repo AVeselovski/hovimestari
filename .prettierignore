@@ -1,12 +1,12 @@
 node_modules
 dist
 .next
+.next-build
+apps/web/messages/*.d.json.ts
+**/drizzle/**/meta/**
 pnpm-lock.yaml
 **/migrations/**
 
-# The earlier app keeps its own formatting until the scaffold removes it.
-apps/api
-apps/web
-packages/shared
-infra
+# Verbatim copies of the earlier app, parked for later steps.
+docs/design/salvage/
 docs/design/legacy-brief.md

@@ -3,13 +3,14 @@ node_modules
 dist
 coverage
 .next
+.next-build
 .turbo
 *.tsbuildinfo
 *.log
 .DS_Store
 
-# Local database volume of the legacy compose stack.
-infra/postgres-data/
+# next-intl's generated message declarations.
+apps/web/messages/en.d.json.ts
 
 # Secrets. The read hook in .claude/hooks/read-hook.js also refuses to read .env files.
 .env

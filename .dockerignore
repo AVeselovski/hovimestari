@@ -1,4 +1,44 @@
-node_modules
-dist
+# Keep the backend image's build context small. Never drop:
+#   - pnpm-lock.yaml, pnpm-workspace.yaml, package.json (all workspaces)
+#   - tsconfig.base.json
+#   - apps/backend/drizzle/migrations/**
+#   - source files needed by `pnpm --filter <pkg> build`
+
+# Dependency directories, re-created inside the image.
+**/node_modules
+
+# Build artefacts, re-emitted inside the image.
+**/dist
+**/.next
+**/.next-build
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+
+# Test code is not shipped or needed for the production build.
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+
+# VCS, CI, tooling.
 .git
-.env
+.gitignore
+.github
+.githooks
+.claude
+
+# Local env files. Secrets come from Fly secrets, never the image.
+**/.env
+**/.env.*
+
+# Docs and logs, not used at runtime.
+docs
+logs.txt
+*.md
+!apps/backend/README.md
+
+# Local compose file, not used by the image.
+docker-compose.yml
+
+# The web workspace is not part of the backend image.
+apps/web
