@@ -8,9 +8,6 @@ coverage
 *.log
 .DS_Store
 
-# Local database volume of the legacy compose stack.
-infra/postgres-data/
-
 # Secrets. The read hook in .claude/hooks/read-hook.js also refuses to read .env files.
 .env
 .env.*
