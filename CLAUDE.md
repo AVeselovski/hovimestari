@@ -68,7 +68,7 @@ Docs are only useful while they are true. A stale doc is worse than none, becaus
 pnpm workspaces on Turborepo. `docker-compose.yml` at the root runs the local Postgres. `docs/design/salvage/` holds verbatim files from the earlier app that later steps reuse. Nothing builds or tests them there.
 
 - `apps/backend`: the Express API, and the MCP endpoint from the connected AI step on. Source layout and commands: `apps/backend/README.md`.
-- `apps/web`: the Next.js web app and PWA. It lands with the web scaffold. Source layout and commands: `apps/web/README.md`.
+- `apps/web`: the Next.js web app and PWA. Source layout and commands: `apps/web/README.md`.
 - `packages/types`: API request and response shapes, Zod schemas and error codes shared by both. `packages/types/README.md`.
 
 The root scripts are `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm docs:check`. CI runs exactly these. Turborepo runs a task only in workspaces that define it, so every workspace defines `build`, `typecheck`, `lint` and `test`. `pnpm env:init` writes the local env files with generated secrets, and `pnpm db:up` starts the local database. Local setup is in `docs/setup/local-development.md`.
@@ -76,6 +76,7 @@ The root scripts are `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test` an
 Module and build rules:
 
 - **Full ESM everywhere.** Every `package.json` has `"type": "module"`.
+- **The web app's `turbopack.root` is pinned to the repository root** in `apps/web/next.config.ts`. Keep it, or a build inside a git worktree resolves the wrong root.
 - **The backend uses `NodeNext` module resolution**, which requires explicit `.js` extensions on relative imports (`import { foo } from './foo.js'` for `foo.ts`).
 - **The web app uses `Bundler` resolution.** Do **not** use `.js` extensions on relative imports there, because its bundler does not resolve them.
 - **The backend Docker image builds with the repository root as its context**, because it copies workspace siblings such as `packages/types`.
@@ -88,10 +89,10 @@ Module and build rules:
 
 | Area     | Runner                             | Notes                                                                                                                                                                                    |
 | -------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend | Jest 29 with React Testing Library | `next/jest` transforms to CJS, so use standard `jest.mock()`. Mock `next/navigation` and `useAuth` in component tests.                                                                   |
+| Frontend | Jest 29 with React Testing Library | `next/jest` transforms to CJS, so use standard `jest.mock()`. Mock `next/navigation` and `useAuth` in component tests. Route handler suites start with `/** @jest-environment node */`.  |
 | Backend  | Jest 29 with Supertest             | Native ESM, so use `jest.unstable_mockModule` with a dynamic `await import()`. Import `{ jest }` from `@jest/globals` explicitly. Requests go through Supertest against the Express app. |
 
-The frontend runner arrives with `apps/web`. Today the backend and `packages/types` run Jest.
+Every frontend render gets the real message catalog and its own query client from `src/__tests__/setup.ts`. Never mock `next-intl`: a stubbed catalog passes whatever the catalog says. React 19 under Jest runs an effect once inside `<StrictMode>`, so a test cannot rely on StrictMode to double an effect.
 
 - Tests live in `__tests__/` next to the source file, in files named `*.test.ts` or `*.test.tsx`. Run one workspace with `pnpm --filter <app> test`, or one file by passing its path.
 - Run everything with `pnpm test`.
@@ -150,7 +151,7 @@ Process language (decision numbers, slice numbers, citations) belongs in `docs/d
 
 - Treat visual and interaction quality as part of correctness, not polish to defer. A feature that works but looks or feels rough is not done.
 - The UI is bold and confident. It uses the space available to it rather than huddling in cramped, timid panels. Prefer a generous type scale, clear hierarchy and purposeful density over uniform smallness.
-- One theme, everywhere. Style through the shared design-token system and shared primitives, never ad-hoc raw values per view. If a surface needs a colour or spacing the system lacks, extend the system. Do not inline around it. The tokens live in `apps/web/src/app/globals.css`, for example a stylesheet of custom properties or a theme module. `docs/app/colors.md` documents them, saying what each token is for.
+- One theme, everywhere. Style through the shared design-token system and shared primitives, never ad-hoc raw values per view. If a surface needs a colour or spacing the system lacks, extend the system. Do not inline around it. The tokens live in `apps/web/src/app/globals.css`, and the class recipes that compose them in `apps/web/src/components/ui/styles.ts`. `docs/app/colors.md` documents them, saying what each token is for.
 - Light and dark themes are both first-class. Every change must look right in both. Never hardcode a colour that only works in one.
 - The phone comes first. Design every screen for a phone held in one hand, then widen it. Logging a food is the most-used path in the app and gets the shortest route.
 - **Overlays come from the component library, never by hand.** Sheets, dialogs, menus and popovers are Base UI primitives, wrapped once in `apps/web/src/components/ui/` and used through the wrapper. A sheet slides up from the bottom, follows the finger and has a drag handle. `finanssiappisV2` built these by hand first and replaced them all within a week. **Read `docs/design/mobile-ui-lessons.md` before designing or building any screen.** It holds the lessons from that process, the library chosen for each primitive, and what to lift.
@@ -174,7 +175,7 @@ User-facing UI strings are written for humans: plain words, short sentences. No 
 
 **No judgement words.** Copy never calls a day good, bad, over, failed or on track. It states figures and distances. See Product rules.
 
-From the scaffold on, every rendered string is an entry in the message catalog `apps/web/messages/en.json`, read through `next-intl`, and a hardcoded string in a component is a lint error. The copy rules are a matter for you and for review, not for the build: a wording preference should not fail CI. What tests check is that the catalog **works**: no empty entry, no key that no code can reach, and no plural form that fails to render, because a malformed plural prints its raw key path on screen.
+Every rendered string is an entry in the message catalog `apps/web/messages/en.json`, read through `next-intl`, and a hardcoded string in a component is a lint error (`apps/web/eslint.config.js`). Error messages from the API are shown by their `code`, through `errors.<code>` in the catalog, never as the server's own text. The copy rules are a matter for you and for review, not for the build: a wording preference should not fail CI. What tests check is that the catalog **works**: no empty entry, no key that no code can reach, no plural form that fails to render, because a malformed plural prints its raw key path on screen, and no error code without a line.
 
 ## Commit convention
 

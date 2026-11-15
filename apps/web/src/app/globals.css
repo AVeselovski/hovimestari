@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens. docs/app/colors.md says what each one is for.        */
+/*                                                                     */
+/* Components use only the utilities these generate (bg-surface,       */
+/* text-ink-muted, border-rule, ...). Tailwind's own palette is        */
+/* switched off, so a raw palette class does not exist here at all.    */
+/* The light values are the defaults. [data-theme="dark"], set on      */
+/* <html> by the pre-paint script and ThemeContext, overrides them.    */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --color-*: initial;
+
+  /* Surfaces: paper by day, forest night in the dark. */
+  --color-bg: #f6efe1;
+  --color-surface: #efe6d2;
+  --color-surface-raised: #fbf6ec;
+
+  /* Ink. Muted is darkened from the brief's #7a6e58 to clear 4.5:1 on paper. */
+  --color-ink: #1d2e22;
+  --color-ink-muted: #6b604b;
+  --color-rule: #d8c9aa;
+  /* A field's edge: at least 3:1 against the page and a panel, so a field
+     can be found without its fill. The rule colour, deepened. */
+  --color-field-rule: #8a7a5c;
+
+  /* The one chromatic colour: oxblood. Primary action, selection, the
+     active tab, error lines and destructive buttons. */
+  --color-accent: #a13838;
+  --color-on-accent: #fbf6ec;
+
+  /* The focus ring is ink, so it never reads as selection. */
+  --color-focus: #1d2e22;
+
+  /* Reserved for the four macro figures' marks. Nothing else may use these hues. */
+  --color-energy: #a86a12;
+  --color-protein: #2f6690;
+  --color-carbs: #7a4f86;
+  --color-fat: #2f7a72;
+
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-body: var(--font-instrument-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-control: 0.625rem;
+  --radius-card: 1rem;
+  --radius-pill: 9999px;
+
+  /* Content widths from md up: the three content tabs, and Settings. */
+  --container-page: 40rem;
+  --container-page-narrow: 36rem;
+  /* The guest pages' column. */
+  --container-auth: 26rem;
+  /* The side rail from md up. */
+  --spacing-rail: 14rem;
+
+  /* Page title: 1.75rem on a phone, 2.25rem from md. */
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.15;
+  --text-title-lg: 2.25rem;
+  --text-title-lg--line-height: 1.1;
+}
+
+[data-theme="dark"] {
+  --color-bg: #121a15;
+  --color-surface: #1a251e;
+  --color-surface-raised: #223027;
+  --color-ink: #ece4d2;
+  --color-ink-muted: #a39880;
+  --color-rule: #34402f;
+  --color-field-rule: #727d6a;
+  --color-accent: #d56f6a;
+  --color-on-accent: #121a15;
+  --color-focus: #ece4d2;
+  --color-energy: #e0a64a;
+  --color-protein: #7fb0d8;
+  --color-carbs: #b893c4;
+  --color-fat: #6fbfb3;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Safe areas. Nothing else in the app reads env(safe-area-inset-*): the
+     header, the tab bar, the side rail and the sheets read these. A test
+     fails when any other file names the inset. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Section labels: small caps, tracked. */
+@utility section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+/* The receipt rule under the header. */
+@utility rule-dashed {
+  border-bottom: 1px dashed var(--color-rule);
+}

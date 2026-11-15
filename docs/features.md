@@ -15,3 +15,8 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 ## Foods
 
 - **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. No Fineli food is loaded yet.
+
+## The app
+
+- **[Appearance](features/appearance.md)**: a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.
+- **[Installable app](features/installable-app.md)**: installs to a phone's home screen and opens without the browser's bar. A visited tab opens again offline, with a plain line saying so.

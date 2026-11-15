@@ -27,6 +27,10 @@ A session lasts 7 days without use and renews itself while the app is in use. Cl
 
 Signing out ends the session on this device. **Sign out on all devices** ends every session. A device that is open at that moment keeps working until its short-lived pass runs out, within 15 minutes, and only while the app is open there. A closed app cannot use it at all. Changing or resetting the password ends every session the same way.
 
+When the server cannot be reached, nobody is signed out. A device that was signed in opens the app as usual, says it is offline and tries again on its own, and again as soon as it is back online. A device that was signed out, or never signed in, opens the sign-in side instead, with the same offline line. When the server answers but with a fault of its own, the app keeps the session, says something went wrong and offers **Try again**.
+
+Two tabs, or the installed app beside a browser tab, stay signed in together. Each renews in turn and uses the other's latest renewal.
+
 ### Rate limits
 
 Guessing is slowed down. After 10 failed sign-ins for one address from one network in 15 minutes, that address is refused from that network for the rest of the window. Other accounts on the same network still sign in. After 100 failed sign-ins from one network in 15 minutes, whatever the addresses, the network is refused. A successful sign-in does not count.
@@ -60,6 +64,30 @@ No browser JavaScript ever holds a refresh token. The web app's route handlers, 
 Those routes require the relay secret, in `apps/backend/src/middleware/requireBff.ts`. The web server presents `BFF_SECRET` in `X-Bff-Secret`. The backend hashes the presented value and each accepted secret with SHA-256 and compares them in constant time, so a wrong value of any length is refused with 401 `request_refused`. During a rotation `BFF_SECRET_PREVIOUS` is accepted too.
 
 The secret also vouches for the browser's address. The web server forwards it in `X-Client-Ip`, and the rate limiters key a relayed call on it. A relayed call without the header is refused with 400 `client_address_missing` in production. A header that is not an IP address is refused with 400 `client_address_invalid` everywhere. A call without the secret is keyed as it arrives, and its `X-Client-Ip` is ignored.
+
+On the web side the route handlers live in `apps/web/src/app/api/auth/`. Each relay goes through `relay()` in `_relay.ts`, which adds the secret and the address. In production the address is `x-real-ip` only, which Vercel sets from the connecting address. Without it the handler answers 500 and relays nothing, and `x-forwarded-for` is never read. In development the loopback address stands in. A production build run on a developer's machine may do the same with `LOCAL_PRODUCTION_RELAY=1`, which is ignored wherever `VERCEL` is set.
+
+A production build without `BACKEND_URL` refuses to relay and answers 500, rather than calling a backend on its own machine.
+
+The refresh handler deletes the cookie only on the backend's 401 `session_expired`. When the backend cannot be reached it keeps the cookie and answers 503 `server_unreachable`, so an outage signs nobody out. Any other refusal, a refused relay secret included, is a fault of the deployment: the handler keeps the cookie and answers 502. A backend answer that is not JSON counts as such a fault too. Sign-out always deletes the cookie, and tells the backend when it can.
+
+The page's auth context, `AuthContext`, owns renewal. On 503 `server_unreachable`, a failed request, or a request that has not answered within 12 seconds, it reports `offline` and retries after 2, 5 and 15 seconds, then every minute, and at once when the browser comes back online. On any other failure it reports `error` and waits for the person to retry, because retrying a misconfiguration on a timer only repeats it. Neither state ends the session.
+
+A refresh token works once, and the cookie is shared by every tab. So renewal runs one request at a time within a tab, and, where the browser has the Web Locks API, one at a time across tabs under the lock `hovi-session-renewal`. A tab that waited sends the cookie the previous renewal rotated, so both tabs stay signed in. The 12-second limit means a hung request never holds the lock for longer than that.
+
+Sign-out takes the same lock, and without Web Locks it waits for this tab's renewal. A renewal already in flight finishes and sets its cookie first, and the sign-out then ends that session and deletes the cookie last. Any renewal answer that arrives after the person tapped **Sign out** is discarded, so a late renewal can never sign the device back in. Without Web Locks, two tabs renewing at the same moment can still collide, and the one that loses is signed out.
+
+The context keeps a plain flag, `hovi-signed-in` in local storage, set when a session starts and cleared on sign-out and when the server ends the session. It holds no token. It only decides what an offline launch shows: the app for a device with a known session, the sign-in side for any other.
+
+### The redirect after sign-in
+
+A visitor sent to sign in from a signed-in page carries that page's path in `?redirect=`, and lands back on it once signed in. A visitor who signed out on this tab goes to plain sign-in, so the next sign-in starts on the Day tab. `postLoginPath()` in `apps/web/src/components/GuestGuard.tsx` picks the target: `?redirect=`, else the path saved before a Google round trip, else `/`.
+
+`safeRedirectPath()` in `apps/web/src/lib/redirect.ts` resolves a target the way the browser would and keeps it only when it stays on the same origin. The resolved path must also not start with `//` or `/\`, and must resolve to itself again, so no later navigation can turn it into another host. That refuses `//host`, `/\host`, the same forms with a tab or a newline inside, and dot-segment forms such as `/.//host`. A refused target sends the visitor to the Day tab. The guard navigates to the resolved path, never to the raw text. Google's round trip loses the query string, so the sign-in and sign-up pages save the checked target in the tab's session storage just before leaving, and the guard reads it once on return.
+
+### The same-origin guard
+
+Every handler that accepts a POST runs the same-origin guard in `_guard.ts` first. It answers 403 `request_refused` unless `Sec-Fetch-Site` is `same-origin`, or, when a browser sends no such header, `Origin` is the app's own. It answers 415 `request_refused` to any body that is not `application/json`, so a form on another site cannot submit one. This is what stops another site signing a visitor into an account it controls. `src/app/api/auth/__tests__/allHandlersGuarded.test.ts` finds every POST handler on disk and fails when one skips the guard.
 
 ### Google sign-in
 
@@ -138,6 +166,19 @@ All under `/api/v1`. **Relay** means `X-Bff-Secret` is required. **Bearer** mean
 
 The request and response shapes are the Zod schemas in `packages/types/src/auth.ts`.
 
+The web app's own route handlers, on its origin under `/api/auth`. The browser calls only these for anything that carries a refresh token. None of them ever puts the refresh token in a body.
+
+| Method | Path                        | Answers                                                                                                                                                            |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/auth/sign-in`         | 200 `{ accessToken, user }` and sets the cookie. A refusal passes through with its status, code and `Retry-After`                                                  |
+| POST   | `/api/auth/sign-up`         | 201 with the same                                                                                                                                                  |
+| POST   | `/api/auth/refresh`         | 200 and rotates the cookie. 401 `session_expired` and deletes it. 503 `server_unreachable` or 502 and keeps it                                                     |
+| POST   | `/api/auth/sign-out`        | 204 and deletes the cookie                                                                                                                                         |
+| GET    | `/api/auth/google/start`    | 302 to the backend's `/auth/google?bind=`, with the nonce cookie set. Without `NEXT_PUBLIC_API_URL` in production, 302 to `/auth/sign-in?error=google_unavailable` |
+| GET    | `/api/auth/google/complete` | 302 to `/auth/sign-in` with the cookie set, or to `/auth/sign-in?error=google_failed`. The nonce cookie is spent                                                   |
+
+The refresh cookie `__refresh_token` is `httpOnly`, `SameSite=Strict`, `Secure` in production, sent only under `/api/auth`, and lasts 7 days. The nonce cookie `__google_sign_in` is `httpOnly`, `SameSite=Lax` so it rides the return from Google, sent only under `/api/auth/google`, and lasts 10 minutes.
+
 ### Data
 
 Three tables, in `apps/backend/src/db/schema/`:
@@ -152,4 +193,6 @@ Requirements: FR-AUTH-01 to FR-AUTH-07, NFR-SEC-01 to NFR-SEC-04, NFR-PRIV-02 (r
 
 ## Where it appears
 
-- The web app's sign-in, sign-up and password pages, and the account section of Settings. The web app has no pages yet, so the backend is reached only through its API.
+- [Sign-in and account pages](../app/auth.md): signing in and up with a password or Google, asking for a reset link and choosing a new password.
+- [Settings](../app/settings.md): who is signed in, and signing out of this device.
+- [The app shell](../app/shell.md): every signed-in tab sits behind the session, and the shell stays up while the server is out of reach.

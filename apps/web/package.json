@@ -1,0 +1,43 @@
+{
+  "name": "@hovimestari/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "build:verify": "NEXT_DIST_DIR=.next-build next build",
+    "start": "next start --port 3000",
+    "lint": "eslint src messages",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
+    "test:watch": "NODE_OPTIONS=--max-old-space-size=4096 jest --watch"
+  },
+  "dependencies": {
+    "@hovimestari/types": "workspace:*",
+    "@tanstack/react-query": "5.107.1",
+    "axios": "^1.21.1",
+    "next": "16.4.6",
+    "next-intl": "4.15.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "16.4.6",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@tanstack/react-query-devtools": "5.107.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.10",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "7.37.5",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.3"
+  }
+}

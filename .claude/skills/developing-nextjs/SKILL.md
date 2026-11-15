@@ -7,11 +7,28 @@ description: Use this skill when working with Next.js 16 - creating pages, compo
 
 Write concise, targeted, DRY code using modern React 19 and Next.js 16 patterns.
 
+## This repository: what applies here
+
+Hovimestari's web app (`apps/web`) uses a narrow slice of Next.js 16. These rules override anything below.
+
+- **No Server Actions.** Mutations go to the Express API with the in-memory bearer token, through `src/lib/api.ts` and the call files in `src/lib/api/`. Session calls go through the route handlers in `src/app/api/auth/`.
+- **Signed-in pages are client components** behind `AuthGuard`, and put no user data in server-rendered HTML. The service worker caches pages, which is safe only because of this.
+- **No Cache Components, no `"use cache"`, no `updateTag`, `revalidateTag` or `refresh()`.** TanStack Query owns server state.
+- **No `proxy.ts` and no `middleware.ts`.** The locale is pinned in `src/i18n/request.ts`.
+- **The React Compiler is off.**
+- **Monorepo:** `turbopack.root` in `next.config.ts` is pinned to the repository root. Keep it.
+- **No `.js` extensions on relative imports** in the web app. It uses `Bundler` resolution.
+- **`next-intl` needs `transpilePackages`** in `next.config.ts`, which is also how `next/jest` learns to transform it in tests.
+- **No gradients, no glass, no decorative shadows.** Colours come only from the tokens in `src/app/globals.css`.
+- Every POST route handler runs `requireSameOrigin` first. See `apps/web/README.md`.
+
+The general Next.js 16 notes follow.
+
 ## Next.js 16 Key Changes
 
 ### proxy.ts (Replaces middleware.ts)
 
-The `middleware.ts` file is **deprecated**. Use `proxy.ts` instead:
+Not used in this repository. The `middleware.ts` file is **deprecated**. Use `proxy.ts` instead:
 
 ```ts
 // proxy.ts (at project root or src/)
@@ -116,7 +133,7 @@ const nextConfig = {
 };
 ```
 
-Requires: `bun add -D babel-plugin-react-compiler`
+Off in this repository.
 
 ### Other Breaking Changes
 
@@ -147,22 +164,22 @@ Requires: `bun add -D babel-plugin-react-compiler`
 ### Next.js 16 Patterns
 
 - Use App Router (`app/` directory) exclusively
-- Server Components by default; add `'use client'` only when absolutely needed
-- Use Server Actions for mutations
-- Implement `loading.tsx` and `error.tsx` boundaries
+- Server Components for the frame. Signed-in pages and anything that reads the session are client components
+- Mutations go to the Express API, never through Server Actions
+- Implement `loading.tsx` and `error.tsx` boundaries where a page needs them
 - Use `next/image`, `next/link`, `next/font`
 
 ### Tailwind CSS v4
 
 - Use `@import "tailwindcss"` (not v3 directives)
 - Configure via `@theme` in CSS, not tailwind.config.js
-- Use `bg-linear-to-r` (not `bg-gradient-to-r`)
+- Style with the token utilities (`bg-surface`, `text-ink-muted`, `border-rule`), never a raw palette class
 - Prefer CSS variables over `@apply`
 
 ### TypeScript
 
 - Strict typing always
-- Use `Id<'tableName'>` for Convex document IDs
+- Use the shared types from `@hovimestari/types` for API shapes
 - Define explicit return types
 - Use `as const` for string literals in unions
 

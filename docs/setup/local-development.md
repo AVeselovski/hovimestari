@@ -1,6 +1,6 @@
 # Local development
 
-This runbook sets up the backend on your own machine: the tools, the local database, the env file with its generated secrets, the first migration, the server and the tests. Run it once per clone. The web app joins this runbook when it exists.
+This runbook sets up the backend and the web app on your own machine: the tools, the local database, the env files with their generated secrets, the first migration, both servers and the tests. Run it once per clone.
 
 ## Steps
 
@@ -17,7 +17,7 @@ This runbook sets up the backend on your own machine: the tools, the local datab
    pnpm install
    ```
 
-3. Write the local env file. This copies `apps/backend/.env.example` to `apps/backend/.env` and fills `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` and `BFF_SECRET` with generated values. It never overwrites a file that exists.
+3. Write the local env files. This copies `apps/backend/.env.example` to `apps/backend/.env` and `apps/web/.env.example` to `apps/web/.env.local`, and fills `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` and `BFF_SECRET` with generated values. Both files get the same `BFF_SECRET`, because the web server presents it and the backend checks it. It never overwrites a file that exists.
 
    ```bash
    pnpm env:init
@@ -42,7 +42,15 @@ This runbook sets up the backend on your own machine: the tools, the local datab
    pnpm --filter @hovimestari/backend dev
    ```
 
-7. Run every check CI runs.
+7. Start the web app in a second terminal. It listens on port 3000 and talks to the backend on 3001.
+
+   ```bash
+   pnpm --filter @hovimestari/web dev
+   ```
+
+   Open `http://localhost:3000`, create an account and you land on the Day tab. The development server registers no service worker. To check installing or offline behaviour, run a production build as [the web app's README](../../apps/web/README.md#running-a-production-build-locally) says.
+
+8. Run every check CI runs.
 
    ```bash
    pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm docs:check
@@ -81,6 +89,13 @@ Ask for a reset link for any address. Mail goes to the console in development, s
 ```bash
 curl -s -X POST http://localhost:3001/api/v1/auth/forgot-password \
   -H 'Content-Type: application/json' -d '{"email":"you@example.com"}'
+```
+
+The web app's own session route answers a same-origin call. Without a session cookie it says the session has ended:
+
+```bash
+curl -s -X POST http://localhost:3000/api/auth/refresh -H 'Sec-Fetch-Site: same-origin'
+# {"message":"The session has ended.","code":"session_expired"}
 ```
 
 Stop the database with `pnpm db:down`. Its volume keeps the data. If a migration fails on that data, recreate the database with `docker compose down -v`, then run steps 4 and 5 again. This deletes everything in it.

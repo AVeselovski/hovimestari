@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "ESNext"],
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "isolatedModules": true,
+    // Lets the `messages/en.d.json.ts` that next-intl generates resolve.
+    "allowArbitraryExtensions": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": ["next-env.d.ts", "next.config.ts", "src", "messages", ".next/types/**/*.ts", ".next-build/types/**/*.ts"],
+  "exclude": ["node_modules", "public"]
+}
