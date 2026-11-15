@@ -1,4 +1,4 @@
-import { ChangePasswordBodySchema, DeleteAccountBodySchema } from "@hovimestari/types";
+import { ChangePasswordBodySchema, DeleteAccountBodySchema, SettingsBodySchema } from "@hovimestari/types";
 import { eq } from "drizzle-orm";
 import { Router, type Router as IRouter } from "express";
 import { db } from "../db/index.js";
@@ -6,10 +6,12 @@ import { users } from "../db/schema/index.js";
 import { appError } from "../lib/errors.js";
 import { parseBody } from "../lib/parseBody.js";
 import { hashPassword, passwordMatches } from "../lib/passwords.js";
+import { contextFor } from "../lib/requestContext.js";
 import { endAllSessions, meOf } from "../lib/sessions.js";
 import { findUser } from "../lib/users.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { changePasswordRateLimit, deleteAccountRateLimit } from "../middleware/authRateLimits.js";
+import { updateSettings } from "../services/writes/settings.js";
 
 export const usersRouter: IRouter = Router();
 
@@ -18,6 +20,13 @@ usersRouter.get("/me", authenticate, async (req, res) => {
   const user = await findUser(req.user!.id);
   if (!user) throw appError("user_not_found", 404);
   res.status(200).json(meOf(user));
+});
+
+// PATCH /me/settings. The food-name language, the time zone, or both.
+usersRouter.patch("/me/settings", authenticate, async (req, res) => {
+  const body = parseBody(SettingsBodySchema, req.body);
+  const { value } = await updateSettings(await contextFor(req), body);
+  res.status(200).json(meOf(value));
 });
 
 // PUT /me/password. Ends every session: the web app signs this device back in with the new password.

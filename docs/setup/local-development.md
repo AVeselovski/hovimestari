@@ -29,16 +29,16 @@ This runbook sets up the backend on your own machine: the tools, the local datab
    pnpm db:up
    ```
 
-5. Apply the migrations.
+5. Build the shared types, which the backend and its schema import, then apply the migrations.
 
    ```bash
+   pnpm --filter @hovimestari/types build
    pnpm --filter @hovimestari/backend db:migrate
    ```
 
 6. Start the backend. It listens on port 3001 and restarts on every change.
 
    ```bash
-   pnpm --filter @hovimestari/types build
    pnpm --filter @hovimestari/backend dev
    ```
 
@@ -83,7 +83,7 @@ curl -s -X POST http://localhost:3001/api/v1/auth/forgot-password \
   -H 'Content-Type: application/json' -d '{"email":"you@example.com"}'
 ```
 
-Stop the database with `pnpm db:down`. Its volume keeps the data.
+Stop the database with `pnpm db:down`. Its volume keeps the data. If a migration fails on that data, recreate the database with `docker compose down -v`, then run steps 4 and 5 again. This deletes everything in it.
 
 ## Before production
 

@@ -1,0 +1,250 @@
+fineli_id;type;process;name;name_en
+133;FOOD;IND;Vohvelikuori, jäätelövohveli;Wafer, ice cream cone
+153;FOOD;RAW;Kaurahiutale;Oats, rolled, oat flakes
+172;FOOD;RAW;Pasta, pinaattispagetti, sisältää kananmunaa;Spaghetti spinach, contains egg
+173;FOOD;RAW;Kauramakaroni, sisältää vehnää ja kauraa;Oat macaroni, contains wheat and oats
+190;DISH;BOIL;Kauramakaroni, keitetty, suolaton;Oat macaroni, boiled, no added salt
+300;FOOD;RAW;Porkkana;Carrot
+302;FOOD;DRIE;Porkkana, kuivattu;Carrot, dried
+362;FOOD;RAW;Munakoiso;Aubergine
+600;FOOD;RAW;Maito, tilamaito, raakamaito, rasvaa 4,4 %, ei lisätty d-vitamiinia;Milk, raw milk, 4.4 % fat, without added vitamin d
+602;FOOD;RAW;Ternimaito;Beestings, colostrum
+604;FOOD;IND;Maito, kutunmaito, vuohenmaito;Milk, goat milk
+606;FOOD;IND;Maito, rasvaton, d-vitamiinia 1 ug;Milk, 0% fat, i ug added vitamin d
+622;FOOD;IND;Rahka, maitorahka, maustamaton, rasvaa <0,5 %;Quark, <0.5% fat
+627;FOOD;IND;Maito, ykkösmaito, d-vitamiinia 1ug;Milk, 1% fat, 1 ug added vitamin d
+661;FOOD;IND;Jäätelö, pehmytjäätelö, vohveli;Soft ice cream with wafer
+663;FOOD;IND;Jäätelö, kermajäätelö;Ice cream, cream based
+664;FOOD;IND;Jäätelö, kermajäätelöpuikko, suklaakuorrute, keskiarvo;Ice cream bar, cream based, chocolate-coated
+665;FOOD;IND;Jäätelö, kermajäätelötuutti;Ice cream cornet, cream based
+666;FOOD;IND;Jäätelö, maitojäätelö;Ice cream, milk based
+667;FOOD;IND;Jäätelö, sokeriton, keinotekoisesti makeutettu, rasvaa 6,5 %;Ice cream, artificially sweetened, 6.5% fat
+668;FOOD;IND;Jäätelö, kermajäätelö, rasvaa yli 12 %, keskiarvo;Ice cream, cream based, >12% fat
+669;FOOD;IND;Jäätelö, rasvaton;Ice cream, fat-free
+672;FOOD;DRIE;Maitojauhe, rasvaton;Milk powder, fat-free milk
+675;FOOD;IND;Maito, kevytmaito, vl, d-vitamiinia 1 ug;Milk, 1.5% fat, low-lactose, 1 ug added vitamin d
+684;FOOD;IND;Maito, kevytmaito, d-vitamiinia 1 ug;Milk, 1.5% fat, 1 ug added vitamin d
+689;FOOD;IND;Maito, täysmaito, d-vitamiinia 1 ug;Milk, 3.5% fat, 1 ug added vitamin d
+750;FOOD;RAW;Kana;Chicken
+851;FOOD;RAW;Kananmunan keltuainen, 34 % kananmunan massasta;Egg yolk, 34% of egg mass
+852;FOOD;RAW;Kananmunan valkuainen, 66 % kananmunan massasta;Egg white, 66% of egg mass
+855;FOOD;RAW;Viiriäisen muna;Egg, quail, raw
+858;FOOD;RAW;Kananmuna, kuoreton;Egg without shell
+953;DISH;MIX;Munatoti;Eggnog
+1101;DISH;BOIL;Munavelli, maito, sokeria, suolaa;Egg gruel with milk
+1173;DISH;BAK;Rahkapiirakka, pullapohja, kevytmaito;Quark pie, basic sweet dough, low-fat milk
+1184;DISH;BAK;Rahkapiirakka, muropohja;Quark pie, shortbread crust
+1185;DISH;BAK;Omena-rahkapiirakka, muropohja;Apple pie with quark filling, shortbread crust
+1247;DISH;BOIL;Munakastike, kevytmaito, rasva-jauhosuurus;Egg sauce, low-fat milk, thickened with flour and fat
+1511;DISH;BOIL;Kauravelli, vesi, suolaa;Oat gruel, oat flakes, water, salt
+1512;DISH;BOIL;Kauravelli, maito, suolaa;Oat gruel, oat flakes, milk, salt
+1513;DISH;BOIL;Kaurapuuro, vesi, suolaa;Oat porridge, oat flakes, water, salt
+1514;DISH;BOIL;Kaurapuuro, kevytmaito, suolaa;Oat porridge, oat flakes, low-fat milk, salt
+1561;DISH;BOIL;Kaurapuuro, vesi, suolaton;Oat porridge, oat flakes, water, without salt
+3000;DISH;FRIE;Porkkana, paistettu;Carrot, fried
+3034;DISH;FRIE;Munakoiso, paistettu;Aubergine, fried
+3275;DISH;BAK;Vihannesmunavuoka;Vegetable egg casserole
+3341;DISH;BOIL;Porkkana, keitetty, suolaa;Carrot, boiled, salt
+3352;DISH;BOIL;Porkkana, keitetty, suolaa ja öljyä;Carrot, boiled, salt and oil
+3801;DISH;BAK;Munakoiso, täytetty, sieni, paprika, tomaatti;Aubergine filled with mushrooms
+4412;DISH;MIX;Marjavaahto, marjat, kerma, muna;Berry mousse, cream, eggs
+6009;DISH;MIX;Marjamaito;Berry milk
+6010;DISH;MIX;Pirtelö, marjapirtelö, kevytmaito, kermajäätelö;Berry milkshake, low-fat milk, ice cream
+6011;DISH;MIX;Pirtelö, banaanipirtelö, kevytmaito, kermajäätelö;Banana milkshake, low-fat milk, ice cream
+6012;DISH;MIX;Pirtelö, mokka-/suklaapirtelö, kevytmaito, kermajäätelö;Mocca/chocolate milkshake, low-fat milk, ice cream
+6015;DISH;MIX;Rahka, marjarahka, kuohukermaa, kotitekoinen;Quark, berry quark, dessert quark, cream, home-made
+6016;DISH;MIX;Rahka, hedelmärahka, kuohukermaa, kotitekoinen;Quark, fruit quark, dessert quark, cream, home-made
+7058;DISH;FRIE;Munakas, jauhelihamunakas, sika-nauta;Omelette, pork beef mince omelette
+7500;DISH;BOIL;Kana, keitetty, suolaa;Chicken, boiled with salt
+7501;DISH;BOIL;Kanakeitto, juuriselleriä ja purjoa;Chicken soup with celeriac and leek
+7502;DISH;BOIL;Kanakeitto, perunaa ja kasviksia;Chicken soup with vegetables and potato
+7503;DISH;BOIL;Kanapata, lihaliemi, kasviksia;Chicken vegetable stew
+7505;DISH;BOIL;Kanakastike, kanaviillokki;Chicken fricassee
+7506;DISH;FRIE;Kanapyörykkä/broileripyörykkä;Chicken meat ball
+7517;DISH;BOIL;Kanakastike, kiinalainen, hapanimelä;Chinese chicken vegetable gravy, sweet and sour
+7623;DISH;FRIE;Munakas, talonpoikaismunakas, peruna, lenkkimakkara, sipuli;Omelette, country french omelette, egg, potato, sausage, onion
+7624;DISH;FRIE;Munakas, makkaramunakas, lenkkimakkara;Omelette, sausage omelette
+7628;DISH;BAK;Muna-kinkkuvuoka;Egg and ham casserole
+7630;DISH;FRIE;Munakas, kinkkumunakas;Omelette, ham omelette
+8500;DISH;FRIE;Kananmuna, paistettu;Egg, fried
+8501;DISH;FRIE;Kananmunan keltuainen, paistettu;Egg yolk, fried
+8502;DISH;FRIE;Kananmunan valkuainen, paistettu;Egg white, fried
+8503;DISH;FRIE;Munakas, ranskalainen, täytteetön;Omelette, plain, french omelette
+8504;DISH;FRIE;Munakas, juustomunakas;Omelette, cheese omelette
+8505;DISH;FRIE;Munakas, pinaattimunakas;Omelette, spinach omelette
+8506;DISH;FRIE;Munakokkeli, kevytmaito;Scrambled eggs, low-fat milk
+8509;DISH;MIX;Munavoi;Egg and butter spread, hard-boiled egg and butter mixture
+8510;DISH;MIX;Raejuusto-munavoi;Hard-boiled egg and cottage cheese mixture
+8512;DISH;BAK;Pinaatti-munalaatikko, kevytmaito;Spinach and egg casserole, low-fat milk
+8513;DISH;BOIL;Kananmuna, keitetty;Egg, boiled
+8514;DISH;BAK;Munakasrulla, lohitäyte;Omelette roll, salmon filling
+8515;DISH;BAK;Munakasrulla, kinkkutäyte;Omelette roll, ham filling
+11145;FOOD;IND;Maito, rasvaton, vl, d-vitamiinia 1 ug;Milk, 0% fat, low-lactose, 1 ug added vitamin d
+11148;FOOD;IND;Jäätelö, kermajäätelöpuikko, suklainen, keskiarvo;Ice cream bar, cream based, chocolate flavoured
+11149;FOOD;IND;Jäätelö, mehujää-jäätelöpuikko, keskiarvo;Ice cream with sorbet coating, average
+11156;FOOD;IND;Rahka, maitorahka, maustamaton, rasvaa <0,5 %, vl;Quark, <0.5% fat, low-lactose
+11172;FOOD;IND;Jäätelö, kasvirasvajäätelöpuikko, suklaakuorrute;Ice cream bar, vegetable fat, chocolate coated
+11173;FOOD;IND;Jäätelö, kasvirasvajäätelötuutti;Ice cream cornet, vegetable fat
+11520;DISH;MASH;Kana-kasvissose, kotitekoinen lastenruoka, suolaton;Chicken-vegetable puree, home-made babyfood, without salt
+11572;FOOD;IND;Maito, rasvaton, lisätty kalsiumia, d-vitamiinia 0,5 ug;Milk, 0% fat, with added calcium and 0.5 ug vitamin d
+28992;DISH;BOIL;Maito, täysmaito, keitetty;Milk, whole milk, 3.5% fat, boiled
+29009;FOOD;IND;Kanaliemikuutio, sisältää vehnää;Chicken bouillon cube, contains wheat
+29014;FOOD;CANN;Kookosmaito, kookosjuoma;Coconut milk
+29028;DISH;BAK;Munakoisonyytti, juusto- ja tomaattitäyte;Aubergine filled with tomato and cheese
+29064;FOOD;IND;Maito, kevytmaito, laktoositon maitojuoma, d-vitamiinia 1 ug;Milk, 1.5% fat, lactose-free, 1 ug added vitamin d
+29080;DISH;IND;Kakku, jäätelökakku, kinuskikuorrutus;Cake, ice cream cake, caramel topping
+29090;DISH;BOIL;Maito, rasvaton, keitetty;Milk, 0 % fat, boiled
+29132;DISH;BAK;Voileipä, lämmin juustoleipä, kananmuna;Sandwich, toast sandwich, cheese and egg
+29160;FOOD;RAW;Kananmuna, kuorineen punnittu;Egg, whole, with shell
+29210;FOOD;IND;Maito, kevytmaito, ei lisätty d-vitamiinia, luomu;Milk, 1.5% fat, without added vitamin d, organic
+29211;FOOD;IND;Maito, rasvaton, ei lisätty d-vitamiinia, luomu;Milk, 0% fat, without added vitamin d, organic
+29229;DISH;BOIL;Porkkana, keitetty, suolaton;Carrot, boiled without salt
+30161;DISH;BOIL;Kaurapuuro, rasvaton maito, suolaa;Oat porridge, oat flakes, fat-free milk, salt
+30208;FOOD;IND;Kaurajuoma, maidoton, lisätty kalsiumia;Oat drink without milk, with added calcium
+30209;FOOD;IND;Kaurajuoma, maidoton, lisätty kalsiumia ja vitamiineja;Oat drink without milk, with added calcium and vitamins
+30210;FOOD;IND;Kaurajuoma, maidoton, oat drink;Oat drink without milk
+30315;DISH;BOIL;Kanaliemi, laimennettu;Chicken broth
+30358;DISH;BOIL;Kauramakaroni, keitetty, suolaa;Oat macaroni, boiled with added salt
+30423;FOOD;IND;Maito, rasvaton, laktoositon maitojuoma, d-vitamiinia 1 ug;Milk, 0% fat, lactose-free, 1 ug added vitamin d
+30641;FOOD;RAW;Kananmuna, omega, kuoreton;Egg, omega, without shell
+30671;DISH;MIX;Rahka, hedelmärahka, kevytmaito, kotitekoinen;Quark, fruit quark, dessert quark, low-fat milk, home-made
+30672;DISH;MIX;Rahka, marjarahka, kevytmaito, kotitekoinen;Quark, berry quark, dessert quark, low-fat milk, home-made
+30673;FOOD;IND;Rahka, maustettu, rasvaa 3,5 %;Quark, flavoured, 3.5% fat
+31229;FOOD;IND;Jäätelö, soijajäätelöpuikko, suklaakuorrute;Soy milk frozen dessert, ice cream bar, chocolate coated
+31230;DISH;MIX;Majoneesi, kananmunaton;Mayonnaise, egg-free
+31256;FOOD;RAW;Pasta, tuorepasta, kananmunaa;Fresh pasta, contains egg
+31443;DISH;BOIL;Kanakeitto, teollinen, valmisateria;Chicken soup, industrial, ready meal
+31482;FOOD;RAW;Makaroni, pasta, kananmunaa;Macaroni, pasta, contains egg
+31487;FOOD;DRIE;Maitojauhe, rasvaton, vl, d-vitamiinia 5 ug;Milk powder, fat-free milk, low-lactose, 5 ug added vitamin d
+31496;FOOD;DRIE;Maitojauhe, rasvaton, d-vitamiinia 5 ug;Milk powder, fat-free milk, 5 ug added vitamin d
+31497;FOOD;DRIE;Maitojauhe, rasvaton, vl;Milk powder, fat-free milk, low-lactose
+31498;FOOD;DRIE;Maitojauhe, rasvaton, laktoositon;Milk powder, fat-free milk, lactose-free
+31509;DISH;FRIE;Munakas, kinkku-juustomunakas;Omelette, ham and cheese omelette
+31518;FOOD;IND;Jäätelö, jogurttijäätelö, rasvaa 9 %;Ice cream, yoghurt based, 9% fat
+31553;FOOD;IND;Maito, kevytmaito, laktoositon maitojuoma, ei lisätty d-vitamiinia, luomu;Milk, 1.5% fat, lactose-free, without added vitamin d, organic
+31565;DISH;BAK;Täytekakun pohja, ilman kananmunaa;Basic plain sponge cake, egg-free
+31677;FOOD;RAW;Pasta, spagetti, luontaisesti gluteeniton, kananmunaa;Pasta, spaghetti, naturally gluten-free, contains egg
+31742;DISH;BAK;Rahkapiirakan täyte, rusinoita;Quark filling for pies, contains raisins
+31751;DISH;BAK;Rahkamarjapiirakka, pullapohja, rasvaton maito;Berry pie with quark filling, basic sweet dough, fat-free milk
+31752;DISH;BAK;Rahkamarjapiirakka, pullapohja, kevytmaito;Berry pie with quark filling, basic sweet dough, low fat milk
+31753;DISH;BAK;Rahkamarjapiirakka, pullapohja, täysmaito;Berry pie with quark filling, basic sweet dough, whole milk
+31768;DISH;BAK;Raparperirahkapiirakka, muropohja;Rhubarb pie with quark filling, shortbread crust
+31773;DISH;MIX;Rahkavoitaikina;Butter dough with quark
+31796;DISH;BAK;Muna-riisipasteija, voitaikina;Egg and rice pasty, butter dough
+31888;FOOD;IND;Maito, rasvaton, valio plus, d-vitamiinia 2 ug;Milk, 0% fat, valio plus, 2 ug added vitamin d
+31891;FOOD;IND;Maito, täysmaito, vl, d-vitamiinia 1 ug;Milk, 3.5% fat, low-lactose, 1 ug added vitamin d
+31894;FOOD;IND;Maito, kahvimaito, rasvaa 2 %, laktoositon, d-vitamiinia 1ug;Milk, coffee milk 2% fat, lactose-free, 1 ug added vitamin d
+31947;FOOD;IND;Kauravalmiste, hapatettu, marja-hedelmä, yosa smoothie, probiootteja;Oat product, fermented oat and fruit, yosa smoothie
+31956;FOOD;IND;Rahka, maustettu, rasvaton, keinotekoisesti makeutettu;Quark, flavoured, fat-free, artificially sweetened
+31968;FOOD;IND;Jäätelö, kermajäätelö, laktoositon;Ice cream, cream based, lactose-free
+31969;FOOD;IND;Jäätelö, kermajäätelö, vl;Ice cream, cream based, low-lactose
+31970;FOOD;IND;Jäätelö, kermajäätelöä ja keksiä, puffet;Ice cream with biscuit, cream based, puffet
+31971;FOOD;IND;Jäätelö, kevyt, rasvaa 4,5 %;Ice cream, light, 4,5% fat
+31972;FOOD;IND;Jäätelö, kermajäätelö, maustettu, carte d'or stracciatella;Ice cream, cream based, flavoured, carte d'or stracciatella
+31990;FOOD;IND;Jäätelö, kermajäätelö, maustettu, carte d'or mascarpone;Ice cream, cream based, flavoured, carte d'or mascarpone
+31994;FOOD;IND;Jäätelö, soijajäätelötuutti, gluteeniton;Soy milk frozen dessert, ice cream cornet, gluten-free
+31996;FOOD;IND;Jäätelö, riisijäätelö;Rice ice cream
+31997;FOOD;IND;Jäätelö, jogurttijäätelö, rasvaa 4 %;Ice cream, yoghurt based, 4% fat
+32000;FOOD;IND;Jäätelö, kermajäätelöpuikko, suklaa- ja kinuskikuorrute;Ice cream bar, cream based, caramel and chocolate topping
+32001;FOOD;IND;Jäätelö, kermajäätelö, maustettu, aino kermainen karamelli;Ice cream, cream based, flavoured, aino caramel
+32002;FOOD;IND;Rahka, maustettu, rasvaa 2,9 %;Quark, flavoured, 2.9% fat
+32005;FOOD;IND;Kauravalmiste, vaihtoehto kermalle, kevyt, rasvaa 7 %;Oat product, non-dairy substitute for cream, 7% fat
+32010;FOOD;IND;Jäätelö, kermajäätelö, jätskivene;Ice cream with biscuit and chocolate, cream based
+32013;DISH;BOIL;Kaurapuuro, omena-kaneli, elovena;Oat porridge, oat flakes, apple and cinnamon, elovena
+32015;DISH;BOIL;Kaurapuuro, marja-hedelmä, elovena;Oat porridge, oat flakes, fruit and berries, elovena
+32332;DISH;BAK;Rahkamarjapiirakka, muropohja;Berry pie with quark filling, shortbread crust
+32418;FOOD;IND;Kauravalmiste, hapatettu, marja-hedelmä, yosa, keskiarvo, probiootteja;Oat product, fermented oat, fruits and berries, yosa, average, probiotics
+32562;FOOD;IND;Kauravalmiste, hapatettu, maustamaton, yosa naturell, d-vitamiinia, probiootteja;Oat product, fermented oat, yosa naturell
+32604;DISH;BAK;Munakasrulla, kasvis-sienitäyte;Omelette roll, vegetable and mushroom filling
+32610;DISH;BAK;Linssipihvi/pyörykkä, kananmunaa;Lentil patty, lentil ball, contains egg
+32701;FOOD;IND;Jäätelö, pehmytjäätelö, ei vohvelia;Soft ice cream
+32702;FOOD;IND;Jäätelö, soijajäätelö, tofuline, vanilja;Soy milk frozen dessert, tofuline, vanilla
+32705;FOOD;IND;Jäätelö, kasvirasvajäätelö;Ice cream, vegetable fat
+32707;DISH;IND;Jäätelö, pehmytjäätelö, suklaakastike, ei vohvelia;Soft ice cream with chocolate sauce
+32733;FOOD;IND;Kinder yllätysmuna;Kinder chocolate egg
+32774;FOOD;IND;Kaurajuoma, nalle suklaakaurajuoma, lisätty kalsiumia ja d-vitamiinia;Oat drink without milk, nalle chocolate, calcium, vitamin d
+32783;FOOD;IND;Kaurajuoma, rainbow, lisätty kalsiumia ja vitamiineja;Oat drink without milk, rainbow, calcium, vitamins
+32800;FOOD;IND;Jäätelö, riisijäätelö, r-ice vanilja-suklaatuutti, gluteeniton, ingman;Rice ice cream, vanilla-chocolate, r-ice, ingman
+32802;FOOD;IND;Jäätelö, riisijäätelö, r-ice vanilja, ingman;Rice ice cream, vanilla, r-ice, ingman
+32804;FOOD;IND;Jäätelö, kevyt, vanilja-mansikka, ingman, keinotekoisesti makeutettu;Ice cream, light, artificially sweetened, vanilla-strawberry, ingman
+32847;DISH;BOIL;Kanaviillokki, hk, valmisateria;Chicken fricassee, hk, ready meal
+32848;DISH;FRIE;Kana-vuohenjuustopasta, hk via, valmisateria;Chicken and goat cheese pasta, hk, ready meal
+32863;DISH;BOIL;Rössymaito;Rössymaito, potato, pork, blood and milk
+32885;FOOD;IND;Kaurajuoma, nordic, maustamaton, lisätty kalsiumia ja d-vitamiinia;Oat drink without milk, nordic, calcium, vitamin d
+32936;DISH;FRIE;Pyttipannu, lenkkimakkara, kananmuna;Sausage hash, rign bologna, potato, egg
+32937;DISH;FRIE;Kananmuna, paistettu, ei rasvaa, suolaton;Egg, fried, without fat and salt
+32938;DISH;FRIE;Kananmunan keltuainen, paistettu ilman rasvaa, suolaton;Egg yolk, fried, without fat and salt
+32939;DISH;FRIE;Kananmunan valkuainen, paistettu ilman rasvaa, suolaton;Egg white, fried, without fat and salt
+32944;DISH;BAK;Rahkapiirakka, pullapohja, rasvaton maito;Quark pie, basic sweet dough, fat-free milk
+33062;DISH;BOIL;Kana, keitetty, suolaton;Chicken, boiled without salt
+33111;FOOD;IND;Maito, täysmaito, rasvaa 3 %, laktoositon maitojuoma, d-vitamiinia 1 ug;Milk, 3% fat, lactose-free, 1 ug added vitamin d
+33147;FOOD;IND;Rahka, maustettu, danonino, rasvaa 2,9 %, d-vitamiinia 1,25 ug;Quark, flavoured, 2.9% fat, danonino, 1.25 ug vitamin d
+33160;FOOD;IND;Kaurajuoma, elovena välipalajuoma aurinkoinen, 2,9 % rasvaa;Oat drink without milk, snack drink, elovena, 2.9% fat
+33161;FOOD;IND;Kaurajuoma, elovena välipalajuoma metsämarja, 0,5% rasvaa;Oat drink without milk, snack drink with berries, elovena, 0.5% fat
+33163;FOOD;IND;Kaurajuoma, elovena välipalajuoma hedelmäinen, 0,5% rasvaa;Oat drink without milk, snack drink, elovena, fruit, 0.5% fat
+33164;FOOD;IND;Maito, täysmaito, vl, ei lisätty d-vitamiinia;Milk, 3.5% fat, low-lactose, without added vitamin d
+33169;FOOD;IND;Kaurajuoma, nalle vaniljakaurajuoma, lisätty kalsiumia ja d-vitamiinia;Oat drink without milk, nalle vanilla, calcium, vitamin d
+33179;FOOD;IND;Rahka, maitorahka, maustamaton, rasvaa 0,3 %, laktoositon;Quark, 0.3% fat, lactose-free
+33189;FOOD;IND;Rahka, maustettu, rasvaa 7 %, makea, laktoositon;Quark, flavoured, 7% fat, sweet, lactose-free
+33342;FOOD;IND;Rahka, maustettu, rasvaa 4,5 %, valio rahkavaahto, laktoositon;Quark, flavoured, 4.5% fat, valio rahkavaahto, lactose-free
+33390;DISH;FRIE;Munakas, tamago, japanilainen munakas;Omelette, japanese tamago
+33404;FOOD;IND;Rahka, maustettu, danio, rasvaa 3 %;Quark, flavoured, 3% fat, danio
+33405;FOOD;IND;Rahka, maustettu, danio stracciatella, rasvaa 4,4 %;Quark, flavoured, 4.4% fat, danio stracciatella
+33440;DISH;BOIL;Maito, kevytmaito, keitetty;Milk, 1.5% fat, boiled
+33448;DISH;BOIL;Kaurapuuro, kevytmaito, suolaton;Oat porridge, oat flakes, low-fat milk, without salt
+33466;FOOD;IND;Maito, keskiarvo, d-vitamiinia 1 ug;Milk, average, 1 ug added vitamin d
+33549;FOOD;DRIE;Kananmunajauhe, elintarviketeollisuuden raaka-aine;Egg powder, for food industry
+33550;FOOD;DRIE;Valkuaisjauhe, elintarviketeollisuuden raaka-aine;Egg white powder, for food industry
+33551;FOOD;DRIE;Keltuaisjauhe, elintarviketeollisuuden raaka-aine;Egg yolk powder, for food industry
+33586;FOOD;IND;Jäätelö, snickers;Ice cream, snickers
+33588;DISH;FRIE;Munakas, kasvismunakas;Omelette, vegetable omelette
+33596;FOOD;MIX;Kaurajuoma, maustamaton, tuotekeskiarvo;Oat drink without milk, average of industrial products
+33629;FOOD;MIX;Rahka, jälkiruoka/välipala, teollinen, tuotekeskiarvo;Quark, dessert quark, average of industrial products
+33739;FOOD;IND;Maito, täysmaito, rasvaa 4,4 %, ei lisätty d-vitamiinia, homogenoimaton;Milk, 4.4% fat, without added vitamin d, unhomogenized
+33790;FOOD;IND;Maito, kevytmaito, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug;Milk, 1.5% fat, lactose-free, valio eila, 2 ug added vitamin d
+33791;FOOD;IND;Maito, rasvaton, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug;Milk, 0% fat, lactose-free, valio eila, 2 ug added vitamin d
+33792;FOOD;IND;Maito, täysmaito, rasvaa 3 %, laktoositon maitojuoma, eila, d-vitamiinia 2 ug;Milk, 3% fat, lactose-free, eila, 2 ug added vitamin d
+33813;DISH;BOIL;Kanakeitto, rainbow, valmisateria;Chicken soup, industrial, rainbow, ready meal
+33872;FOOD;X;Äidinmaito, rintamaito;Breast milk
+33885;FOOD;IND;Rahka, maustettu, profeel proteiinirahka, laktoositon;Quark, flavoured, profeel protein quark, lactose-free
+33900;FOOD;IND;Kaurajuoma, oatly suklaa, lisätty kalsiumia ja vitamiineja, alkaen 09/12;Oat drink without milk, oatly chocolate, calcium, vitamin d
+33901;FOOD;IND;Kaurajuoma, oatly, lisätty kalsiumia ja vitamiineja, alkaen 09/12;Oat drink without milk, oatly, calcium, vitamins
+34127;FOOD;IND;Maito, kevytmaito, valio plus, d-vitamiinia 2 ug;Milk, 1.5% fat, valio plus, 2 ug added vitamin d
+34460;DISH;BAK;Porkkana, uunissa;Carrot, baked
+34491;DISH;FRIE;Banaanipannukakku;Banana egg pancake
+34554;DISH;FROZ;Jäädyke, mansikkajäätelö, kotitekoinen;Parfait, strawberry ice cream, home-made
+34590;FOOD;IND;Rahka, rahkajogurtti, maustamaton, rasvaa 0,9 %;Quark, quark yoghurt, plain, 0.9% fat
+34591;FOOD;IND;Rahka, maustamaton, kermarahka, rasvaa 10 %;Cream quark, 10% fat
+34592;FOOD;IND;Rahka, maitorahka, maustamaton, rasvaa 2,3 %, vl;Quark, 2,3% fat, low-lactose
+34594;FOOD;IND;Rahka, maustettu, rasvaa 8,8 %, minttu-suklaa, valio, laktoositon;Quark, flavoured, 8.8% fat, mint chocolate, valio, lactose-free
+34595;FOOD;IND;Rahka, maustettu, rasvaa 7 %, vl;Quark, flavoured, 7% fat, low-lactose
+34596;FOOD;IND;Rahka, maustettu, profeel proteiinikerrosrahka, laktoositon;Quark, flavoured, profeel protein quark with jam, lactose-free
+34597;FOOD;IND;Rahka, maustettu, profeel proteiinirahka, keinotek. makeutettu, laktoositon;Quark, flavoured, profeel protein quark, artificially sweetened, lactose-free
+34598;FOOD;IND;Rahkajuoma;Quark, drinkable
+34600;FOOD;IND;Rahka, maustettu, rasvaa 4,5 %;Quark, flavoured, 4.5% fat
+34601;FOOD;IND;Rahka, maustettu, arla protein proteiinirahka, laktoositon;Quark, flavoured, arla protein quark, lactose-free
+34602;FOOD;IND;Rahka, maitorahka, maustamaton, rasvaa 0,3 %, proteiinia 12 %, laktoositon;Quark, 0.3% fat, 12% protein, lactose-free
+34607;FOOD;IND;Jogurtti, maustettu, rahkainen jogurtti, valio, rasvaa 1,7 %, vl;Yoghurt with quark, flavoured, valio, 1.7% fat, low-lactose
+34608;FOOD;IND;Jogurtti, juotava, valiojogurtti rahkainen, rasvaa 1,2 %, vl, d-vit 1 ug;Yoghurt, drinkable, valio yoghurt with quark, 1.2% fat, 1 ug vitamin d
+34649;FOOD;IND;Rahka, maustettu, rasvaton, keinotekoisesti makeutettu, laktoositon;Quark, flavoured, fat-free, artificially sweetened, lactose-free
+34651;FOOD;RAW;Kananmuna, kuoreton, luomu;Egg, without shell, organic
+34654;FOOD;IND;Rahka, maustettu, rasvaa 4 %;Quark, flavoured, 4% fat
+34655;FOOD;IND;Rahka, maustettu, rasvaton, proteiinirahka, vl;Quark, flavoured, fat-free, protein quark, low-lactose
+34661;DISH;BOIL;Kananmuna, luomu, keitetty;Egg, organic, boiled
+34662;DISH;FRIE;Kananmuna, luomu, paistettu;Egg, organic, fried
+34684;DISH;BOIL;Kaurapuuro, rasvaton maito, suolaton;Oat porridge, oat flakes, fat-free milk, without salt
+34686;DISH;BOIL;Kaurapuuro, siemeniä, vesi, suolaa;Oat porridge, oat flakes, seeds, water, salt
+34691;DISH;BOIL;Kananmunan valkuainen, keitetty;Egg white, boiled
+34692;DISH;BOIL;Kananmuna, omega, keitetty;Egg, omega, boiled
+34693;DISH;FRIE;Kananmuna, omega, paistettu, ei rasvaa, suolaton;Egg, omega, fried, without fat and salt
+34716;FOOD;IND;Maito, täysmaito, rasvaa 3 %, laktoositon maitojuoma, ei lisätty d-vitamiinia;Milk, 3% fat, lactose-free, no added vitamin d
+34862;FOOD;IND;Maito, rasvaton, valio profeel voimamaitojuoma, d-vitamiinia 1 ug, laktoositon;Milk, 0% fat, valio profeel voimamaitojuoma, 1 ug added vitamin d, lactose-free
+34876;FOOD;IND;Kaurajuoma, oatly ikaffe, lisätty kalsiumia ja vitamiineja,;Oat drink without milk, oatly ikaffe, calcium, vitamins
+34886;DISH;BOIL;Kaurapuuro, rasvaton maito ja vesi, suolaton;Oat porridge, oat flakes, fat-free milk and water, without salt
+34887;DISH;BOIL;Kaurapuuro, kevytmaito ja vesi, suolaton;Oat porridge, oat flakes, low-fat milk and water, without salt
+34888;DISH;BOIL;Kaurapuuro, kevytmaito ja vesi, suolaa;Oat porridge, oat flakes, low-fat milk and water, salt
+34889;DISH;BOIL;Kaurapuuro, rasvaton maito ja vesi, suolaa;Oat porridge, oat flakes, fat-free milk and water, salt
+34909;FOOD;IND;Nyhtökaura;Pulled oats
+34951;DISH;BOIL;Kaura-ruispuuro, vesi, suolaa;Oat and rye porridge, water, salt
+34970;FOOD;IND;Rasvaseos 40%, valio better rahkariini, vl;Blend 40%, oivariini light, low-lactose
+34971;FOOD;RAW;Kaurakuitunen, kaurarouhe;Oat, coarse-ground oat, kaurakuitunen

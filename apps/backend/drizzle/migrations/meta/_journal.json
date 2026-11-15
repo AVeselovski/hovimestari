@@ -8,6 +8,20 @@
       "when": 1794768489727,
       "tag": "0000_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794773109472,
+      "tag": "0001_search_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794775212046,
+      "tag": "0002_targets_and_foods",
+      "breakpoints": true
     }
   ]
 }
