@@ -29,3 +29,23 @@
 [validator DONE] (2026-11-15T19:19:25Z) re-validation of PR 1: PASS at 4359e7b; sign-in medians 253/253/258 ms; squash must drop literals in 5ef35e8 and 354b44d
 [documentation-specialist DONE] (2026-11-15T19:20:43Z) docs pass for PR 1: runbooks, READMEs and link map trued to the code
 [backend-engineer DONE] (2026-11-15T19:20:43Z) fix cycle 2: three items, 218 backend tests pass
+[frontend-engineer STARTED] (2026-11-15T19:23:15Z) PR 2: web scaffold, auth pages, shell, PWA
+[frontend-engineer DONE] (2026-11-15T20:00:00Z) PR 2: web scaffold, auth pages, shell, PWA; gates green, 209 web tests; browser-checked at 4 widths x 2 themes
+[validator STARTED] (2026-11-15T20:01:01Z) validate PR 2, the web scaffold
+[ui-validator STARTED] (2026-11-15T20:01:01Z) browser validation of PR 2
+[reviewer STARTED] (2026-11-15T20:01:01Z) code review of PR 2
+[reviewer DONE] (2026-11-15T20:05:42Z) code review of PR 2: approve after fixes, 2 major (open redirect after sign-in, cross-tab renewal race), 7 minor, 3 nit
+[validator DONE] (2026-11-15T20:09:23Z) PR 2: PASS at 7161093; 452 tests; NFR-SEC-03 proved over 152 captured responses; 4 minor
+[ui-validator DONE] (2026-11-15T20:21:30Z) PR 2: PASS with findings; 2 major (a lost refresh response signs the user out; an offline reload after sign-out shows the shell), 3 minor, polish; 5 presentational fixes committed in 7ae1e60; WebKit and Lighthouse unavailable
+[frontend-engineer STARTED] (2026-11-15T20:21:30Z) fix cycle 1 for PR 2: reviewer, validator and ui-validator findings
+[frontend-engineer STARTED] (2026-11-15T20:21:40Z) PR 2 fix cycle 1: 16 findings from review and ui-validation
+[frontend-engineer DONE] (2026-11-15T20:43:08Z) PR 2 fix cycle 1: 16 findings fixed, each test red without its fix; gates green, 257 web tests
+[frontend-engineer DONE] (2026-11-15T20:43:30Z) fix cycle 1 for PR 2: 16 findings fixed, 257 web tests
+[reviewer STARTED] (2026-11-15T20:43:30Z) re-review PR 2 after fix cycle 1
+[ui-validator STARTED] (2026-11-15T20:43:30Z) re-check PR 2 in the browser after fix cycle 1
+[documentation-specialist STARTED] (2026-11-15T20:43:30Z) docs pass for PR 2
+[frontend-engineer DONE] 2026-11-15T20:47:31Z Closed the dot-segment open redirect in safeRedirectPath (refuse // and /\, require a fixed point) and gave the session renewal fetch a 12 s abort that reads as offline. Web tests 269 passing, lint, typecheck and build green.
+[frontend-engineer DONE] (2026-11-15T20:48:21Z) redirect dot-segment bypass closed in 29a0912, renewal fetch aborts after 12 s; 269 web tests
+[reviewer DONE] (2026-11-15T20:48:21Z) re-review of PR 2: approve at 29a0912 after 22 redirect probes; one nit (the abort covers only until headers arrive)
+[documentation-specialist DONE] (2026-11-15T20:48:21Z) docs pass for PR 2 in 1803623; recheck after 29a0912 in progress
+[ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed

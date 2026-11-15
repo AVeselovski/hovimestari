@@ -22,6 +22,32 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | Google sign-in, Continue with Google               | `features/authentication.md#google-sign-in`                             | `### Google sign-in`                             |
 | password hashing, the 72-byte rule                 | `features/authentication.md#passwords-and-reset-links`                  | `### Passwords and reset links`                  |
 | error codes, the error body                        | `features/authentication.md#errors`                                     | `### Errors`                                     |
+| redirect after sign-in, `?redirect=`               | `features/authentication.md#the-redirect-after-sign-in`                 | `### The redirect after sign-in`                 |
+| the same-origin guard                              | `features/authentication.md#the-same-origin-guard`                      | `### The same-origin guard`                      |
+
+## The app
+
+| Concept                                         | Home                                                                    | Heading                                          |
+| ----------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
+| theme, light and dark, following the device     | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
+| the pre-paint theme script                      | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
+| the browser chrome colour, `theme-color`        | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
+| installing the app, home screen                 | `features/installable-app.md#installing`                                | `### Installing`                                 |
+| the web manifest                                | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
+| offline, the offline line                       | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
+| the service worker, cached pages                | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
+| safe areas, insets                              | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
+| the app shell, tabs, tab bar, side rail         | `app/shell.md`                                                          | Doc                                              |
+| server fault, Something went wrong, Try again   | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
+| the known-session flag, offline sign-in side    | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
+| the shell's layout, one scroll container        | `app/shell.md#layout`                                                   | `### Layout`                                     |
+| design tokens, colours                          | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
+| the accent, what it means                       | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
+| macro hues, energy, protein, carbohydrates, fat | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
+| contrast                                        | `app/colors.md#contrast`                                                | `### Contrast`                                   |
+| type, typefaces, type scale                     | `app/colors.md#type`                                                    | `### Type`                                       |
+| sign-in pages, guest pages                      | `app/auth.md`                                                           | Doc                                              |
+| settings, the Settings tab                      | `app/settings.md`                                                       | Doc                                              |
 
 ## Example area
 

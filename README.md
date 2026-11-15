@@ -4,7 +4,7 @@ Hovimestari is a food planner and food log for people who bring their own calori
 
 ## Where the project stands
 
-The backend and its authentication are built. The web app comes next. [The feature catalog](docs/features.md) lists what is built.
+Accounts and the app's frame are built: signing up and in, the four tabs, the theme and the installable app. The tabs hold nothing yet. [The feature catalog](docs/features.md) lists what is built.
 
 - [The overview](docs/overview.md) frames the product.
 - [The requirements](docs/requirements.md) say what it must do.
@@ -28,7 +28,8 @@ pnpm docs:check
 
 ## Running it locally
 
-[The local development runbook](docs/setup/local-development.md) goes from a fresh clone to a running backend: `pnpm env:init` writes the env file with generated secrets, `pnpm db:up` starts Postgres in Docker, and the backend runs on port 3001.
+[The local development runbook](docs/setup/local-development.md) goes from a fresh clone to a running app: `pnpm env:init` writes the env files with generated secrets, `pnpm db:up` starts Postgres in Docker, the backend runs on port 3001 and the web app on port 3000.
 
 - `apps/backend`: the Express API. [Its README](apps/backend/README.md) has the source layout, the database and the tests.
+- `apps/web`: the Next.js web app and PWA. [Its README](apps/web/README.md) has the source layout, the session, copy and the tests.
 - `packages/types`: the schemas the backend and the web app share. [Its README](packages/types/README.md).

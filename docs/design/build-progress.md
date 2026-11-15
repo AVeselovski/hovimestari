@@ -27,14 +27,14 @@ The planned hand-over is after build step 3 in `docs/design/pivot-plan.md`: sign
 
 ## State
 
-| Step                                     | Branch                       | Pull request | State                                                                                                         |
-| ---------------------------------------- | ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- |
-| Brief, workflow kit, requirements        | `feat/pivot-brief`           | #27          | merged 2026-11-15                                                                                             |
-| 1a. Backend scaffold and auth API        | `feat/scaffold-backend-auth` |              | design final after two review rounds (`docs/design/scaffold-and-auth.md`), backend-engineer implementing PR 1 |
-| 1b. Web scaffold, auth pages, shell, PWA | `feat/scaffold-web-shell`    |              | waits for 1a to merge                                                                                         |
-| 1c. Account settings on sheets           | `feat/account-settings`      |              | waits for 1b to merge                                                                                         |
-| 2. Targets and foods                     |                              |              | not started                                                                                                   |
-| 3. Days and quick logging                |                              |              | not started                                                                                                   |
+| Step                                     | Branch                                                                                    | Pull request | State                                                                                                                                               |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Brief, workflow kit, requirements        | `feat/pivot-brief`                                                                        | #27          | merged 2026-11-15                                                                                                                                   |
+| 1a. Backend scaffold and auth API        | `feat/scaffold-backend-auth`                                                              | #28          | open. Validated and reviewed with two fix cycles, squashed to four commits. Waiting for CI and the `@claude` review, then merge with a merge commit |
+| 1b. Web scaffold, auth pages, shell, PWA | `feat/scaffold-web-shell`, in the worktree `/home/user/hovi-web`, cut from the tip of #28 |              | frontend-engineer implementing PR 2. After #28 merges, rebase onto `master` if #28 changed after the cut                                            |
+| 1c. Account settings on sheets           | `feat/account-settings`                                                                   |              | waits for 1b to merge                                                                                                                               |
+| 2. Targets and foods                     |                                                                                           |              | not started                                                                                                                                         |
+| 3. Days and quick logging                |                                                                                           |              | not started                                                                                                                                         |
 
 ## Notes for the next wake-up
 
