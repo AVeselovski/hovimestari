@@ -1,7 +1,25 @@
+# Dependencies, build output and caches.
 node_modules
 dist
+coverage
+.next
+.turbo
 *.tsbuildinfo
-.env
-infra/postgres-data/
-.DS_Store
 *.log
+.DS_Store
+
+# Local database volume of the legacy compose stack.
+infra/postgres-data/
+
+# Secrets. The read hook in .claude/hooks/read-hook.js also refuses to read .env files.
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets.json
+
+# UI screenshots are sent in chat for sign-off and never committed.
+/screenshots
+
+# Claude Code working directories.
+.claude/worktrees/

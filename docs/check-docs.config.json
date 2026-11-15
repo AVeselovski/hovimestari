@@ -1,0 +1,12 @@
+{
+  "files": ["docs/features.md", "README.md"],
+  "dirs": ["docs/features", "docs/app", "docs/setup", "docs/playbook", "docs/_templates"],
+  "kinds": {
+    "docs/features/": "feature",
+    "docs/app/": "page",
+    "docs/setup/": "setup",
+    "docs/_templates/feature.md": "feature",
+    "docs/_templates/page.md": "page",
+    "docs/_templates/setup.md": "setup"
+  }
+}

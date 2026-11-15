@@ -1,0 +1,38 @@
+#!/bin/sh
+# Format staged files before they are committed.
+#
+# This runs at commit time rather than after every edit on purpose. Formatters
+# with an import-organising plugin (for example prettier-plugin-organize-imports)
+# remove imports that are unused at the moment they run. Formatting a
+# half-written file strips imports that the next edit was about to use.
+#
+# Git only runs this hook when core.hooksPath points at .githooks. Set it once
+# per clone, ideally from the install or prepare script so nobody forgets:
+#   git config core.hooksPath .githooks
+#
+# Set the formatter command below. As written, the hook passes every staged
+# file to it, so the formatter must accept any file type and skip the ones it
+# does not handle. Example that does:
+#   prettier --write --ignore-unknown --log-level warn
+# A single-language formatter (gofmt, ruff format, rustfmt) fails on other file
+# types. For one of those, replace the two pipelines at the bottom with a
+# filtered form, for example:
+#   git diff --cached --name-only --diff-filter=ACMR -z -- '*.go' | xargs -0 -r gofmt -w
+#   git diff --cached --name-only --diff-filter=ACMR -z -- '*.go' | xargs -0 -r git add
+set -e
+
+formatter='pnpm exec prettier --write --ignore-unknown --log-level warn'
+
+# Fail loudly when the formatter is not installed, rather than committing unformatted files.
+set -- $formatter
+if ! command -v "$1" >/dev/null 2>&1; then
+  echo "pre-commit: formatter not found, run the install first" >&2
+  exit 1
+fi
+
+# -z / -0 keeps paths with spaces or characters git would otherwise quote intact.
+# -r skips the command when nothing is staged.
+git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -r $formatter
+# This re-stages whole files. A partly staged file (git add -p) loses its partial
+# staging and is committed with all of its working-tree changes.
+git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -r git add
