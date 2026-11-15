@@ -1,0 +1,90 @@
+# Fly.io deploy descriptor for the finanssiappis-backend app.
+#
+# IMPORTANT: deploy from the REPO ROOT so the build context starts there
+# (the Dockerfile copies pnpm-lock.yaml, pnpm-workspace.yaml, etc. from
+# the workspace root). Run:
+#   flyctl deploy --remote-only --config apps/backend/fly.toml
+
+app            = "finanssiappis-backend"
+primary_region = "arn"
+
+# A swap safety net: a brief memory spike swaps instead of being OOM-killed.
+swap_size_mb = 512
+
+[build]
+  # Dockerfile path is interpreted relative to THIS file's directory
+  # (apps/backend/), not the build context root or CWD — flyctl resolves
+  # it that way regardless of where `flyctl deploy` is invoked from.
+  # The build context itself is still the repo root (the CWD, since we
+  # deploy from there and pass no positional working-directory argument),
+  # which is what lets the Dockerfile COPY workspace siblings like
+  # packages/types.
+  dockerfile = "../../apps/backend/Dockerfile"
+
+[env]
+  NODE_ENV               = "production"
+  PORT                   = "3000"
+  EMAIL_FROM             = "noreply@finanssi.app"
+  JWT_ACCESS_EXPIRES_IN  = "15m"
+  JWT_REFRESH_EXPIRES_IN = "7d"
+  # Postgres connections the backend holds: 8 for the 1GB database machine.
+  DB_POOL_MAX            = "8"
+  # All other config (DATABASE_URL, JWT secrets, Google OAuth, RESEND_API_KEY,
+  # CORS_ORIGIN, FRONTEND_URL, GOOGLE_*_CALLBACK_URL, the Google Drive values,
+  # and DRIVE_TOKEN_KEY_PREVIOUS during a key rotation) lives in Fly secrets.
+
+[deploy]
+  strategy = "rolling"
+  # Runs pending migrations before traffic is shifted. Uses the .bin symlink
+  # so we don't hard-code drizzle-kit's internal entry-point path.
+  # Must `cd apps/backend` first: drizzle.config.ts's `out: "./drizzle/migrations"`
+  # is resolved relative to the process CWD (the image's WORKDIR, /app), not
+  # relative to the config file's own directory. Needs an explicit shell (`sh -c`)
+  # since Fly execs release_command directly, without shell operators like `&&`.
+  release_command = "sh -c 'cd apps/backend && ./node_modules/.bin/drizzle-kit migrate --config drizzle.config.ts'"
+
+[http_service]
+  internal_port        = 3000
+  force_https          = true
+  auto_stop_machines   = "off"
+  auto_start_machines  = true
+  # The navigation ticket store is in process memory, so the backend runs as
+  # one machine until that store moves to Postgres.
+  min_machines_running = 1
+
+  # Backpressure. Past hard_limit the Fly proxy queues requests at the edge
+  # instead of piling them into Node and the Postgres pool.
+  [http_service.concurrency]
+    type       = "requests"
+    soft_limit = 20
+    hard_limit = 30
+
+  [http_service.http_options]
+    idle_timeout = 75   # below Node's keepAliveTimeout (76s, src/index.ts)
+
+  # Routing check: liveness only. It must not touch the DB, or a busy pool
+  # takes the only machine out of routing.
+  [[http_service.checks]]
+    interval     = "15s"
+    timeout      = "5s"
+    grace_period = "10s"
+    method       = "get"
+    path         = "/livez"
+    protocol     = "http"
+
+# DB readiness, for monitoring only. Top-level checks do not affect routing.
+[checks]
+  [checks.db]
+    type         = "http"
+    port         = 3000
+    interval     = "30s"
+    # Above the pool's 5s connect timeout, so a saturated pool shows as the
+    # 503 /health returns rather than as a check timeout.
+    timeout      = "8s"
+    grace_period = "10s"
+    method       = "get"
+    path         = "/health"
+
+[[vm]]
+  size      = "shared-cpu-1x"
+  memory_mb = 512   # change here, not with `fly scale memory`: every deploy re-applies [[vm]]
