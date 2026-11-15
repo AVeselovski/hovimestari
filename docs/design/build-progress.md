@@ -25,16 +25,15 @@ The planned hand-over is after build step 3 in `docs/design/pivot-plan.md`: sign
 
 ## State
 
-| Step                              | Branch             | Pull request | State       |
-| --------------------------------- | ------------------ | ------------ | ----------- |
-| Brief, workflow kit, requirements | `feat/pivot-brief` | to be opened | squashing   |
-| 1. Scaffold and auth              |                    |              | not started |
-| 2. Targets and foods              |                    |              | not started |
-| 3. Days and quick logging         |                    |              | not started |
+| Step                              | Branch             | Pull request | State             |
+| --------------------------------- | ------------------ | ------------ | ----------------- |
+| Brief, workflow kit, requirements | `feat/pivot-brief` | #27          | merged 2026-11-15 |
+| 1. Scaffold and auth              |                    |              | not started       |
+| 2. Targets and foods              |                    |              | not started       |
+| 3. Days and quick logging         |                    |              | not started       |
 
 ## Notes for the next wake-up
 
-- `feat/pivot-brief` was rewritten after `feat/scaffold-auth` was cut, to remove a commented example that GitGuardian flagged as a password. `feat/scaffold-auth` still sits on the old tip `734dd5f`. Once #27 merges, move it with `git rebase --onto origin/master 734dd5f feat/scaffold-auth` and push with `--force-with-lease`.
 - GitGuardian scans every pull request and fails on any literal password, even a throwaway one in a comment. Use trust authentication for throwaway databases and no committed literal secrets anywhere, tests included.
-- A second worktree at `/home/user/hovi-wt-brief` holds `feat/pivot-brief`. Remove it with `git worktree remove` once #27 merges.
-- #27: CI green on the first push. After the rewrite, wait for CI, then comment `@claude please review this PR.`, address findings, merge with a merge commit.
+- A successful CI run does not always send an event. After a push, check the pull request's check runs directly.
+- The `@claude` review answers within a minute or two of the comment.
