@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "lib": ["dom", "dom.iterable", "ESNext"],
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "isolatedModules": true,
+    // next-intl's experimental createMessagesDeclaration emits
+    // messages/en.d.json.ts (docs/design/i18n-message-catalog.md, D4) — this
+    // flag lets that .d.json.ts extension resolve. TS 5.0+; repo is on 5.7.
+    "allowArbitraryExtensions": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next.config.ts",
+    "legacyRedirects.ts",
+    "__tests__",
+    "src",
+    ".next/types/**/*.ts",
+    ".next-build/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
