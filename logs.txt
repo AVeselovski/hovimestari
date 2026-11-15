@@ -69,3 +69,4 @@
 [reviewer DONE] (2026-11-15T20:51:31Z) re-review of PR 2a: approve at 53862b6; three follow-ups filed
 [documentation-specialist DONE] (2026-11-15T20:51:31Z) docs pass for PR 2a in 6ffe0b5
 [ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed
+[frontend-engineer STARTED] (2026-11-15T20:59:47Z) fix the web build after merging the targets and foods types
