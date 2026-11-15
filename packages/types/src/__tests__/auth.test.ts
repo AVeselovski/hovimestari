@@ -143,7 +143,14 @@ describe("DeleteAccountBodySchema", () => {
 
 describe("MeSchema", () => {
   it("has no display name", () => {
-    const me = { id: randomUUID(), email: "user@example.com", hasPassword: true, hasGoogle: false };
+    const me = {
+      id: randomUUID(),
+      email: "user@example.com",
+      hasPassword: true,
+      hasGoogle: false,
+      foodNameLanguage: "fi",
+      timeZone: "Europe/Helsinki",
+    };
     expect(MeSchema.parse({ ...me, displayName: "x" })).toEqual(me);
   });
 });

@@ -49,6 +49,30 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | sign-in pages, guest pages                      | `app/auth.md`                                                           | Doc                                              |
 | settings, the Settings tab                      | `app/settings.md`                                                       | Doc                                              |
 
+## Targets
+
+| Concept                                      | Home                                           | Heading                        |
+| -------------------------------------------- | ---------------------------------------------- | ------------------------------ |
+| targets, calorie range, protein range, floor | `features/targets.md#setting-your-targets`     | `### Setting your targets`     |
+| dated change, targets in force               | `features/targets.md#changing-your-targets`    | `### Changing your targets`    |
+| which targets a day uses                     | `features/targets.md#which-targets-a-day-uses` | `### Which targets a day uses` |
+| first run, no targets yet                    | `features/targets.md#the-first-run`            | `### The first run`            |
+| not advice, no default target                | `features/targets.md#not-advice`               | `### Not advice`               |
+| today, the user's time zone                  | `features/targets.md#today-and-the-time-zone`  | `### Today and the time zone`  |
+
+## Foods
+
+| Concept                                   | Home                                     | Heading                    |
+| ----------------------------------------- | ---------------------------------------- | -------------------------- |
+| food catalogue, food source, retired food | `features/foods.md#the-food-catalogue`   | `### The food catalogue`   |
+| food search, search ranking               | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
+| own food                                  | `features/foods.md#your-own-foods`       | `### Your own foods`       |
+| portions, household measures              | `features/foods.md#portions`             | `### Portions`             |
+| favourites                                | `features/foods.md#favourites`           | `### Favourites`           |
+| food-name language                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
+| Fineli, its credit and licence            | `features/foods.md#fineli`               | `### Fineli`               |
+| food visibility, food scope               | `features/foods.md#visibility`           | `### Visibility`           |
+
 ## Example area
 
 | Concept                      | Home                                             | Heading                         |

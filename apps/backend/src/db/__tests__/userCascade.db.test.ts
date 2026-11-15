@@ -1,6 +1,6 @@
 import { expect, it } from "@jest/globals";
 import { walkCascadeGraph } from "./support/cascadeGraph.js";
-import { insertUser, SEEDED_TABLES, seedOneOfEach } from "./support/seedOneOfEach.js";
+import { insertFineliFood, insertUser, SEEDED_TABLES, seedOneOfEach } from "./support/seedOneOfEach.js";
 import { describeWithDb } from "./support/throwawayDb.js";
 
 // Deleting an account deletes everything it owns. Every user-owned table
@@ -33,6 +33,30 @@ await describeWithDb("userCascade", (suite) => {
       expect({ table, left: left.rows[0].n }).toEqual({ table, left: 0 });
       expect({ table, others: others.rows[0].n }).toEqual({ table, others: 1 });
     }
+  });
+
+  it("keeps every Fineli food and portion, and removes the user's own portion and favourite on one", async () => {
+    const gone = await insertUser(suite.client);
+    const fineli = await insertFineliFood(suite.client, 900_001);
+    await suite.client.query("INSERT INTO food_portions (food_id, user_id, name, grams) VALUES ($1, $2, 'tub', 200)", [
+      fineli,
+      gone,
+    ]);
+    await suite.client.query("INSERT INTO food_favourites (user_id, food_id) VALUES ($1, $2)", [gone, fineli]);
+
+    await suite.client.query("DELETE FROM users WHERE id = $1", [gone]);
+
+    const food = await suite.client.query("SELECT count(*)::int AS n FROM foods WHERE id = $1", [fineli]);
+    const portions = await suite.client.query(
+      "SELECT fineli_unit, user_id FROM food_portions WHERE food_id = $1 ORDER BY fineli_unit",
+      [fineli],
+    );
+    const favourites = await suite.client.query("SELECT count(*)::int AS n FROM food_favourites WHERE food_id = $1", [
+      fineli,
+    ]);
+    expect(food.rows[0].n).toBe(1);
+    expect(portions.rows).toEqual([{ fineli_unit: "PORTM", user_id: null }]);
+    expect(favourites.rows[0].n).toBe(0);
   });
 
   it("fails the walk for a child table that points at a user-owned table with ON DELETE SET NULL", async () => {

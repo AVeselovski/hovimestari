@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TimeZoneSchema } from "./dates.js";
+import { FOOD_NAME_LANGUAGES } from "./foods.js";
 
 /** The longest password bcrypt reads, in UTF-8 bytes. It ignores every byte past it. */
 export const MAX_PASSWORD_BYTES = 72;
@@ -40,7 +42,16 @@ export const MeSchema = z.object({
   email: z.string(),
   hasPassword: z.boolean(),
   hasGoogle: z.boolean(),
+  /** The language food names are shown in. */
+  foodNameLanguage: z.enum(FOOD_NAME_LANGUAGES),
+  /** The IANA time zone the user's "today" is read in. */
+  timeZone: z.string(),
 });
+
+/** The account settings a user changes: either field, or both. */
+export const SettingsBodySchema = z
+  .object({ foodNameLanguage: z.enum(FOOD_NAME_LANGUAGES).optional(), timeZone: TimeZoneSchema.optional() })
+  .refine((b) => b.foodNameLanguage !== undefined || b.timeZone !== undefined);
 
 /** What a token-issuing route answers. Only the web server ever receives it. */
 export const SessionGrantSchema = z.object({ accessToken: z.string(), refreshToken: z.string(), user: MeSchema });
@@ -61,6 +72,7 @@ export type LinkPasswordBody = z.infer<typeof LinkPasswordBodySchema>;
 export type ChangePasswordBody = z.infer<typeof ChangePasswordBodySchema>;
 export type DeleteAccountBody = z.infer<typeof DeleteAccountBodySchema>;
 export type Me = z.infer<typeof MeSchema>;
+export type SettingsBody = z.infer<typeof SettingsBodySchema>;
 export type SessionGrant = z.infer<typeof SessionGrantSchema>;
 export type BrowserSession = z.infer<typeof BrowserSessionSchema>;
 export type AuthProviders = z.infer<typeof AuthProvidersSchema>;

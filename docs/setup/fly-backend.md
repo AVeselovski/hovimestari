@@ -30,6 +30,19 @@ flyctl postgres create --name hovimestari-db --region arn --vm-size shared-cpu-1
 flyctl postgres attach hovimestari-db -a hovimestari-backend
 ```
 
+Food search needs a UTF-8 database and the `pg_trgm` and `unaccent` extensions. Migration `0001` refuses any other encoding and creates both extensions. Both are trusted extensions, so the app's own role may create them. The attach step names the app's database `hovimestari_backend`. Check it:
+
+```bash
+flyctl postgres connect -a hovimestari-db --database hovimestari_backend
+# At the prompt:
+# SHOW server_encoding;
+# One row: UTF8.
+# SELECT name FROM pg_available_extensions WHERE name IN ('pg_trgm', 'unaccent');
+# Two rows. Quit with \q.
+```
+
+If the encoding is not `UTF8` or a row is missing, the migration fails at the first deploy and no machine takes traffic.
+
 The attach step creates a database role and a database for the app and sets `DATABASE_URL` as a secret on it. That value is never written down anywhere else. Fly prints the cluster's superuser password once when it creates it. Keep it in a password manager. Normal operation never needs it.
 
 Fly now steers new apps to Managed Postgres, which sits behind PgBouncer. PgBouncer refuses the session settings the backend's pool sends at connection time (`apps/backend/src/db/index.ts`). To use Managed Postgres instead, first move `statement_timeout`, `lock_timeout` and `idle_in_transaction_session_timeout` to `ALTER ROLE ... SET` on the database and remove them from the pool.

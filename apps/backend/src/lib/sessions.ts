@@ -1,4 +1,4 @@
-import type { Me, SessionGrant } from "@hovimestari/types";
+import type { FoodNameLanguage, Me, SessionGrant } from "@hovimestari/types";
 import { and, eq, lt } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { refreshTokens, users } from "../db/schema/index.js";
@@ -15,6 +15,9 @@ export const meOf = (user: UserRow): Me => ({
   email: user.email,
   hasPassword: user.passwordHash !== null,
   hasGoogle: user.googleId !== null,
+  // A CHECK keeps the column to the two languages.
+  foodNameLanguage: user.foodNameLanguage as FoodNameLanguage,
+  timeZone: user.timeZone,
 });
 
 /**

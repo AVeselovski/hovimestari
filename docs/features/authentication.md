@@ -158,7 +158,7 @@ All under `/api/v1`. **Relay** means `X-Bff-Secret` is required. **Bearer** mean
 | GET    | `/auth/link/google/callback` | Google        | 302 to the web server's `/api/auth/google/link/complete?code=`, or to `/settings?google=failed` |
 | POST   | `/auth/link/google/exchange` | Relay         | 204, or 401 `google_failed`, 409 `google_taken` or `google_already_linked`                      |
 | DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user. `method` is `google` or `password`                                           |
-| GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle }`                                                     |
+| GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle, foodNameLanguage, timeZone }`                         |
 | PUT    | `/users/me/password`         | Bearer        | 204, or 401 `current_password_wrong`, 403 `no_password`                                         |
 | DELETE | `/users/me`                  | Bearer        | 204, or 400 `confirmation_mismatch`. Takes `{ password }` or `{ email }`                        |
 
@@ -181,7 +181,7 @@ The refresh cookie `__refresh_token` is `httpOnly`, `SameSite=Strict`, `Secure` 
 
 Three tables, in `apps/backend/src/db/schema/`:
 
-- `users`: `email` unique and always lower case, `password_hash` null on a Google-only account, `google_id` unique and null on a password-only account. The CHECK `users_has_sign_in_method` requires one of the two. The CHECK `users_email_lower` refuses a mixed-case email.
+- `users`: `email` unique and always lower case, `password_hash` null on a Google-only account, `google_id` unique and null on a password-only account. The CHECK `users_has_sign_in_method` requires one of the two. The CHECK `users_email_lower` refuses a mixed-case email. It also holds `food_name_language`, whose rule is in [food-name language](foods.md#food-name-language), and `time_zone`, whose rule is in [today and the time zone](targets.md#today-and-the-time-zone).
 - `refresh_tokens`: one row per session, with `token_hash` unique and `expires_at`.
 - `password_reset_tokens`: one row per reset link, with `token_hash` unique and `expires_at`.
 

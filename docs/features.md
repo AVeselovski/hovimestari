@@ -6,9 +6,17 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Accounts
 
-- [Authentication](features/authentication.md): signing up and in with a password or Google, staying signed in, recovering a forgotten password, choosing how to sign in, and deleting the account with everything in it. No browser JavaScript ever holds a refresh token.
+- **[Authentication](features/authentication.md)**: signing up and in with a password or Google, staying signed in, recovering a forgotten password, choosing how to sign in, and deleting the account with everything in it. No browser JavaScript ever holds a refresh token.
+
+## Targets
+
+- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, changed from a date the user picks without rewriting earlier days. The app offers no default and no suggestion.
+
+## Foods
+
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. No Fineli food is loaded yet.
 
 ## The app
 
-- [Appearance](features/appearance.md): a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.
-- [Installable app](features/installable-app.md): installs to a phone's home screen and opens without the browser's bar. A visited tab opens again offline, with a plain line saying so.
+- **[Appearance](features/appearance.md)**: a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.
+- **[Installable app](features/installable-app.md)**: installs to a phone's home screen and opens without the browser's bar. A visited tab opens again offline, with a plain line saying so.
