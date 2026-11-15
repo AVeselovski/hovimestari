@@ -17,11 +17,10 @@ const config: Config = {
   // beforeAll. That takes half a second on an idle machine and more than the
   // five-second default while other runs load the same Postgres, which fails
   // every test in the suite at once. A slow test still shows in the report.
-  // The cases that send a hundred requests or more in a row (rateLimit,
-  // refusedKeyBrake and brakeAfterBody under src/mcp, and the 60-upload case
-  // in transactionFiles) await each answer and take up to about six seconds
-  // with every core busy, so they need it too. A test past its timeout keeps
-  // running, and its requests count against the limiter in the next test.
+  // The rate limit cases that send a hundred sign-ins in a row
+  // (authRateLimits) await each answer and take seconds with every core busy,
+  // so they need it too. A test past its timeout keeps running, and its
+  // requests count against the limiter in the next test.
   testTimeout: 30_000,
   // Under --experimental-vm-modules Jest 29 never frees a finished test file's
   // context, about 11 MB each. One process running every file climbs to

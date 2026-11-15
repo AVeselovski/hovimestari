@@ -4,18 +4,13 @@ import express, { type Express } from "express";
 import passport from "passport";
 import { db } from "./db/index.js";
 import { env } from "./lib/env.js";
-import "./lib/passport.js";
-import { mcpRouter } from "./mcp/router.js";
+import { googleConfig } from "./lib/google.js";
+import { registerGoogleStrategies } from "./lib/passport.js";
 import { errorHandler } from "./middleware/error.js";
 import { requestLog } from "./middleware/requestLog.js";
 import { router } from "./routes/index.js";
 
 export const app: Express = express();
-
-// The MCP endpoint for connected AI clients. Mounted before CORS and the JSON
-// parser: it has its own parser, answers browsers 403 and sends no CORS
-// headers. With MCP_ENABLED=false it is not mounted at all, so /mcp is a 404.
-if (env.MCP_ENABLED) app.use("/mcp", mcpRouter);
 
 // `CORS_ORIGIN` may name several origins, comma separated. Production sets
 // one; local development often needs two at once — `localhost` for the
@@ -29,8 +24,15 @@ const allowedOrigins = env.CORS_ORIGIN.split(",")
 // cap) instead of the 5s default.
 app.use(cors({ origin: allowedOrigins, credentials: true, maxAge: 7200 }));
 if (env.NODE_ENV !== "test") app.use(requestLog());
-app.use(express.json());
-app.use(passport.initialize());
+app.use(express.json({ limit: "100kb" }));
+
+// Google is optional per deployment. Without its four values the strategies
+// are never registered, and the Google routes answer 404 google_unavailable.
+const google = googleConfig();
+if (google) {
+  registerGoogleStrategies(google);
+  app.use(passport.initialize());
+}
 
 // Liveness: the process is up and serving HTTP. Never touches the database,
 // so a busy pool cannot take the machine out of Fly's routing.

@@ -42,14 +42,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
 
   if (err instanceof AppError) {
-    res.status(err.status).json({ message: err.message });
+    res.status(err.status).json(err.code ? { message: err.message, code: err.code } : { message: err.message });
     return;
   }
 
   const bodyStatus = bodyParserStatus(err);
   if (bodyStatus !== null) {
     const type = (err as { type: string }).type;
-    res.status(bodyStatus).json({ message: BODY_MESSAGES[type] ?? "The request body could not be read." });
+    res
+      .status(bodyStatus)
+      .json({ message: BODY_MESSAGES[type] ?? "The request body could not be read.", code: "invalid_request" });
     return;
   }
 

@@ -1,6 +1,9 @@
 node_modules
 dist
 .next
+.next-build
+apps/web/messages/*.d.json.ts
+**/drizzle/**/meta/**
 pnpm-lock.yaml
 **/migrations/**
 

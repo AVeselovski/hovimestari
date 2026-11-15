@@ -46,7 +46,7 @@ export function hashToken(token: string): string {
 // ---------------------------------------------------------------------------
 
 /** The flows that sign a state. */
-export type OAuthStatePurpose = "google-sign-in" | "google-link" | "drive";
+export type OAuthStatePurpose = "google-sign-in" | "google-link";
 
 /** How long a consent may take. */
 export const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;

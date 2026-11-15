@@ -20,18 +20,13 @@ export default tseslint.config(
     },
   },
   {
-    // Test fixtures shared by both apps' suites. Product code never reads them.
-    ignores: ["**/__tests__/**"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [{ name: "@finanssiappis/types/fixtures", message: "Test fixtures are for __tests__/ only." }],
-        },
-      ],
-    },
-  },
-  {
-    ignores: ["**/dist/**", "**/.next/**", "**/.next-build/**", "**/node_modules/**", "**/.claude/worktrees/**"],
+    ignores: [
+      "**/dist/**",
+      "**/.next/**",
+      "**/.next-build/**",
+      "**/node_modules/**",
+      "**/.claude/worktrees/**",
+      "docs/design/salvage/**",
+    ],
   },
 );

@@ -1,11 +1,14 @@
 import { describe, expect, it, jest } from "@jest/globals";
 import type { NextFunction, Request, Response } from "express";
 import request from "supertest";
+import { browserNonce, enableGoogle } from "../../__tests__/support/google.js";
 
 // ---------------------------------------------------------------------------
 // Mock passport so we can control what req.user looks like after the OAuth
 // exchange, without needing a real Google authorization code.
 // ---------------------------------------------------------------------------
+
+enableGoogle();
 
 type AuthenticateMiddleware = (req: Request, res: Response, next: NextFunction) => void;
 
@@ -18,14 +21,6 @@ const makePassportAuthenticateMock =
 
 let passportAuthenticateMock = makePassportAuthenticateMock({ id: "user-id-123" });
 
-const mockGenerateStubsForUser = jest.fn<(userId: string, db: unknown) => Promise<void>>().mockResolvedValue(undefined);
-
-jest.unstable_mockModule("../../lib/recurringStubs.js", () => ({
-  generateStubsForUser: mockGenerateStubsForUser,
-  generateStubsForTemplate: jest.fn<() => Promise<number>>().mockResolvedValue(0),
-  generationTarget: jest.fn(() => new Date()),
-}));
-
 jest.unstable_mockModule("passport", () => ({
   default: {
     use: jest.fn(),
@@ -36,41 +31,23 @@ jest.unstable_mockModule("passport", () => ({
   },
 }));
 
-const mockDbSelect = jest.fn();
-const mockDbInsert = jest.fn();
-const mockDbUpdate = jest.fn();
-const mockDbDelete = jest.fn();
-const mockDbTransaction = jest.fn(async (cb: (tx: unknown) => Promise<void>) => {
-  await cb({ select: mockDbSelect, insert: mockDbInsert, update: mockDbUpdate, delete: mockDbDelete });
-});
-
+const unreachable = () => {
+  throw new Error("the sign-in callback must not touch the database");
+};
 jest.unstable_mockModule("../../db/index.js", () => ({
-  db: {
-    select: mockDbSelect,
-    insert: mockDbInsert,
-    update: mockDbUpdate,
-    delete: mockDbDelete,
-    transaction: mockDbTransaction,
-  },
-}));
-
-jest.unstable_mockModule("../../lib/email.js", () => ({
-  sendPasswordResetEmail: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-  sendVaultInvitationEmail: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-}));
-
-jest.unstable_mockModule("bcrypt", () => ({
-  default: { hash: jest.fn(), compare: jest.fn() },
-  hash: jest.fn(),
-  compare: jest.fn(),
+  db: { select: unreachable, insert: unreachable, update: unreachable, delete: unreachable, transaction: unreachable },
 }));
 
 const { app } = await import("../../app.js");
+const { env } = await import("../../lib/env.js");
 const { signOAuthState } = await import("../../lib/jwt.js");
+const { redeemOneTimeCode } = await import("../../lib/oneTimeCodes.js");
+
+const COMPLETE = `${env.FRONTEND_URL}/api/auth/google/complete?code=`;
 
 /** The callback, from the browser that started the sign-in. */
-function signInCallback() {
-  const { state, nonce } = signOAuthState("google-sign-in", {});
+function signInCallback(bind: string) {
+  const { state, nonce } = signOAuthState("google-sign-in", { bind });
   return request(app)
     .get(`/api/v1/auth/google/callback?code=fake&state=${encodeURIComponent(state)}`)
     .set("Cookie", `google_sign_in_oauth=${nonce}`);
@@ -84,29 +61,33 @@ describe("GET /api/v1/auth/google/callback", () => {
   it("redirects to sign-in with error=google_email_taken when an email-only account tries Google login", async () => {
     passportAuthenticateMock = makePassportAuthenticateMock({ id: "", error: "email_taken" });
 
-    const res = await signInCallback();
+    const res = await signInCallback(browserNonce().bind);
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toContain("/auth/sign-in?error=google_email_taken");
+    expect(res.headers.location).toBe(`${env.FRONTEND_URL}/auth/sign-in?error=google_email_taken`);
   });
 
-  it("calls generateStubsForUser with the authenticated userId after issuing tokens", async () => {
-    const USER_ID = "user-id-abc";
-    passportAuthenticateMock = makePassportAuthenticateMock({ id: USER_ID });
-    mockGenerateStubsForUser.mockReset();
-    mockGenerateStubsForUser.mockResolvedValue(undefined);
+  it("redirects to sign-in with error=google_email_unverified when Google has not verified the address", async () => {
+    passportAuthenticateMock = makePassportAuthenticateMock({ id: "", error: "email_unverified" });
 
-    // issueTokens runs tx.delete().where() (expired cleanup) then tx.insert().values()
-    const deleteWhere = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    mockDbDelete.mockReturnValueOnce({ where: deleteWhere });
-    const insertValues = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    mockDbInsert.mockReturnValueOnce({ values: insertValues });
-
-    const res = await signInCallback();
+    const res = await signInCallback(browserNonce().bind);
 
     expect(res.status).toBe(302);
-    expect(res.headers.location).toContain("/auth/callback?accessToken=");
-    expect(mockGenerateStubsForUser).toHaveBeenCalledTimes(1);
-    expect(mockGenerateStubsForUser.mock.calls[0][0]).toBe(USER_ID);
+    expect(res.headers.location).toBe(`${env.FRONTEND_URL}/auth/sign-in?error=google_email_unverified`);
+  });
+
+  it("hands the web server a one-time code bound to the user and the bind, and no token", async () => {
+    const USER_ID = "user-id-abc";
+    passportAuthenticateMock = makePassportAuthenticateMock({ id: USER_ID });
+    const { bind } = browserNonce();
+
+    const res = await signInCallback(bind);
+
+    expect(res.status).toBe(302);
+    const location = res.headers.location as string;
+    expect(location.startsWith(COMPLETE)).toBe(true);
+    expect(location).not.toMatch(/token/i);
+    const code = decodeURIComponent(location.slice(COMPLETE.length));
+    expect(redeemOneTimeCode(code, "google-sign-in")).toEqual({ userId: USER_ID, bind });
   });
 });

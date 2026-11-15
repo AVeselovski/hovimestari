@@ -1,3 +1,5 @@
+import type { ErrorCode } from "@hovimestari/types";
+
 /**
  * AppError represents a known, intentional error whose message is safe to
  * send to the client. Throw this for validation errors, auth failures, 404s,
@@ -7,18 +9,63 @@
  * All other errors are treated as unexpected and return a generic 500 message.
  */
 export class AppError extends Error {
+  /** The stable code the web app renders its copy by. */
+  public readonly code?: ErrorCode;
+
   constructor(
     public override readonly message: string,
     public readonly status: number = 400,
     /**
-     * Optional `{ cause }` — attach the underlying error when an AppError is
-     * translating something lower-level (a driver error, a failed write). The
-     * error middleware only returns `message` to the client, so the cause is
-     * for logs and debuggers, never the response body.
+     * `code` is sent with the message. `cause` attaches the underlying error
+     * when an AppError is translating something lower-level (a driver error,
+     * a failed write). The error middleware never returns the cause to the
+     * client: it is for logs and debuggers.
      */
-    options?: ErrorOptions,
+    options: { code?: ErrorCode; cause?: unknown } = {},
   ) {
-    super(message, options);
+    super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "AppError";
+    this.code = options.code;
   }
 }
+
+/** The backend's fixed English text for each code, for API clients and logs. The web app shows its own copy. */
+export const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  invalid_email: "Enter a valid email address.",
+  password_too_short: "The password must be at least 8 characters.",
+  password_too_long: "The password must be at most 72 bytes.",
+  email_taken: "An account with this email already exists.",
+  email_taken_google: "An account with this email already exists. Sign in with Google to access it.",
+  invalid_credentials: "Invalid email or password.",
+  session_expired: "Your session has ended. Sign in again.",
+  google_unavailable: "Google sign-in is not available.",
+  google_failed: "Signing in with Google failed.",
+  google_email_taken: "An account with this email already exists. Sign in with your password.",
+  google_taken: "That Google account is already linked to another account.",
+  reset_link_invalid: "This password reset link is invalid or has expired.",
+  password_already_set: "This account already has a password.",
+  no_password: "This account has no password to change.",
+  last_sign_in_method: "You cannot remove your only way to sign in.",
+  invalid_method: "The method must be google or password.",
+  current_password_wrong: "The current password is incorrect.",
+  confirmation_mismatch: "That does not match this account.",
+  user_not_found: "This account no longer exists.",
+  login_rate_limited: "Too many sign-in attempts. Try again in 15 minutes.",
+  login_network_rate_limited: "Too many sign-in attempts from this network. Try again in 15 minutes.",
+  signup_rate_limited: "Too many sign-ups from this network. Try again later.",
+  reset_rate_limited: "Too many password reset requests. Try again later.",
+  password_rate_limited: "Too many attempts. Try again in 15 minutes.",
+  delete_rate_limited: "Too many attempts. Try again in 15 minutes.",
+  server_unreachable: "The server cannot be reached.",
+  client_address_missing: "A relayed request must name the client address.",
+  client_address_invalid: "The relayed client address is not an IP address.",
+  google_already_linked: "Google is already connected to this account.",
+  request_refused: "The request was refused.",
+  invalid_request: "The request is not valid.",
+  unauthorized: "Sign in to do this.",
+  google_email_unverified: "Google has not verified the email address of that Google account.",
+};
+
+/** An AppError for `code`, with the code's fixed message. */
+export const appError = (code: ErrorCode, status: number): AppError =>
+  new AppError(ERROR_MESSAGES[code], status, { code });

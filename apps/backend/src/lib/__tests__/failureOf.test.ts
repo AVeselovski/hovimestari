@@ -3,7 +3,7 @@ import { failureOf } from "../failureOf.js";
 
 // Shaped as node-postgres throws it: the refused row's values sit in `detail`.
 const refused = () =>
-  Object.assign(new Error('new row for relation "vault_drive_connections" violates check constraint "x_check"'), {
+  Object.assign(new Error('new row for relation "password_reset_tokens" violates check constraint "x_check"'), {
     code: "23514",
     constraint: "x_check",
     detail: "Failing row contains (ciphertext-secret, google-subject).",
@@ -41,7 +41,7 @@ describe("failureOf", () => {
       }
     }
     const wrapped = new FakeQueryError(
-      "insert into vault_drive_connections values ($1, $2)",
+      "insert into password_reset_tokens values ($1, $2)",
       ["param-secret", "google-subject"],
       refused(),
     );

@@ -104,23 +104,27 @@ describe("signOAuthState / verifyOAuthState", () => {
   });
 
   it("never passes for another purpose, even with the same fields", () => {
-    const fields = { userId: TEST_USER_ID, vaultId: "c3d4e5f6-a7b8-9012-cdef-123456789012" };
-    expect(verifyOAuthState("drive", signOAuthState("google-link", fields).state)).toBeNull();
-    expect(verifyOAuthState("google-link", signOAuthState("drive", fields).state)).toBeNull();
+    const fields = { userId: TEST_USER_ID, bind: "a".repeat(64) };
+    expect(verifyOAuthState("google-sign-in", signOAuthState("google-link", fields).state)).toBeNull();
+    expect(verifyOAuthState("google-link", signOAuthState("google-sign-in", fields).state)).toBeNull();
   });
 
   it("refuses a changed, added or removed field", () => {
-    const payload = decode(signOAuthState("drive", { userId: TEST_USER_ID, vaultId: "v1" }).state);
-    expect(verifyOAuthState("drive", encode({ ...payload, fields: { ...payload.fields, vaultId: "v2" } }))).toBeNull();
-    expect(verifyOAuthState("drive", encode({ ...payload, fields: { ...payload.fields, extra: "x" } }))).toBeNull();
-    expect(verifyOAuthState("drive", encode({ ...payload, fields: { userId: TEST_USER_ID } }))).toBeNull();
+    const payload = decode(signOAuthState("google-link", { userId: TEST_USER_ID, bind: "v1" }).state);
+    expect(
+      verifyOAuthState("google-link", encode({ ...payload, fields: { ...payload.fields, bind: "v2" } })),
+    ).toBeNull();
+    expect(
+      verifyOAuthState("google-link", encode({ ...payload, fields: { ...payload.fields, extra: "x" } })),
+    ).toBeNull();
+    expect(verifyOAuthState("google-link", encode({ ...payload, fields: { userId: TEST_USER_ID } }))).toBeNull();
   });
 
   it("does not let a field's text pose as a field boundary", () => {
     // Fields are signed as JSON, so "a:b" in one field is not "a" and "b" in two.
-    const joined = decode(signOAuthState("drive", { userId: `${TEST_USER_ID}:v1` }).state);
-    const split = encode({ ...joined, fields: { userId: TEST_USER_ID, vaultId: "v1" } });
-    expect(verifyOAuthState("drive", split)).toBeNull();
+    const joined = decode(signOAuthState("google-link", { userId: `${TEST_USER_ID}:v1` }).state);
+    const split = encode({ ...joined, fields: { userId: TEST_USER_ID, bind: "v1" } });
+    expect(verifyOAuthState("google-link", split)).toBeNull();
   });
 
   it("refuses an expiry pushed out", () => {

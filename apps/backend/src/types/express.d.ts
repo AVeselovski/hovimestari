@@ -3,6 +3,7 @@ declare namespace Express {
     id: string;
   }
   interface Request {
-    vaultMember?: { vaultId: string; userId: string; role: "owner" | "member" };
+    /** Set by requireBff on a call the web server relayed: the browser's address, when it named one. */
+    relay?: { clientIp?: string };
   }
 }

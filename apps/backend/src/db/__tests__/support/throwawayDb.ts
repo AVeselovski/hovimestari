@@ -1,12 +1,15 @@
+import { afterAll, beforeAll, describe } from "@jest/globals";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import pg from "pg";
+import { DEFAULT_TEST_DATABASE_URL } from "../../../__tests__/support/testDatabase.js";
 
-// Shared scaffold for the migration tests that run on real Postgres: a
-// throwaway database, migrated up to a given migration from a temp folder,
-// then by the real folder for the rest. The user of DATABASE_URL must be
-// allowed to CREATE DATABASE (CI's service container is one).
+// Shared scaffold for the suites that run on real Postgres: a throwaway
+// database next to the one TEST_DATABASE_URL names, migrated, and dropped at
+// the end. The user of TEST_DATABASE_URL must be allowed to CREATE DATABASE
+// (CI's service container and the agent container's Postgres both are). The
+// URL carries no password: those servers use trust authentication.
 
 export const MIGRATIONS = path.resolve("drizzle/migrations");
 
@@ -18,6 +21,11 @@ export const journal = JSON.parse(readFileSync(path.join(MIGRATIONS, "meta/_jour
 /** The SQL of one migration file in the real folder. */
 export function readMigration(tag: string): string {
   return readFileSync(path.join(MIGRATIONS, `${tag}.sql`), "utf8");
+}
+
+/** The server the throwaway databases are made on. */
+export function testDatabaseUrl(): string {
+  return process.env.TEST_DATABASE_URL || DEFAULT_TEST_DATABASE_URL;
 }
 
 async function reachable(url: string | undefined): Promise<boolean> {
@@ -34,14 +42,17 @@ async function reachable(url: string | undefined): Promise<boolean> {
 }
 
 /**
- * Whether a real-database suite runs. In CI it runs whenever DATABASE_URL is
- * set, so an unreachable database fails loudly. Locally it is skipped, with a
- * warning naming `label`, when the URL is unset or unreachable.
+ * Whether a real-database suite runs. In CI it always runs, so an unreachable
+ * database fails loudly. Locally it is skipped, with a warning naming
+ * `label`, when the server is unreachable.
  */
 export async function realDatabaseAvailable(label: string): Promise<boolean> {
-  const url = process.env.DATABASE_URL;
-  const run = process.env.CI ? Boolean(url) : await reachable(url);
-  if (!run) console.warn(`[${label}] skipped: DATABASE_URL is unset or the database is unreachable.`);
+  const run = process.env.CI ? true : await reachable(testDatabaseUrl());
+  if (!run) {
+    console.warn(
+      `[${label}] SKIPPED: no Postgres at ${testDatabaseUrl()}. Start one (pnpm db:up) or set TEST_DATABASE_URL.`,
+    );
+  }
   return run;
 }
 
@@ -85,6 +96,8 @@ export async function dropDatabase(admin: pg.Client, dbName: string): Promise<vo
 
 export interface ThrowawayDb {
   client: pg.Client;
+  /** The database's connection URL. */
+  url: string;
   /** Applies every migration whose idx is below `idx`, from a temp folder holding only those. */
   migrateBefore(idx: number): Promise<void>;
   /** Applies the rest from the real folder. */
@@ -93,9 +106,9 @@ export interface ThrowawayDb {
   drop(): Promise<void>;
 }
 
-/** Creates database `dbName` next to the one DATABASE_URL names and connects to it. */
+/** Creates database `dbName` next to the one TEST_DATABASE_URL names and connects to it. */
 export async function createThrowawayDb(dbName: string): Promise<ThrowawayDb> {
-  const baseUrl = process.env.DATABASE_URL!;
+  const baseUrl = testDatabaseUrl();
   const admin = new pg.Client({ connectionString: baseUrl });
   await admin.connect();
   const url = new URL(baseUrl);
@@ -119,6 +132,7 @@ export async function createThrowawayDb(dbName: string): Promise<ThrowawayDb> {
 
   return {
     client,
+    url: url.toString(),
     async migrateBefore(idx) {
       partialFolder = mkdtempSync(path.join(tmpdir(), `migrations-before-${idx}-`));
       mkdirSync(path.join(partialFolder, "meta"));
@@ -139,4 +153,49 @@ export async function createThrowawayDb(dbName: string): Promise<ThrowawayDb> {
       await admin.end();
     },
   };
+}
+
+/** What a real-database suite gets: the app and the database, imported after its throwaway database exists. */
+export interface DbSuite {
+  app: typeof import("../../../app.js").app;
+  db: typeof import("../../index.js").db;
+  pool: typeof import("../../index.js").pool;
+  /** A direct connection to the suite's database, for checks the app's pool should not make. */
+  client: pg.Client;
+  url: string;
+}
+
+/**
+ * A describe block on its own fully migrated throwaway database. The app's
+ * pool is built from DATABASE_URL when db/index.ts is first imported, so this
+ * creates the database in `beforeAll`, points DATABASE_URL at it, and only
+ * then imports the app and the database for the suite. A suite file must not
+ * import either statically. Each test file has its own module registry, so
+ * suites never share a pool. `afterAll` ends the pool, then drops the
+ * database. Skipped with a loud warning when no Postgres answers, except in
+ * CI, where it fails.
+ */
+export async function describeWithDb(label: string, body: (suite: DbSuite) => void): Promise<void> {
+  const run = await realDatabaseAvailable(label);
+  (run ? describe : describe.skip)(label, () => {
+    const suite = {} as DbSuite;
+    let throwaway: ThrowawayDb | undefined;
+
+    beforeAll(async () => {
+      const dbName = `hovi_${label.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${process.pid}_${Date.now()}`;
+      throwaway = await createThrowawayDb(dbName);
+      await throwaway.migrateAll();
+      process.env.DATABASE_URL = throwaway.url;
+      const { app } = await import("../../../app.js");
+      const { db, pool } = await import("../../index.js");
+      Object.assign(suite, { app, db, pool, client: throwaway.client, url: throwaway.url });
+    });
+
+    afterAll(async () => {
+      await suite.pool?.end();
+      await throwaway?.drop();
+    });
+
+    body(suite);
+  });
 }

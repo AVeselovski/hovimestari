@@ -21,12 +21,12 @@ export const pool = new pg.Pool({
   // parameters. That is fine through Fly Postgres today. PgBouncer (and so
   // Fly Managed Postgres) refuses unknown startup parameters, so before any
   // move behind it these must become `ALTER ROLE ... SET` on the database
-  // and be removed from here. Tracked in TODO.md.
+  // and be removed from here. docs/setup/fly-backend.md says so too.
   statement_timeout: 8_000,
   query_timeout: 9_000,
   lock_timeout: 3_000,
   idle_in_transaction_session_timeout: 10_000,
-  application_name: "finanssiappis-backend",
+  application_name: "hovimestari-backend",
   // TCP keepalive so idle sockets silently dropped by intermediary proxies on
   // the internal network are detected instead of lingering as dead clients.
   keepAlive: true,

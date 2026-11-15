@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { app } from "./app.js";
+import { pool } from "./db/index.js";
 import { env } from "./lib/env.js";
 import { installLastResortHandlers } from "./lib/lastResort.js";
 import { startRuntimeStatsLog } from "./lib/runtimeStats.js";
+import { installGracefulShutdown } from "./lib/shutdown.js";
 
 installLastResortHandlers();
 
@@ -17,3 +19,5 @@ server.keepAliveTimeout = 76_000;
 server.headersTimeout = 77_000;
 
 startRuntimeStatsLog();
+
+installGracefulShutdown(server, () => pool.end());

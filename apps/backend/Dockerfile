@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 #
-# Multi-stage Dockerfile for @finanssiappis/backend.
+# Multi-stage Dockerfile for @hovimestari/backend.
 #
 # Build context: MONOREPO ROOT (not apps/backend/). Build with:
-#   docker build -f apps/backend/Dockerfile -t fa-backend .
+#   docker build -f apps/backend/Dockerfile -t hovimestari-backend .
 # Fly invokes this the same way via `dockerfile = "../../apps/backend/Dockerfile"`
 # in apps/backend/fly.toml (that path is relative to fly.toml's own directory,
 # not the build context) when `flyctl deploy` is run from the repo root.
@@ -11,8 +11,8 @@
 # Stages:
 #   1. deps    — install ALL deps (including devDeps) with the workspace
 #                lockfile so the build stage can run TypeScript.
-#   2. build   — copy source and emit JS for @finanssiappis/types and
-#                @finanssiappis/backend (ESM, NodeNext, .js specifiers).
+#   2. build   — copy source and emit JS for @hovimestari/types and
+#                @hovimestari/backend (ESM, NodeNext, .js specifiers).
 #   3. prod-deps — fresh `install --prod` (not `pnpm prune`, which was
 #                observed to empty each workspace's node_modules/ entirely
 #                instead of just dropping devDeps) so only production deps
@@ -35,8 +35,8 @@ WORKDIR /repo
 COPY tsconfig.base.json ./
 COPY packages/types packages/types
 COPY apps/backend apps/backend
-RUN pnpm --filter @finanssiappis/types build \
- && pnpm --filter @finanssiappis/backend build
+RUN pnpm --filter @hovimestari/types build \
+ && pnpm --filter @hovimestari/backend build
 # After this: /repo/apps/backend/dist contains the emitted ESM .js files.
 
 # ---- Stage 3: prod-deps ----
@@ -58,7 +58,7 @@ ENV NODE_ENV=production
 
 # Production node_modules and workspace deps (kept hoisted by pnpm).
 # packages/types/node_modules holds the symlink to its runtime dep (zod);
-# without it, @finanssiappis/types fails to resolve zod at runtime.
+# without it, @hovimestari/types fails to resolve zod at runtime.
 COPY --from=prod-deps  --chown=app:app /repo/node_modules                       ./node_modules
 COPY --from=prod-deps  --chown=app:app /repo/apps/backend/node_modules          ./apps/backend/node_modules
 COPY --from=prod-deps  --chown=app:app /repo/packages/types/node_modules        ./packages/types/node_modules

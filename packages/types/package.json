@@ -1,5 +1,5 @@
 {
-  "name": "@finanssiappis/types",
+  "name": "@hovimestari/types",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,22 +9,23 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./fixtures": {
-      "import": "./dist/fixtures/index.js",
-      "types": "./dist/fixtures/index.d.ts"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules\" jest"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.15",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   }
 }

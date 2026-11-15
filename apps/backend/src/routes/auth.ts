@@ -5,490 +5,239 @@ import {
   RefreshBodySchema,
   RegisterBodySchema,
   ResetPasswordBodySchema,
-} from "@finanssiappis/types";
-import bcrypt from "bcrypt";
+} from "@hovimestari/types";
 import { randomBytes } from "crypto";
-import { and, eq, lt } from "drizzle-orm";
-import { Router, type Router as IRouter, type RequestHandler } from "express";
-import passport from "passport";
+import { and, eq, isNull, lt } from "drizzle-orm";
+import { Router, type Router as IRouter } from "express";
 import { db } from "../db/index.js";
 import { passwordResetTokens, refreshTokens, users } from "../db/schema/index.js";
-import { revokeUserAccessTokens } from "../lib/accessTokens.js";
 import { sendPasswordResetEmail } from "../lib/email.js";
 import { env } from "../lib/env.js";
-import { AppError } from "../lib/errors.js";
+import { appError } from "../lib/errors.js";
 import { failureOf } from "../lib/failureOf.js";
-import {
-  hashToken,
-  OAUTH_STATE_TTL_MS,
-  signAccessToken,
-  signOAuthState,
-  signRefreshToken,
-  verifyOAuthState,
-  verifyRefreshToken,
-  type OAuthStatePurpose,
-} from "../lib/jwt.js";
-import { issueNavigationTicket } from "../lib/navigationTickets.js";
-import { cookieValue, nonceMatches, stateCookieOptions } from "../lib/oauthStateCookie.js";
-import { generateStubsForUser } from "../lib/recurringStubs.js";
+import { googleEnabled } from "../lib/google.js";
+import { hashToken, verifyRefreshToken } from "../lib/jwt.js";
+import { parseBody } from "../lib/parseBody.js";
+import { hashPassword, passwordMatches } from "../lib/passwords.js";
+import { isCheckViolation, isUniqueViolation } from "../lib/pgErrors.js";
+import { endAllSessions, issueSession, meOf } from "../lib/sessions.js";
+import { findUser } from "../lib/users.js";
 import { authenticate } from "../middleware/authenticate.js";
-import { authenticateNavigation } from "../middleware/authenticateNavigation.js";
 import {
   forgotPasswordRateLimit,
   loginAddressRateLimit,
   loginRateLimit,
   registerRateLimit,
 } from "../middleware/authRateLimits.js";
+import { requireBff } from "../middleware/requireBff.js";
+import { googleRouter } from "./authGoogle.js";
 
 export const authRouter: IRouter = Router();
 
-/**
- * Parse an expiry string like "7d", "15m", "1h" to milliseconds.
- */
-function parseExpiryMs(expiry: string): number {
-  const match = /^(\d+)([smhd])$/.exec(expiry);
-  if (!match) throw new Error(`Invalid expiry format: ${expiry}`);
-  const value = parseInt(match[1], 10);
-  switch (match[2]) {
-    case "s":
-      return value * 1000;
-    case "m":
-      return value * 60 * 1000;
-    case "h":
-      return value * 60 * 60 * 1000;
-    case "d":
-      return value * 24 * 60 * 60 * 1000;
-    default:
-      throw new Error(`Unknown expiry unit: ${match[2]}`);
-  }
-}
+/** How long a password reset link works. */
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
-async function issueTokens(
-  userId: string,
-  consumedTokenHash?: string,
-): Promise<{ accessToken: string; refreshToken: string }> {
-  const accessToken = signAccessToken({ sub: userId });
-  const refreshToken = signRefreshToken({ sub: userId });
-  const newTokenHash = hashToken(refreshToken);
-  const expiresAt = new Date(Date.now() + parseExpiryMs(env.JWT_REFRESH_EXPIRES_IN));
+const FORGOT_PASSWORD_ANSWER = { message: "If an account exists, a reset email has been sent." };
 
-  // All token mutations are in a single transaction so that a concurrent refresh
-  // with the same token cannot race:
-  //   1. Delete the consumed token (if any) atomically with the new insert so
-  //      two simultaneous refreshes cannot both proceed past the deletion and
-  //      each issue a new token pair.
-  //   2. Clean up any other expired tokens for this user to prevent unbounded
-  //      row accumulation.
-  //   3. Insert the new refresh token.
-  await db.transaction(async (tx) => {
-    if (consumedTokenHash) {
-      await tx.delete(refreshTokens).where(eq(refreshTokens.tokenHash, consumedTokenHash));
-    }
-
-    await tx
-      .delete(refreshTokens)
-      .where(and(eq(refreshTokens.userId, userId), lt(refreshTokens.expiresAt, new Date())));
-
-    await tx.insert(refreshTokens).values({
-      userId,
-      tokenHash: newTokenHash,
-      expiresAt,
-    });
-  });
-
-  return { accessToken, refreshToken };
-}
-
-// POST /register
-authRouter.post("/register", registerRateLimit, async (req, res) => {
-  const body = RegisterBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
-
-  const { email, password, displayName } = body.data;
+// POST /register. Relayed by the web server only: it answers a refresh token.
+authRouter.post("/register", requireBff, registerRateLimit, async (req, res) => {
+  const { email, password } = parseBody(RegisterBodySchema, req.body);
 
   const existing = await db
-    .select({ id: users.id, googleId: users.googleId, passwordHash: users.passwordHash })
+    .select({ googleId: users.googleId, passwordHash: users.passwordHash })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
-
   if (existing.length > 0) {
-    if (existing[0].googleId && !existing[0].passwordHash) {
-      throw new AppError("An account with this email already exists. Sign in with Google to access it.", 409);
-    }
-    throw new AppError("An account with this email already exists.", 409);
+    throw appError(existing[0].googleId && !existing[0].passwordHash ? "email_taken_google" : "email_taken", 409);
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  const inserted = await db.insert(users).values({ email, displayName, passwordHash }).returning({ id: users.id });
-
-  const tokens = await issueTokens(inserted[0].id);
-  res.status(201).json(tokens);
-});
-
-// POST /login
-authRouter.post("/login", loginAddressRateLimit, loginRateLimit, async (req, res) => {
-  const body = LoginBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
-
-  const { email, password } = body.data;
-
-  const found = await db.select().from(users).where(eq(users.email, email)).limit(1);
-
-  if (found.length === 0 || !found[0].passwordHash) {
-    throw new AppError("Invalid email or password.", 401);
-  }
-
-  const valid = await bcrypt.compare(password, found[0].passwordHash);
-  if (!valid) {
-    throw new AppError("Invalid email or password.", 401);
-  }
-
-  const tokens = await issueTokens(found[0].id);
-
-  // Lazy-on-login stub generation (FR-REC-03). Awaited so stubs are visible to
-  // the very next request from this session; swallowed so a generator failure
-  // never blocks login.
+  const passwordHash = await hashPassword(password);
+  let user;
   try {
-    await generateStubsForUser(found[0].id, db);
+    [user] = await db.insert(users).values({ email, passwordHash }).returning();
   } catch (err) {
-    console.error("generateStubsForUser failed", { userId: found[0].id, failure: failureOf(err) });
+    // A sign-up for the same address that won the race.
+    if (isUniqueViolation(err, "users_email_unique")) throw appError("email_taken", 409);
+    throw err;
   }
 
-  res.status(200).json(tokens);
+  res.status(201).json(await issueSession(user));
 });
 
-// POST /refresh
-authRouter.post("/refresh", async (req, res) => {
-  const body = RefreshBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
+// POST /login. Relayed by the web server only.
+authRouter.post("/login", requireBff, loginAddressRateLimit, loginRateLimit, async (req, res) => {
+  const { email, password } = parseBody(LoginBodySchema, req.body);
 
-  const { refreshToken } = body.data;
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  // Compared even when there is no account or no password, so the timing tells nothing.
+  const matches = await passwordMatches(password, user?.passwordHash);
+  if (!user || !matches) throw appError("invalid_credentials", 401);
+
+  res.status(200).json(await issueSession(user));
+});
+
+// POST /refresh. Relayed by the web server only: the refresh token lives in its cookie.
+authRouter.post("/refresh", requireBff, async (req, res) => {
+  const { refreshToken } = parseBody(RefreshBodySchema, req.body);
 
   let payload: { sub: string };
   try {
     payload = verifyRefreshToken(refreshToken);
   } catch {
-    throw new AppError("Invalid or expired refresh token.", 401);
+    throw appError("session_expired", 401);
   }
 
   const tokenHash = hashToken(refreshToken);
-  const found = await db.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash)).limit(1);
-
-  if (found.length === 0) {
-    throw new AppError("Invalid or expired refresh token.", 401);
-  }
-
-  if (found[0].expiresAt < new Date()) {
+  const [row] = await db.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash)).limit(1);
+  if (!row || row.userId !== payload.sub) throw appError("session_expired", 401);
+  if (row.expiresAt < new Date()) {
     await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash));
-    throw new AppError("Invalid or expired refresh token.", 401);
+    throw appError("session_expired", 401);
   }
 
-  const tokens = await issueTokens(payload.sub, tokenHash);
+  const user = await findUser(row.userId);
+  if (!user) throw appError("session_expired", 401);
 
-  // Refresh is also a "user just got a new access token" moment — refresh-only
-  // long-lived sessions still need stub generation to stay current (FR-REC-03).
-  try {
-    await generateStubsForUser(payload.sub, db);
-  } catch (err) {
-    console.error("generateStubsForUser failed", { userId: payload.sub, failure: failureOf(err) });
-  }
-
-  res.status(200).json(tokens);
+  res.status(200).json(await issueSession(user, tokenHash));
 });
 
-// POST /logout
-authRouter.post("/logout", authenticate, async (req, res) => {
-  const body = RefreshBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
-
-  const { refreshToken } = body.data;
-  const tokenHash = hashToken(refreshToken);
-  // Scope the delete to the authenticated user so a valid access token
-  // cannot be used to revoke another user's refresh token.
-  await db
-    .delete(refreshTokens)
-    .where(and(eq(refreshTokens.tokenHash, tokenHash), eq(refreshTokens.userId, req.user!.id)));
+// POST /logout. Relayed by the web server, which holds the token: whoever presents it may end it.
+authRouter.post("/logout", requireBff, async (req, res) => {
+  const { refreshToken } = parseBody(RefreshBodySchema, req.body);
+  await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, hashToken(refreshToken)));
   res.status(204).send();
 });
 
-/**
- * What a failed Google callback logs: the OAuth error code when Google gave
- * one (`invalid_client`, `invalid_grant`), else the failure's stack.
- */
-function oauthFailureOf(err: unknown): string {
-  const code = err instanceof Error ? (err as { code?: unknown }).code : undefined;
-  return typeof code === "string" ? `${(err as Error).name} ${code}` : failureOf(err);
-}
-
-/**
- * Passport finishing a Google consent. It redirects a declined consent to
- * `failure` itself, but hands any other error, such as a code exchange Google
- * refuses, to `next`. This sends those to `failure` too, so every failure
- * lands on the flow's page in the web app and never on the API's JSON 500.
- */
-const finishGoogleConsent =
-  (strategy: "google" | "google-link", failure: string): RequestHandler =>
-  (req, res, next) => {
-    const handler = passport.authenticate(strategy, { session: false, failureRedirect: failure });
-    handler(req, res, (err?: unknown) => {
-      if (!err) return next();
-      console.error(`[auth] ${strategy} callback failed: ${oauthFailureOf(err)}`);
-      res.redirect(failure);
-    });
-  };
-
-/**
- * A Google callback's check that the consent started in this browser: the
- * signed state is the flow's own, and the browser's state cookie holds its
- * nonce. Otherwise Google's code is never exchanged and the flow fails. The
- * cookie has served either way, so it is cleared on every outcome.
- */
-const requireOwnState =
-  (purpose: OAuthStatePurpose, cookieName: string, cookiePath: string, failure: string): RequestHandler =>
-  (req, res, next) => {
-    const state = verifyOAuthState(purpose, typeof req.query.state === "string" ? req.query.state : "");
-    const cookie = cookieValue(req.headers.cookie, cookieName);
-    res.clearCookie(cookieName, stateCookieOptions(cookiePath));
-    if (!state || !nonceMatches(state.nonce, cookie)) {
-      res.redirect(failure);
-      return;
-    }
-    next();
-  };
-
-// Signing in with Google. The start signs a state and sets its nonce in a
-// cookie only the callback receives, as the link flow below does, so a
-// callback URL from someone else's consent cannot sign this browser into
-// their account.
-const SIGN_IN_STATE_COOKIE = "google_sign_in_oauth";
-const SIGN_IN_CALLBACK_PATH = "/api/v1/auth/google/callback";
-const GOOGLE_SIGN_IN_FAILED = `${env.FRONTEND_URL}/auth/sign-in?error=oauth_failed`;
-
-// GET /google
-authRouter.get("/google", (req, res, next) => {
-  const { state, nonce } = signOAuthState("google-sign-in", {});
-  res.cookie(SIGN_IN_STATE_COOKIE, nonce, { ...stateCookieOptions(SIGN_IN_CALLBACK_PATH), maxAge: OAUTH_STATE_TTL_MS });
-  passport.authenticate("google", { scope: ["profile", "email"], state, session: false })(req, res, next);
+// POST /logout-all. Ends every session of the user. Other devices stop at their next refresh.
+authRouter.post("/logout-all", authenticate, async (req, res) => {
+  await endAllSessions(db, req.user!.id);
+  res.status(204).send();
 });
 
-// GET /google/callback
-authRouter.get(
-  "/google/callback",
-  requireOwnState("google-sign-in", SIGN_IN_STATE_COOKIE, SIGN_IN_CALLBACK_PATH, GOOGLE_SIGN_IN_FAILED),
-  finishGoogleConsent("google", GOOGLE_SIGN_IN_FAILED),
-  async (req, res) => {
-    const user = req.user as Express.User & { error?: string };
-    if (user.error === "email_taken") {
-      res.redirect(`${env.FRONTEND_URL}/auth/sign-in?error=google_email_taken`);
-      return;
-    }
-    const tokens = await issueTokens(user.id);
+// GET /providers. Whether the web app shows "Continue with Google".
+authRouter.get("/providers", (_req, res) => {
+  res.status(200).json({ google: googleEnabled() });
+});
 
-    // Lazy-on-login stub generation (FR-REC-03).
-    try {
-      await generateStubsForUser(user.id, db);
-    } catch (err) {
-      console.error("generateStubsForUser failed", { userId: user.id, failure: failureOf(err) });
-    }
+authRouter.use(googleRouter);
 
-    res.redirect(
-      `${env.FRONTEND_URL}/auth/callback?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`,
-    );
-  },
-);
-
-// POST /forgot-password
+// POST /forgot-password. The answer is the same whether or not the address has an account.
 authRouter.post("/forgot-password", forgotPasswordRateLimit, async (req, res) => {
-  const body = ForgotPasswordBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
+  const { email } = parseBody(ForgotPasswordBodySchema, req.body);
 
-  const { email } = body.data;
-
-  const found = await db.select().from(users).where(eq(users.email, email)).limit(1);
-
-  // Silently ignore if not found or no passwordHash
-  if (found.length === 0 || !found[0].passwordHash) {
-    res.status(200).json({ message: "If an account exists, a reset email has been sent." });
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!user?.passwordHash) {
+    res.status(200).json(FORGOT_PASSWORD_ANSWER);
     return;
   }
 
-  const rawToken = randomBytes(16).toString("hex");
-  const tokenHash = hashToken(rawToken);
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-  await db.insert(passwordResetTokens).values({
-    userId: found[0].id,
-    tokenHash,
-    expiresAt,
+  // Answered before the token is stored and the mail is sent, so an address
+  // with an account answers as fast as one without. A failure is logged, and
+  // never reaches the caller.
+  res.status(200).json(FORGOT_PASSWORD_ANSWER);
+  void sendResetLink(user.id, email).catch((err: unknown) => {
+    console.error("[auth] password reset mail failed:", failureOf(err));
   });
-
-  const resetLink = `${env.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
-  await sendPasswordResetEmail(email, resetLink);
-
-  res.status(200).json({ message: "If an account exists, a reset email has been sent." });
 });
 
-// POST /reset-password
-authRouter.post("/reset-password", async (req, res) => {
-  const body = ResetPasswordBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
+/** Stores a new reset link for the user, sweeping their expired ones, and mails it. */
+async function sendResetLink(userId: string, email: string): Promise<void> {
+  const rawToken = randomBytes(32).toString("hex");
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(passwordResetTokens)
+      .where(and(eq(passwordResetTokens.userId, userId), lt(passwordResetTokens.expiresAt, new Date())));
+    await tx.insert(passwordResetTokens).values({
+      userId,
+      tokenHash: hashToken(rawToken),
+      expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    });
+  });
+  await sendPasswordResetEmail(email, `${env.FRONTEND_URL}/auth/reset-password?token=${rawToken}`);
+}
 
-  const { token, newPassword } = body.data;
+// POST /reset-password. Sets the password and ends every session.
+authRouter.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = parseBody(ResetPasswordBodySchema, req.body);
   const tokenHash = hashToken(token);
 
-  const found = await db
+  const [found] = await db
     .select()
     .from(passwordResetTokens)
     .where(eq(passwordResetTokens.tokenHash, tokenHash))
     .limit(1);
-
-  if (found.length === 0) {
-    throw new AppError("Invalid or expired reset token.", 400);
-  }
-
-  if (found[0].expiresAt < new Date()) {
+  if (!found) throw appError("reset_link_invalid", 400);
+  if (found.expiresAt < new Date()) {
     await db.delete(passwordResetTokens).where(eq(passwordResetTokens.tokenHash, tokenHash));
-    throw new AppError("Invalid or expired reset token.", 400);
+    throw appError("reset_link_invalid", 400);
   }
 
-  const userId = found[0].userId;
-  const passwordHash = await bcrypt.hash(newPassword, 12);
-
-  // A reset is a password change: it also ends every session and revokes every
-  // AI connection the user made, in one transaction with the new password.
+  const passwordHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
-    await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
-    await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.tokenHash, tokenHash));
-    await tx.delete(refreshTokens).where(eq(refreshTokens.userId, userId));
-    await revokeUserAccessTokens(tx, userId);
+    // Spending the link and setting the password are one step: a second use racing this one finds no row.
+    const spent = await tx
+      .delete(passwordResetTokens)
+      .where(eq(passwordResetTokens.tokenHash, tokenHash))
+      .returning({ id: passwordResetTokens.id });
+    if (spent.length === 0) throw appError("reset_link_invalid", 400);
+    await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, found.userId));
+    await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, found.userId));
+    await endAllSessions(tx, found.userId);
   });
 
-  res.status(200).json({ message: "Password reset successfully." });
+  res.status(204).send();
 });
 
-// POST /link/password — add password to a Google-only account (FR-AUTH-04c)
+// POST /link/password. Adds a password to a Google-only account.
 authRouter.post("/link/password", authenticate, async (req, res) => {
-  const body = LinkPasswordBodySchema.safeParse(req.body);
-  if (!body.success) {
-    throw new AppError(body.error.errors[0].message, 400);
-  }
-
+  const { password } = parseBody(LinkPasswordBodySchema, req.body);
   const userId = req.user!.id;
-  const found = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (found.length === 0) throw new AppError("User not found.", 404);
-  if (found[0].passwordHash) throw new AppError("Password already set.", 409);
 
-  const passwordHash = await bcrypt.hash(body.data.password, 12);
-  await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
+  const user = await findUser(userId);
+  if (!user) throw appError("user_not_found", 404);
+  if (user.passwordHash) throw appError("password_already_set", 409);
 
-  const updated = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  const u = updated[0];
-  res.status(200).json({
-    id: u.id,
-    email: u.email,
-    displayName: u.displayName,
-    hasPassword: !!u.passwordHash,
-    hasGoogle: !!u.googleId,
-  });
+  const passwordHash = await hashPassword(password);
+  const [updated] = await db
+    .update(users)
+    .set({ passwordHash, updatedAt: new Date() })
+    .where(and(eq(users.id, userId), isNull(users.passwordHash)))
+    .returning();
+  if (!updated) throw appError("password_already_set", 409);
+
+  res.status(200).json(meOf(updated));
 });
 
-// ---------------------------------------------------------------------------
-// Linking Google (FR-AUTH-04c). Starting the consent is a page navigation,
-// which cannot carry an Authorization header, so the page first asks
-// POST /link/google/ticket for a navigation ticket and navigates with it.
-// The user id rides in the signed state, and the state's nonce goes to this
-// browser in a cookie only the callback receives. The callback refuses a state
-// without it, so a consent URL sent to someone else's browser links nothing.
-// ---------------------------------------------------------------------------
-
-const LINK_STATE_COOKIE = "google_link_oauth";
-const LINK_CALLBACK_PATH = "/api/v1/auth/link/google/callback";
-const LINK_FAILED = `${env.FRONTEND_URL}/auth/link-callback?error=google_failed`;
-
-// POST /link/google/ticket: a ticket for one GET /link/google, for a minute.
-authRouter.post("/link/google/ticket", authenticate, (req, res) => {
-  res.set("Cache-Control", "no-store");
-  res.status(200).json({ ticket: issueNavigationTicket(req.user!.id, "google-link") });
-});
-
-// GET /link/google?ticket=: Google's consent, for the ticket's user.
-authRouter.get("/link/google", authenticateNavigation("google-link"), (req, res, next) => {
-  const { state, nonce } = signOAuthState("google-link", { userId: req.user!.id });
-  res.cookie(LINK_STATE_COOKIE, nonce, { ...stateCookieOptions(LINK_CALLBACK_PATH), maxAge: OAUTH_STATE_TTL_MS });
-  const handler = passport.authenticate("google-link", {
-    scope: ["profile", "email"],
-    state,
-    session: false,
-  });
-  handler(req, res, next);
-});
-
-// GET /link/google/callback
-authRouter.get(
-  "/link/google/callback",
-  // Another browser's consent: Google's code is never exchanged, nothing is linked.
-  requireOwnState("google-link", LINK_STATE_COOKIE, LINK_CALLBACK_PATH, LINK_FAILED),
-  finishGoogleConsent("google-link", LINK_FAILED),
-  (req, res) => {
-    const user = req.user as { id: string; error?: string };
-    if (user.error === "google_taken") {
-      res.redirect(`${env.FRONTEND_URL}/auth/link-callback?error=google_taken`);
-      return;
-    }
-    // A user who is gone, or a state that stopped verifying: nothing was linked.
-    if (user.error) {
-      res.redirect(LINK_FAILED);
-      return;
-    }
-    res.redirect(`${env.FRONTEND_URL}/auth/link-callback?linked=google`);
-  },
-);
-
-// DELETE /unlink/:method — remove google_id or password_hash (FR-AUTH-04c)
+// DELETE /unlink/:method. Removes Google or the password, never the last way in.
 authRouter.delete("/unlink/:method", authenticate, async (req, res) => {
-  const method = req.params.method as string;
-  if (method !== "google" && method !== "password") {
-    throw new AppError("Invalid method. Use 'google' or 'password'.", 400);
-  }
-
+  const method = req.params.method;
+  if (method !== "google" && method !== "password") throw appError("invalid_method", 400);
   const userId = req.user!.id;
-  const found = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (found.length === 0) throw new AppError("User not found.", 404);
 
-  const { passwordHash, googleId } = found[0];
-  const wouldHavePassword = method === "password" ? null : passwordHash;
-  const wouldHaveGoogle = method === "google" ? null : googleId;
+  const user = await findUser(userId);
+  if (!user) throw appError("user_not_found", 404);
+  const keepsPassword = method === "password" ? false : user.passwordHash !== null;
+  const keepsGoogle = method === "google" ? false : user.googleId !== null;
+  if (!keepsPassword && !keepsGoogle) throw appError("last_sign_in_method", 400);
 
-  if (!wouldHavePassword && !wouldHaveGoogle) {
-    throw new AppError("Cannot remove your only sign-in method.", 400);
+  let updated;
+  try {
+    [updated] = await db
+      .update(users)
+      .set(
+        method === "password"
+          ? { passwordHash: null, updatedAt: new Date() }
+          : { googleId: null, updatedAt: new Date() },
+      )
+      .where(eq(users.id, userId))
+      .returning();
+  } catch (err) {
+    // Another request removed the other method in the meantime: the database refuses to leave no way in.
+    if (isCheckViolation(err, "users_has_sign_in_method")) throw appError("last_sign_in_method", 400);
+    throw err;
   }
+  if (!updated) throw appError("user_not_found", 404);
 
-  const updates: { passwordHash?: null; googleId?: null; updatedAt: Date } = { updatedAt: new Date() };
-  if (method === "password") updates.passwordHash = null;
-  if (method === "google") updates.googleId = null;
-
-  await db.update(users).set(updates).where(eq(users.id, userId));
-
-  const updated = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  const u = updated[0];
-  res.status(200).json({
-    id: u.id,
-    email: u.email,
-    displayName: u.displayName,
-    hasPassword: !!u.passwordHash,
-    hasGoogle: !!u.googleId,
-  });
+  res.status(200).json(meOf(updated));
 });

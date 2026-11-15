@@ -19,7 +19,7 @@ interface PgFields {
  *
  * The answer is one string: the stack (or "<name>: <message>" without one),
  * then " code=<code>" and " constraint=<constraint>" when the error has them,
- * so a unique violation ends "... code=23505 constraint=payees_vault_id_name_unique".
+ * so a unique violation ends "... code=23505 constraint=users_email_unique".
  * A thrown value that is not an Error is named, never printed. Pass the answer
  * as its own `console.error` argument, or as a `failure` field beside the ids
  * that locate the failure.

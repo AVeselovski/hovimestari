@@ -9,6 +9,24 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # The real-database test suites run against this service. Trust
+    # authentication, so no password exists anywhere in the repository.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@localhost:5432/postgres
+
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +53,17 @@ jobs:
       - name: Lint
         run: |
           pnpm lint
+
+      # A schema change without its migration shows up as a changed or new,
+      # untracked file under apps/backend/drizzle.
+      - name: Check the migrations match the schema
+        run: |
+          pnpm --filter @hovimestari/backend db:generate
+          if [ -n "$(git status --porcelain apps/backend/drizzle)" ]; then
+            git status --porcelain apps/backend/drizzle
+            echo "The Drizzle schema and the committed migrations disagree. Run db:generate and commit the result." >&2
+            exit 1
+          fi
 
       - name: Test
         run: |

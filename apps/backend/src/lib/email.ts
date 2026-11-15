@@ -1,39 +1,72 @@
 import { Resend } from "resend";
 import { env } from "./env.js";
 
-const resend = new Resend(env.RESEND_API_KEY);
+/** One mail. */
+export interface Mail {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/** Where mail goes. */
+export interface Mailer {
+  send(mail: Mail): Promise<void>;
+}
+
+/** Sends through Resend. The client is made on the first send, so a server that never mails never builds one. */
+export function resendMailer(apiKey: string, from: string): Mailer {
+  let client: Resend | undefined;
+  return {
+    async send({ to, subject, html, text }) {
+      client ??= new Resend(apiKey);
+      const { error } = await client.emails.send({ from, to, subject, html, text });
+      // The Resend SDK resolves normally on API errors instead of throwing.
+      if (error) throw new Error(`Resend error: ${error.message}`);
+    },
+  };
+}
+
+/**
+ * Writes the mail to the console instead of sending it. Development and test
+ * only: the env schema requires RESEND_API_KEY in production.
+ */
+export function consoleMailer(log: (line: string) => void = (line) => console.log(line)): Mailer {
+  return {
+    async send({ to, subject, text }) {
+      log(`[mail] to ${to}: ${subject}\n${text}`);
+    },
+  };
+}
+
+let mailer: Mailer | undefined;
+
+/** The mailer this process uses: Resend when RESEND_API_KEY is set, otherwise the console. */
+export function currentMailer(): Mailer {
+  mailer ??= env.RESEND_API_KEY ? resendMailer(env.RESEND_API_KEY, env.EMAIL_FROM!) : consoleMailer();
+  return mailer;
+}
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-export async function sendVaultInvitationEmail(
+export async function sendPasswordResetEmail(
   to: string,
-  vaultName: string,
-  inviterName: string,
-  acceptLink: string,
+  resetLink: string,
+  via: Mailer = currentMailer(),
 ): Promise<void> {
-  const { error } = await resend.emails.send({
-    from: env.EMAIL_FROM,
+  const link = escapeHtml(resetLink);
+  await via.send({
     to,
-    subject: `You have been invited to "${vaultName}" on Finanssiappis`,
-    html: `<p><strong>${escapeHtml(inviterName)}</strong> has invited you to join the vault <strong>${escapeHtml(vaultName)}</strong> on Finanssiappis.</p>
-<p><a href="${escapeHtml(acceptLink)}">Accept invitation</a></p>
-<p>This invitation expires in 7 days. If you did not expect this, you can safely ignore this email.</p>`,
-  });
-  // The Resend SDK resolves normally on API errors instead of throwing — surface
-  // it ourselves so callers that rely on "email sent before persisting" hold.
-  if (error) throw new Error(`Resend error: ${error.message}`);
-}
+    subject: "Reset your Hovimestari password",
+    html: `<p>Someone asked to reset the password of your Hovimestari account. Open the link below to choose a new one. It works once, for one hour.</p>
+<p><a href="${link}">${link}</a></p>
+<p>If it was not you, ignore this email. Your password stays as it is.</p>`,
+    text: `Someone asked to reset the password of your Hovimestari account. Open the link below to choose a new one. It works once, for one hour.
 
-export async function sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
-  const { error } = await resend.emails.send({
-    from: env.EMAIL_FROM,
-    to,
-    subject: "Reset your password",
-    html: `<p>Click the link below to reset your password. It expires in 1 hour.</p>
-<p><a href="${resetLink}">${resetLink}</a></p>
-<p>If you did not request a password reset, you can safely ignore this email.</p>`,
+${resetLink}
+
+If it was not you, ignore this email. Your password stays as it is.`,
   });
-  if (error) throw new Error(`Resend error: ${error.message}`);
 }

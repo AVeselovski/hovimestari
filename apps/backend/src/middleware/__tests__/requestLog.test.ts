@@ -6,14 +6,14 @@ import request from "supertest";
 
 const { requestLog, routeKey } = await import("../requestLog.js");
 
-const VAULT_ID = "c3d4e5f6-a7b8-9012-cdef-123456789012";
+const RECIPE_ID = "c3d4e5f6-a7b8-9012-cdef-123456789012";
 
 function makeApp(log: (line: string) => void, onSlow: () => void = () => {}) {
   const app = express();
   app.use(requestLog(log));
   app.get("/livez", (_req, res) => res.sendStatus(200));
   app.get("/health", (_req, res) => res.sendStatus(200));
-  app.get("/api/v1/vaults/:vaultId/dashboard", (_req, res) => res.status(200).json({}));
+  app.get("/api/v1/recipes/:recipeId", (_req, res) => res.status(200).json({}));
   app.get("/slow", () => {
     // Never answers: the client gives up first.
     onSlow();
@@ -28,10 +28,8 @@ function nextLine(log: jest.Mock<(line: string) => void>): Promise<string> {
 
 describe("routeKey", () => {
   it("replaces ids and periods and drops the query string", () => {
-    expect(routeKey(`/api/v1/vaults/${VAULT_ID}/dashboard?from=2026-09-01&to=2026-09-30`)).toBe(
-      "/api/v1/vaults/:id/dashboard",
-    );
-    expect(routeKey(`/api/v1/vaults/${VAULT_ID}/tax/periods/2026-09`)).toBe("/api/v1/vaults/:id/tax/periods/:period");
+    expect(routeKey(`/api/v1/recipes/${RECIPE_ID}?servings=4`)).toBe("/api/v1/recipes/:id");
+    expect(routeKey(`/api/v1/days/2026-09-01/entries/${RECIPE_ID}`)).toBe("/api/v1/days/:period/entries/:id");
     expect(routeKey("/api/v1/auth/login")).toBe("/api/v1/auth/login");
   });
 });
@@ -41,12 +39,10 @@ describe("requestLog", () => {
     const log = jest.fn<(line: string) => void>();
     const line = nextLine(log);
 
-    await request(makeApp(log))
-      .get(`/api/v1/vaults/${VAULT_ID}/dashboard?from=2026-09-01`)
-      .set("fly-request-id", "01JREQ");
+    await request(makeApp(log)).get(`/api/v1/recipes/${RECIPE_ID}?servings=4`).set("fly-request-id", "01JREQ");
 
-    expect(await line).toMatch(/^\[req\] GET \/api\/v1\/vaults\/:id\/dashboard 200 \d+ms fly=01JREQ$/);
-    expect(await line).not.toContain(VAULT_ID);
+    expect(await line).toMatch(/^\[req\] GET \/api\/v1\/recipes\/:id 200 \d+ms fly=01JREQ$/);
+    expect(await line).not.toContain(RECIPE_ID);
   });
 
   it("omits the Fly request id when the header is absent", async () => {

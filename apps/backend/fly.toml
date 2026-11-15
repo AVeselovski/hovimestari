@@ -1,11 +1,11 @@
-# Fly.io deploy descriptor for the finanssiappis-backend app.
+# Fly.io deploy descriptor for the hovimestari-backend app.
 #
 # IMPORTANT: deploy from the REPO ROOT so the build context starts there
 # (the Dockerfile copies pnpm-lock.yaml, pnpm-workspace.yaml, etc. from
 # the workspace root). Run:
 #   flyctl deploy --remote-only --config apps/backend/fly.toml
 
-app            = "finanssiappis-backend"
+app            = "hovimestari-backend"
 primary_region = "arn"
 
 # A swap safety net: a brief memory spike swaps instead of being OOM-killed.
@@ -24,14 +24,13 @@ swap_size_mb = 512
 [env]
   NODE_ENV               = "production"
   PORT                   = "3000"
-  EMAIL_FROM             = "noreply@finanssi.app"
   JWT_ACCESS_EXPIRES_IN  = "15m"
   JWT_REFRESH_EXPIRES_IN = "7d"
   # Postgres connections the backend holds: 8 for the 1GB database machine.
   DB_POOL_MAX            = "8"
-  # All other config (DATABASE_URL, JWT secrets, Google OAuth, RESEND_API_KEY,
-  # CORS_ORIGIN, FRONTEND_URL, GOOGLE_*_CALLBACK_URL, the Google Drive values,
-  # and DRIVE_TOKEN_KEY_PREVIOUS during a key rotation) lives in Fly secrets.
+  # All other config (DATABASE_URL, the JWT secrets, BFF_SECRET and, during a
+  # rotation, BFF_SECRET_PREVIOUS, the Google values, RESEND_API_KEY,
+  # EMAIL_FROM, CORS_ORIGIN, FRONTEND_URL) lives in Fly secrets.
 
 [deploy]
   strategy = "rolling"
@@ -48,8 +47,10 @@ swap_size_mb = 512
   force_https          = true
   auto_stop_machines   = "off"
   auto_start_machines  = true
-  # The navigation ticket store is in process memory, so the backend runs as
-  # one machine until that store moves to Postgres.
+  # Two stores live in process memory: the one-time codes that finish Google
+  # sign-in and linking, and the rate limiters' budgets. A second machine
+  # would fail codes minted on the other and split the budgets, so the
+  # backend runs as one machine until both move to a shared store.
   min_machines_running = 1
 
   # Backpressure. Past hard_limit the Fly proxy queues requests at the edge
