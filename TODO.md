@@ -44,6 +44,8 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 
 - **Polish the offline and wide-screen edges of the shell.** Three small things the ui-validator saw on the web scaffold. Offline after signing out, the title "You are offline" sits right under the line "You are offline.", so the page says it twice. At 1280px the Settings cards are 576px wide in a 640px column, so the dashed rule runs 64px past them. Offline while signed in, Account shows the Sign out button with no "Signed in as" line. None changes behaviour. No product decision. Who decides: whoever picks it up.
 - **Give the session renewal a timeout that covers the whole answer.** The renewal fetch aborts after 12 seconds, but the timer stops when the response headers arrive, so a body that stalls could still hold the cross-tab lock. Found in review. Who decides: whoever picks it up.
+- **A full content security policy for the web app.** Today every route sends only `frame-ancestors 'none'`. A full policy needs a nonce for the inline no-flash theme script in `apps/web/src/app/layout.tsx` and `apps/web/src/app/global-error.tsx`, passed through the request so the script tag carries it. Found in review. No product decision. Who decides: whoever picks it up.
+- **Decide and document what "Sign out on all devices" does when the server call fails.** It calls the server first and throws when that fails, which leaves this device signed in. That may be right, because the person asked for every session to end and should hear that it did not. It must be decided, shown on screen and stated in the authentication doc. Who decides: the frontend engineer of the account-settings pull request, with Artur if the behaviour should differ.
 
 ## Known gaps, deliberately unbuilt
 

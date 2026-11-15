@@ -36,8 +36,10 @@ Under **Environment Variables**, add:
 | `BACKEND_URL`         | `https://hovimestari-backend.fly.dev`        | Production, Preview, Development |
 | `BFF_SECRET`          | the value from your password manager         | **Production only**              |
 
-- `NEXT_PUBLIC_API_URL` ends in `/api/v1`. The browser calls the backend with it, and it is built into the page.
-- `BACKEND_URL` has no `/api/v1`. Only the app's own route handlers read it, on Vercel's servers.
+Both `NEXT_PUBLIC_API_URL` and `BACKEND_URL` are required. Each one serves a different path, so the app half works when one is missing.
+
+- `NEXT_PUBLIC_API_URL` ends in `/api/v1`. It sends the browser to the backend to start Google sign-in, and it is built into the page. Without it, **Continue with Google** returns to the sign-in page with "Google sign-in is not available." Email sign-in still works.
+- `BACKEND_URL` has no `/api/v1`. The relay, the app's own route handlers on Vercel's servers, reads it for every sign-in, renewal and sign-out. Without it, the sign-in page shows no Google button, sign-in and sign-up answer "Something went wrong. Try again.", and a returning person sees "Something went wrong" with a retry button. The Vercel function log names `BACKEND_URL`.
 - `BFF_SECRET` is scoped to Production only, so no preview deployment ever holds it. A preview therefore cannot sign anyone in, which is expected.
 - Do not set `LOCAL_PRODUCTION_RELAY` on Vercel. It is for a production build on a developer's machine, and Vercel ignores it anyway.
 - Leave **Automatically expose System Environment Variables** on, under **Settings**, then **Environment Variables**. It provides `VERCEL`, which is what makes the app ignore `LOCAL_PRODUCTION_RELAY`.
@@ -81,9 +83,11 @@ The value lives on Fly and on Vercel, which cannot change at the same moment:
 6. Check the security headers:
 
    ```bash
-   curl -sI https://hovimestari.vercel.app/auth/sign-in | grep -iE 'referrer-policy|x-content-type-options'
+   curl -sI https://hovimestari.vercel.app/auth/sign-in | grep -iE 'referrer-policy|x-content-type-options|frame'
    # referrer-policy: strict-origin-when-cross-origin
    # x-content-type-options: nosniff
+   # content-security-policy: frame-ancestors 'none'
+   # x-frame-options: DENY
    ```
 
 When sign-in answers "Hovimestari cannot be reached right now", the web app cannot reach the backend: check that `BACKEND_URL` names the Fly app and that the health check above answers. When it answers "Something went wrong", the relay is missing a setting or is refused: check that `BACKEND_URL` and `BFF_SECRET` are both set for Production, that `BFF_SECRET` matches Fly's, and that the deployment was made after they were set.

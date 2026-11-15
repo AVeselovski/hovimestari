@@ -29,7 +29,9 @@ The app shows no user data offline yet, because no tab holds any. Signing in, si
 - It handles only `GET` requests to the app's own origin, and never anything under `/api/`. No session call and no user data passes through its caches.
 - A page navigation goes to the network first. Every page that answers normally is cached under its path, without the query string. A guest page under `/auth/` with a query string is never cached, because a reset link's query holds its token. The page cache keeps the 50 most recent pages.
 - Offline, a page answers from its own cached path. Otherwise an app path falls back to the cached Day tab and a guest path to the cached sign-in page, never to the app. With nothing cached, a one-line offline page answers, in the device's light or dark scheme.
-- Build assets under `/_next/static/`, fonts included, the icons and the manifest are served from the cache first. Build assets are content hashed, so a cached copy never goes stale. The asset cache keeps 300 entries, trimmed after each new one, because a deploy does not change the worker.
+- Build assets under `/_next/static/`, fonts included, are served from the cache first. They are content hashed, so a cached copy never goes stale.
+- The manifest and the icons keep one name across deploys. They are answered from the cache and refreshed in the background, so a changed name, colour or icon reaches an installed app on its next launch.
+- The asset cache keeps 300 entries, trimmed after each new one, because a deploy does not change the worker. The manifest and the icons are never trimmed.
 - Installing caches the Day tab, the sign-in page, the manifest and the icons. Activating deletes the caches of every other version.
 - `CACHE_VERSION` at the top of the file is bumped by hand whenever its logic changes.
 
