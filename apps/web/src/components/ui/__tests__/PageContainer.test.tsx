@@ -1,49 +1,45 @@
 import { render, screen } from "@testing-library/react";
 import { PageContainer } from "../PageContainer";
 
+const classes = (el: HTMLElement): string[] => el.className.split(/\s+/);
+
+function column(
+  width: "page" | "narrow",
+  className?: string,
+): { content: HTMLElement; shared: HTMLElement; outer: HTMLElement } {
+  render(
+    <PageContainer width={width} className={className}>
+      <p>Content</p>
+    </PageContainer>,
+  );
+  const content = screen.getByText("Content").parentElement!;
+  return { content, shared: content.parentElement!, outer: content.parentElement!.parentElement! };
+}
+
 describe("PageContainer", () => {
-  it("renders its children", () => {
-    render(
-      <PageContainer width="default">
-        <p>Page content</p>
-      </PageContainer>,
-    );
-    expect(screen.getByText("Page content")).toBeInTheDocument();
+  it.each(["page", "narrow"] as const)(
+    "puts the %s width in the one centred 40rem column every tab shares",
+    (width) => {
+      const { shared } = column(width);
+      expect(classes(shared)).toEqual(expect.arrayContaining(["mx-auto", "md:max-w-page"]));
+    },
+  );
+
+  it("caps Settings' content at 36rem, left-aligned in that column, so its title lines up with the others", () => {
+    const { content } = column("narrow");
+    expect(classes(content)).toContain("md:max-w-page-narrow");
+    expect(classes(content)).not.toContain("mx-auto");
   });
 
-  it.each([
-    ["narrow", "max-w-page-narrow"],
-    ["default", "max-w-page-default"],
-    ["wide", "max-w-page-wide"],
-  ] as const)("applies the %s width's own max-width class", (width, expectedClass) => {
-    render(
-      <PageContainer width={width}>
-        <p>Content</p>
-      </PageContainer>,
-    );
-    const container = screen.getByText("Content").parentElement;
-    expect(container).toHaveClass(expectedClass);
-    expect(container).toHaveClass("mx-auto");
+  it("leaves the page width's content the full column", () => {
+    expect(classes(column("page").content)).not.toContain("md:max-w-page-narrow");
   });
 
-  it("never applies more than one width's max-width class at once", () => {
-    render(
-      <PageContainer width="wide">
-        <p>Content</p>
-      </PageContainer>,
-    );
-    const container = screen.getByText("Content").parentElement!;
-    expect(container).toHaveClass("max-w-page-wide");
-    expect(container).not.toHaveClass("max-w-page-narrow");
-    expect(container).not.toHaveClass("max-w-page-default");
-  });
-
-  it("merges an additional className onto the container", () => {
-    render(
-      <PageContainer width="narrow" className="mt-4">
-        <p>Content</p>
-      </PageContainer>,
-    );
-    expect(screen.getByText("Content").parentElement).toHaveClass("mt-4");
+  it("keeps the gutter clear of the side insets, and puts the caller's classes on the content", () => {
+    const { content, outer } = column("page", "space-y-6");
+    expect(outer.className).toContain("var(--safe-left)");
+    expect(outer.className).toContain("var(--safe-right)");
+    expect(content).toHaveClass("space-y-6");
+    expect(outer).not.toHaveClass("space-y-6");
   });
 });

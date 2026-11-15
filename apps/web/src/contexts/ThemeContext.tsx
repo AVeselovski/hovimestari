@@ -1,53 +1,48 @@
 "use client";
 
-import { THEME_STORAGE_KEY } from "@/lib/theme/noFlashScript";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { THEME_COLORS, THEME_STORAGE_KEY } from "@/lib/theme/noFlashScript";
+import { createContext, useContext, useEffect, useState, type ReactElement, type ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
-// ThemeContext — owns the user's theme choice (light / dark / system),
-// derives what is actually painted right now, and keeps <html>'s
-// `data-theme` / `data-theme-mode` attributes and localStorage in sync with
-// it. See docs/design/ui-overhaul.md §d for the full contract.
+// ThemeContext owns the theme choice (light, dark or the device's), resolves
+// what is painted right now, and keeps <html>'s `data-theme` and
+// `data-theme-mode`, localStorage and the browser chrome colour in step.
 //
-// Reads its INITIAL mode from `document.documentElement.dataset.themeMode`
-// rather than localStorage directly — the no-flash script
-// (lib/theme/noFlashScript.ts) has already parsed localStorage and written
-// that attribute before this component ever mounts, so provider and script
-// can never disagree about how a stored value parses.
+// It reads its initial mode from `data-theme-mode`, which the pre-paint
+// script (lib/theme/noFlashScript.ts) has already written from storage, so
+// the provider and the script can never disagree about a stored value.
 //
-// No third-party theme hook is used (design doc §g): a hand-rolled
-// `useTheme()` can return a documented safe default when called outside a
-// provider, which 150+ existing test files that render leaf components bare
-// rely on — a throw would break every one of them for a concern (painting)
-// those tests have no opinion on.
+// `useTheme()` outside a provider returns a safe default instead of
+// throwing, so a leaf component renders bare in a test.
 // ---------------------------------------------------------------------------
 
 export type ThemeMode = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
 export interface ThemeContextValue {
-  /** The user's stored choice. */
+  /** The stored choice. */
   mode: ThemeMode;
-  /** What is actually painted right now — `system` resolved against the OS. */
+  /** What is painted right now: `system` resolved against the device. */
   resolved: ResolvedTheme;
   setMode: (mode: ThemeMode) => void;
 }
 
-/** Returned by useTheme() outside a provider — see the module doc above. */
 const DEFAULT_CONTEXT_VALUE: ThemeContextValue = {
   mode: "system",
-  resolved: "dark",
+  resolved: "light",
   setMode: () => {},
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 function isThemeMode(value: string | undefined): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
 }
 
 function systemPrefersDark(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return typeof window !== "undefined" && window.matchMedia(DARK_QUERY).matches;
 }
 
 function resolveTheme(mode: ThemeMode): ResolvedTheme {
@@ -61,32 +56,40 @@ function readInitialMode(): ThemeMode {
   return isThemeMode(fromAttr) ? fromAttr : "system";
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }): React.ReactElement {
+/**
+ * The `viewport` export renders one `theme-color` meta per colour scheme, so
+ * the browser follows the device by itself. A fixed choice paints both with
+ * that theme's colour. Following the device again puts each back on its own.
+ */
+function paintThemeColor(mode: ThemeMode): void {
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    const scheme = meta.media.includes("dark") ? "dark" : "light";
+    meta.content = THEME_COLORS[mode === "system" ? scheme : mode];
+  }
+}
+
+export function ThemeProvider({ children }: { children: ReactNode }): ReactElement {
   const [mode, setMode] = useState<ThemeMode>(readInitialMode);
   const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(readInitialMode()));
 
-  // Writes the attribute pair and persists the choice whenever the mode
-  // changes (including the very first render, so a mode read from the
-  // attribute but never persisted — e.g. the script's own catch-block
-  // fallback — still gets written to storage).
   useEffect(() => {
     const next = resolveTheme(mode);
     setResolved(next);
     document.documentElement.dataset.theme = next;
     document.documentElement.dataset.themeMode = mode;
+    paintThemeColor(mode);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, mode);
     } catch {
-      // Private mode / disabled storage — the choice just doesn't persist.
+      // Storage refused (some private modes): the choice lasts until the page closes.
     }
   }, [mode]);
 
-  // Live-follows the OS preference only while the mode is "system" —
-  // subscribing and unsubscribing as the mode changes, per the contract.
+  // Follows the device live, only while the choice is "system".
   useEffect(() => {
     if (mode !== "system") return;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    function handleChange(event: MediaQueryListEvent) {
+    const media = window.matchMedia(DARK_QUERY);
+    function handleChange(event: MediaQueryListEvent): void {
       const next: ResolvedTheme = event.matches ? "dark" : "light";
       setResolved(next);
       document.documentElement.dataset.theme = next;
@@ -101,6 +104,5 @@ export function ThemeProvider({ children }: { children: ReactNode }): React.Reac
 }
 
 export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext);
-  return ctx ?? DEFAULT_CONTEXT_VALUE;
+  return useContext(ThemeContext) ?? DEFAULT_CONTEXT_VALUE;
 }

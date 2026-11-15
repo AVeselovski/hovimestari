@@ -1,31 +1,36 @@
 "use client";
 
+import { OfflineSignedOut, SessionProblem } from "@/components/auth/SessionStates";
 import { FullPageSpinner } from "@/components/FullPageSpinner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import { hasKnownSession } from "@/lib/sessionMarker";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type ReactElement, type ReactNode } from "react";
 
-interface AuthGuardProps {
-  children: React.ReactNode;
-}
-
-export function AuthGuard({ children }: AuthGuardProps) {
-  const { status } = useAuth();
+/**
+ * Renders the signed-in app.
+ *
+ * - Offline, the shell renders only on a device with a known session, so the
+ *   app opens without a network. A device that was signed out, or never
+ *   signed in, sees the guest side with the offline line instead.
+ * - On a server fault the session is kept and a retry is offered.
+ * - A visitor without a session goes to sign-in, which brings them back to
+ *   the path they opened. After signing out on this tab, it is plain sign-in.
+ */
+export function AuthGuard({ children }: { children: ReactNode }): ReactElement | null {
+  const { status, signedOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/auth/sign-in");
-    }
-  }, [status, router]);
+    if (status !== "unauthenticated") return;
+    const back = !signedOut && pathname && pathname !== "/" ? `?redirect=${encodeURIComponent(pathname)}` : "";
+    router.replace(`/auth/sign-in${back}`);
+  }, [status, signedOut, router, pathname]);
 
-  if (status === "loading") {
-    return <FullPageSpinner />;
-  }
-
-  if (status === "unauthenticated") {
-    return null;
-  }
-
+  if (status === "loading") return <FullPageSpinner />;
+  if (status === "unauthenticated") return null;
+  if (status === "error") return <SessionProblem />;
+  if (status === "offline" && !hasKnownSession()) return <OfflineSignedOut />;
   return <>{children}</>;
 }

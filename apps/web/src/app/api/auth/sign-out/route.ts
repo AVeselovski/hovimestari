@@ -1,23 +1,23 @@
-import { COOKIE_NAME, COOKIE_PATH } from "@/app/api/auth/_constants";
-import { cookies } from "next/headers";
+import { NextResponse, type NextRequest } from "next/server";
+import { COOKIE_NAME, COOKIE_PATH } from "../_constants";
+import { requireSameOrigin } from "../_guard";
+import { relay } from "../_relay";
 
-export async function POST(): Promise<Response> {
-  const cookieStore = await cookies();
-  const refreshToken = cookieStore.get(COOKIE_NAME)?.value;
+/** Ends this device's session. The backend is told best effort, and the cookie goes whatever it answers. */
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const refusal = requireSameOrigin(request, { readsBody: false });
+  if (refusal) return refusal;
 
+  const refreshToken = request.cookies.get(COOKIE_NAME)?.value;
   if (refreshToken) {
     try {
-      await fetch(`${process.env.BACKEND_URL ?? "http://localhost:3001"}/api/v1/auth/logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
+      await relay(request, "/auth/logout", { body: { refreshToken } });
     } catch {
-      // Best-effort — clear cookie regardless
+      // Best effort. The token expires on its own.
     }
   }
 
-  cookieStore.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
-
-  return new Response(null, { status: 204 });
+  const res = new NextResponse(null, { status: 204 });
+  res.cookies.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
+  return res;
 }

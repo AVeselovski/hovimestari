@@ -1,4 +1,3 @@
-import { qk } from "@/lib/queryKeys";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
 
@@ -25,10 +24,7 @@ export function clearTestQueryClients(): void {
   liveClients.clear();
 }
 
-/**
- * Matches the trailing `{ signal }` a read helper or `api.get` receives from
- * a query function: `expect(listTags).toHaveBeenCalledWith(VAULT_ID, undefined, withSignal)`.
- */
+/** Matches the trailing `{ signal }` a read helper receives from a query function. */
 export const withSignal = expect.objectContaining({ signal: expect.any(AbortSignal) });
 
 /** A promise with its `resolve` and `reject` handed out, for answering a request at a moment the test picks. */
@@ -44,21 +40,10 @@ export function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => voi
 
 /**
  * A `wrapper` that renders under `client`, for a test that inspects the cache
- * or makes a write through it: `render(<Card />, { wrapper: queryWrapper(client) })`,
- * then `await act(async () => afterLedgerWrite(client, VAULT_ID))`.
+ * or makes a write through it: `render(<Card />, { wrapper: queryWrapper(client) })`.
  */
 export function queryWrapper(client: QueryClient): (props: { children: ReactNode }) => ReactNode {
   return function QueryWrapper({ children }: { children: ReactNode }) {
     return createElement(QueryClientProvider, { client }, children);
   };
-}
-
-/**
- * How many times the calls a spy on `client.invalidateQueries` recorded
- * refreshed the vault's ledger reads, by their shared prefix. One write is
- * one: `expect(ledgerInvalidations(spy, VAULT_ID)).toBe(1)`.
- */
-export function ledgerInvalidations(spy: jest.SpyInstance, vaultId: string): number {
-  const ledger = JSON.stringify(qk.ledger(vaultId));
-  return spy.mock.calls.filter(([filters]) => JSON.stringify(filters?.queryKey) === ledger).length;
 }

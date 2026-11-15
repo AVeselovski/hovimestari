@@ -1,27 +1,15 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 /**
- * Tracks whether a media query currently matches, live.
+ * Tracks whether a media query matches, live.
  *
- * `useSyncExternalStore` rather than `useState(false)` + an effect (owner
- * defect, 2026-09-22). The old shape returned `false` on the first render
- * and corrected only once an effect had run, so every consumer painted its
- * DESKTOP branch first and then swapped. On a phone that is at best a flash,
- * and where the desktop branch is a fixed-width overlay it is a panel wider
- * than the screen: `PeriodRangeEditor`'s popover is a hard 400px, which on a
- * 390px viewport overflows until the effect lands — and never stops
- * overflowing if the effect is delayed or the tree suspends.
+ * `useSyncExternalStore` reads the current value on every client render, so
+ * the first painted frame is already right. A `useState(false)` and an effect
+ * would paint the wide-screen branch first and swap it a frame later. The
+ * server snapshot is `false`, because the server has no viewport.
  *
- * This subscribes to the same `change` event but reads the CURRENT value
- * synchronously on every client render. The server snapshot stays `false`,
- * which is what SSR must render (there is no viewport there); React uses it
- * during hydration and switches to the live value immediately after, without
- * an effect in between.
- *
- * `useIsMobile` and the per-chart "narrow" gates (`BudgetBurnUpChart`) all
- * consume this — see `docs/design/ui-overhaul.md`'s
- * Implementation deviations for why each surface passes its own query
- * rather than sharing one threshold.
+ * No screen reads it yet. The bottom sheets in the next pull request use it,
+ * through `useIsMobile`, to choose what a phone gets.
  */
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(

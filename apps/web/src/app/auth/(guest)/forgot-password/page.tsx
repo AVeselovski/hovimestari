@@ -1,102 +1,89 @@
 "use client";
 
+import { AuthPage } from "@/components/auth/AuthPage";
 import { StableLabel } from "@/components/ui/StableLabel";
-import { btnPrimary, focusRing, inputClass, labelClass } from "@/components/ui/styles";
-import { api } from "@/lib/api";
-import { ForgotPasswordBodySchema } from "@finanssiappis/types";
+import { btnPrimary, noticeClass, standaloneLinkClass } from "@/components/ui/styles";
+import { useErrorCopy } from "@/hooks/useErrorCopy";
+import { requestPasswordReset } from "@/lib/api/auth";
+import { getErrorStatus } from "@/lib/errors";
+import { ForgotPasswordBodySchema } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import React, { useState } from "react";
+import { useState, type FormEvent, type ReactElement } from "react";
+import { Field } from "../_components/Field";
+import { FormError } from "../_components/FormError";
+import { focusField } from "../_components/focus";
+import { firstIssues } from "../_components/issues";
 
-export default function ForgotPasswordPage() {
+export default function ForgotPasswordPage(): ReactElement {
   const t = useTranslations("auth.forgotPassword");
-  const tCommon = useTranslations("common");
+  const tFields = useTranslations("auth.fields");
+  const errors = useErrorCopy();
+
   const [email, setEmail] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
-    setFieldError(null);
-
-    const result = ForgotPasswordBodySchema.safeParse({ email });
-    if (!result.success) {
-      setFieldError(result.error.issues[0]?.message ?? t("invalidEmailFallback"));
+    setFormError(null);
+    const parsed = ForgotPasswordBodySchema.safeParse({ email });
+    if (!parsed.success) {
+      setFieldError(errors.forCode(firstIssues(parsed.error).email));
+      focusField("email");
       return;
     }
-
-    setIsSubmitting(true);
+    setFieldError(null);
+    setSubmitting(true);
     try {
-      await api.post("/auth/forgot-password", result.data);
-    } catch {
-      // Intentionally swallow errors to prevent email enumeration
+      await requestPasswordReset(parsed.data);
+      setSent(true);
+    } catch (err) {
+      // A limited request gets the usual answer, so the page tells nothing about the address.
+      if (getErrorStatus(err) === 429) setSent(true);
+      else {
+        setFormError(errors.forError(err));
+        focusField("email");
+      }
     } finally {
-      setIsSubmitting(false);
-      setSubmitted(true);
+      setSubmitting(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
-      <div className="w-full max-w-md rounded-card border border-line-subtle bg-surface-1 p-8 shadow-modal">
-        <h1 className="mb-2 text-center text-lg font-semibold tracking-tight text-content">{tCommon("appName")}</h1>
-        <p className="mb-6 text-center text-sm text-content-secondary">{t("subtitle")}</p>
-
-        {submitted ? (
-          <div className="space-y-4">
-            <p className="rounded-control border border-positive-line bg-positive-soft px-4 py-3 text-sm text-positive">
-              {t("successMessage")}
-            </p>
-            <p className="text-center text-sm text-content-muted">
-              <Link
-                href="/auth/sign-in"
-                className={`rounded-control text-content-secondary transition-colors duration-150 hover:text-content hover:underline ${focusRing}`}
-              >
-                {t("backToSignIn")}
-              </Link>
-            </p>
-          </div>
-        ) : (
-          <>
-            <form
-              onSubmit={(e) => {
-                void handleSubmit(e);
-              }}
-              noValidate
-              className="space-y-4"
-            >
-              <div>
-                <label htmlFor="email" className={labelClass}>
-                  {t("emailAddressLabel")}
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`mt-1 ${inputClass}`}
-                />
-                {fieldError && <p className="mt-1 text-xs text-negative">{fieldError}</p>}
-              </div>
-
-              <button type="submit" disabled={isSubmitting} className={`w-full ${btnPrimary}`}>
-                <StableLabel active={isSubmitting} idle={t("submitAction")} busy={t("submittingAction")} />
-              </button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-content-muted">
-              <Link
-                href="/auth/sign-in"
-                className={`rounded-control text-content-secondary transition-colors duration-150 hover:text-content hover:underline ${focusRing}`}
-              >
-                {t("backToSignIn")}
-              </Link>
-            </p>
-          </>
-        )}
+    <AuthPage title={t("title")}>
+      {sent ? (
+        <p role="status" className={noticeClass}>
+          {t("sent")}
+        </p>
+      ) : (
+        <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-3">
+          <Field
+            id="email"
+            name="email"
+            label={tFields("email")}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={fieldError}
+          />
+          <FormError message={formError} />
+          <button type="submit" disabled={submitting} className={`w-full ${btnPrimary}`}>
+            <StableLabel active={submitting} idle={t("submit")} busy={t("submitting")} />
+          </button>
+        </form>
+      )}
+      <div className="mt-8">
+        <Link href="/auth/sign-in" className={standaloneLinkClass}>
+          {t("backToSignIn")}
+        </Link>
       </div>
-    </div>
+    </AuthPage>
   );
 }

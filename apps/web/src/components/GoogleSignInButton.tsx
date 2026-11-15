@@ -1,19 +1,22 @@
 "use client";
 
 import { btnSecondary } from "@/components/ui/styles";
+import { useGoogleAvailable } from "@/contexts/ProvidersContext";
 import { useTranslations } from "next-intl";
+import type { ReactElement } from "react";
 
-interface GoogleSignInButtonProps {
-  href: string | undefined;
-}
-
-export function GoogleSignInButton({ href }: GoogleSignInButtonProps) {
+/**
+ * "Continue with Google", shown only when this deployment has Google set up.
+ * It is a plain link to the route handler that starts the flow, so the
+ * browser makes a top-level navigation and carries the nonce cookie back.
+ */
+export function GoogleSignInButton({ onNavigate }: { onNavigate?: () => void }): ReactElement | null {
   const t = useTranslations("components.googleSignInButton");
-
-  if (!href) return null;
+  if (!useGoogleAvailable()) return null;
 
   return (
-    <a href={href} className={`mb-4 w-full ${btnSecondary}`}>
+    <a href="/api/auth/google/start" onClick={onNavigate} className={`w-full ${btnSecondary}`}>
+      {/* The Google mark, in Google's own colours. */}
       <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
         <path
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

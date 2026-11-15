@@ -1,59 +1,45 @@
-import { COOKIE_MAX_AGE, COOKIE_NAME, COOKIE_PATH } from "@/app/api/auth/_constants";
-import type { UserMe } from "@finanssiappis/types";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import type { ErrorCode } from "@hovimestari/types";
+import { NextResponse, type NextRequest } from "next/server";
+import { COOKIE_NAME, COOKIE_PATH } from "../_constants";
+import { requireSameOrigin } from "../_guard";
+import { readJson, relay, relayFailure } from "../_relay";
+import { browserSession, malformedGrant } from "../_session";
 
-export async function POST(): Promise<NextResponse> {
-  const cookieStore = await cookies();
-  const refreshToken = cookieStore.get(COOKIE_NAME)?.value;
+function sessionEnded(): NextResponse {
+  const code: ErrorCode = "session_expired";
+  const res = NextResponse.json({ message: "The session has ended.", code }, { status: 401 });
+  res.cookies.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
+  return res;
+}
 
-  if (!refreshToken) {
-    return NextResponse.json({ message: "No refresh token" }, { status: 401 });
-  }
+/**
+ * Renews the session from the refresh cookie and rotates it. Only the
+ * backend's 401 `session_expired` ends the session and deletes the cookie.
+ * When the backend cannot be reached the cookie stays and the answer is 503
+ * `server_unreachable`, so an outage signs nobody out. Any other refusal is a
+ * server fault: 502, cookie kept.
+ */
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  const refusal = requireSameOrigin(request, { readsBody: false });
+  if (refusal) return refusal;
 
-  // Forward to backend
-  let backendRes: Response;
+  const refreshToken = request.cookies.get(COOKIE_NAME)?.value;
+  if (!refreshToken) return sessionEnded();
+
+  let res: Response;
   try {
-    backendRes = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:3001"}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-  } catch {
-    cookieStore.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
-    return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+    res = await relay(request, "/auth/refresh", { body: { refreshToken } });
+  } catch (err) {
+    return relayFailure(err);
   }
-
-  if (!backendRes.ok) {
-    cookieStore.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
-    return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+  const body = await readJson<{ code?: unknown }>(res);
+  // Only the backend saying the session is over ends it. A refused relay
+  // (a wrong secret, a 401 request_refused) is this deployment's fault, and
+  // deleting the cookie for it would sign everyone out.
+  if (res.status === 401 && body.code === "session_expired") return sessionEnded();
+  if (!res.ok) {
+    console.error(`[auth relay] the backend refused a renewal with ${res.status}`);
+    return NextResponse.json({ message: "Something went wrong." }, { status: 502 });
   }
-
-  const tokens = (await backendRes.json()) as { accessToken: string; refreshToken: string };
-
-  // Roll the refresh token cookie
-  cookieStore.set(COOKIE_NAME, tokens.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: COOKIE_PATH,
-    maxAge: COOKIE_MAX_AGE,
-  });
-
-  // Fetch user profile
-  let user: UserMe;
-  try {
-    const meRes = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:3001"}/api/v1/users/me`, {
-      headers: { Authorization: `Bearer ${tokens.accessToken}` },
-    });
-    if (!meRes.ok) {
-      throw new Error("Failed to fetch user");
-    }
-    user = (await meRes.json()) as UserMe;
-  } catch {
-    cookieStore.delete({ name: COOKIE_NAME, path: COOKIE_PATH });
-    return NextResponse.json({ message: "Failed to load user" }, { status: 401 });
-  }
-
-  return NextResponse.json({ accessToken: tokens.accessToken, user });
+  return browserSession(body, 200) ?? malformedGrant();
 }

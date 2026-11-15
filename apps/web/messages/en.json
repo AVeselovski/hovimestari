@@ -1,0 +1,134 @@
+{
+  "common": {
+    "appName": "Hovimestari"
+  },
+  "components": {
+    "fullPageSpinner": {
+      "loading": "Loading"
+    },
+    "googleSignInButton": {
+      "continueWithGoogle": "Continue with Google"
+    }
+  },
+  "auth": {
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "passwordRequired": "Enter your password."
+    },
+    "signIn": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "or": "or",
+      "forgotPassword": "Forgot your password?",
+      "createAccount": "Create an account",
+      "resetNote": "Password updated. Sign in with your new password.",
+      "deletedNote": "Your account and everything in it are deleted."
+    },
+    "signUp": {
+      "title": "Create an account",
+      "passwordHint": "At least 8 characters.",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "signInLink": "Already have an account? Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "submit": "Send reset link",
+      "submitting": "Sending…",
+      "sent": "If an account exists with that email address, you will receive a password reset link shortly.",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "newPassword": "New password",
+      "passwordHint": "At least 8 characters.",
+      "repeatPassword": "Repeat the new password",
+      "mismatch": "The passwords do not match.",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "newLink": "Ask for a new reset link"
+    }
+  },
+  "shell": {
+    "navLabel": "Main",
+    "tabs": {
+      "day": "Day",
+      "recipes": "Recipes",
+      "groceries": "Groceries",
+      "settings": "Settings"
+    },
+    "empty": "Nothing here yet.",
+    "offline": "You are offline."
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "themeToggle": {
+        "ariaLabel": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "Device"
+      }
+    },
+    "account": {
+      "title": "Account",
+      "signedInAs": "Signed in as <strong>{email}</strong>",
+      "signOut": "Sign out",
+      "signingOut": "Signing out…"
+    }
+  },
+  "errors": {
+    "invalid_email": "Enter a valid email address.",
+    "password_too_short": "Use at least 8 characters.",
+    "password_too_long": "This password is too long.",
+    "email_taken": "An account with this email already exists.",
+    "email_taken_google": "An account with this email already exists. Sign in with Google to access it.",
+    "invalid_credentials": "Invalid email or password.",
+    "session_expired": "Your session has ended. Sign in again.",
+    "unauthorized": "Your session has ended. Sign in again.",
+    "google_failed": "Signing in with Google did not work. Try again, or sign in with your email and password.",
+    "google_email_taken": "An account with this email already exists. Sign in with your password instead.",
+    "google_email_unverified": "Google has not verified this email address. Verify it with Google first, or sign up with your email and a password.",
+    "google_unavailable": "Google sign-in is not available.",
+    "google_taken": "That Google account is already linked to another account.",
+    "google_already_linked": "Google is already connected to this account.",
+    "reset_link_invalid": "This password reset link is invalid or has expired.",
+    "password_already_set": "This account already has a password.",
+    "no_password": "This account has no password to change.",
+    "last_sign_in_method": "You cannot remove your only way to sign in.",
+    "current_password_wrong": "The current password is incorrect.",
+    "confirmation_mismatch": "That does not match this account.",
+    "user_not_found": "This account no longer exists. Sign in again.",
+    "login_rate_limited": "Too many sign-in attempts. Try again in 15 minutes.",
+    "login_network_rate_limited": "Too many sign-in attempts from this network. Try again in 15 minutes.",
+    "signup_rate_limited": "Too many sign-ups from this network. Try again later.",
+    "password_rate_limited": "Too many attempts. Try again in 15 minutes.",
+    "delete_rate_limited": "Too many attempts. Try again in 15 minutes.",
+    "server_unreachable": "Hovimestari cannot be reached right now. Try again in a moment.",
+    "client_address_missing": "Hovimestari cannot be reached right now. Try again in a moment.",
+    "client_address_invalid": "Hovimestari cannot be reached right now. Try again in a moment.",
+    "request_refused": "Something went wrong. Try again.",
+    "invalid_request": "Something went wrong. Try again.",
+    "fallback": "Something went wrong. Try again."
+  },
+  "session": {
+    "offlineTitle": "You are offline",
+    "offlineBody": "Sign in once you are back online.",
+    "problemTitle": "Something went wrong",
+    "problemBody": "Hovimestari could not check your session. Try again in a moment.",
+    "retry": "Try again"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "There is no page at this address.",
+    "home": "Go to the Day tab"
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "body": "This page could not be shown. Try again, or go back to the Day tab.",
+    "retry": "Try again",
+    "home": "Go to the Day tab"
+  }
+}

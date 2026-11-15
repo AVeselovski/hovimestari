@@ -3,30 +3,12 @@ import path from "node:path";
 import messages from "../en.json";
 
 // ---------------------------------------------------------------------------
-// Orphan-key linter (docs/design/i18n-message-catalog.md, D18 — deferred
-// from slice 1 to slice 6, "once the catalog is complete and the signal is
-// meaningful"). A homegrown static sweep, not the `@eloqnt/cli` tool D18
-// named as a candidate: that tool lints translation FILES for orphan/missing
-// keys across locales, which doesn't fit a single-locale, TypeScript-typed
-// catalog whose real risk is a key nobody's `t(...)` call can reach — a
-// plain source sweep answers that more directly than a translation-file
-// linter would, with zero new dependencies.
-//
-// The sweep is static-analysis-lite (regex over source text, not a real
-// TypeScript AST) — deliberately, to stay a fast, dependency-free test
-// rather than pull in the `typescript` compiler API for one check. It
-// resolves every static `t("key")` / `t.rich("key")` call, every two-branch
-// ternary (`t(cond ? "a" : "b")`), and every template-literal key
-// (`` t(`label.${row.kind}`) ``, which it turns into a path pattern with a
-// wildcard for the interpolated segment — the "discriminated-key/template-
-// literal" case this file's header comment on D18 called out as needing
-// handling). The one gap it cannot resolve statically is a key selected via
-// a bare variable/property with no literal anywhere in the call
-// (`tTab(tab)`, `tContract(value)`) — those are enumerated in
-// `DYNAMIC_KEY_NAMESPACES` below, a small, documented, and audited allowlist
-// (verified against the actual call sites at the time this test was
-// written — see the comment on each entry), exactly the shape D18's header
-// comment sanctioned.
+// Orphan keys: every catalog leaf must be reachable from some t() or
+// t.rich() call in src. A regex sweep, not a TypeScript AST, so it stays a
+// fast test with no dependency. It resolves literal keys, two-branch ternary
+// keys and template-literal keys. A key chosen through a bare variable cannot
+// be resolved statically, so its namespace is listed in
+// DYNAMIC_KEY_NAMESPACES with the call site that reaches it.
 // ---------------------------------------------------------------------------
 
 const SRC_ROOT = path.resolve(__dirname, "../../src");
@@ -39,30 +21,15 @@ const SRC_ROOT = path.resolve(__dirname, "../../src");
  * site so a future audit can re-verify it still applies.
  */
 const DYNAMIC_KEY_NAMESPACES = [
-  // transactions/page.tsx: typeBadge(txn.transactionType, tType(txn.transactionType))
-  // — the key is `Transaction["transactionType"]`'s own wire value.
-  "transactions.page.typeLabel",
-  // transactions/_components/TransactionForm.tsx: {tTab(tab)} — `tab` is the
-  // modal's own tab-id union, iterated from a local TABS array.
-  "transactions.transactionForm.tab",
-  // recurring/_components/RecurringTemplateForm.tsx: {tTab(tab)} — same shape
-  // as above, this form's own tabs.
-  "recurring.templateForm.tab",
-  // components/ui/GrossNetToggle.tsx: {t(m)} — `m` is the AmountMode union,
-  // iterated from a local ["gross", "net"] array. `aria` in the same
-  // namespace is a literal and resolves without this entry.
-  "common.amountMode",
-  // _components/accounts/AccountForm.tsx: tContract(value) — `value` is
-  // `DebtContractCopyErrorCode` (debtAccountFormValidation.ts), narrowed to
-  // exclude "invalidAmount" (resolved separately via common.invalidAmount)
-  // before reaching this call.
-  "accounts.debtContractFields",
-  // components/ui/ThemeToggle.tsx: {t(m)} (each segment's label) — `m` is the
-  // ThemeMode union ("light" | "dark" | "system"), iterated from a local
-  // MODES array. `ariaLabel` in the same namespace is a literal and resolves
-  // without this entry. Namespace moved from shell.themeToggle to
-  // settings.appearance.themeToggle when the control moved out of the
-  // sidebar into Settings → General (round 2 pass B).
+  // hooks/useErrorCopy.ts: t(errorCopyKey(...)), where the key is an error
+  // code or "fallback". lib/__tests__/errorCopy.test.ts checks this
+  // namespace against the codes instead.
+  "errors",
+  // components/shell/NavLinks.tsx and AppHeader.tsx: t(tab.key) and
+  // t(active), where the key is a TabKey from components/shell/tabs.ts.
+  "shell.tabs",
+  // components/ui/ThemeToggle.tsx: {t(m)}, where `m` is a ThemeMode from a
+  // local MODES array. `ariaLabel` is a literal and resolves without this.
   "settings.appearance.themeToggle",
 ];
 

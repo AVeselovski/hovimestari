@@ -37,7 +37,7 @@ describe("ThemeContext", () => {
 
   it("useTheme() outside a provider returns the documented safe default rather than throwing", () => {
     const { result } = renderHook(() => useTheme());
-    expect(result.current).toEqual({ mode: "system", resolved: "dark", setMode: expect.any(Function) });
+    expect(result.current).toEqual({ mode: "system", resolved: "light", setMode: expect.any(Function) });
   });
 
   it("writes data-theme and data-theme-mode to the document element", () => {
@@ -131,5 +131,41 @@ describe("ThemeContext", () => {
     act(() => mql.fireChange(true));
     expect(result.current.mode).toBe("light");
     expect(result.current.resolved).toBe("light");
+  });
+});
+
+describe("the browser chrome colour", () => {
+  function addMeta(media: string, content: string): HTMLMetaElement {
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.media = media;
+    meta.content = content;
+    document.head.appendChild(meta);
+    return meta;
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.head.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+    window.matchMedia = jest.fn().mockReturnValue({
+      matches: false,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }) as unknown as typeof window.matchMedia;
+  });
+
+  it("paints both schemes' metas with a fixed choice, and puts each back when following the device", () => {
+    const light = addMeta("(prefers-color-scheme: light)", "#f6efe1");
+    const dark = addMeta("(prefers-color-scheme: dark)", "#121a15");
+    const { result } = renderHook(() => useTheme(), { wrapper: ThemeProvider });
+
+    act(() => result.current.setMode("dark"));
+    expect([light.content, dark.content]).toEqual(["#121a15", "#121a15"]);
+
+    act(() => result.current.setMode("light"));
+    expect([light.content, dark.content]).toEqual(["#f6efe1", "#f6efe1"]);
+
+    act(() => result.current.setMode("system"));
+    expect([light.content, dark.content]).toEqual(["#f6efe1", "#121a15"]);
   });
 });

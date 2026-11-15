@@ -2,7 +2,7 @@
 // Writes the local env files from their examples, with generated secrets.
 //
 //   apps/backend/.env.example -> apps/backend/.env
-//   apps/web/.env.example     -> apps/web/.env.local   (once the web app exists)
+//   apps/web/.env.example     -> apps/web/.env.local
 //
 // JWT_ACCESS_SECRET, JWT_REFRESH_SECRET and BFF_SECRET are filled with 32
 // random bytes in hex. BFF_SECRET is one value shared by both files, because
