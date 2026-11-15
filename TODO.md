@@ -6,18 +6,37 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 
 ## Needs a decision from Artur
 
-Nothing open.
+- **The earlier app's own data.** Artur's recipes from the earlier app live in his local Docker volume `hovimestari_pgdata`, in one JSON row, and the recipe images in `hovimestari_imagedata`. Deleting the code left both volumes alone, and the new compose file uses a new volume, so nothing reads or touches them. Export them whenever you like, on your own machine. `POSTGRES_USER` is the value from the old root `.env`. The first command starts a throwaway container on the old volume, the second writes the state row to a file, the third copies the images, the last stops the container:
+
+  ```bash
+  docker run --rm -d --name hovi-old -v hovimestari_pgdata:/var/lib/postgresql/data postgres:16-alpine
+  docker exec hovi-old psql -U "$POSTGRES_USER" -d hovimestari -Atc "SELECT state FROM household_state WHERE id = 1" > hovimestari-earlier-state.json
+  docker run --rm -v hovimestari_imagedata:/data -v "$PWD":/out alpine cp -r /data /out/hovimestari-earlier-images
+  docker stop hovi-old
+  ```
+
+  Then remove the volumes with `docker volume rm`, or keep them. Who decides: Artur.
+
+- **Refresh-token reuse detection.** A spent refresh token presented again only gets a 401 today. The common hardening treats that as a sign of theft and ends every session of the user, which needs a short record of spent token hashes. Who decides: Artur.
+
+- **Exact sign-out on every device.** "Sign out on all devices", a password change and a reset end other sessions at their next refresh, within 15 minutes, and only on a device that is open. Making it exact needs a session-version column checked on every API request, one database read each. Who decides: Artur, if the window ever matters.
+- **Decide whether removing the password ends other sessions.** Changing or resetting the password ends every session, removing it does not. Settle it in the account-settings pull request, together with how this device stays signed in when it has no password to sign back in with. Who decides: the architect of that pull request.
 
 ## Ready to pick up
 
 - **Verify the Fineli facts on the source.** The licence, the current release, the download location, the table layout, whether portion sizes are included and the energy unit all come from community repositories, because `fineli.fi` blocked automated reading during research. Needed before the food import is designed. No product decision. Who decides: whoever picks it up.
 - **Read the Open Food Facts licence against the plan to keep scanned products.** ODbL may treat a catalogue that keeps looked-up products as a derived database. Needed before barcode scanning is designed. Who decides: whoever picks it up, with Artur if the answer changes what is stored.
 - **Prototype barcode scanning in an installed PWA on an iPhone.** Safari has no built-in barcode detector, and camera access inside an installed web app has a history of platform bugs. A throwaway page tested on Artur's phone settles whether the camera flow is sound. Who decides: whoever picks it up.
-- **Give future sessions the finanssi repository.** The scaffold lifts code from `AVeselovski/finanssiappisV2`. A cloud session can read it only when it is attached to the session. Who decides: Artur, when starting the scaffold session.
+- **File the finanssi defects found while lifting its auth.** In `finanssiappisV2`: the browser receives the refresh token in the Google callback URL, in the sign-in response and through `/api/auth/set-cookie`. bcrypt silently ignores password bytes past 72, so a longer input that starts with the stored password signs in. Email lookups are case sensitive. The web refresh handler deletes the cookie when the backend is unreachable, so an outage signs every user out. Its Google sign-in also signs into an account whose email matches but whose linked Google id differs. Hovimestari fixes each in its own code. Who decides: whoever works in finanssi.
+- **Check the installed app on a real iPhone after step 3.** Safe areas, installing to the home screen, the status bar in standalone mode, and Google sign-in from the installed app, which may finish in a browser sheet with its own cookies. No emulator shows these. Who decides: Artur, when he installs the app.
+- **Match the backend's pool to the database the Fly runbook creates.** `docs/setup/fly-backend.md` creates a 256 MB Postgres machine. `apps/backend/fly.toml` sets `DB_POOL_MAX` to 8, which its own comment and `apps/backend/src/lib/env.ts` size for a 1 GB machine. Either `fly.toml` goes to 5 or the runbook creates a 1 GB machine, which costs more. Who decides: Artur on the cost, then a backend engineer.
+- **Give Fly time for the graceful shutdown.** The backend finishes requests in flight for up to ten seconds on SIGTERM or SIGINT, but `apps/backend/fly.toml` sets no `kill_timeout`, and Fly's default hard stop comes after five. Setting `kill_timeout` to at least 10 lets the shutdown finish. Who decides: a backend engineer.
+- **Upgrade TypeScript to 7 and Base UI to 1.9.** Both are pinned below their latest on purpose: ts-jest, typescript-eslint and the Next plugin are unverified on TypeScript 7, and the sheet facts in `docs/design/mobile-ui-lessons.md` were verified on Base UI 1.8.0. Each upgrade is its own task that re-checks those. Who decides: whoever picks it up.
 
 ## Known gaps, deliberately unbuilt
 
 - **The app is not deployed, on purpose.** Development runs locally until the app is worth testing on a phone through a working day, which is about when days and quick logging work. The scaffold writes the Fly.io and Vercel runbooks in `docs/setup/` and Artur runs them then, as he did for finanssi. Until that day, checks that need a real phone need a tunnel to the local servers, because installing the app and using the camera both need HTTPS. Who decides: Artur, when he wants it on his phone.
-- **The typecheck and lint steps in CI do no work yet.** The earlier app has no `typecheck` or `lint` script in any workspace, so `pnpm typecheck` and `pnpm lint` find nothing to run and pass. Type errors are still caught, because each workspace's build runs the TypeScript compiler. Both steps start working when the scaffold adds the scripts. The scaffold also drops `--if-present` from the root `typecheck`, `lint` and `test` scripts, so a workspace without one fails CI. Left as is because the earlier app is about to be removed. Who decides: nobody, it resolves with the scaffold.
+- **The OAuth state is signed with the access-token secret.** Its HMAC uses `JWT_ACCESS_SECRET` under a purpose prefix in `apps/backend/src/lib/jwt.ts`. A key derived for that one purpose would be cleaner. Left as finanssi has it because the prefix already keeps the two uses apart. Who decides: whoever next touches the OAuth state.
+- **The backend runs on one machine.** The one-time codes that finish Google sign-in and the rate limiters' budgets live in process memory. A second Fly machine would fail codes minted on the other and give each client a budget per machine. Both move to Postgres or another shared store before the backend scales out. Who decides: whoever scales it.
 - **`docs/app/colors.md` does not exist.** `CLAUDE.md` names it as the token reference. It is written with the first UI design, when the macro hues are chosen. Who decides: the architect of the first UI step.
 - **The earlier app's seed recipes are not carried over.** They have no gram weights and no food links, so they cannot become recipes with computed figures without re-entering each one. An assistant with a writing key can re-create the ones worth keeping once recipes exist. Who decides: Artur.

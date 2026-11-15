@@ -27,16 +27,6 @@ The stack is the one `finanssiappisV2` runs, on purpose. Its auth, its connected
 - Frontend: Next.js (App Router), React, TypeScript, Tailwind CSS, shipped as an installable PWA
 - Backend: Node.js, Express, TypeScript, PostgreSQL through Drizzle ORM, with an MCP endpoint for connected AI assistants
 
-## Where the code is today
-
-**The repository is mid-pivot.** The stack above is the target. The code in `apps/api`, `apps/web`, `packages/shared` and `infra/` is the earlier app: a single-household meal planner on Fastify, Vite and one JSONB row, with no accounts. It still builds and its tests still pass.
-
-- Do not extend the earlier app. No new feature goes into it.
-- The first task of the pivot replaces it with the new scaffold. `docs/design/pivot-plan.md` holds the build order, what to salvage from the earlier app and what to lift from `finanssiappisV2`.
-- `docs/design/legacy-brief.md` is the earlier project brief, kept for reference while salvaging. It describes nothing that binds new work.
-
-Delete this section when the scaffold lands and the earlier app is gone.
-
 ## Product rules that bind every change
 
 These come from `docs/overview.md` and `docs/requirements.md`. They are here because breaking one is easy to do by accident.
@@ -75,15 +65,15 @@ Docs are only useful while they are true. A stale doc is worse than none, becaus
 
 ## Repository layout
 
-pnpm workspaces. Today the workspaces are the earlier app: `apps/api` (Fastify API), `apps/web` (Vite web UI) and `packages/shared` (Zod schemas), with a compose stack in `infra/`. The scaffold replaces them with:
+pnpm workspaces on Turborepo. `docker-compose.yml` at the root runs the local Postgres. `docs/design/salvage/` holds verbatim files from the earlier app that later steps reuse. Nothing builds or tests them there.
 
-- `apps/backend`: the Express API and the MCP endpoint. Source layout and commands: `apps/backend/README.md`.
-- `apps/web`: the Next.js web app and PWA. Source layout and commands: `apps/web/README.md`.
-- `packages/types`: API request and response shapes and Zod schemas shared by both.
+- `apps/backend`: the Express API, and the MCP endpoint from the connected AI step on. Source layout and commands: `apps/backend/README.md`.
+- `apps/web`: the Next.js web app and PWA. It lands with the web scaffold. Source layout and commands: `apps/web/README.md`.
+- `packages/types`: API request and response shapes, Zod schemas and error codes shared by both. `packages/types/README.md`.
 
-The root scripts are the same before and after the scaffold: `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm docs:check`. CI runs exactly these.
+The root scripts are `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm docs:check`. CI runs exactly these. Turborepo runs a task only in workspaces that define it, so every workspace defines `build`, `typecheck`, `lint` and `test`. `pnpm env:init` writes the local env files with generated secrets, and `pnpm db:up` starts the local database. Local setup is in `docs/setup/local-development.md`.
 
-Module and build rules, from the scaffold on:
+Module and build rules:
 
 - **Full ESM everywhere.** Every `package.json` has `"type": "module"`.
 - **The backend uses `NodeNext` module resolution**, which requires explicit `.js` extensions on relative imports (`import { foo } from './foo.js'` for `foo.ts`).
@@ -101,10 +91,12 @@ Module and build rules, from the scaffold on:
 | Frontend | Jest 29 with React Testing Library | `next/jest` transforms to CJS, so use standard `jest.mock()`. Mock `next/navigation` and `useAuth` in component tests.                                                                   |
 | Backend  | Jest 29 with Supertest             | Native ESM, so use `jest.unstable_mockModule` with a dynamic `await import()`. Import `{ jest }` from `@jest/globals` explicitly. Requests go through Supertest against the Express app. |
 
-These runners arrive with the scaffold. The earlier app's tests run on Vitest until it is removed.
+The frontend runner arrives with `apps/web`. Today the backend and `packages/types` run Jest.
 
 - Tests live in `__tests__/` next to the source file, in files named `*.test.ts` or `*.test.tsx`. Run one workspace with `pnpm --filter <app> test`, or one file by passing its path.
 - Run everything with `pnpm test`.
+- Backend suites named `*.db.test.ts` run on a real Postgres, each on its own throwaway database next to the one `TEST_DATABASE_URL` names. They skip with a warning when no Postgres answers, and fail in CI. In an agent container, start Postgres with `/home/user/start-local-postgres.sh` and set `TEST_DATABASE_URL=postgresql://postgres@localhost:5432/postgres`. `apps/backend/README.md` has the details.
+- **No literal secret in any committed file.** A secret scan on every pull request fails on a literal password, key or token, even a throwaway one in a test, a comment or a doc. Tests generate secrets at start-up and passwords with `testPassword()`. Database URLs carry no password, because every local and CI Postgres uses trust authentication. `.env.example` files leave secrets empty. Runbooks generate secrets inline with `openssl rand -hex 32`.
 - The `write-tests` skill holds the detailed patterns and examples. The `/add-tests` command (`.claude/commands/add-tests.md`) invokes it.
 
 ### Two failure modes that ship real bugs

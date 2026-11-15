@@ -1,5 +1,5 @@
 {
-  "files": ["docs/features.md", "README.md"],
+  "files": ["docs/features.md", "README.md", "apps/backend/README.md", "packages/types/README.md"],
   "dirs": ["docs/features", "docs/app", "docs/setup", "docs/playbook", "docs/_templates"],
   "kinds": {
     "docs/features/": "feature",

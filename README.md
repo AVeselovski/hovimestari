@@ -4,19 +4,18 @@ Hovimestari is a food planner and food log for people who bring their own calori
 
 ## Where the project stands
 
-The repository is mid-pivot. The product above is described in the docs and has no code yet. The code here today is the earlier app, a weekly meal planner for one household.
+The backend and its authentication are built. The web app comes next. [The feature catalog](docs/features.md) lists what is built.
 
 - [The overview](docs/overview.md) frames the product.
 - [The requirements](docs/requirements.md) say what it must do.
-- [The feature catalog](docs/features.md) lists what is built.
-- `docs/design/pivot-plan.md` holds the build order and what carries over.
+- `docs/design/pivot-plan.md` holds the build order.
 - [TODO.md](TODO.md) lists the open decisions.
 
 ## Working in this repository
 
 The project runs on an agentic workflow. `CLAUDE.md` holds the rules every session follows. `.claude/agents/` holds the seven agents. [The workflow](docs/playbook/workflow.md) explains the pipeline end to end, and [the lessons learned](docs/playbook/lessons-learned.md) explain why the rules exist.
 
-Node 22 and pnpm are required.
+Node 22 and pnpm are required. Corepack picks the pnpm version from `package.json`.
 
 ```bash
 pnpm install
@@ -27,13 +26,9 @@ pnpm docs:check
 
 `pnpm install` also points git at the commit hook in `.githooks/`, which formats staged files with Prettier.
 
-## Running the earlier app
+## Running it locally
 
-The earlier app runs as a compose stack with Postgres, an API and a web UI.
+[The local development runbook](docs/setup/local-development.md) goes from a fresh clone to a running backend: `pnpm env:init` writes the env file with generated secrets, `pnpm db:up` starts Postgres in Docker, and the backend runs on port 3001.
 
-```bash
-cp .env.example .env
-docker compose --env-file .env -f infra/compose.yaml up --build
-```
-
-The web UI is at `http://localhost:5173` and the API answers at `http://localhost:3000/healthz`. Stop it with the same command and `down` in place of `up --build`.
+- `apps/backend`: the Express API. [Its README](apps/backend/README.md) has the source layout, the database and the tests.
+- `packages/types`: the schemas the backend and the web app share. [Its README](packages/types/README.md).
