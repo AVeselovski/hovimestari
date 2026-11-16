@@ -1,0 +1,3 @@
+# The Fineli fixtures are byte-exact copies of the release format: Windows-1252
+# name files, CRLF line ends. Git must never normalise them.
+apps/backend/src/scripts/fineliImport/__tests__/fixtures/release-*/** binary

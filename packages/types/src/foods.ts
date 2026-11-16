@@ -90,12 +90,22 @@ export const FoodListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(MAX_LIST_LIMIT).default(DEFAULT_LIST_LIMIT),
 });
 
+/**
+ * Whether `name` holds a word search can find: two letters or digits in a
+ * row. Search drops shorter words, so a name without one could never be
+ * found. The backend checks the same rule with the search's own SQL.
+ */
+export function hasSearchableWord(name: string): boolean {
+  return /[\p{L}\p{Nd}]{2,}/u.test(name.normalize("NFC"));
+}
+
 export const OwnFoodBodySchema = z.object({
   name: z
     .string({ error: "food_name_required" })
     .trim()
     .min(1, { error: "food_name_required" })
-    .max(MAX_FOOD_NAME_LENGTH, { error: "food_name_too_long" }),
+    .max(MAX_FOOD_NAME_LENGTH, { error: "food_name_too_long" })
+    .refine(hasSearchableWord, { error: "food_name_not_searchable" }),
   per100g: Per100gSchema,
   barcode: z
     .string({ error: "barcode_invalid" })

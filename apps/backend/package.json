@@ -13,12 +13,14 @@
     "test:watch": "NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096\" jest --watch",
     "db:generate": "NODE_OPTIONS='--require tsx/cjs' drizzle-kit generate",
     "db:migrate": "NODE_OPTIONS='--require tsx/cjs' drizzle-kit migrate",
-    "db:studio": "NODE_OPTIONS='--require tsx/cjs' drizzle-kit studio"
+    "db:studio": "NODE_OPTIONS='--require tsx/cjs' drizzle-kit studio",
+    "fineli:import": "tsx src/scripts/fineliImport/index.ts"
   },
   "dependencies": {
     "@hovimestari/types": "workspace:*",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
+    "csv-parse": "^6.2.1",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.11",
     "drizzle-orm": "^0.45.4",

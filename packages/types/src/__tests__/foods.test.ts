@@ -28,21 +28,32 @@ describe("OwnFoodBodySchema", () => {
     [{ name: " ", per100g }, "food_name_required"],
     [{ per100g }, "food_name_required"],
     [{ name: "x".repeat(121), per100g }, "food_name_too_long"],
-    [{ name: "A", per100g: { ...per100g, energyKcal: undefined } }, "food_value_required"],
-    [{ name: "A", per100g: { ...per100g, energyKcal: 1000.1 } }, "food_energy_invalid"],
-    [{ name: "A", per100g: { ...per100g, energyKcal: -1 } }, "food_energy_invalid"],
-    [{ name: "A", per100g: { ...per100g, fatG: 100.5 } }, "food_macro_invalid"],
-    [{ name: "A", per100g: { ...per100g, proteinG: "9" } }, "food_macro_invalid"],
-    [{ name: "A", per100g: { ...per100g, energyKcal: 59.315 } }, "food_energy_invalid"],
-    [{ name: "A", per100g: { ...per100g, proteinG: 1.2345 } }, "food_macro_invalid"],
-    [{ name: "A", per100g, barcode: "1234567" }, "barcode_invalid"],
-    [{ name: "A", per100g, barcode: "12345678901234x" }, "barcode_invalid"],
+    [{ name: "A", per100g }, "food_name_not_searchable"],
+    [{ name: "- % -", per100g }, "food_name_not_searchable"],
+    [{ name: "a b c", per100g }, "food_name_not_searchable"],
+    [{ name: "½", per100g }, "food_name_not_searchable"],
+    [{ name: "Ab", per100g: { ...per100g, energyKcal: undefined } }, "food_value_required"],
+    [{ name: "Ab", per100g: { ...per100g, energyKcal: 1000.1 } }, "food_energy_invalid"],
+    [{ name: "Ab", per100g: { ...per100g, energyKcal: -1 } }, "food_energy_invalid"],
+    [{ name: "Ab", per100g: { ...per100g, fatG: 100.5 } }, "food_macro_invalid"],
+    [{ name: "Ab", per100g: { ...per100g, proteinG: "9" } }, "food_macro_invalid"],
+    [{ name: "Ab", per100g: { ...per100g, energyKcal: 59.315 } }, "food_energy_invalid"],
+    [{ name: "Ab", per100g: { ...per100g, proteinG: 1.2345 } }, "food_macro_invalid"],
+    [{ name: "Ab", per100g, barcode: "1234567" }, "barcode_invalid"],
+    [{ name: "Ab", per100g, barcode: "12345678901234x" }, "barcode_invalid"],
   ])("refuses %j with %p", (input, code) => {
     expect(firstMessage(OwnFoodBodySchema.safeParse(input))).toBe(code);
   });
 
+  it.each(["Ab", "Ö1", "e\u0301e", "1 % rasvaa", "C-vitamiini"])(
+    "accepts %p, a name with a searchable word",
+    (name) => {
+      expect(OwnFoodBodySchema.safeParse({ name, per100g }).success).toBe(true);
+    },
+  );
+
   it("accepts a barcode of 8 to 14 digits", () => {
-    expect(OwnFoodBodySchema.parse({ name: "A", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
+    expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
   });
 });
 

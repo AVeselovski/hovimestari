@@ -3,7 +3,7 @@ import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { foodFavourites, foodPortions, foods } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
-import { displayName, portionOf, summaryColumns, summaryOf } from "../foodRows.js";
+import { byName, displayName, portionOf, summaryColumns, summaryOf } from "../foodRows.js";
 import { portionVisibleTo, visibleFood, visibleTo } from "../foodScope.js";
 import { searchQuery, searchWords } from "../foodSearch.js";
 import type { ReadContext } from "./context.js";
@@ -31,13 +31,13 @@ export async function listFavouriteFoods(ctx: ReadContext, { limit }: { limit: n
   return { foods: rows.map(summaryOf) };
 }
 
-/** The user's own foods, by name, at most `limit`. */
+/** The user's own foods, in Finnish alphabetical order, at most `limit`. */
 export async function listOwnFoods(ctx: ReadContext, { limit }: { limit: number }): Promise<FoodList> {
   const rows = await ctx.db
     .select(summaryColumns(ctx.userId))
     .from(foods)
     .where(and(eq(foods.source, "user"), eq(foods.userId, ctx.userId)))
-    .orderBy(displayName(ctx.userId), asc(foods.id))
+    .orderBy(byName(displayName(ctx.userId)), asc(foods.id))
     .limit(limit);
   return { foods: rows.map(summaryOf) };
 }
@@ -57,7 +57,7 @@ export async function portionsOf(ctx: ReadContext, foodId: string): Promise<Port
     .from(foodPortions)
     .innerJoin(foods, eq(foods.id, foodPortions.foodId))
     .where(and(visibleFood(ctx.userId, foodId), portionVisibleTo(ctx.userId)))
-    .orderBy(sql`${unitOrder} NULLS LAST`, asc(foodPortions.name), asc(foodPortions.id));
+    .orderBy(sql`${unitOrder} NULLS LAST`, byName(foodPortions.name), asc(foodPortions.id));
   return rows.map((r) => portionOf(r.portion, ctx.userId));
 }
 

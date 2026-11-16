@@ -42,3 +42,6 @@ docker-compose.yml
 
 # The web workspace is not part of the backend image.
 apps/web
+
+# The unzipped Fineli release. On Fly it is copied to the machine, never baked in.
+apps/backend/data

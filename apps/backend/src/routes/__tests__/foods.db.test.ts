@@ -90,7 +90,7 @@ await describeWithDb("foods", (suite) => {
       const res = await api()
         .post("/api/v1/foods")
         .set(a.auth)
-        .send({ name: "A", per100g: { ...per100g, fatG: 101 } });
+        .send({ name: "Ab", per100g: { ...per100g, fatG: 101 } });
       expect(res.status).toBe(400);
       expect(res.body.code).toBe("food_macro_invalid");
     });
@@ -106,6 +106,50 @@ await describeWithDb("foods", (suite) => {
         [food.id],
       );
       expect(left.rows[0]).toEqual({ p: 0, f: 0 });
+    });
+  });
+
+  describe("names", () => {
+    const names = (res: request.Response) => (res.body.foods as { name: string }[]).map((f) => f.name);
+
+    it("lists own foods in Finnish alphabetical order, whatever the case", async () => {
+      const a = await user();
+      for (const name of ["Äyriäinen", "Zucchini", "Åkerbär", "banaani", "Omena"]) await createFood(a, { name });
+      expect(names(await api().get("/api/v1/foods/own").set(a.auth))).toEqual([
+        "banaani",
+        "Omena",
+        "Zucchini",
+        "Åkerbär",
+        "Äyriäinen",
+      ]);
+    });
+
+    it("breaks a search tie in Finnish alphabetical order", async () => {
+      // One tier, one standing, one kind, one part and one length each: only the name differs.
+      const a = await user();
+      for (const name of ["äkana", "Ckana", "åkana", "bkana"]) await createFood(a, { name });
+      expect(names(await api().get("/api/v1/foods/search").query({ q: "kana" }).set(a.auth))).toEqual([
+        "bkana",
+        "Ckana",
+        "åkana",
+        "äkana",
+      ]);
+    });
+
+    it.each(["-", "a", "ö !", "A B", "½ %"])("refuses %p, a name search could never find", async (name) => {
+      const a = await user();
+      const res = await api().post("/api/v1/foods").set(a.auth).send({ name, per100g });
+      expect([res.status, res.body.code]).toEqual([400, "food_name_not_searchable"]);
+      const food = await createFood(a);
+      const edit = await api().put(`/api/v1/foods/${food.id}`).set(a.auth).send({ name, per100g });
+      expect([edit.status, edit.body.code]).toEqual([400, "food_name_not_searchable"]);
+    });
+
+    it("accepts a name with one word of two letters or digits, and finds it", async () => {
+      const a = await user();
+      const food = await createFood(a, { name: "Ö1 !" });
+      const found = await api().get("/api/v1/foods/search").query({ q: "o1" }).set(a.auth);
+      expect(found.body.foods.map((f: { id: string }) => f.id)).toEqual([food.id]);
     });
   });
 

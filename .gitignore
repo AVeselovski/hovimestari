@@ -25,3 +25,6 @@ secrets.json
 
 # Claude Code working directories.
 .claude/worktrees/
+
+# The unzipped Fineli release, downloaded by hand. See docs/setup/fineli-import.md.
+apps/backend/data/fineli/

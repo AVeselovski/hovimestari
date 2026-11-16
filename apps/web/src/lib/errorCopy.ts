@@ -27,6 +27,7 @@ export const CODES_WITHOUT_COPY = [
   "food_read_only",
   "food_name_required",
   "food_name_too_long",
+  "food_name_not_searchable",
   "food_value_required",
   "food_energy_invalid",
   "food_macro_invalid",

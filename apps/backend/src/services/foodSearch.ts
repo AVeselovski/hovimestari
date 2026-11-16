@@ -1,7 +1,7 @@
 import { and, asc, isNull, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { foods } from "../db/schema/index.js";
 import type { Db } from "../db/types.js";
-import { displayName, isFavourite, isOwn, summaryColumns } from "./foodRows.js";
+import { byName, displayName, isFavourite, isOwn, summaryColumns } from "./foodRows.js";
 import { visibleTo } from "./foodScope.js";
 
 /** The fewest characters a search word needs. Shorter words are dropped. */
@@ -46,7 +46,7 @@ function tierOf(head: AnyColumn, words: AnyColumn, w: string): SQL<number> {
  * match. First difference wins: the match tier of the first word over both
  * names, favourites then own foods then the rest, Fineli FOOD then DISH then
  * anything else, fewer parts in the display name, shorter display name, the
- * display name, then the id.
+ * display name in Finnish alphabetical order, then the id.
  */
 export function searchQuery(db: Db, userId: string, words: string[], limit: number) {
   const [w] = words;
@@ -71,7 +71,7 @@ export function searchQuery(db: Db, userId: string, words: string[], limit: numb
       kind,
       sql`array_length(string_to_array(${display}, ', '), 1)`,
       sql`char_length(${display})`,
-      display,
+      byName(display),
       asc(foods.id),
     )
     .limit(limit);

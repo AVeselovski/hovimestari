@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. No Fineli food is loaded yet.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
 
 ## The app
 

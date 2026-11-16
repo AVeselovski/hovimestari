@@ -6,6 +6,7 @@ import { isUuid } from "../../lib/isUuid.js";
 import { isUniqueViolation } from "../../lib/pgErrors.js";
 import { portionOf } from "../foodRows.js";
 import { portionVisibleTo, visibleFood } from "../foodScope.js";
+import { searchWords } from "../foodSearch.js";
 import { getFood } from "../reads/foods.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
@@ -49,6 +50,15 @@ const columnsOf = (body: OwnFoodBody) => ({
   barcode: body.barcode,
 });
 
+/**
+ * Refuses a name search could never find: one with no word of two letters or
+ * digits once the search has normalised it. The search's own SQL decides,
+ * so this holds whatever the shared schema's approximation lets through.
+ */
+async function requireSearchable(ctx: WriteContext, name: string): Promise<void> {
+  if ((await searchWords(ctx.db, name)).length === 0) throw appError("food_name_not_searchable", 400);
+}
+
 /** Runs `write`, turning a second own food with one barcode into 409 `barcode_taken`. */
 async function barcodeChecked<T>(write: () => Promise<T>): Promise<T> {
   try {
@@ -60,6 +70,7 @@ async function barcodeChecked<T>(write: () => Promise<T>): Promise<T> {
 }
 
 export async function createOwnFood(ctx: WriteContext, body: OwnFoodBody): Promise<WriteOutcome<FoodDetail>> {
+  await requireSearchable(ctx, body.name);
   const [created] = await barcodeChecked(() =>
     ctx.db
       .insert(foods)
@@ -75,6 +86,7 @@ export async function updateOwnFood(
   body: OwnFoodBody,
 ): Promise<WriteOutcome<FoodDetail>> {
   const food = await findOwnFood(ctx, id);
+  await requireSearchable(ctx, body.name);
   const next = columnsOf(body);
   const same = (Object.keys(next) as (keyof typeof next)[]).every((k) => food[k] === next[k]);
   if (!same) {
