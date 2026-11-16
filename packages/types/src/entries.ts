@@ -163,6 +163,17 @@ export const EntrySchema = z.object({
   /** A saved meal entry's count of meals. */
   count: z.number().nullable(),
   note: z.string().nullable(),
+  /**
+   * The values the entry's figures are computed from, as stored: set when the entry is
+   * added, replaced when an estimate's figures are edited, and rewritten on planned
+   * entries dated today or later when their own food or saved meal is edited. Per kind:
+   * - food: per 100 g of the food. figures = entryFigures(basis, { per: "100g", grams })
+   * - saved_meal: per one meal. figures = entryFigures(basis, { per: "meal", count })
+   * - estimate: the whole entry, the typed figures. figures = entryFigures(basis, { per: "whole" })
+   * Not rounded for display: kcal with up to two decimals, grams with up to three, as the
+   * columns hold them.
+   */
+  basis: FiguresSchema,
   figures: FiguresSchema,
   isEstimate: z.boolean(),
 });
