@@ -75,6 +75,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   food_read_only: "Only your own foods can be changed.",
   food_name_required: "Give the food a name.",
   food_name_too_long: "Use at most 120 characters.",
+  food_name_not_searchable: "Use at least two letters or digits in a row, so search can find the food.",
   food_value_required: "Enter a value from the label.",
   food_energy_invalid: "Enter a number from 0 to 1000.",
   food_macro_invalid: "Enter a number from 0 to 100.",

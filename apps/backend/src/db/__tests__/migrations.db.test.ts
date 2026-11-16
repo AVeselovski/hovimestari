@@ -1,8 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { createThrowawayDb, realDatabaseAvailable } from "./support/throwawayDb.js";
+import { createThrowawayDb, readMigration, realDatabaseAvailable } from "./support/throwawayDb.js";
 
 // What the migrations themselves refuse, on real Postgres: a database that is
-// not UTF-8, and a Fineli portion unit the API does not name.
+// not UTF-8, a server without the fi-x-icu collation, and a Fineli portion
+// unit the API does not name.
 
 const run = await realDatabaseAvailable("migrations");
 const name = (what: string) => `hovi_migrations_${what}_${process.pid}_${Date.now()}`;
@@ -12,6 +13,24 @@ const name = (what: string) => `hovi_migrations_${what}_${process.pid}_${Date.no
     const throwaway = await createThrowawayDb(name("ascii"), "SQL_ASCII");
     try {
       await expect(throwaway.migrateAll()).rejects.toThrow(/needs a UTF8 database/);
+    } finally {
+      await throwaway.drop();
+    }
+  });
+
+  it("refuse a server without the fi-x-icu collation", async () => {
+    // Every server the tests run on has ICU, so the guard from migration 0001
+    // runs here as written and then with a collation name no server has.
+    const guard = readMigration("0001_search_functions")
+      .split("--> statement-breakpoint")
+      .find((statement) => statement.includes("pg_collation"));
+    expect(guard).toBeDefined();
+    const throwaway = await createThrowawayDb(name("icu"));
+    try {
+      await expect(throwaway.client.query(guard as string)).resolves.toBeDefined();
+      await expect(
+        throwaway.client.query((guard as string).replaceAll("fi-x-icu", "zz-no-such-x-icu")),
+      ).rejects.toThrow(/needs the ICU collation zz-no-such-x-icu/);
     } finally {
       await throwaway.drop();
     }

@@ -69,6 +69,26 @@ await describeWithDb("foodWrites", (suite) => {
     return { a, b, writes, food, portion };
   }
 
+  describe("a name search could never find", () => {
+    // The shared schema refuses these before a route calls the service. The
+    // service checks again with the search's own SQL, for callers (the MCP
+    // tools) that pass a body the schema did not see.
+    it.each(["a", "- %", "x y", "½"])("refuses %p on create and on edit, and writes nothing", async (name) => {
+      const { a, writes, food } = await setUp();
+      const ctx = await contextOf(a.id);
+      await expect(writes.createOwnFood(ctx, body(name))).rejects.toMatchObject({
+        code: "food_name_not_searchable",
+        status: 400,
+      });
+      await expect(writes.updateOwnFood(ctx, food.id, body(name))).rejects.toMatchObject({
+        code: "food_name_not_searchable",
+        status: 400,
+      });
+      const { rows } = await suite.client.query("SELECT name FROM foods WHERE user_id = $1", [a.id]);
+      expect(rows).toEqual([{ name: "Oma rahka" }]);
+    });
+  });
+
   describe("an own food that changes owner between the check and the write", () => {
     it("is not edited, and the edit answers 404", async () => {
       const { a, b, writes, food } = await setUp();

@@ -1,5 +1,5 @@
 import type { FoodSummary, Portion } from "@hovimestari/types";
-import { sql, type SQL } from "drizzle-orm";
+import { sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { foodFavourites, foodPortions, foods, users } from "../db/schema/index.js";
 
 // The one selection every food read answers with, so a list, a search and a
@@ -13,6 +13,14 @@ const languageOf = (userId: string): SQL =>
 /** The name in the user's language: the English name for "en" where there is one, else the Finnish. */
 export const displayName = (userId: string): SQL<string> =>
   sql<string>`CASE WHEN ${languageOf(userId)} = 'en' THEN coalesce(${foods.nameEn}, ${foods.name}) ELSE ${foods.name} END`;
+
+/**
+ * `name` in Finnish alphabetical order (å, ä and ö after z), the same on every
+ * server whatever its default locale. ICU's `fi-x-icu` exists wherever
+ * Postgres is built with ICU: the official image, Fly's and the agent
+ * container's. Every alphabetical ORDER BY on a food or portion name uses it.
+ */
+export const byName = (name: SQL | AnyColumn): SQL => sql`${name} COLLATE "fi-x-icu"`;
 
 /** The other language's name when it differs from the display name, else null. */
 const otherName = (userId: string): SQL<string | null> =>
