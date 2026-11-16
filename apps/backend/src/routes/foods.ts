@@ -1,4 +1,10 @@
-import { FoodListQuerySchema, FoodSearchQuerySchema, OwnFoodBodySchema, PortionBodySchema } from "@hovimestari/types";
+import {
+  FoodListQuerySchema,
+  FoodSearchQuerySchema,
+  OwnFoodBodySchema,
+  OwnFoodUpdateBodySchema,
+  PortionBodySchema,
+} from "@hovimestari/types";
 import { Router, type Router as IRouter } from "express";
 import { parseBody, parseQuery } from "../lib/parseBody.js";
 import { contextFor } from "../lib/requestContext.js";
@@ -46,7 +52,8 @@ foodsRouter.post("/", async (req, res) => {
 });
 
 foodsRouter.put("/:id", async (req, res) => {
-  const body = parseBody(OwnFoodBodySchema, req.body);
+  // No search check on the name here: the service checks a changed name only.
+  const body = parseBody(OwnFoodUpdateBodySchema, req.body);
   const { value } = await updateOwnFood(await contextFor(req), req.params.id, body);
   res.status(200).json(value);
 });

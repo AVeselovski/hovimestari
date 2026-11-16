@@ -99,6 +99,19 @@ await describeWithDb("foodWrites", (suite) => {
       const { rows } = await suite.client.query("SELECT name FROM foods WHERE user_id = $1", [a.id]);
       expect(rows).toEqual([{ name: "Oma rahka" }]);
     });
+
+    it("is not checked again on an edit that keeps it, so the food's values can still change", async () => {
+      const { a, writes, food } = await setUp();
+      // A name saved before the rule, or by a caller the schema did not see.
+      await suite.client.query("UPDATE foods SET name = $1 WHERE id = $2", ["½", food.id]);
+      const ctx = await contextOf(a.id);
+      const edited = await writes.updateOwnFood(ctx, food.id, { ...body("½"), per100g: { ...per100g, proteinG: 12 } });
+      expect(edited.outcome).toBe("changed");
+      expect(edited.value.per100g.proteinG).toBe(12);
+      await expect(writes.updateOwnFood(ctx, food.id, body("a"))).rejects.toMatchObject({
+        code: "food_name_not_searchable",
+      });
+    });
   });
 
   describe("an own food that changes owner between the check and the write", () => {

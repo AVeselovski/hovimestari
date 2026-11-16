@@ -145,6 +145,23 @@ await describeWithDb("foods", (suite) => {
       expect([edit.status, edit.body.code]).toEqual([400, "food_name_not_searchable"]);
     });
 
+    it("edits the values of a food whose saved name search cannot find, and refuses a new such name", async () => {
+      const a = await user();
+      const food = await createFood(a);
+      // A name saved before the rule, planted past the API.
+      await suite.client.query("UPDATE foods SET name = 'C' WHERE id = $1", [food.id]);
+      const values = await api()
+        .put(`/api/v1/foods/${food.id}`)
+        .set(a.auth)
+        .send({ name: "C", per100g: { ...per100g, fatG: 1 } });
+      expect(values.status).toBe(200);
+      expect(values.body).toMatchObject({ name: "C", per100g: { ...per100g, fatG: 1 } });
+      const renamed = await api().put(`/api/v1/foods/${food.id}`).set(a.auth).send({ name: "D", per100g });
+      expect([renamed.status, renamed.body.code]).toEqual([400, "food_name_not_searchable"]);
+      const searchable = await api().put(`/api/v1/foods/${food.id}`).set(a.auth).send({ name: "Dd", per100g });
+      expect(searchable.status).toBe(200);
+    });
+
     it("accepts a name with one word of two letters or digits, and finds it", async () => {
       const a = await user();
       const food = await createFood(a, { name: "Ö1 !" });

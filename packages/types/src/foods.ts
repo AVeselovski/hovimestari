@@ -122,13 +122,20 @@ export function hasSearchableWord(name: string): boolean {
   return /[\p{L}\p{Nd}]{2,}/u.test(name.normalize("NFC"));
 }
 
-export const OwnFoodBodySchema = z.object({
-  name: z
-    .string({ error: "food_name_required" })
-    .trim()
-    .min(1, { error: "food_name_required" })
-    .max(MAX_FOOD_NAME_LENGTH, { error: "food_name_too_long" })
-    .refine(hasSearchableWord, { error: "food_name_not_searchable" }),
+/** An own food's name, trimmed and within its length. Searchability is checked where a name is new. */
+const OwnFoodNameSchema = z
+  .string({ error: "food_name_required" })
+  .trim()
+  .min(1, { error: "food_name_required" })
+  .max(MAX_FOOD_NAME_LENGTH, { error: "food_name_too_long" });
+
+/**
+ * The body of `PUT /foods/:id`. The name is not checked for search here: the
+ * service checks it only when it changes, so a food whose saved name search
+ * cannot find can still have its values edited.
+ */
+export const OwnFoodUpdateBodySchema = z.object({
+  name: OwnFoodNameSchema,
   per100g: Per100gSchema,
   barcode: z
     .string({ error: "barcode_invalid" })
@@ -136,6 +143,11 @@ export const OwnFoodBodySchema = z.object({
     .regex(/^[0-9]{8,14}$/, { error: "barcode_invalid" })
     .nullable()
     .default(null),
+});
+
+/** The body of `POST /foods`: a new name must hold a word search can find. */
+export const OwnFoodBodySchema = OwnFoodUpdateBodySchema.extend({
+  name: OwnFoodNameSchema.refine(hasSearchableWord, { error: "food_name_not_searchable" }),
 });
 
 export const PortionBodySchema = z.object({

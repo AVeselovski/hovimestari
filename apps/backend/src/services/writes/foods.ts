@@ -99,7 +99,13 @@ export async function updateOwnFood(
   body: OwnFoodBody,
 ): Promise<WriteOutcome<FoodDetail>> {
   const food = await findOwnFood(ctx, id);
-  await requireSearchable(ctx, body.name);
+  // Only a changed name is checked for search, so an edit of a food's values
+  // never fails on the name it already has: one saved before the rule, or one
+  // the shared schema's approximation let through on create. PUT /foods/:id
+  // parses with OwnFoodUpdateBodySchema, which has no search rule, so this is
+  // the one check on an edit, for REST and for any later assistant tool that
+  // calls this service.
+  if (body.name !== food.name) await requireSearchable(ctx, body.name);
   const next = columnsOf(body);
   const same = (Object.keys(next) as (keyof typeof next)[]).every((k) => food[k] === next[k]);
   if (!same) {
