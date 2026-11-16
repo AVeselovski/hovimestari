@@ -7,3 +7,4 @@
 - [Measure claims on real data](feedback_measure_claims_on_real_data.md): run ranking/parse rules on real rows before claiming results; literal FR wording wins
 - [Refresh-token families](project_refresh_token_families.md): siblings not replacement, fam claim for reuse, user-row lock before any token write
 - [Entry figures model](project_entry_figures_model.md): basis written once at add, sum of rounded rows, fixed gauge scale, stale today on resume
+- [Redesign against built primitives](feedback_redesign_against_built_primitives.md): hue allowlist test, toast under modal drawers, missing API fields, server-wins today
