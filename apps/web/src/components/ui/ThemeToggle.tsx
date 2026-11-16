@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon, type IconName } from "@/components/Icon";
-import { focusRing } from "@/components/ui/styles";
+import { segmentActive, segmentButton, segmentInactive, segmentedTray } from "@/components/ui/styles";
 import { useTheme, type ThemeMode } from "@/contexts/ThemeContext";
 import { useRovingChoice } from "@/hooks/useRovingChoice";
 import { useTranslations } from "next-intl";
@@ -28,11 +28,7 @@ export function ThemeToggle(): ReactElement {
   const roving = useRovingChoice(MODES, mode, setMode);
 
   return (
-    <div
-      role="radiogroup"
-      aria-label={t("ariaLabel")}
-      className="grid grid-cols-3 gap-1 rounded-control border border-rule bg-surface-raised p-1"
-    >
+    <div role="radiogroup" aria-label={t("ariaLabel")} className={`${segmentedTray} grid-cols-3`}>
       {MODES.map((m) => (
         <button
           key={m}
@@ -42,9 +38,9 @@ export function ThemeToggle(): ReactElement {
           onClick={() => setMode(m)}
           {...roving.optionProps(m)}
           className={[
-            "flex min-h-11 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-0.25rem)] px-1.5 text-base font-semibold transition-colors duration-150 max-[371px]:flex-col max-[371px]:gap-0.5 max-[371px]:py-1.5",
-            focusRing,
-            mode === m ? "bg-accent text-on-accent" : "text-ink-muted hover:text-ink active:bg-surface",
+            segmentButton,
+            "max-[371px]:flex-col max-[371px]:gap-0.5 max-[371px]:py-1.5",
+            mode === m ? segmentActive : segmentInactive,
           ].join(" ")}
         >
           <Icon name={MODE_ICON[m]} className="h-5 w-5 shrink-0" />

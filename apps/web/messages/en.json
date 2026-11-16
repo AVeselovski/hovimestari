@@ -66,6 +66,20 @@
     "offline": "You are offline."
   },
   "settings": {
+    "targets": {
+      "title": "Targets",
+      "inForceToday": "In force today",
+      "fromDate": "From {date}",
+      "earlier": "Earlier targets",
+      "change": "Change targets",
+      "unavailable": "Your targets show here once Hovimestari can reach the server."
+    },
+    "foodNames": {
+      "title": "Food names",
+      "fi": "Finnish",
+      "en": "English",
+      "hint": "Search finds foods by either name."
+    },
     "appearance": {
       "title": "Appearance",
       "themeToggle": {
@@ -145,6 +159,51 @@
       "emailMismatch": "That is not this account's email. Check it and try again."
     }
   },
+  "targets": {
+    "note": "Hovimestari is not a source of nutrition or medical advice. It measures your days against the numbers you enter.",
+    "fields": {
+      "calories": "Calories",
+      "protein": "Protein",
+      "from": "From",
+      "to": "To",
+      "kcal": "kcal",
+      "grams": "g",
+      "proteinHint": "The lower number is your floor.",
+      "caloriesInvalid": "Enter a number below 100000, with one decimal at most.",
+      "proteinInvalid": "Enter a number below 10000, with one decimal at most."
+    },
+    "range": {
+      "kcal": "<part>{lower} to</part> <part>{upper} kcal</part>",
+      "grams": "<part>{lower} to</part> <part>{upper} g</part>"
+    },
+    "firstRun": {
+      "title": "Your daily targets",
+      "lead": "Enter the ranges you aim for each day. You can change them at any time.",
+      "save": "Save targets",
+      "saving": "Saving…"
+    },
+    "sheet": {
+      "title": "Change targets",
+      "titleExisting": "Targets from {date}",
+      "startsOn": "Starts on",
+      "inForce": "In force on {date}: {energyLower} to {energyUpper} kcal, {proteinLower} to {proteinUpper} g protein.",
+      "rewriteBetween": "This changes the targets for every day from {date} to {end}.",
+      "rewriteDay": "This changes the targets for {date}.",
+      "rewriteFrom": "This changes the targets for every day from {date} on.",
+      "rewriteBefore": "This changes the targets for every day before {next}.",
+      "rewriteAll": "This changes the targets for every day.",
+      "save": "Save",
+      "saving": "Saving…",
+      "remove": "Remove these targets",
+      "removeTitle": "Remove the targets from {date}?",
+      "removeBodyBetween": "Days from {date} to {end} are then measured against your earlier targets.",
+      "removeBodyDay": "{date} is then measured against your earlier targets.",
+      "removeBodyFrom": "Days from {date} on are then measured against your earlier targets.",
+      "removeBodyFirst": "Days before {next} are then measured against the targets from {next}.",
+      "removeConfirm": "Remove",
+      "removing": "Removing…"
+    }
+  },
   "errors": {
     "invalid_email": "Enter a valid email address.",
     "password_too_short": "Use at least 8 characters.",
@@ -178,6 +237,13 @@
     "request_refused": "Something went wrong. Try again.",
     "invalid_request": "Something went wrong. Try again.",
     "invalid_method": "Something went wrong. Try again.",
+    "invalid_date": "Enter a valid date.",
+    "target_required": "Enter a number.",
+    "target_value_invalid": "A number is too large or has more than one decimal.",
+    "target_not_positive": "Enter a number above zero.",
+    "target_lower_above_upper": "The second number cannot be below the first.",
+    "target_change_not_found": "These targets no longer exist.",
+    "targets_last_change": "You need at least one set of targets.",
     "fallback": "Something went wrong. Try again."
   },
   "session": {

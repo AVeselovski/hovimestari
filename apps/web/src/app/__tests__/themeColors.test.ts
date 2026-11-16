@@ -53,7 +53,28 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** `fg` at `alpha` over `bg`, as the browser paints a colour with an opacity modifier. */
+function over(fg: string, bg: string, alpha: number): string {
+  const channel = (hex: string, i: number): number => parseInt(hex.slice(i, i + 2), 16);
+  return `#${[1, 3, 5]
+    .map((i) => Math.round(channel(fg, i) * alpha + channel(bg, i) * (1 - alpha)))
+    .map((v) => v.toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
 describe("token contrast", () => {
+  // A text button is found by its underline: field-rule for btnText, the accent at 70 % for btnTextDanger (styles.ts).
+  it.each(["light", "dark"] as const)(
+    "a text button's underline reaches 3 to 1 where text buttons sit, %s",
+    (theme) => {
+      for (const surface of ["bg", "surface", "surface-raised"]) {
+        const ground = token(theme, surface);
+        expect(contrast(token(theme, "field-rule"), ground)).toBeGreaterThanOrEqual(3);
+        expect(contrast(over(token(theme, "accent"), ground, 0.7), ground)).toBeGreaterThanOrEqual(3);
+      }
+    },
+  );
+
   it.each(["light", "dark"] as const)("a field's edge reaches 3 to 1 against the page and a panel, %s", (theme) => {
     expect(contrast(token(theme, "field-rule"), token(theme, "bg"))).toBeGreaterThanOrEqual(3);
     expect(contrast(token(theme, "field-rule"), token(theme, "surface"))).toBeGreaterThanOrEqual(3);

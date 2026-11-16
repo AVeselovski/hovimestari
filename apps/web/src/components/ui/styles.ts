@@ -19,7 +19,7 @@ export const touchTarget = "max-md:min-h-11 max-md:min-w-11";
 export const touchHitArea =
   "relative after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']";
 
-const btnShape = `inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors duration-150 ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`;
+const btnShape = `inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors duration-150 ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
 /** A full-size button: 48px tall, readable at arm's length. */
 const btnSize = "h-12 px-5 text-base";
@@ -46,8 +46,17 @@ export const btnSecondaryDanger = `${btnShape} ${btnSize} border border-accent b
 /** A quiet action. */
 export const btnGhost = `${btnShape} ${btnSize} text-ink hover:bg-surface active:bg-surface`;
 
+/**
+ * An action that reads as a word rather than a button, such as Sign out on
+ * the first-run page: underlined, with a full 44px target on a phone.
+ */
+export const btnText = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`;
+
+/** A text button that leads to something destructive, such as Delete account: in the accent. A press or a hover fills in its underline, as with `btnText`. */
+export const btnTextDanger = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-accent underline decoration-accent/70 underline-offset-4 hover:decoration-accent active:decoration-accent ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`;
+
 /** A text link inside copy. A press darkens its underline, so a tap shows at once. */
-export const linkClass = `rounded-sm font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing}`;
+export const linkClass = `rounded-sm font-medium text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing}`;
 
 /** A field: 48px tall, 16px text so iOS Safari never zooms on focus. */
 export const inputClass = `block h-12 w-full rounded-control border border-field-rule bg-surface-raised px-3.5 text-base text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
@@ -120,11 +129,12 @@ export const sheetViewportAnchored = `fixed inset-0 ${zSheet} flex touch-none it
  * bottom edge, fully rounded as a centred panel. Below `md` it stops 1.5rem
  * short of the top safe area and stands at least `--sheet-min-height` tall
  * above the home indicator, so a short prompt is not a sliver at the bottom.
- * From `md` it keeps the dialog cap of 90dvh and sizes to its content. Its
+ * From `md` it sizes to its content, up to 1rem short of the viewport above
+ * and below, so a form of a dozen rows fits a 1280 by 800 screen. Its
  * width from `md` comes from `BottomSheet`'s `panelClassName`.
  */
 const sheetPopupShape =
-  "relative flex w-full flex-col outline-hidden rounded-t-card border border-rule max-md:border-x-0 max-md:border-b-0 md:rounded-card max-h-[calc(100dvh-var(--safe-top)-1.5rem)] max-md:min-h-[calc(var(--sheet-min-height)+var(--safe-bottom))] md:max-h-[90dvh] sheet-popup-motion";
+  "relative flex w-full flex-col outline-hidden rounded-t-card border border-rule max-md:border-x-0 max-md:border-b-0 md:rounded-card max-h-[calc(100dvh-var(--safe-top)-1.5rem)] max-md:min-h-[calc(var(--sheet-min-height)+var(--safe-bottom))] md:max-h-[calc(100dvh-2rem)] sheet-popup-motion";
 
 /** The sheet itself, on the surface colour. */
 export const sheetPopup = `${sheetPopupShape} bg-surface`;
@@ -176,3 +186,21 @@ export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:just
  * start from `md`. A `md:max-w-sm` dialog has no room for three in a row.
  */
 export const sheetActionsStart = "col-span-2 grid md:flex md:basis-full";
+
+// ---------------------------------------------------------------------------
+// Segmented controls: a few options in one tray, one chosen, such as the
+// theme and the food-name language. The chosen option is the accent, because
+// selection reads accent. The keyboard half is `useRovingChoice`.
+// ---------------------------------------------------------------------------
+
+/** The tray. The caller sets the columns (`grid-cols-3`), so every option is the same width. */
+export const segmentedTray = "grid gap-1 rounded-control border border-field-rule bg-surface-raised p-1";
+
+/** One option in a `segmentedTray`: a full 44px target. */
+export const segmentButton = `flex min-h-11 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-0.25rem)] px-1.5 text-base font-semibold transition-colors duration-150 ${focusRing}`;
+
+/** The chosen option. */
+export const segmentActive = "bg-accent text-on-accent";
+
+/** An option not chosen. */
+export const segmentInactive = "text-ink-muted hover:text-ink active:bg-surface";

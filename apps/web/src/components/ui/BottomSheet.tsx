@@ -180,6 +180,11 @@ interface BottomSheetBaseProps {
   children: ReactNode;
   /** The panel's width at `md`+, e.g. `md:max-w-lg`. Default `md:max-w-md`. */
   panelClassName?: string;
+  /**
+   * Extra classes for the title, such as the room for its longest form, for
+   * a sheet whose title changes while it is open.
+   */
+  titleClassName?: string;
   /** DOM id for the `role="dialog"` element, for a trigger whose `aria-controls` names it. */
   id?: string;
   /**
@@ -267,6 +272,7 @@ export function BottomSheet({
   title,
   children,
   panelClassName = "md:max-w-md",
+  titleClassName,
   id,
   dismissible = true,
   returnFocusTo,
@@ -420,7 +426,9 @@ export function BottomSheet({
                   {title !== undefined && (
                     <div data-sheet-header="" className={sheetHeader}>
                       {/* Names the dialog: Base UI points the Popup's aria-labelledby at it. */}
-                      <Drawer.Title className={sheetTitle}>{title}</Drawer.Title>
+                      <Drawer.Title className={titleClassName ? `${sheetTitle} ${titleClassName}` : sheetTitle}>
+                        {title}
+                      </Drawer.Title>
                       {headerNote !== undefined && (
                         <div data-sheet-header-note="" className="mt-1">
                           {headerNote}

@@ -297,3 +297,28 @@ body {
 [data-focus-restored]:focus-visible::after {
   outline: none;
 }
+
+/* A native date field on a phone (components/ui/NativeDateInput.tsx). iOS
+   Safari sizes <input type="date"> from its own intrinsic width and ignores
+   the specified one, so in a narrow slot it renders wider than its box:
+   finanssi measured 382px in a 356px slot on a real iPhone. The first rule
+   is the WebKit lever that works in the sandbox's WebKit. It was not enough
+   on the real device, where `appearance: none` was. That reset also strips
+   the picker affordance in desktop Chrome, so it applies to coarse pointers
+   only, where the defect lives. A phone still opens its own picker. */
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-min-logical-width: 0;
+}
+
+@media (pointer: coarse) {
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    /* The reset drops WebKit's centring of the value. Flex puts it back
+       without hard-coding the field's height. */
+    display: flex;
+    align-items: center;
+  }
+}

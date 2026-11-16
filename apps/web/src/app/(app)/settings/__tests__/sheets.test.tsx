@@ -1,4 +1,5 @@
 import { describeFormSheetContract, stubPhone } from "@/__tests__/formSheet";
+import { DeleteAccountSheet } from "@/components/account/DeleteAccountSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { addPassword } from "@/lib/api/auth";
 import { changePassword, deleteAccount } from "@/lib/api/users";
@@ -7,7 +8,6 @@ import { AxiosError, type AxiosResponse } from "axios";
 import { TEST_USER, fakeAuth, testPassword } from "../../../../__tests__/helpers/auth";
 import { AddPasswordSheet } from "../_components/AddPasswordSheet";
 import { ChangePasswordSheet } from "../_components/ChangePasswordSheet";
-import { DeleteAccountSheet } from "../_components/DeleteAccountSheet";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/users", () => ({ changePassword: jest.fn(), deleteAccount: jest.fn(), getMe: jest.fn() }));
@@ -36,10 +36,16 @@ function refusal(status: number, code: string): AxiosError {
 }
 
 /** A promise the test settles. */
-function held<T>(mock: jest.Mock): { resolve: () => void } {
+function held<T>(mock: jest.Mock): { resolve: () => void; reject: () => void } {
   let resolve: (v: T) => void = () => {};
-  mock.mockReturnValue(new Promise<T>((r) => (resolve = r)));
-  return { resolve: () => resolve(undefined as T) };
+  let reject: (e: unknown) => void = () => {};
+  mock.mockReturnValue(
+    new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    }),
+  );
+  return { resolve: () => resolve(undefined as T), reject: () => reject(new Error("refused")) };
 }
 
 const field = (label: string): HTMLInputElement => screen.getByLabelText(label) as HTMLInputElement;

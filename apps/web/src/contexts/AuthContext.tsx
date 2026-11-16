@@ -123,6 +123,15 @@ export const RENEWAL_LOCK = "hovi-session-renewal";
  */
 export const RENEWAL_TIMEOUT_MS = 12_000;
 
+/**
+ * How long a sign-in or a sign-up may take before this tab reports the
+ * server out of reach. Longer than a renewal's: on a slow connection a
+ * sign-up cut short at 12 seconds could create the account, say the server
+ * cannot be reached, and then answer `email_taken` to the retry. The lock is
+ * held this long only by a person who is waiting on the form anyway.
+ */
+export const SESSION_START_TIMEOUT_MS = 30_000;
+
 function webLocks(): LockManager | undefined {
   return typeof navigator === "undefined" ? undefined : navigator.locks;
 }
@@ -166,16 +175,22 @@ async function postSessionHandler(path: string, body?: unknown, signal?: AbortSi
 type LockedPath = "/api/auth/refresh" | "/api/auth/sign-out" | "/api/auth/sign-in" | "/api/auth/sign-up";
 
 /**
- * Posts to a session handler, aborting after `RENEWAL_TIMEOUT_MS`, because
- * every caller holds the renewal lock. The abort rejects as a failed fetch
- * does, with a `TypeError`, so every caller reads it as the server being out
- * of reach. The timer is cleared once the request settles.
+ * Posts to a session handler, aborting after `timeoutMs`, because every
+ * caller holds the renewal lock: `RENEWAL_TIMEOUT_MS` for a renewal and a
+ * sign-out, `SESSION_START_TIMEOUT_MS` for a sign-in and a sign-up. The abort
+ * rejects as a failed fetch does, with a `TypeError`, so every caller reads
+ * it as the server being out of reach. The timer is cleared once the request
+ * settles.
  */
-async function postUnderLock(path: LockedPath, body?: LoginBody | RegisterBody): Promise<Response> {
+async function postUnderLock(
+  path: LockedPath,
+  body?: LoginBody | RegisterBody,
+  timeoutMs: number = RENEWAL_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(new DOMException("The session request timed out.", "TimeoutError")),
-    RENEWAL_TIMEOUT_MS,
+    timeoutMs,
   );
   try {
     return await postSessionHandler(path, body, controller.signal);
@@ -331,7 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         // earlier sign-in) would queue behind this one, so awaiting it here
         // would hold the lock forever.
         if (!webLocks()) await before?.catch(() => undefined);
-        const res = await postUnderLock(path, body);
+        const res = await postUnderLock(path, body, SESSION_START_TIMEOUT_MS);
         if (!res.ok) throw await AuthRequestError.from(res);
         const session = await sessionOf(res);
         if (!session) throw new AuthRequestError(res.status, undefined);

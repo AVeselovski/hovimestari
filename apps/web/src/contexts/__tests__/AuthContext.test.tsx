@@ -3,7 +3,7 @@ import { endAllSessions } from "@/lib/api/auth";
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { TEST_USER, testPassword } from "../../__tests__/helpers/auth";
-import { AuthProvider, RENEWAL_TIMEOUT_MS, RETRY_DELAYS_MS, useAuth } from "../AuthContext";
+import { AuthProvider, RENEWAL_TIMEOUT_MS, RETRY_DELAYS_MS, SESSION_START_TIMEOUT_MS, useAuth } from "../AuthContext";
 
 const mockReplace = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ replace: mockReplace }) }));
@@ -221,6 +221,49 @@ describe("signing in, up and out", () => {
     expect(new Headers(init?.headers).get("Content-Type")).toBe("application/json");
     expect(JSON.parse(String(init?.body))).toEqual({ email: TEST_USER.email, password });
     expect(result.current.status).toBe("authenticated");
+  });
+
+  // A sign-up cut short at the renewal's 12 seconds could create the account
+  // and then answer email_taken to the retry, so sign-in and sign-up wait
+  // longer. Only the clock is faked: the fetch never answers, and settles
+  // only when its signal aborts, as a real one does.
+  it.each([
+    ["sign-in", "signIn"],
+    ["sign-up", "signUp"],
+  ] as const)("waits %s out past the renewal's limit, and gives up at its own", async (path, method) => {
+    const { result } = await signedOut();
+    let signal: AbortSignal | undefined;
+    fetchSpy.mockImplementationOnce(
+      (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          signal = init?.signal ?? undefined;
+          signal?.addEventListener("abort", () => reject(signal?.reason));
+        }),
+    );
+    expect(SESSION_START_TIMEOUT_MS).toBeGreaterThan(RENEWAL_TIMEOUT_MS);
+    jest.useFakeTimers();
+    try {
+      let settled: unknown = "pending";
+      void result.current[method]({ email: TEST_USER.email, password: testPassword() }).then(
+        () => (settled = "resolved"),
+        (err: unknown) => (settled = err),
+      );
+      await act(async () => jest.advanceTimersByTime(0));
+      expect(calls()).toEqual([`/api/auth/${path}`]);
+
+      await act(async () => jest.advanceTimersByTime(RENEWAL_TIMEOUT_MS));
+      expect(signal?.aborted).toBe(false);
+      await act(async () => jest.advanceTimersByTime(SESSION_START_TIMEOUT_MS - RENEWAL_TIMEOUT_MS - 1));
+      expect(signal?.aborted).toBe(false);
+      expect(settled).toBe("pending");
+
+      await act(async () => jest.advanceTimersByTime(1));
+      expect(signal?.aborted).toBe(true);
+      expect(settled).toBeInstanceOf(TypeError);
+      expect(result.current.status).toBe("unauthenticated");
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("throws the handler's code on a refused sign-up and stays signed out", async () => {
