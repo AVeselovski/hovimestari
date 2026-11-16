@@ -7,6 +7,7 @@ import { targetsQuery } from "@/lib/queryOptions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { FirstRunTargets } from "./FirstRunTargets";
+import { TodayProvider } from "./TodayProvider";
 
 // ---------------------------------------------------------------------------
 // The first-run gate, between the query cache and the shell. It decides on
@@ -31,7 +32,8 @@ import { FirstRunTargets } from "./FirstRunTargets";
 // survives the gate. The key holds no date (lib/queryKeys.ts).
 //
 // The gate also stores this device's time zone on the account once per app
-// start, when the two differ (lib/deviceTimeZone.ts).
+// start, when the two differ (lib/deviceTimeZone.ts), and renders the app's
+// one TodayProvider around the shell, so every tab reads the same today.
 // ---------------------------------------------------------------------------
 
 export function TargetsGate({ children }: { children: ReactNode }): ReactElement {
@@ -53,5 +55,5 @@ export function TargetsGate({ children }: { children: ReactNode }): ReactElement
 
   if (waiting) return <FullPageSpinner />;
   if (data && data.changes.length === 0) return <FirstRunTargets today={data.today} />;
-  return <>{children}</>;
+  return <TodayProvider>{children}</TodayProvider>;
 }

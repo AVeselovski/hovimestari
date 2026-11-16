@@ -1,4 +1,4 @@
-import type { FoodDetail, Me, Portion } from "@hovimestari/types";
+import type { Day, FoodDetail, Me, Portion } from "@hovimestari/types";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
 import { queryKeys } from "./queryKeys";
@@ -36,24 +36,31 @@ export async function afterAccountChange(client: QueryClient, me?: Me): Promise<
   await refresh(client, [queryKeys.me()], me);
 }
 
-/** After a targets change is saved or removed: every targets read, today's and each date's. */
+/**
+ * After a targets change is saved or removed: every targets read, today's and
+ * each date's, and every day, which answers the targets in force and the
+ * positions against them.
+ */
 export async function afterTargetsChange(client: QueryClient): Promise<void> {
-  await refresh(client, [queryKeys.targets()]);
+  await refresh(client, [queryKeys.targets(), queryKeys.days()]);
 }
 
 /**
  * After the food-name language changes: the account, and every food name,
- * which the server answers in it. A food read not on screen is dropped, so
- * no list can come back in the old language while its read is out.
+ * which the server answers in it, also inside a day's entries and recent
+ * items. A food read not on screen is dropped, so no list can come back in
+ * the old language while its read is out.
  */
 export async function afterFoodNameLanguageChange(client: QueryClient, me: Me): Promise<void> {
   client.removeQueries({ queryKey: queryKeys.foods(), type: "inactive" });
-  await refresh(client, [queryKeys.me(), queryKeys.foods()], me);
+  await refresh(client, [queryKeys.me(), queryKeys.foods(), queryKeys.days(), queryKeys.log()], me);
 }
 
-/** After the device's time zone is stored: the account, and "today", which every targets read answers. */
+/** After the device's time zone is stored: the account, and "today", which every targets and day read answers. */
 export async function afterTimeZoneChange(client: QueryClient, me: Me): Promise<void> {
-  await refresh(client, [queryKeys.me(), queryKeys.targets()], me);
+  // Writes still out were sent in the old zone: their answers no longer go into the cache.
+  zoneChanges.set(client, zoneEpoch(client) + 1);
+  await refresh(client, [queryKeys.me(), queryKeys.targets(), queryKeys.days()], me);
 }
 
 /**
@@ -100,6 +107,8 @@ export async function afterOwnFoodSaved(client: QueryClient, food: FoodDetail, c
         client.invalidateQueries({ queryKey: queryKeys.foods() }),
         // Read at once, also while not on screen, for its order.
         change === "added" && client.invalidateQueries({ queryKey: queryKeys.foodOwn(), refetchType: "all" }),
+        // Its planned entries from today on take its new values.
+        change !== "added" && afterFoodChangeOnDays(client),
       ]),
   );
 }
@@ -113,7 +122,7 @@ export async function afterFoodGone(client: QueryClient, id: string): Promise<vo
   await editFoods(
     client,
     () => dropFood(client, id),
-    () => client.invalidateQueries({ queryKey: queryKeys.foods() }),
+    () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.foods() }), afterFoodChangeOnDays(client)]),
   );
 }
 
@@ -153,4 +162,124 @@ async function editFoodDetail(client: QueryClient, key: QueryKey, edit: () => vo
  */
 export async function afterFavourite(client: QueryClient, foodId: string): Promise<void> {
   await refresh(client, [queryKeys.foodDetail(foodId), queryKeys.foodFavourites()]);
+}
+
+// ---------------------------------------------------------------------------
+// Days and logging. A write answers every day it changed, so the answer goes
+// into the cache first and the reads that follow only settle what it could
+// not: ranges, recent items and last amounts.
+// ---------------------------------------------------------------------------
+
+/**
+ * After an entry write. Each answered day goes into the cache under its own
+ * date, after the reads still out for it are cancelled, so a read that left
+ * before the write cannot land after it. The answers carry `today`, which
+ * `TodayProvider` reads from the cache. When the answer holds no day for the
+ * date on screen (a mark that changed nothing answers no days), that day is
+ * read again, so the row shows what the server holds. An answered day whose
+ * `today` is older than the app's (`appToday`) was answered before midnight,
+ * so its `relation` and `unmarkedCount` are stale: it is read again too. Then
+ * the ranges, recent items, saved meals, favourites and food details, whose
+ * last amounts follow eaten entries.
+ *
+ * Resolves once the answered days are in the cache, and gives the reads that
+ * follow as `settled`: a write's toast and its row's state never wait for an
+ * unrelated read.
+ */
+export async function afterEntryWrite(
+  client: QueryClient,
+  days: readonly Day[],
+  shownDate?: string,
+  appToday?: string | null,
+  sentInZone?: number,
+): Promise<{ settled: Promise<void> }> {
+  // Sent before the account's zone changed: its days, and the today they
+  // carry, are the old zone's. They are read again instead.
+  const oldZone = sentInZone !== undefined && sentInZone !== zoneEpoch(client);
+  await Promise.all(days.map((d) => client.cancelQueries({ queryKey: queryKeys.day(d.date), exact: true })));
+  if (!oldZone) for (const day of days) client.setQueryData(queryKeys.day(day.date), day);
+  const reread = shownDate !== undefined && !days.some((d) => d.date === shownDate) ? [queryKeys.day(shownDate)] : [];
+  const stale = oldZone
+    ? days.map((d) => queryKeys.day(d.date))
+    : appToday
+      ? days.filter((d) => d.today < appToday).map((d) => queryKeys.day(d.date))
+      : [];
+  const settled = refresh(client, [
+    ...reread,
+    ...stale,
+    queryKeys.dayRanges(),
+    queryKeys.log(),
+    queryKeys.savedMeals(),
+    queryKeys.foodFavourites(),
+    queryKeys.foodDetails(),
+  ]);
+  return { settled };
+}
+
+/** How many times the account's time zone changed, per client. */
+const zoneChanges = new WeakMap<QueryClient, number>();
+
+/**
+ * The account's time zone, as a count of its changes. An entry write takes it
+ * when it is sent and gives it to `afterEntryWrite`, which leaves an answer
+ * from before a zone change out of the cache.
+ */
+export function zoneEpoch(client: QueryClient): number {
+  return zoneChanges.get(client) ?? 0;
+}
+
+/** The entry writes still out, per date, and whether two of them overlapped on it. */
+const writesOut = new WeakMap<QueryClient, Map<string, { count: number; overlapped: boolean }>>();
+
+/**
+ * Before an entry write is sent: counts it against each date it may answer.
+ * Two writes out at once on one date can answer in either order, and the
+ * older answer, landing last, would put back the older day. So when the last
+ * of overlapping writes on a date settles, that day is read again once. Call
+ * the function it returns when the write has settled, its answer in the cache
+ * or failed.
+ */
+export function beginEntryWrite(client: QueryClient, dates: readonly string[]): () => void {
+  let byDate = writesOut.get(client);
+  if (!byDate) {
+    byDate = new Map();
+    writesOut.set(client, byDate);
+  }
+  const own = [...new Set(dates)];
+  for (const date of own) {
+    const out = byDate.get(date) ?? { count: 0, overlapped: false };
+    if (out.count > 0) out.overlapped = true;
+    out.count += 1;
+    byDate.set(date, out);
+  }
+  let ended = false;
+  return () => {
+    if (ended) return;
+    ended = true;
+    for (const date of own) {
+      const out = byDate.get(date);
+      if (!out) continue;
+      out.count -= 1;
+      if (out.count > 0) continue;
+      byDate.delete(date);
+      if (out.overlapped) void client.invalidateQueries({ queryKey: queryKeys.day(date), exact: true });
+    }
+  };
+}
+
+/**
+ * After the server's today moved to a new date: every day answered under the
+ * old today holds an old `relation` and `unmarkedCount`, so every day and
+ * every targets read is read again.
+ */
+export async function afterDayChange(client: QueryClient): Promise<void> {
+  await refresh(client, [queryKeys.targets(), queryKeys.days()]);
+}
+
+/**
+ * After the user's own food changed or went away: its planned entries from
+ * today on take its new values, and a hidden food leaves recent items.
+ */
+export async function afterFoodChangeOnDays(client: QueryClient): Promise<void> {
+  await refresh(client, [queryKeys.days(), queryKeys.log()]);
 }
