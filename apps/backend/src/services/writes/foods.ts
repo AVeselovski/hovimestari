@@ -1,5 +1,5 @@
 import type { FoodDetail, OwnFoodBody, Portion, PortionBody } from "@hovimestari/types";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { foodFavourites, foodPortions, foods } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
@@ -8,6 +8,7 @@ import { portionOf } from "../foodRows.js";
 import { portionVisibleTo, visibleFood } from "../foodScope.js";
 import { searchWords } from "../foodSearch.js";
 import { getFood } from "../reads/foods.js";
+import { isUsed, lockUserForWrite, restoreCutoff, rewritePlannedBasis } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
 // A user can point only at what they can see: every write first finds the
@@ -15,7 +16,9 @@ import type { WriteContext, WriteOutcome } from "./context.js";
 // `portionVisibleTo` too. Another user's own food or portion is a 404, never
 // a 403, so a response never tells that it exists. Every UPDATE and DELETE
 // also names the owner in its own WHERE, and no row changed is a 404: the
-// earlier read decides the answer's code, the write never trusts it.
+// earlier read decides the answer's code, the write never trusts it. Every
+// insert takes the user's row first (lockUserForWrite), so a write that races
+// an account deletion answers 404 `user_not_found`, never a foreign key 500.
 
 type FoodRow = typeof foods.$inferSelect;
 
@@ -34,9 +37,9 @@ async function findOwnFood(ctx: WriteContext, id: string): Promise<FoodRow> {
   return food;
 }
 
-/** The user's own food `id`, as a WHERE. */
+/** The user's own food `id`, not deleted, as a WHERE. */
 const ownFood = (ctx: WriteContext, id: string) =>
-  and(eq(foods.id, id), eq(foods.source, "user"), eq(foods.userId, ctx.userId));
+  and(eq(foods.id, id), eq(foods.source, "user"), eq(foods.userId, ctx.userId), isNull(foods.deletedAt));
 
 /** The user's own portion `id`, as a WHERE. */
 const ownPortion = (ctx: WriteContext, id: string) => and(eq(foodPortions.id, id), eq(foodPortions.userId, ctx.userId));
@@ -72,14 +75,24 @@ async function barcodeChecked<T>(write: () => Promise<T>): Promise<T> {
 export async function createOwnFood(ctx: WriteContext, body: OwnFoodBody): Promise<WriteOutcome<FoodDetail>> {
   await requireSearchable(ctx, body.name);
   const [created] = await barcodeChecked(() =>
-    ctx.db
-      .insert(foods)
-      .values({ source: "user", userId: ctx.userId, ...columnsOf(body) })
-      .returning({ id: foods.id }),
+    ctx.db.transaction(async (tx) => {
+      await lockUserForWrite(tx, ctx.userId);
+      return tx
+        .insert(foods)
+        .values({ source: "user", userId: ctx.userId, ...columnsOf(body) })
+        .returning({ id: foods.id });
+    }),
   );
   return { value: await getFood(ctx, created.id), outcome: "created" };
 }
 
+/**
+ * Edits the user's own food, then, in the same transaction, rewrites the
+ * basis of its planned entries dated today or later. Eaten entries and every
+ * past day keep the values they were added with. The food's row lock waits
+ * for an add that holds the food FOR SHARE, and the rewrite, a later
+ * statement, then sees that add's entry.
+ */
 export async function updateOwnFood(
   ctx: WriteContext,
   id: string,
@@ -90,33 +103,56 @@ export async function updateOwnFood(
   const next = columnsOf(body);
   const same = (Object.keys(next) as (keyof typeof next)[]).every((k) => food[k] === next[k]);
   if (!same) {
-    const changed = await barcodeChecked(() =>
-      ctx.db
-        .update(foods)
-        .set({ ...next, updatedAt: ctx.now })
-        .where(ownFood(ctx, food.id))
-        .returning({ id: foods.id }),
+    await barcodeChecked(() =>
+      ctx.db.transaction(async (tx) => {
+        await lockUserForWrite(tx, ctx.userId);
+        const changed = await tx
+          .update(foods)
+          .set({ ...next, updatedAt: ctx.now })
+          .where(ownFood(ctx, food.id))
+          .returning({ id: foods.id });
+        if (changed.length === 0) throw appError("food_not_found", 404);
+        await rewritePlannedBasis(tx, ctx, { kind: "food", id: food.id }, body.per100g);
+      }),
     );
-    if (changed.length === 0) throw appError("food_not_found", 404);
   }
   return { value: await getFood(ctx, food.id), outcome: same ? "unchanged" : "changed" };
 }
 
-/** Deletes the user's own food, and with it its portions and favourites. */
+/**
+ * Deletes the user's own food, and with it its portions and favourites. A
+ * food that entries use, or that an entry removed in the last ten minutes
+ * used, is hidden instead: every day keeps its rows and figures, its barcode
+ * is cleared and it leaves the favourites. The row lock (FOR UPDATE) waits
+ * for an add that holds the food, and the use check, a new statement, then
+ * sees it, so the delete never cascades away an entry added a moment earlier.
+ */
 export async function deleteOwnFood(ctx: WriteContext, id: string): Promise<WriteOutcome<null>> {
   const food = await findOwnFood(ctx, id);
-  const deleted = await ctx.db.delete(foods).where(ownFood(ctx, food.id)).returning({ id: foods.id });
-  if (deleted.length === 0) throw appError("food_not_found", 404);
+  await ctx.db.transaction(async (tx) => {
+    await lockUserForWrite(tx, ctx.userId);
+    const [locked] = await tx.select({ id: foods.id }).from(foods).where(ownFood(ctx, food.id)).for("update");
+    if (!locked) throw appError("food_not_found", 404);
+    if (!(await isUsed(tx, ctx, { kind: "food", id: food.id }, restoreCutoff(ctx)))) {
+      await tx.delete(foods).where(ownFood(ctx, food.id));
+      return;
+    }
+    await tx.update(foods).set({ deletedAt: ctx.now, barcode: null, updatedAt: ctx.now }).where(ownFood(ctx, food.id));
+    await tx.delete(foodFavourites).where(eq(foodFavourites.foodId, food.id));
+  });
   return { value: null, outcome: "deleted" };
 }
 
 /** Adds the user's own portion to any food they can see. Only that user sees it. */
 export async function addPortion(ctx: WriteContext, foodId: string, body: PortionBody): Promise<WriteOutcome<Portion>> {
   const food = await findVisibleFood(ctx, foodId);
-  const [row] = await ctx.db
-    .insert(foodPortions)
-    .values({ foodId: food.id, userId: ctx.userId, name: body.name, grams: body.grams })
-    .returning();
+  const [row] = await ctx.db.transaction(async (tx) => {
+    await lockUserForWrite(tx, ctx.userId);
+    return tx
+      .insert(foodPortions)
+      .values({ foodId: food.id, userId: ctx.userId, name: body.name, grams: body.grams })
+      .returning();
+  });
   return { value: portionOf(row, ctx.userId), outcome: "created" };
 }
 
@@ -170,11 +206,14 @@ export async function removePortion(ctx: WriteContext, foodId: string, portionId
 export async function setFavourite(ctx: WriteContext, foodId: string, favourite: boolean): Promise<WriteOutcome<null>> {
   const food = await findVisibleFood(ctx, foodId);
   if (favourite) {
-    const added = await ctx.db
-      .insert(foodFavourites)
-      .values({ userId: ctx.userId, foodId: food.id })
-      .onConflictDoNothing()
-      .returning({ foodId: foodFavourites.foodId });
+    const added = await ctx.db.transaction(async (tx) => {
+      await lockUserForWrite(tx, ctx.userId);
+      return tx
+        .insert(foodFavourites)
+        .values({ userId: ctx.userId, foodId: food.id })
+        .onConflictDoNothing()
+        .returning({ foodId: foodFavourites.foodId });
+    });
     return { value: null, outcome: added.length > 0 ? "created" : "unchanged" };
   }
   const removed = await ctx.db

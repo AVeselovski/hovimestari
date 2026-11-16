@@ -87,6 +87,20 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   portion_name_too_long: "Use at most 60 characters.",
   portion_grams_invalid: "Enter a weight above zero, up to 5000 g.",
   invalid_time_zone: "That is not a time zone this server knows.",
+  entry_not_found: "This entry is no longer there.",
+  entry_id_taken: "This entry id is already in use.",
+  entry_kind_mismatch: "This change does not fit this kind of entry.",
+  entry_eaten_in_future: "An entry on a future date can only be planned.",
+  entry_grams_invalid: "Enter a weight above zero, up to 5000 g, with at most one decimal.",
+  entry_count_invalid: "Enter a number above zero, up to 100, with at most two decimals.",
+  figure_required: "Enter a value.",
+  figure_invalid: "Enter a number with at most one decimal, up to 10000 kcal or 1000 g.",
+  name_required: "Give it a name.",
+  name_too_long: "Use at most 120 characters.",
+  note_too_long: "Use at most 500 characters.",
+  saved_meal_not_found: "This saved meal is no longer available.",
+  saved_meal_id_taken: "This saved meal id is already in use.",
+  meal_source_too_long: "Use at most 40 characters.",
 };
 
 /** An AppError for `code`, with the code's fixed message. */

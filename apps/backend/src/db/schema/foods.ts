@@ -46,6 +46,8 @@ export const foods = pgTable(
     fineliProcess: text("fineli_process"),
     // Set when a Fineli food is absent from the latest release. Hidden from search, still readable.
     retiredAt: timestamp("retired_at", { withTimezone: true }),
+    // Deleted by its owner while entries use it. Every food read leaves it out (visibleTo).
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     searchName: text("search_name").generatedAlwaysAs(sql`food_search_norm(name)`),
     searchNameEn: text("search_name_en").generatedAlwaysAs(sql`coalesce(food_search_norm(name_en), '')`),
     searchAll: text("search_all").generatedAlwaysAs(sql`food_search_norm(name || ' ' || coalesce(name_en, ''))`),

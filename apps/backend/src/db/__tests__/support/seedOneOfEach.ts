@@ -7,11 +7,14 @@ import type pg from "pg";
  * while the cascade graph reaches a table this list does not name.
  */
 export const SEEDED_TABLES = [
+  "entries",
   "food_favourites",
   "food_portions",
   "foods",
   "password_reset_tokens",
   "refresh_tokens",
+  "removed_entries",
+  "saved_meals",
   "target_changes",
 ] as const;
 
@@ -46,6 +49,39 @@ export async function seedOneOfEach(client: pg.Client, userId: string): Promise<
     userId,
   ]);
   await client.query("INSERT INTO food_favourites (user_id, food_id) VALUES ($1, $2)", [userId, foodId]);
+  // One saved meal and one entry of it: the deletion test expects one row per table per user.
+  const meal = await client.query(
+    `INSERT INTO saved_meals (user_id, name, energy_kcal, protein_g, carbs_g, fat_g)
+     VALUES ($1, 'Cascade meal', 600, 40, 60, 20) RETURNING id`,
+    [userId],
+  );
+  await insertMealEntry(client, userId, meal.rows[0].id as string);
+  await client.query(
+    `INSERT INTO removed_entries (id, user_id, row) VALUES (gen_random_uuid(), $1, '{"kind": "estimate"}')`,
+    [userId],
+  );
+}
+
+/** A planned entry of saved meal `mealId` on 2026-01-01, one meal. Answers its id. */
+export async function insertMealEntry(client: pg.Client, userId: string, mealId: string): Promise<string> {
+  const { rows } = await client.query(
+    `INSERT INTO entries (user_id, date, status, kind, saved_meal_id, meal_count,
+       basis_energy_kcal, basis_protein_g, basis_carbs_g, basis_fat_g)
+     VALUES ($1, '2026-01-01', 'planned', 'saved_meal', $2, 1, 600, 40, 60, 20) RETURNING id`,
+    [userId, mealId],
+  );
+  return rows[0].id as string;
+}
+
+/** An eaten entry of food `foodId` on 2026-01-01, at `grams`. Answers its id. */
+export async function insertFoodEntry(client: pg.Client, userId: string, foodId: string, grams = 100): Promise<string> {
+  const { rows } = await client.query(
+    `INSERT INTO entries (user_id, date, status, eaten_at, kind, food_id, grams,
+       basis_energy_kcal, basis_protein_g, basis_carbs_g, basis_fat_g)
+     VALUES ($1, '2026-01-01', 'eaten', now(), 'food', $2, $3, 59.31, 10.5, 3.6, 0.2) RETURNING id`,
+    [userId, foodId, grams],
+  );
+  return rows[0].id as string;
 }
 
 /** A Fineli food with one Fineli portion, owned by nobody. Answers its id. */

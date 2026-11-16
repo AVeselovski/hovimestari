@@ -37,6 +37,20 @@ export async function targetsOn(ctx: ReadContext, date: string): Promise<TargetC
   return first ? targetChangeOf(first) : null;
 }
 
+/**
+ * The rule of `targetsOn` without the database: of `changesAsc`, oldest
+ * first, the change with the latest start on or before `date`, else the first
+ * change, else null. The week reads every change once and asks this per date.
+ */
+export function inForceOn(changesAsc: TargetChange[], date: string): TargetChange | null {
+  let inForce: TargetChange | null = changesAsc[0] ?? null;
+  for (const change of changesAsc) {
+    if (change.effectiveFrom > date) break;
+    inForce = change;
+  }
+  return inForce;
+}
+
 /** Every change of the user, oldest first. */
 export async function listTargetChanges(ctx: ReadContext): Promise<TargetChange[]> {
   const rows = await ctx.db

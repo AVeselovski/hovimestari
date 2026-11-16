@@ -10,7 +10,9 @@ import type { WriteContext } from "../writes/context.js";
 // runs `hook` once, just before the first statement of the watched kind
 // executes. The write must still touch only the caller's own rows.
 
-type Kind = "update" | "delete" | "select";
+// A write that runs in a transaction is watched inside it too, and the kind
+// "transaction" runs `hook` just before the transaction begins.
+type Kind = "update" | "delete" | "select" | "transaction";
 
 /** A builder that runs `hook` before it executes. Every chained call keeps the wrapper. */
 function deferred<T extends object>(builder: T, hook: () => Promise<void>): T {
@@ -30,21 +32,31 @@ function deferred<T extends object>(builder: T, hook: () => Promise<void>): T {
   });
 }
 
-/** `db` with `hook` run once before the first `kind` statement executes. */
-function interfered(db: Db, kind: Kind, hook: () => Promise<void>): Db {
+/** `db` with `hook` run once before the first `kind` statement after `skip` of them executes, in it or in a transaction it opens. */
+function interfered(db: Db, kind: Kind, hook: () => Promise<void>, skip = 0): Db {
   let done = false;
+  let seen = 0;
   const once = async () => {
-    if (done) return;
+    if (done || seen++ < skip) return;
     done = true;
     await hook();
   };
-  return new Proxy(db, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver) as unknown;
-      if (prop !== kind || typeof value !== "function") return value;
-      return (...args: unknown[]) => deferred((value as (...a: unknown[]) => object).apply(target, args), once);
-    },
-  });
+  const watch = (handle: Db): Db =>
+    new Proxy(handle, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver) as unknown;
+        if (typeof value !== "function") return value;
+        if (prop === "transaction") {
+          return async (body: (tx: Db) => Promise<unknown>, ...rest: unknown[]) => {
+            if (kind === "transaction") await once();
+            return (value as (...a: unknown[]) => Promise<unknown>).call(target, (tx: Db) => body(watch(tx)), ...rest);
+          };
+        }
+        if (prop !== kind) return value;
+        return (...args: unknown[]) => deferred((value as (...a: unknown[]) => object).apply(target, args), once);
+      },
+    });
+  return watch(db);
 }
 
 let fineliIds = 700_000;
@@ -105,7 +117,8 @@ await describeWithDb("foodWrites", (suite) => {
 
     it("is not deleted, and the delete answers 404", async () => {
       const { a, b, writes, food } = await setUp();
-      const db = interfered(suite.db, "delete", async () => {
+      // The delete locks the food first, so the owner changes as its transaction begins.
+      const db = interfered(suite.db, "transaction", async () => {
         await suite.client.query("UPDATE foods SET user_id = $1 WHERE id = $2", [b.id, food.id]);
       });
       await expect(writes.deleteOwnFood(await contextOf(a.id, db), food.id)).rejects.toMatchObject({
@@ -145,9 +158,15 @@ await describeWithDb("foodWrites", (suite) => {
     const { setTargets } = await import("../writes/targets.js");
     const ranges = { energyKcal: { lower: 1800, upper: 2000 }, proteinG: { lower: 100, upper: 150 } };
     await setTargets(await contextOf(a.id), "2026-11-15", ranges);
-    const db = interfered(suite.db, "select", async () => {
-      await suite.client.query("DELETE FROM target_changes WHERE user_id = $1", [a.id]);
-    });
+    // The first select is the save's user lock. The second is the read after the save.
+    const db = interfered(
+      suite.db,
+      "select",
+      async () => {
+        await suite.client.query("DELETE FROM target_changes WHERE user_id = $1", [a.id]);
+      },
+      1,
+    );
     await expect(setTargets(await contextOf(a.id, db), "2026-11-15", ranges)).rejects.toMatchObject({
       code: "target_change_not_found",
       status: 404,

@@ -3,6 +3,7 @@ import { and, count, eq, getTableColumns, sql } from "drizzle-orm";
 import { targetChanges, users } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { targetChangeOf } from "../reads/targets.js";
+import { lockUserForWrite } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
 /**
@@ -22,17 +23,22 @@ export async function setTargets(
     proteinGUpper: ranges.proteinG.upper,
   };
   const t = targetChanges;
-  const [written] = await ctx.db
-    .insert(t)
-    .values({ userId: ctx.userId, effectiveFrom, ...values })
-    .onConflictDoUpdate({
-      target: [t.userId, t.effectiveFrom],
-      set: { ...values, updatedAt: ctx.now },
-      // An identical save writes nothing and keeps `updated_at`.
-      setWhere: sql`(${t.energyKcalLower}, ${t.energyKcalUpper}, ${t.proteinGLower}, ${t.proteinGUpper})
+  const [written] = await ctx.db.transaction(async (tx) => {
+    // FOR KEY SHARE, so a save never waits behind a session write, and one
+    // that races an account deletion answers 404 `user_not_found`.
+    await lockUserForWrite(tx, ctx.userId);
+    return tx
+      .insert(t)
+      .values({ userId: ctx.userId, effectiveFrom, ...values })
+      .onConflictDoUpdate({
+        target: [t.userId, t.effectiveFrom],
+        set: { ...values, updatedAt: ctx.now },
+        // An identical save writes nothing and keeps `updated_at`.
+        setWhere: sql`(${t.energyKcalLower}, ${t.energyKcalUpper}, ${t.proteinGLower}, ${t.proteinGUpper})
         IS DISTINCT FROM (excluded.energy_kcal_lower, excluded.energy_kcal_upper, excluded.protein_g_lower, excluded.protein_g_upper)`,
-    })
-    .returning({ ...getTableColumns(t), inserted: sql<boolean>`xmax = 0` });
+      })
+      .returning({ ...getTableColumns(t), inserted: sql<boolean>`xmax = 0` });
+  });
   if (written) {
     const { inserted, ...row } = written;
     return { value: targetChangeOf(row), outcome: inserted ? "created" : "changed" };

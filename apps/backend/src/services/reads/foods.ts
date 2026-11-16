@@ -1,4 +1,10 @@
-import { FINELI_PORTION_UNITS, type FoodDetail, type FoodList, type Portion } from "@hovimestari/types";
+import {
+  FINELI_PORTION_UNITS,
+  type FavouriteFoodList,
+  type FoodDetail,
+  type FoodList,
+  type Portion,
+} from "@hovimestari/types";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { foodFavourites, foodPortions, foods } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
@@ -7,6 +13,7 @@ import { byName, displayName, portionOf, summaryColumns, summaryOf } from "../fo
 import { portionVisibleTo, visibleFood, visibleTo } from "../foodScope.js";
 import { searchQuery, searchWords } from "../foodSearch.js";
 import type { ReadContext } from "./context.js";
+import { lastAmountsOf } from "./log.js";
 
 /**
  * Foods whose names hold every word of `q`, ranked by the search rule. A
@@ -19,8 +26,11 @@ export async function searchFoods(ctx: ReadContext, { q, limit }: { q: string; l
   return { foods: rows.map(summaryOf) };
 }
 
-/** The user's favourite foods, newest favourite first, at most `limit`. Retired foods stay. */
-export async function listFavouriteFoods(ctx: ReadContext, { limit }: { limit: number }): Promise<FoodList> {
+/**
+ * The user's favourite foods, newest favourite first, at most `limit`, each
+ * with the amount the user last ate of it. Retired foods stay.
+ */
+export async function listFavouriteFoods(ctx: ReadContext, { limit }: { limit: number }): Promise<FavouriteFoodList> {
   const rows = await ctx.db
     .select(summaryColumns(ctx.userId))
     .from(foods)
@@ -28,7 +38,12 @@ export async function listFavouriteFoods(ctx: ReadContext, { limit }: { limit: n
     .where(visibleTo(ctx.userId))
     .orderBy(desc(foodFavourites.createdAt), asc(foods.id))
     .limit(limit);
-  return { foods: rows.map(summaryOf) };
+  const last = await lastAmountsOf(
+    ctx.db,
+    ctx.userId,
+    rows.map((r) => r.id),
+  );
+  return { foods: rows.map((r) => ({ ...summaryOf(r), lastAmount: last.get(r.id) ?? null })) };
 }
 
 /** The user's own foods, in Finnish alphabetical order, at most `limit`. */
@@ -36,7 +51,7 @@ export async function listOwnFoods(ctx: ReadContext, { limit }: { limit: number 
   const rows = await ctx.db
     .select(summaryColumns(ctx.userId))
     .from(foods)
-    .where(and(eq(foods.source, "user"), eq(foods.userId, ctx.userId)))
+    .where(and(eq(foods.source, "user"), eq(foods.userId, ctx.userId), visibleTo(ctx.userId)))
     .orderBy(byName(displayName(ctx.userId)), asc(foods.id))
     .limit(limit);
   return { foods: rows.map(summaryOf) };
@@ -62,7 +77,7 @@ export async function portionsOf(ctx: ReadContext, foodId: string): Promise<Port
 }
 
 /**
- * One food with its portions. An unknown id, a malformed one and another
+ * One food with its portions and the amount the user last ate of it. An unknown id, a malformed one and another
  * user's own food all answer 404 `food_not_found`, so a response never tells
  * that a food exists. A retired food is still readable.
  */
@@ -85,5 +100,6 @@ export async function getFood(ctx: ReadContext, id: string): Promise<FoodDetail>
     fineli:
       row.fineliId === null ? null : { id: row.fineliId, type: row.fineliType ?? "", process: row.fineliProcess ?? "" },
     portions: await portionsOf(ctx, id),
+    lastAmount: (await lastAmountsOf(ctx.db, ctx.userId, [id])).get(id) ?? null,
   };
 }
