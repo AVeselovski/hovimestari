@@ -1,4 +1,5 @@
 [frontend-engineer DONE] 2026-11-15T20:47:31Z Closed the dot-segment open redirect in safeRedirectPath (refuse // and /\, require a fixed point) and gave the session renewal fetch a 12 s abort that reads as offline. Web tests 269 passing, lint, typecheck and build green.
+[frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
 [general-purpose STARTED] (2026-11-14T11:12:52Z) distil finanssi's mobile UI and component-library lessons into docs/design/mobile-ui-lessons.md
 [general-purpose DONE] (2026-11-14T11:17:18Z) wrote docs/design/mobile-ui-lessons.md, 142 lines (256k tokens)
 [architect STARTED] (2026-11-15T18:09:47Z) design doc for build step 1, scaffold and auth
@@ -70,5 +71,20 @@
 [documentation-specialist DONE] (2026-11-15T20:51:31Z) docs pass for PR 2a in 6ffe0b5
 [ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed
 [frontend-engineer STARTED] (2026-11-15T20:59:47Z) fix the web build after merging the targets and foods types
+[backend-engineer STARTED] (2026-11-15T21:00:56Z) PR 2b: the Fineli importer
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
-[frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
+[backend-engineer STARTED] (2026-11-15T21:04:11Z) PR 2b: Fineli importer, fixtures, runbook, carried 2a review items
+[backend-engineer DONE] (2026-11-15T21:20:12Z) PR 2b importer, fixtures, runbook, name rule, fi-x-icu pin, docs; validator not invoked per brief
+[validator STARTED] (2026-11-15T21:22:11Z) validate PR 2b, the Fineli importer
+[reviewer STARTED] (2026-11-15T21:22:11Z) code review of PR 2b
+[reviewer DONE] (2026-11-15T21:27:09Z) code review of PR 2b: approve after fixes; reader, conversion and write path sound; 4 must-fix minors, 5 follow-ups
+[backend-engineer STARTED] (2026-11-15T21:27:09Z) fix cycle 1 for PR 2b
+[backend-engineer DONE] (2026-11-16T02:17:10Z) PR 2b fix cycle 1 and validator findings V1 to V4
+[backend-engineer DONE] (2026-11-16T02:18:56Z) Fineli importer fix cycle 1 plus validator findings V1-V4; 388 backend tests, release 18 import unchanged (391k tokens)
+[reviewer STARTED] (2026-11-16T02:18:56Z) delta review of the Fineli importer after fix cycle 1
+[backend-engineer DONE] (2026-11-16T02:26:54Z) PR 2b fix cycle 2: N1 to N3, nits A and B
+[reviewer DONE] (2026-11-16T02:29:12Z) Fineli importer delta review: approve, three minors and two nits (197k tokens)
+[backend-engineer DONE] (2026-11-16T02:29:12Z) Fineli importer fix cycle 2: all five closed; 391 backend tests, release 18 import unchanged
+[documentation-specialist STARTED] (2026-11-16T02:29:12Z) Fineli importer docs pass
+[documentation-specialist STARTED] (2026-11-16T02:29:16Z) docs pass for the Fineli importer
+[documentation-specialist DONE] (2026-11-16T02:32:22Z) Fineli import docs pass: runbook checked against cli.ts and report.ts and a fixture run, foods.md guards and overrides, catalog, TODO ranking item

@@ -71,6 +71,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | favourites                                | `features/foods.md#favourites`           | `### Favourites`           |
 | food-name language                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
 | Fineli, its credit and licence            | `features/foods.md#fineli`               | `### Fineli`               |
+| Fineli import, Fineli release             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
 | food visibility, food scope               | `features/foods.md#visibility`           | `### Visibility`           |
 
 ## Example area
