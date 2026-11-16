@@ -136,6 +136,19 @@ describe("FirstRunTargets", () => {
     for (const line of [caloriesLine, proteinLine]) expect(line.className.split(/\s+/)).toContain("min-h-10");
   });
 
+  it("says a number that may hold a thousands group with the group line, not the group's limit", async () => {
+    render(<FirstRunTargets today={TODAY} />);
+    fillAll();
+    type("Calories", "From", "1,800");
+    fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
+    expect(
+      await within(group("Calories")).findByText(
+        "This may mean thousands. Type it with no comma or point, or with fewer decimals.",
+      ),
+    ).toBeInTheDocument();
+    expect(putTargets).not.toHaveBeenCalled();
+  });
+
   it("shows a refusal from the server by its code, and lets Save run again", async () => {
     jest.mocked(putTargets).mockRejectedValueOnce(refusal(400, "target_value_invalid"));
     render(<FirstRunTargets today={TODAY} />);

@@ -14,8 +14,13 @@ export type TargetField = (typeof TARGET_FIELDS)[number];
 /** What is typed in each field, as typed. */
 export type TargetFieldValues = Record<TargetField, string>;
 
-/** The first error code of each field that has one. */
-export type TargetFieldErrors = Partial<Record<TargetField, ErrorCode>>;
+/**
+ * The first error of each field that has one: an error code, or
+ * `digit_group` for a number that may hold a thousands group, which has a
+ * line of its own.
+ */
+export type TargetFieldError = ErrorCode | "digit_group";
+export type TargetFieldErrors = Partial<Record<TargetField, TargetFieldError>>;
 
 /** Every field empty. Every targets form starts here: the app offers no number. */
 export const EMPTY_TARGET_FIELDS: TargetFieldValues = {
@@ -41,6 +46,7 @@ export function parseTargetFields(values: TargetFieldValues): ParsedTargetFields
   for (const field of TARGET_FIELDS) {
     const parsed = parseDecimalInput(values[field], { maxDecimals: 1 });
     if (parsed.kind === "empty") errors[field] = "target_required";
+    else if (parsed.kind === "group") errors[field] = "digit_group";
     else if (parsed.kind === "invalid") errors[field] = "target_value_invalid";
     else numbers[field] = parsed.value;
   }

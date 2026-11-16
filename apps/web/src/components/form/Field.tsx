@@ -1,4 +1,4 @@
-import { fieldErrorClass, fieldHintClass, inputClass, labelClass } from "@/components/ui/styles";
+import { fieldErrorClass, fieldHintClass, inputClass, labelClass, lineRoom } from "@/components/ui/styles";
 import type { InputHTMLAttributes, ReactElement } from "react";
 
 interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "id" | "name"> {
@@ -8,13 +8,15 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "classN
   label: string;
   hint?: string;
   error?: string | null;
+  /** How many lines of room the line under it keeps, so a longer error moves nothing below it. Default 1. */
+  lineRows?: 1 | 2;
 }
 
 /**
  * A labelled input with one line under it for its hint or its error. The
  * line is always there, so an error appearing moves nothing below it.
  */
-export function Field({ id, label, hint, error, ...input }: FieldProps): ReactElement {
+export function Field({ id, label, hint, error, lineRows = 1, ...input }: FieldProps): ReactElement {
   const lineId = `${id}-line`;
   const line = error ?? hint;
   return (
@@ -29,7 +31,7 @@ export function Field({ id, label, hint, error, ...input }: FieldProps): ReactEl
         aria-describedby={line ? lineId : undefined}
         {...input}
       />
-      <p id={lineId} className={`${error ? fieldErrorClass : fieldHintClass} min-h-5`}>
+      <p id={lineId} className={`${error ? fieldErrorClass : fieldHintClass} ${lineRoom(lineRows)}`}>
         {line}
       </p>
     </div>

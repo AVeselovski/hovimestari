@@ -1,4 +1,11 @@
-import { fieldErrorClass, fieldHintClass, inputClass, labelClass } from "@/components/ui/styles";
+import {
+  fieldErrorClass,
+  fieldHintClass,
+  inputClass,
+  labelBesideClass,
+  labelClass,
+  lineRoom,
+} from "@/components/ui/styles";
 import type { InputHTMLAttributes, ReactElement, ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
@@ -10,7 +17,10 @@ import type { InputHTMLAttributes, ReactElement, ReactNode } from "react";
 // the app suggests.
 //
 // A field keeps one line under it for its hint or its error, so an error
-// appearing moves nothing below it. A pair of fields that shares one line,
+// appearing moves nothing below it. `layout="beside"` puts the label on the
+// left and a 9rem field on the right, on one row, with the line under the
+// pair across the full width: a column of short figures, such as a label's
+// values per 100 g, then takes one row each. A pair of fields that shares one line,
 // such as a range's lower and upper bound, passes `line={undefined}` and
 // points `describedBy` at the shared line instead.
 // ---------------------------------------------------------------------------
@@ -38,6 +48,10 @@ export interface DecimalFieldProps extends InputProps {
   describedBy?: string;
   /** The field's own line: its hint, or its error with `invalid`. Left out, the field has no line of its own. */
   line?: ReactNode;
+  /** How many lines of room the field's own line keeps, so a longer error moves nothing below it. Default 1. */
+  lineRows?: 1 | 2;
+  /** "stacked" (default): the label above the field. "beside": the label on the left, a 9rem field on the right. */
+  layout?: "stacked" | "beside";
 }
 
 export function DecimalField({
@@ -51,39 +65,44 @@ export function DecimalField({
   invalid = false,
   describedBy,
   line,
+  lineRows = 1,
+  layout = "stacked",
   ...input
 }: DecimalFieldProps): ReactElement {
   const unitId = `${id}-unit`;
   const lineId = `${id}-line`;
   const describedByIds = [unitId, describedBy, line !== undefined ? lineId : null].filter(Boolean).join(" ");
+  const beside = layout === "beside";
   return (
     <div>
-      <label htmlFor={id} className={labelClass}>
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          {...input}
-          id={id}
-          type="text"
-          inputMode={inputMode}
-          autoComplete="off"
-          enterKeyHint={enterKeyHint}
-          value={value}
-          onChange={(e) => onValueChange(e.target.value)}
-          aria-invalid={invalid ? true : undefined}
-          aria-describedby={describedByIds}
-          className={`${inputClass} pr-14 font-mono tabular-nums`}
-        />
-        <span
-          id={unitId}
-          className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-base text-ink-muted"
-        >
-          {unit}
-        </span>
+      <div className={beside ? "flex items-center gap-3" : undefined}>
+        <label htmlFor={id} className={beside ? labelBesideClass : labelClass}>
+          {label}
+        </label>
+        <div className={beside ? "relative w-36 shrink-0" : "relative"}>
+          <input
+            {...input}
+            id={id}
+            type="text"
+            inputMode={inputMode}
+            autoComplete="off"
+            enterKeyHint={enterKeyHint}
+            value={value}
+            onChange={(e) => onValueChange(e.target.value)}
+            aria-invalid={invalid ? true : undefined}
+            aria-describedby={describedByIds}
+            className={`${inputClass} pr-14 font-mono tabular-nums`}
+          />
+          <span
+            id={unitId}
+            className="pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-base text-ink-muted"
+          >
+            {unit}
+          </span>
+        </div>
       </div>
       {line !== undefined && (
-        <p id={lineId} className={`${invalid ? fieldErrorClass : fieldHintClass} min-h-5`}>
+        <p id={lineId} className={`${invalid ? fieldErrorClass : fieldHintClass} ${lineRoom(lineRows)}`}>
           {line}
         </p>
       )}

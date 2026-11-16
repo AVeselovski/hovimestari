@@ -1,7 +1,9 @@
 import { getProviders } from "@/lib/api/auth";
+import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getTargets } from "@/lib/api/targets";
 import { getMe } from "@/lib/api/users";
-import { queryKeys } from "@/lib/queryKeys";
+import { STALE } from "@/lib/queryClient";
+import { foodSearchKey, queryKeys } from "@/lib/queryKeys";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 
 // ---------------------------------------------------------------------------
@@ -46,5 +48,47 @@ export function targetsOnQuery(date: string) {
     queryKey: queryKeys.targetsOn(date),
     queryFn: ({ signal }) => getTargets(date, { signal }),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The search results for `q`. The signal is handed to the request, so a query
+ * that a newer one replaces, and so loses its last observer, is aborted.
+ * While the next query loads, the last results stay on screen, so the list
+ * never flashes empty.
+ */
+export function foodSearchQuery(q: string) {
+  const key = foodSearchKey(q);
+  return queryOptions({
+    queryKey: queryKeys.foodSearch(key),
+    queryFn: ({ signal }) => searchFoods(key, { signal }),
+    placeholderData: keepPreviousData,
+    // Back from a food's detail mounts the results again. Within this time
+    // they come from the cache as they were, with no request.
+    staleTime: STALE.live,
+  });
+}
+
+/** One food with its portions. */
+export function foodDetailQuery(id: string) {
+  return queryOptions({
+    queryKey: queryKeys.foodDetail(id),
+    queryFn: ({ signal }) => getFood(id, { signal }),
+  });
+}
+
+/** The user's favourites, newest first. */
+export function favouriteFoodsQuery() {
+  return queryOptions({
+    queryKey: queryKeys.foodFavourites(),
+    queryFn: ({ signal }) => getFavouriteFoods({ signal }),
+  });
+}
+
+/** The user's own foods, in alphabetical order. */
+export function ownFoodsQuery() {
+  return queryOptions({
+    queryKey: queryKeys.foodOwn(),
+    queryFn: ({ signal }) => getOwnFoods({ signal }),
   });
 }

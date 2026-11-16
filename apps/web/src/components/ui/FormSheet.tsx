@@ -2,10 +2,10 @@
 
 import { FormError } from "@/components/form/FormError";
 import { BottomSheet, SheetDescription, type BottomSheetProps } from "@/components/ui/BottomSheet";
-import { FormSheetActions, type FormSheetActionsProps } from "@/components/ui/FormSheetActions";
+import { FormSheetActions, type FooterAction, type FormSheetActionsProps } from "@/components/ui/FormSheetActions";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useId, useRef, type FormEvent, type ReactElement, type ReactNode } from "react";
+import { useId, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
 // FormSheet: a sheet that holds one form, with Cancel and the submit button in
@@ -29,7 +29,10 @@ import { useId, useRef, type FormEvent, type ReactElement, type ReactNode } from
 //   that awaits something before it sets `submitting` is guarded too.
 // - The sheet's other options (`sheet`), with `md:max-w-sm` as the default
 //   width, and a row in the footer above Cancel and the submit button
-//   (`footerStart`) for a secondary action such as a delete.
+//   (`footerStart`) for a secondary action: a press, such as a delete that
+//   asks first, or a second submit of the form in a mode of its own, which
+//   runs through the same guard and reaches `onSubmit` with its mode. While
+//   a save runs, it and Cancel ignore a press and keep the focus they hold.
 //
 // What a save does, and what happens after it (`onSaved`, then `onClose`),
 // stays with the sheet.
@@ -43,8 +46,8 @@ export interface FormSheetCallerProps {
   returnFocusTo: HTMLElement | null;
   /** Cancel, and every dismissal the sheet accepts. Also called after a save. */
   onClose: () => void;
-  /** The save worked. Called just before `onClose`. */
-  onSaved: () => void;
+  /** The save worked. Called just before `onClose`. Left out when the caller needs no word of it. */
+  onSaved?: () => void;
 }
 
 /** What the fields learn from the sheet. */
@@ -67,8 +70,12 @@ export interface FormSheetProps extends Pick<
   dirty: boolean;
   /** A save is running: every way out is refused and the submit button is busy. */
   submitting: boolean;
-  /** Called on submit, unless a save is already running. The default action is prevented. */
-  onSubmit: () => void | Promise<void>;
+  /**
+   * Called on submit, unless a save is already running. The default action
+   * is prevented. `mode` is the footer action's `submit` when that action
+   * submitted the form, and undefined for the submit button and Enter.
+   */
+  onSubmit: (mode?: string) => void | Promise<void>;
   /** The refusal that belongs to no field, under the form. */
   formError: string | null;
   /** The account's address, for password managers, in a hidden `username` field. */
@@ -77,15 +84,15 @@ export interface FormSheetProps extends Pick<
   onOpened?: () => void;
   /** The sheet's other options. `panelClassName` defaults to `md:max-w-sm`. */
   sheet?: FormSheetOptions;
-  /** A secondary action, such as "Delete entry", in a footer row of its own above Cancel and the submit button. */
-  footerStart?: ReactNode;
+  /** A secondary action, such as "Delete entry" or a second submit, in a footer row of its own above Cancel and the submit button. */
+  footerStart?: FooterAction;
   children: (field: FormSheetField) => ReactNode;
 }
 
 /** The `BottomSheet` options a form sheet may set. */
 export type FormSheetOptions = Pick<
   BottomSheetProps,
-  "panelClassName" | "titleClassName" | "holdScroll" | "headerNote" | "stacked" | "onClosed"
+  "panelClassName" | "titleClassName" | "holdScroll" | "headerNote" | "stacked" | "onClosed" | "size"
 >;
 
 export function FormSheet({
@@ -113,11 +120,19 @@ export function FormSheet({
   const formId = `${useId()}-form`;
   // True from a submit until the promise it returned settles.
   const inFlightRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  // The mode a footer action asked for, read by the submit it starts.
+  const modeRef = useRef<string | null>(null);
+  // The mode of the last submit, so the button that started it shows busy.
+  const [runningMode, setRunningMode] = useState<string | null>(null);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
+    const mode = modeRef.current;
+    modeRef.current = null;
     if (submitting || inFlightRef.current) return;
-    const result = onSubmit();
+    setRunningMode(mode);
+    const result = mode === null ? onSubmit() : onSubmit(mode);
     if (!result) return;
     inFlightRef.current = true;
     const settle = (): void => {
@@ -148,6 +163,12 @@ export function FormSheet({
           submitDisabled={submitDisabled}
           submitGuard={submitGuard}
           start={footerStart}
+          runningMode={runningMode}
+          onSubmitMode={(mode) => {
+            // Through the form's own submit, so the guard above applies.
+            modeRef.current = mode;
+            formRef.current?.requestSubmit();
+          }}
         />
       }
     >
@@ -155,7 +176,7 @@ export function FormSheet({
         {description !== undefined && (
           <SheetDescription className="mb-4 text-base text-ink">{description}</SheetDescription>
         )}
-        <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-3">
+        <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className="space-y-3">
           {username !== undefined && (
             <input type="email" name="username" autoComplete="username" value={username} readOnly hidden />
           )}

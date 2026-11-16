@@ -114,10 +114,18 @@ function RangeGroup({
   last = false,
 }: RangeGroupProps): ReactElement {
   const t = useTranslations("targets.fields");
+  const tCommon = useTranslations("common");
   const { forCode } = useErrorCopy();
   const lineId = `${idPrefix}-${lower}-line`;
   const code = errors[lower] ?? errors[upper];
-  const line = code === "target_value_invalid" ? invalidLine : code ? forCode(code) : hint;
+  const line =
+    code === "target_value_invalid"
+      ? invalidLine
+      : code === "digit_group"
+        ? tCommon("digitGroup")
+        : code
+          ? forCode(code)
+          : hint;
   return (
     <fieldset disabled={disabled} className="min-w-0">
       <legend className={`${sectionTitle} mb-2`}>{legend}</legend>

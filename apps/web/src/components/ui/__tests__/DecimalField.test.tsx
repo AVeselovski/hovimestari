@@ -81,4 +81,16 @@ describe("DecimalField", () => {
   it("takes done for the last field", () => {
     expect(renderField({ enterKeyHint: "done" }).input).toHaveAttribute("enterkeyhint", "done");
   });
+
+  it("puts the label beside a 9rem field with layout beside, and the line under the pair", () => {
+    const { input } = renderField({ layout: "beside", line: "Enter a value.", invalid: true, lineRows: 2 });
+    const row = input.parentElement!.parentElement!;
+    expect(row.className.split(" ")).toEqual(["flex", "items-center", "gap-3"]);
+    expect(row.firstElementChild!.tagName).toBe("LABEL");
+    expect(input.parentElement!.className.split(" ")).toEqual(["relative", "w-36", "shrink-0"]);
+    const line = document.getElementById("protein-line")!;
+    expect(line.parentElement).toBe(row.parentElement);
+    expect(line.className.split(" ")).toContain("min-h-10");
+    expect(describedBy(input)).toEqual(["protein-unit", "protein-line"]);
+  });
 });

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactElement } from "react";
 import { AccountSection } from "./_components/AccountSection";
 import { AppearanceSection } from "./_components/AppearanceSection";
+import { FoodDataSection } from "./_components/FoodDataSection";
 import { FoodNamesSection } from "./_components/FoodNamesSection";
 import { SignInMethodsSection } from "./_components/SignInMethodsSection";
 import { TargetsSection } from "./_components/TargetsSection";
@@ -21,6 +22,7 @@ export default function SettingsPage(): ReactElement {
       <AppearanceSection />
       <SignInMethodsSection />
       <AccountSection />
+      <FoodDataSection />
     </PageContainer>
   );
 }

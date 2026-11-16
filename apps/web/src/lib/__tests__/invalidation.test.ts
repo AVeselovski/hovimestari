@@ -4,6 +4,7 @@ import { TEST_USER } from "../../__tests__/helpers/auth";
 import { deferred, registerTestQueryClient } from "../../__tests__/helpers/queryClient";
 import {
   afterAccountChange,
+  afterFoodGone,
   afterFoodNameLanguageChange,
   afterTargetsChange,
   afterTimeZoneChange,
@@ -32,6 +33,10 @@ describe("a write that answers while a read from before it is still out", () => 
     ["the time zone: today", queryKeys.targets(), (c) => afterTimeZoneChange(c, written)],
     ["a targets change: a date's targets", queryKeys.targetsOn("2026-11-20"), (c) => afterTargetsChange(c)],
     ["the food-name language: the foods", queryKeys.foods(), (c) => afterFoodNameLanguageChange(c, written)],
+    ["a food deleted: a search", queryKeys.foodSearch("rahka"), (c) => afterFoodGone(c, "gone")],
+    ["a food deleted: another food's detail", queryKeys.foodDetail("a-food"), (c) => afterFoodGone(c, "gone")],
+    ["a food deleted: the favourites", queryKeys.foodFavourites(), (c) => afterFoodGone(c, "gone")],
+    ["a food deleted: the user's own foods", queryKeys.foodOwn(), (c) => afterFoodGone(c, "gone")],
   ];
 
   it.each(cases)("%s are read again, and the old answer never lands", async (_name, key, write) => {

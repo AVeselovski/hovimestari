@@ -81,7 +81,7 @@ export function ChangePasswordSheet({
       return;
     }
     // Still busy: the sheet slides out showing what was on screen.
-    onSaved();
+    onSaved?.();
     onClose();
   }
 

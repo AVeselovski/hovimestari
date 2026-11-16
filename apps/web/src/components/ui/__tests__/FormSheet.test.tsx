@@ -1,6 +1,7 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { FormSheet, type FormSheetProps } from "@/components/ui/FormSheet";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 
 // The frame every form sheet shares. The contract each sheet keeps (dismissal,
 // focus, the footer) runs on the sheets themselves through
@@ -135,7 +136,7 @@ describe("FormSheet", () => {
   });
 
   it("puts a secondary action in a row of its own above Cancel and Save", () => {
-    renderSheet({ footerStart: <button type="button">Delete entry</button> });
+    renderSheet({ footerStart: { label: "Delete entry", onPress: jest.fn() } });
     const footer = screen.getByRole("dialog").querySelector<HTMLElement>("[data-sheet-footer]")!;
     const names = within(footer)
       .getAllByRole("button")
@@ -145,5 +146,164 @@ describe("FormSheet", () => {
     // A row of its own: the full width below md, and the whole flex line from md.
     expect(slot.className.split(" ")).toEqual(expect.arrayContaining(["col-span-2", "md:basis-full"]));
     expect(slot.parentElement!.className.split(" ")).toContain("md:flex-wrap");
+    // No group around it for a screen reader to announce without a name.
+    expect(within(footer).queryByRole("group")).toBeNull();
+  });
+
+  describe("while a save runs", () => {
+    function Sheet({
+      submitting,
+      onDelete,
+      onClose,
+    }: {
+      submitting: boolean;
+      onDelete: (opener: HTMLElement) => void;
+      onClose: () => void;
+    }) {
+      return (
+        <FormSheet
+          open
+          onClose={onClose}
+          title="Name it"
+          returnFocusTo={null}
+          dirty
+          submitting={submitting}
+          onSubmit={jest.fn()}
+          formError={submitting ? null : "That did not work."}
+          idle="Save"
+          busy="Saving…"
+          footerStart={{ label: "Delete entry", onPress: (opener) => onDelete(opener) }}
+        >
+          {() => <input aria-label="Name" />}
+        </FormSheet>
+      );
+    }
+
+    // A disabled button drops the focus it holds to <body>, outside the
+    // modal. A phone's tap does not move focus off the button pressed last,
+    // so a focused Delete or Cancel is the common case there.
+    it.each(["Delete entry", "Cancel"])(
+      "%s keeps focus through a save that fails, looks unavailable and ignores a press",
+      (name) => {
+        const onDelete = jest.fn();
+        const onClose = jest.fn();
+        const { rerender } = render(<Sheet submitting={false} onDelete={onDelete} onClose={onClose} />);
+        const button = screen.getByRole("button", { name });
+        act(() => button.focus());
+        rerender(<Sheet submitting onDelete={onDelete} onClose={onClose} />);
+        expect(button).toHaveAttribute("aria-disabled", "true");
+        expect(button).not.toBeDisabled();
+        expect(button.className.split(/\s+/)).toContain("aria-disabled:opacity-60");
+        expect(button).toHaveFocus();
+        fireEvent.click(button);
+        expect(onDelete).not.toHaveBeenCalled();
+        expect(onClose).not.toHaveBeenCalled();
+
+        // The save fails: the sheet stays, focus where it was, the button works again.
+        rerender(<Sheet submitting={false} onDelete={onDelete} onClose={onClose} />);
+        expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+        expect(button).toHaveFocus();
+        expect(button).not.toHaveAttribute("aria-disabled");
+        fireEvent.click(button);
+        expect(name === "Cancel" ? onClose : onDelete).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("hands the secondary action its own button, for the confirmation to return focus to", () => {
+      const onDelete = jest.fn();
+      render(<Sheet submitting={false} onDelete={onDelete} onClose={jest.fn()} />);
+      const button = screen.getByRole("button", { name: "Delete entry" });
+      fireEvent.click(button);
+      expect(onDelete).toHaveBeenCalledWith(button);
+    });
+  });
+
+  describe("the secondary action's kinds", () => {
+    const classes = (el: HTMLElement) => el.className.split(/\s+/);
+
+    it("draws a press in the accent by default", () => {
+      renderSheet({ footerStart: { label: "Delete entry", onPress: jest.fn() } });
+      expect(classes(screen.getByRole("button", { name: "Delete entry" }))).toContain("text-accent");
+    });
+
+    it("draws a neutral press in ink, and hands it its button", () => {
+      const onPress = jest.fn();
+      renderSheet({ footerStart: { label: "Scan a label", tone: "neutral", onPress } });
+      const button = screen.getByRole("button", { name: "Scan a label" });
+      expect(classes(button)).toContain("text-ink");
+      expect(classes(button)).not.toContain("text-accent");
+      fireEvent.click(button);
+      expect(onPress).toHaveBeenCalledWith(button);
+    });
+
+    it("submits the form in its own mode, while Save and Enter submit with none", () => {
+      const { onSubmit, form } = renderSheet({
+        footerStart: { label: "Save meal", busy: "Saving meal…", tone: "neutral", submit: "meal" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Save meal" }));
+      expect(onSubmit).toHaveBeenLastCalledWith("meal");
+      fireEvent.submit(form);
+      expect(onSubmit).toHaveBeenCalledTimes(2);
+      expect(onSubmit.mock.calls[1]).toEqual([]);
+      // Enter picks the form's first submit button: Save, never the secondary action.
+      const save = screen.getByRole("button", { name: "Save" });
+      expect(form.ownerDocument.querySelector(`button[type="submit"][form="${form.id}"]`)).toBe(save);
+      expect(screen.getByRole("button", { name: "Save meal" })).toHaveAttribute("type", "button");
+    });
+
+    it("goes through the same in-flight guard as Save", async () => {
+      let settle: () => void = () => {};
+      const onSubmit = jest.fn(() => new Promise<void>((resolve) => (settle = resolve)));
+      renderSheet({ onSubmit, footerStart: { label: "Save meal", busy: "Saving meal…", submit: "meal" } });
+      fireEvent.click(screen.getByRole("button", { name: "Save meal" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save meal" }));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      await act(async () => settle());
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(onSubmit).toHaveBeenCalledTimes(2);
+    });
+
+    function Saving({ onSubmit }: { onSubmit: (mode?: string) => void }) {
+      const [submitting, setSubmitting] = useState(false);
+      return (
+        <FormSheet
+          open
+          onClose={jest.fn()}
+          title="Name it"
+          returnFocusTo={null}
+          dirty
+          submitting={submitting}
+          onSubmit={(mode) => {
+            onSubmit(mode);
+            setSubmitting(true);
+          }}
+          formError={null}
+          idle="Save and log"
+          busy="Saving…"
+          footerStart={{ label: "Save meal", busy: "Saving meal…", tone: "neutral", submit: "meal" }}
+        >
+          {() => <input aria-label="Name" />}
+        </FormSheet>
+      );
+    }
+
+    it("shows its busy label on itself alone while its submit runs, and ignores a second press", () => {
+      const onSubmit = jest.fn();
+      render(<Saving onSubmit={onSubmit} />);
+      fireEvent.click(screen.getByRole("button", { name: "Save meal" }));
+      const busy = screen.getByRole("button", { name: "Saving meal…" });
+      expect(busy).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("button", { name: "Save and log" })).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(busy);
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it("leaves its label at rest while Save's submit runs", () => {
+      render(<Saving onSubmit={jest.fn()} />);
+      fireEvent.click(screen.getByRole("button", { name: "Save and log" }));
+      expect(screen.getByRole("button", { name: "Saving…" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save meal" })).toHaveAttribute("aria-disabled", "true");
+    });
   });
 });

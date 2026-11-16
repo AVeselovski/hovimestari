@@ -1,4 +1,4 @@
-import { btnText, btnTextDanger, segmentedTray } from "@/components/ui/styles";
+import { btnText, btnTextDanger, lineRoom, segmentedTray } from "@/components/ui/styles";
 
 const tokens = (recipe: string) => recipe.split(/\s+/);
 
@@ -30,5 +30,12 @@ describe("segmented tray", () => {
   it("has the control edge, not a decoration rule", () => {
     expect(tokens(segmentedTray)).toContain("border-field-rule");
     expect(tokens(segmentedTray)).not.toContain("border-rule");
+  });
+});
+
+describe("a field line's room", () => {
+  it("keeps one or two lines of text", () => {
+    expect(lineRoom(1)).toBe("min-h-5");
+    expect(lineRoom(2)).toBe("min-h-10");
   });
 });

@@ -8,6 +8,7 @@ import {
   sheetHeader,
   sheetPopup,
   sheetPopupStacked,
+  sheetPopupTall,
   sheetTitle,
   sheetViewport,
   sheetViewportAnchored,
@@ -132,6 +133,12 @@ import {
 // Below `md` the sheet hangs from the bottom edge and grows upwards, as a
 // sheet does.
 //
+// A sheet whose content changes under the thumb, such as a list of search
+// results that changes on every keystroke, passes `size="tall"`: one fixed
+// height that never follows its content, so its top edge and its fixed
+// header never move. Such a sheet often names itself with `ariaLabel` and
+// puts its own `header` in the fixed row, such as a search field.
+//
 // A long form whose fields come and go passes `holdScroll`: scrolled to its
 // end, a field that goes away leaves its space as a blank reserve rather
 // than pulling everything above it down (`useScrollHold`).
@@ -167,9 +174,12 @@ const SheetStackContext = createContext<SheetStack | null>(null);
 
 /**
  * What names the dialog: a visible `title` in a fixed row above the body, or,
- * for a sheet with no title row, an `ariaLabel`.
+ * for a sheet with no title row, an `ariaLabel`. A sheet named by `ariaLabel`
+ * may put its own `header` in the fixed row instead, such as a search field
+ * or a Back button over a heading.
  */
-type SheetName = { title: string; ariaLabel?: never } | { ariaLabel: string; title?: never };
+type SheetName =
+  { title: string; ariaLabel?: never; header?: never } | { ariaLabel: string; title?: never; header?: ReactNode };
 
 export type BottomSheetProps = SheetName & BottomSheetBaseProps;
 
@@ -254,6 +264,14 @@ interface BottomSheetBaseProps {
    * Rendered outside the body, so this sheet re-rendering never remounts it.
    */
   stacked?: ReactNode;
+  /**
+   * `"auto"` (default): the sheet's height follows its content. `"tall"`: one
+   * fixed height that never follows its content, nearly the whole screen on a
+   * phone and `min(44rem, 85dvh)` as the centred panel, so content that
+   * changes under the thumb (a list of search results) never moves the
+   * sheet's top edge or anything in its fixed header.
+   */
+  size?: "auto" | "tall";
 }
 
 /**
@@ -270,6 +288,7 @@ export function BottomSheet({
   onClose,
   ariaLabel,
   title,
+  header,
   children,
   panelClassName = "md:max-w-md",
   titleClassName,
@@ -284,6 +303,7 @@ export function BottomSheet({
   keyboardAware = false,
   holdScroll = false,
   stacked,
+  size = "auto",
 }: BottomSheetProps): ReactElement {
   const popupRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -417,7 +437,8 @@ export function BottomSheet({
                 // or a body that focuses itself keeps its focus.
                 initialFocus
                 finalFocus={false}
-                className={`${nested ? sheetPopupStacked : sheetPopup} ${panelClassName}`}
+                data-sheet-size={size}
+                className={`${nested ? sheetPopupStacked : sheetPopup}${size === "tall" ? ` ${sheetPopupTall}` : ""} ${panelClassName}`}
                 style={anchored.style}
               >
                 {/* Outside Drawer.Content, so a mouse can drag it as well as a finger. */}
@@ -436,6 +457,11 @@ export function BottomSheet({
                       )}
                     </div>
                   )}
+                  {header !== undefined && (
+                    <div data-sheet-header="" className={sheetHeader}>
+                      {header}
+                    </div>
+                  )}
                   <Fragment key={generation}>
                     <div
                       ref={bodyRef}
@@ -444,7 +470,7 @@ export function BottomSheet({
                       // own scroll anchoring is off: on a phone it picked a
                       // field below one that appeared and pushed everything
                       // above it up by the new field's height.
-                      className={`${sheetBodyClass({ header: title !== undefined, footer: Boolean(footer) })}${holdScroll ? " [overflow-anchor:none]" : ""}`}
+                      className={`${sheetBodyClass({ header: title !== undefined || header !== undefined, footer: Boolean(footer) })}${holdScroll ? " [overflow-anchor:none]" : ""}`}
                     >
                       {holdScroll ? (
                         <>

@@ -11,23 +11,6 @@ import type messages from "../../messages/en.json";
 export const CODES_WITHOUT_COPY = [
   // The forgot-password page shows its usual answer for a limited request too.
   "reset_rate_limited",
-  // Foods: these get their copy with the food screens, which are the first
-  // to send these requests. Until then no screen can receive them.
-  "food_not_found",
-  "food_read_only",
-  "food_name_required",
-  "food_name_too_long",
-  "food_name_not_searchable",
-  "food_value_required",
-  "food_energy_invalid",
-  "food_macro_invalid",
-  "barcode_invalid",
-  "barcode_taken",
-  "portion_not_found",
-  "portion_read_only",
-  "portion_name_required",
-  "portion_name_too_long",
-  "portion_grams_invalid",
   // Only the app itself sends a time zone, from the device, on an app start
   // nobody asked to see. A refusal is dropped quietly (lib/deviceTimeZone.ts).
   "invalid_time_zone",

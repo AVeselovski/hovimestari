@@ -277,11 +277,26 @@ body {
           calc(var(--drawer-swipe-movement-y, 0px) + var(--sheet-stack-lift) * (1 - var(--sheet-stack-progress)))
         )
         scale(calc(1 - (1 - var(--sheet-stack-scale)) * (1 - var(--sheet-stack-progress))));
+
+      /* Its handle fades out, so the strip that still shows above the one on
+         top shows one handle, the top sheet's. It comes back by the same
+         share as the one on top is dragged away. */
+      & > [data-sheet-handle] {
+        opacity: var(--sheet-stack-progress);
+      }
+    }
+
+    & > [data-sheet-handle] {
+      transition: opacity var(--duration-sheet) var(--ease-sheet);
     }
   }
 
   &[data-nested-drawer-swiping] {
     transition-duration: 0ms;
+
+    & > [data-sheet-handle] {
+      transition-duration: 0ms;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
