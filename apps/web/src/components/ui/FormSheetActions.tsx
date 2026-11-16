@@ -48,6 +48,8 @@ export interface FormSheetActionsProps {
   formId: string;
   onCancel: () => void;
   submitting: boolean;
+  /** The submit button and the secondary action wait, with the disabled look. Cancel stays free. */
+  held?: boolean;
   /** The submit button's label at rest and while it runs. */
   idle: string;
   busy: string;
@@ -84,6 +86,7 @@ export function FormSheetActions({
   formId,
   onCancel,
   submitting,
+  held = false,
   idle,
   busy,
   submitDisabled = false,
@@ -101,9 +104,9 @@ export function FormSheetActions({
         <div data-footer-start="" className={sheetActionsStart}>
           <button
             type="button"
-            aria-disabled={submitting || undefined}
+            aria-disabled={submitting || held || undefined}
             onClick={(e) => {
-              if (submitting) return;
+              if (submitting || held) return;
               if ("submit" in start) onSubmitMode?.(start.submit);
               else start.onPress(e.currentTarget);
             }}
@@ -136,7 +139,7 @@ export function FormSheetActions({
         form={formId}
         // FormSheet refuses a second submit while one runs.
         disabled={submitDisabled}
-        aria-disabled={submitting || undefined}
+        aria-disabled={submitting || held || undefined}
         {...submitGuard}
         className={`${tone === "danger" ? btnDanger : btnPrimary} ${touchTarget}`}
       >

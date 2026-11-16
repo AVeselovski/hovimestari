@@ -21,7 +21,9 @@ import { useId, useRef, useState, type FormEvent, type ReactElement, type ReactN
 //   focusable element, a roving radio group to its checked radio.
 // - The form element and its id, which the submit button in the footer
 //   reaches by its `form` attribute, so Enter in a field still submits.
-// - The line under the form for a refusal that belongs to no field.
+// - The line for a refusal that belongs to no field, in the pinned footer
+//   above the buttons, so it is in sight however far the body is scrolled.
+//   Its two lines of room are always kept, so nothing moves when it appears.
 // - The account's address in a hidden `username` field, for password
 //   managers, which pair it with the password fields.
 // - The in-flight guard: a submit is ignored while `submitting` is set, and
@@ -33,6 +35,8 @@ import { useId, useRef, useState, type FormEvent, type ReactElement, type ReactN
 //   asks first, or a second submit of the form in a mode of its own, which
 //   runs through the same guard and reaches `onSubmit` with its mode. While
 //   a save runs, it and Cancel ignore a press and keep the focus they hold.
+// - `held`: the submit and the secondary action wait, such as while the app
+//   asks the server for today. Cancel and every dismissal stay free.
 //
 // What a save does, and what happens after it (`onSaved`, then `onClose`),
 // stays with the sheet.
@@ -76,8 +80,10 @@ export interface FormSheetProps extends Pick<
    * submitted the form, and undefined for the submit button and Enter.
    */
   onSubmit: (mode?: string) => void | Promise<void>;
-  /** The refusal that belongs to no field, under the form. */
+  /** The refusal that belongs to no field, in the footer above the buttons. */
   formError: string | null;
+  /** The submit and the secondary action wait. Cancel and dismissal stay free. */
+  held?: boolean;
   /** The account's address, for password managers, in a hidden `username` field. */
   username?: string;
   /** Called once the sheet is at rest, such as for `useArmedAtRest`. */
@@ -105,6 +111,7 @@ export function FormSheet({
   submitting,
   onSubmit,
   formError,
+  held = false,
   username,
   onOpened,
   idle,
@@ -130,7 +137,7 @@ export function FormSheet({
     e.preventDefault();
     const mode = modeRef.current;
     modeRef.current = null;
-    if (submitting || inFlightRef.current) return;
+    if (submitting || held || inFlightRef.current) return;
     setRunningMode(mode);
     const result = mode === null ? onSubmit() : onSubmit(mode);
     if (!result) return;
@@ -153,23 +160,27 @@ export function FormSheet({
       panelClassName={sheet?.panelClassName ?? "md:max-w-sm"}
       onOpened={onOpened}
       footer={
-        <FormSheetActions
-          formId={formId}
-          onCancel={onClose}
-          submitting={submitting}
-          idle={idle}
-          busy={busy}
-          tone={tone}
-          submitDisabled={submitDisabled}
-          submitGuard={submitGuard}
-          start={footerStart}
-          runningMode={runningMode}
-          onSubmitMode={(mode) => {
-            // Through the form's own submit, so the guard above applies.
-            modeRef.current = mode;
-            formRef.current?.requestSubmit();
-          }}
-        />
+        <>
+          <FormError message={formError} inFooter />
+          <FormSheetActions
+            formId={formId}
+            onCancel={onClose}
+            submitting={submitting}
+            held={held}
+            idle={idle}
+            busy={busy}
+            tone={tone}
+            submitDisabled={submitDisabled}
+            submitGuard={submitGuard}
+            start={footerStart}
+            runningMode={runningMode}
+            onSubmitMode={(mode) => {
+              // Through the form's own submit, so the guard above applies.
+              modeRef.current = mode;
+              formRef.current?.requestSubmit();
+            }}
+          />
+        </>
       }
     >
       <PromptSheetBody focusSelf={isMobile}>
@@ -181,7 +192,6 @@ export function FormSheet({
             <input type="email" name="username" autoComplete="username" value={username} readOnly hidden />
           )}
           {children({ autoFocus: !isMobile })}
-          <FormError message={formError} />
         </form>
       </PromptSheetBody>
     </BottomSheet>

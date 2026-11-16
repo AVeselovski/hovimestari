@@ -28,7 +28,19 @@ export const ICONS = {
   plus: "M12 4.5v15m7.5-7.5h-15",
   pencil:
     "m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125",
+  /** An empty circle: a planned entry's mark. */
+  circle: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  /** The same circle, drawn dashed: a planned entry on a future day, which cannot be marked. */
+  circleDashed: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  /** A filled circle with a check cut out of it: an eaten entry's mark. Drawn solid. */
+  checkCircle:
+    "M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z",
 } as const;
+
+/** Icons drawn as one solid shape with holes, not as an outline. */
+const SOLID: ReadonlySet<string> = new Set(["checkCircle"]);
+/** Icons whose outline is dashed. */
+const DASHED: ReadonlySet<string> = new Set(["circleDashed"]);
 
 export type IconName = keyof typeof ICONS;
 
@@ -42,16 +54,24 @@ interface IconProps {
 }
 
 export function Icon({ name, className = "h-5 w-5", strokeWidth = 1.5, filled = false }: IconProps): ReactElement {
+  const solid = SOLID.has(name);
   return (
     <svg
       aria-hidden="true"
       className={className}
-      fill={filled ? "currentColor" : "none"}
+      fill={filled || solid ? "currentColor" : "none"}
       viewBox="0 0 24 24"
-      stroke="currentColor"
+      stroke={solid ? "none" : "currentColor"}
       strokeWidth={strokeWidth}
     >
-      <path strokeLinecap="round" strokeLinejoin="round" d={ICONS[name]} />
+      <path
+        strokeLinecap={DASHED.has(name) ? "butt" : "round"}
+        strokeLinejoin="round"
+        strokeDasharray={DASHED.has(name) ? "3.53 3.53" : undefined}
+        fillRule={solid ? "evenodd" : undefined}
+        clipRule={solid ? "evenodd" : undefined}
+        d={ICONS[name]}
+      />
     </svg>
   );
 }

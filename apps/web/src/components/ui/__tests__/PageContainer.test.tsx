@@ -31,4 +31,17 @@ describe("PageContainer", () => {
     expect(content).toHaveClass("space-y-6");
     expect(outer).not.toHaveClass("space-y-6");
   });
+
+  it("widens from lg only when asked, and keeps a toast's room at the end only when asked", () => {
+    render(
+      <PageContainer wide clearToast untitled>
+        <p>Wide</p>
+      </PageContainer>,
+    );
+    const shared = screen.getByText("Wide").parentElement!.parentElement!;
+    expect(classes(shared)).toEqual(expect.arrayContaining(["md:max-w-page", "lg:max-w-page-wide"]));
+    expect(classes(shared.parentElement!)).toContain("pb-toast-clearance");
+    expect(classes(shared.parentElement!)).not.toContain("pb-12");
+    expect(classes(shared.parentElement!)).toEqual(expect.arrayContaining(["pt-2", "md:pt-8"]));
+  });
 });

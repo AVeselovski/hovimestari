@@ -44,6 +44,16 @@
   --color-carbs: #7a4f86;
   --color-fat: #2f7a72;
 
+  /* The day gauge (components/day/Gauge.tsx). The track and the target band
+     are neutral, from the panel and the muted ink, never a macro hue, so the
+     band never reads as a verdict. The plan tints fill the planned segment
+     inside a border of the full hue. Nothing in the gauge changes colour past
+     a bound. */
+  --color-gauge-track: #efe6d2;
+  --color-gauge-range: #bfb59d;
+  --color-energy-plan: #e6d3b4;
+  --color-protein-plan: #bac6c9;
+
   --color-transparent: transparent;
   --color-current: currentColor;
 
@@ -57,10 +67,18 @@
 
   /* The content column from md up, shared by every tab and the header. */
   --container-page: 40rem;
+  /* The Day tab's two columns from lg up: the summary beside the entries. The Day tab has no visible title to line up with. */
+  --container-page-wide: 64rem;
   /* The guest pages' column. */
   --container-auth: 26rem;
   /* The side rail from md up. */
   --spacing-rail: 14rem;
+  /* The phone's tab bar cell, before the home indicator. A toast sits above it. */
+  --spacing-tab-bar: 3.5rem;
+  /* The room a page keeps at its end for the tallest toast, so a toast never covers its last row:
+     three lines of text (3 x 1.5rem), the line's and the toast's padding (1.25rem and 1rem), and
+     the 0.5rem gap the toast hangs above the tab bar by (styles.ts, toastViewport). */
+  --spacing-toast-clearance: 7.25rem;
 
   /* Page title: 1.75rem on a phone, 2.25rem from md. */
   --text-title: 1.75rem;
@@ -89,6 +107,10 @@
   --color-protein: #7fb0d8;
   --color-carbs: #b893c4;
   --color-fat: #6fbfb3;
+  --color-gauge-track: #1a251e;
+  --color-gauge-range: #41463a;
+  --color-energy-plan: #504425;
+  --color-protein-plan: #334750;
 }
 
 :root {
@@ -303,6 +325,81 @@ body {
     &[data-nested-drawer-open]:not([data-ending-style]) {
       transform: translateY(var(--drawer-swipe-movement-y, 0px));
     }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast motion (components/ui/Toast.tsx, on Base UI's Toast). It rises */
+/* a little and fades in, and fades out where it is. A swipe down moves */
+/* it with the finger (--toast-swipe-movement-y). Reduced motion keeps   */
+/* only the fade.                                                        */
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* The refusal line in a form sheet's pinned footer                    */
+/* (components/form/FormError.tsx). Two lines of room and their gap,   */
+/* kept while it is empty, so nothing moves when a refusal shows.      */
+/* While the on-screen keyboard is open (--drawer-keyboard-inset is    */
+/* above 0, set by Base UI for a keyboard-aware sheet) an empty line   */
+/* gives its room back to the body: the clamp is the full room at an   */
+/* inset of 0 and nothing from an inset of a hundredth of a pixel. A   */
+/* refusal then takes its room and the footer grows upward, its        */
+/* buttons where they were. Outside such a sheet the inset is unset,   */
+/* so the room is always kept.                                         */
+/* ------------------------------------------------------------------ */
+
+@utility footer-error-room {
+  min-height: 2.5rem;
+  margin-bottom: 0.5rem;
+
+  &:empty {
+    min-height: clamp(0px, calc(2.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 2.5rem);
+    margin-bottom: clamp(0px, calc(0.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 0.5rem);
+  }
+}
+
+@utility toast-motion {
+  transform: translateY(var(--toast-swipe-movement-y, 0px));
+  transition-property: transform, opacity;
+  transition-duration: var(--duration-dialog);
+  transition-timing-function: var(--ease-sheet);
+
+  &[data-starting-style] {
+    transform: translateY(0.75rem);
+    opacity: 0;
+  }
+  &[data-ending-style] {
+    transform: translateY(var(--toast-swipe-movement-y, 0px));
+    opacity: 0;
+  }
+  &[data-swiping] {
+    transition-duration: 0ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: var(--duration-fade);
+    &[data-starting-style] {
+      transform: none;
+    }
+  }
+}
+
+/* A gauge's fills ease when the same day's figures change
+   (components/day/Gauge.tsx). A new date paints without motion, because
+   the gauge is keyed by date. The track, band and ticks never move. */
+/* A row that scrolls sideways under the finger with no scrollbar drawn, such as the amount field's unit chips. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility gauge-fill-motion {
+  transition-property: left, width;
+  transition-duration: 240ms;
+  transition-timing-function: var(--ease-sheet);
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 0ms;
   }
 }
 

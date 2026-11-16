@@ -1,6 +1,8 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { FormSheet, type FormSheetProps } from "@/components/ui/FormSheet";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import fs from "node:fs";
+import path from "node:path";
 import { useState } from "react";
 
 // The frame every form sheet shares. The contract each sheet keeps (dismissal,
@@ -51,13 +53,55 @@ describe("FormSheet", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows the description above the form and the refusal under it", () => {
+  it("while held, ignores the submit and the secondary action, and keeps Cancel and dismissal free", () => {
+    const onClose = jest.fn();
+    const onPress = jest.fn();
+    const { onSubmit, form } = renderSheet({ held: true, onClose, footerStart: { label: "Remove", onPress } });
+    fireEvent.submit(form);
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove" }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onPress).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole("button", { name: "Save" })).toHaveAttribute("aria-disabled", "true");
+    expect(within(dialog).getByRole("button", { name: "Remove" })).toHaveAttribute("aria-disabled", "true");
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    expect(cancel).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(cancel);
+    expect(onClose).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the description above the form and the refusal in the pinned footer, above the buttons", () => {
     renderSheet({ description: "What this does.", formError: "That did not work." });
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAccessibleDescription("What this does.");
-    expect(screen.getByRole("alert")).toHaveTextContent("That did not work.");
-    const form = dialog.querySelector("form")!;
-    expect(form).toContainElement(screen.getByRole("alert"));
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("That did not work.");
+    // In the footer, outside the scrolling body, so it is in sight however the body is scrolled.
+    const footer = dialog.querySelector("[data-sheet-footer]")!;
+    expect(footer).toContainElement(alert);
+    expect(dialog.querySelector("form")).not.toContainElement(alert);
+    const cancel = within(footer as HTMLElement).getByRole("button", { name: "Cancel" });
+    expect(alert.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps the refusal line's room in the footer, given back to the body only while the keyboard is open", () => {
+    renderSheet({ formError: null });
+    const line = screen.getByRole("dialog").querySelector("[data-sheet-footer] [data-form-error]")!;
+    expect(line.className.split(" ")).toContain("footer-error-room");
+    // jsdom computes no clamp(), so the rule itself is read: two lines and their gap
+    // while the keyboard is closed, none while it is open and the line is empty.
+    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+    const rule = css.slice(css.indexOf("@utility footer-error-room"));
+    const block = rule.slice(0, rule.indexOf("\n}\n"));
+    expect(block).toMatch(/^\s*min-height: 2\.5rem;$/m);
+    expect(block).toMatch(/^\s*margin-bottom: 0\.5rem;$/m);
+    const empty = block.slice(block.indexOf("&:empty"));
+    expect(empty).toContain("min-height: clamp(0px, calc(2.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 2.5rem)");
+    expect(empty).toContain(
+      "margin-bottom: clamp(0px, calc(0.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 0.5rem)",
+    );
   });
 
   it("carries the address for password managers only when given one", () => {

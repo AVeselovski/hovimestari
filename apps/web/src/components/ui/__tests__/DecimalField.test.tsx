@@ -15,7 +15,7 @@ function renderField(props: Partial<DecimalFieldProps> = {}) {
       {...props}
     />,
   );
-  return { input: screen.getByLabelText("Protein"), onValueChange };
+  return { input: screen.getByLabelText(props.label ?? "Protein"), onValueChange };
 }
 
 /** The ids a field's `aria-describedby` names, as a list. */
@@ -27,6 +27,18 @@ describe("DecimalField", () => {
     expect(input).toHaveAttribute("type", "text");
     expect(input).toHaveAttribute("inputmode", "numeric");
     expect(input).not.toHaveAttribute("placeholder");
+  });
+
+  it("keeps room at its end for its unit: a word unit such as portions gets more than g", () => {
+    const classes = (unit: string) => {
+      const { input } = renderField({ unit, id: unit, label: unit });
+      return input.className.split(" ");
+    };
+    // Measured at 320 px: "portions" is 62 px wide, more than the 3.5rem a "g" or "kcal" needs.
+    expect(classes("g")).toContain("pr-14");
+    expect(classes("kcal")).toContain("pr-14");
+    expect(classes("portions")).toContain("pr-22");
+    expect(classes("meals")).toContain("pr-22");
   });
 
   it("passes the decimal keypad through", () => {
