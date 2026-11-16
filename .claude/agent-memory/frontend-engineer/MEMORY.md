@@ -1,3 +1,3 @@
 <!-- Memory index for frontend-engineer. One line per memory file: - [Title](file.md): one-line hook. Never write memory content here. -->
 
-- [Web test and browser-run gotchas](testing_gotchas.md): StrictMode under Jest, local production relay flag, sign-up limiter in sweeps, docs ratio wording, jsdom fetch classes, UTF8 dev database, background servers, build type-checks tests, jest path regex, gate database URL, aria-hidden behind a modal, forcing a renewal.
+- [Web test and browser-run gotchas](testing_gotchas.md): StrictMode under Jest, local production relay flag, sign-up limiter in sweeps, docs ratio wording, jsdom fetch classes, UTF8 dev database, background servers, build type-checks tests, jest path regex, gate database URL, aria-hidden behind a modal, forcing a renewal, act scopes, Intl stubs, stale types dist, keyboard emulation limits, invalidation joining a running read, rerender bailout, init-script theme reset.

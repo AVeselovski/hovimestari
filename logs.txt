@@ -1,5 +1,7 @@
 [frontend-engineer DONE] 2026-11-15T20:47:31Z Closed the dot-segment open redirect in safeRedirectPath (refuse // and /\, require a fixed point) and gave the session renewal fetch a 12 s abort that reads as offline. Web tests 269 passing, lint, typecheck and build green.
 [frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
+[frontend-engineer STARTED] 2026-11-16T03:51:11Z PR 2c targets on the web, step 2c.1
+[frontend-engineer DONE] 2026-11-16T07:11:50Z PR 2c targets on the web: gate, first run, targets sheet, Settings Targets and Food names, docs; carried sign-in limit and GET pin; gate green (backend 437, types 97, web 648)
 [general-purpose STARTED] (2026-11-14T11:12:52Z) distil finanssi's mobile UI and component-library lessons into docs/design/mobile-ui-lessons.md
 [general-purpose DONE] (2026-11-14T11:17:18Z) wrote docs/design/mobile-ui-lessons.md, 142 lines (256k tokens)
 [architect STARTED] (2026-11-15T18:09:47Z) design doc for build step 1, scaffold and auth
@@ -86,7 +88,6 @@
 [backend-engineer STARTED] (2026-11-15T21:01:08Z) fix: a lost refresh response no longer signs the user out
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
 [backend-engineer STARTED] (2026-11-15T21:04:11Z) PR 2b: Fineli importer, fixtures, runbook, carried 2a review items
-[frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
 [reviewer DONE] (2026-11-15T21:05:56Z) design review of days and quick logging, round 1: ready after fixes; figures model sound; 7 major, 12 minor
 [architect STARTED] (2026-11-15T21:05:56Z) revise the days and quick logging design for review round 1
 [architect STARTED] (2026-11-15T21:06:02Z) revise step 3 design after review
@@ -158,7 +159,10 @@
 [validator STARTED] (2026-11-16T03:49:19Z) PR 3a re-validation after fix cycle 1
 [reviewer STARTED] (2026-11-16T03:49:19Z) PR 3a delta review after fix cycle 1
 [reviewer DONE] (2026-11-16T03:49:48Z) account settings fix cycle 2 confirmed: approve (225k tokens)
+[frontend-engineer STARTED] (2026-11-16T03:50:43Z) targets on the web, PR 2c: first-run targets, the targets sheet, Settings targets and food names
 [backend-engineer STARTED] (2026-11-16T03:58:33Z) PR 3a fix cycle 2
+[validator STARTED] (2026-11-16T07:12:35Z) targets on the web, PR 2c
+[reviewer STARTED] (2026-11-16T07:12:35Z) targets on the web, PR 2c code review
 [backend-engineer DONE] (2026-11-16T07:24:11Z) PR 3a fix cycle 2: saved meal repeats skip either unique key, food/target/settings writes answer user_not_found racing a deletion, recents in one statement, copy 409 race test, [deadlock] tag, master merged; gate green on merged tree, races 10/10
 [validator DONE] (2026-11-16T07:24:51Z) PR 3a re-validation at b3aca21: FAIL on one major (a saved meal create repeated in flight answers 500); both earlier defects gone (335k tokens)
 [reviewer DONE] (2026-11-16T07:24:51Z) PR 3a delta review: approve, four minors and two nits (244k tokens)
@@ -169,3 +173,20 @@
 [documentation-specialist DONE] (2026-11-16T07:29:50Z) split days, quick-logging and saved-meals docs to one home per rule, fixed catalog, link map, READMEs and TODO, docs:check clean
 [documentation-specialist DONE] (2026-11-16T07:39:18Z) PR 3a docs pass: each rule one home, examples recomputed (210k tokens)
 [validator DONE] (2026-11-16T07:39:18Z) PR 3a at bc1a1cf: PASS; one optional minor filed in TODO.md
+[reviewer DONE] (2026-11-16T07:40:24Z) PR 2c: approve after fixes; the gate's late-read rule is untested (major), 7 minors, nits (176k tokens)
+[validator DONE] (2026-11-16T07:40:24Z) PR 2c at a8a55c1: FAIL on one major (a time-zone write racing the first targets read leaves today stale); every requirement met on screen (276k tokens)
+[frontend-engineer STARTED] (2026-11-16T07:40:24Z) PR 2c fix cycle 1
+[frontend-engineer STARTED] (2026-11-16T07:40:57Z) PR 2c fix cycle 1: time-zone race, gate test, focus path, single-day lines, docs, nits
+[frontend-engineer DONE] (2026-11-16T07:59:29Z) PR 2c fix cycle 1: 13 items, gate green (web 689, backend 437, types 97 tests), race and focus checked in Chromium
+[frontend-engineer DONE] (2026-11-16T08:02:15Z) PR 2c fix cycle 1: 13 items; web 689 tests (244k tokens)
+[ui-validator STARTED] (2026-11-16T08:02:15Z) PR 2c in a real browser
+[reviewer STARTED] (2026-11-16T08:02:15Z) PR 2c: confirm fix cycle 1
+[frontend-engineer STARTED] (2026-11-16T08:17:59Z) PR 2c fix cycle 2: reserved error and rewrite room, figure wrap, focus on Save, contrast, title retention
+[frontend-engineer DONE] (2026-11-16T08:42:22Z) PR 2c fix cycle 2: 12 items and the quick-logging line, gate green (web 707, backend 570, types 122), layout measured at 5 widths, 37 screenshots retaken
+[reviewer DONE] (2026-11-16T08:43:36Z) PR 2c fix cycle 1 confirmed: approve (192k tokens)
+[ui-validator DONE] (2026-11-16T08:43:36Z) PR 2c at 566e2e4: pass with fixes; 3 majors on reserved room and wrapping, 9 minors (230k tokens)
+[frontend-engineer DONE] (2026-11-16T08:43:36Z) PR 2c fix cycle 2: 12 items; web 707 tests (374k tokens)
+[documentation-specialist STARTED] (2026-11-16T08:43:36Z) PR 2c docs pass
+[documentation-specialist STARTED] (2026-11-16T08:44:04Z) docs pass for PR 2c, targets on the web
+[documentation-specialist DONE] (2026-11-16T08:48:07Z) PR 2c docs pass: targets rules once, format-only examples, field conventions, TODO items; docs:check clean
+[documentation-specialist DONE] (2026-11-16T08:48:35Z) PR 2c docs pass: targets rules once, format-only examples, field conventions
