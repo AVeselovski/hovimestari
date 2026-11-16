@@ -1,6 +1,6 @@
 # Sign-in and account pages
 
-The pages a signed-out visitor uses: sign in, create an account, ask for a password reset link and choose a new password. Each is a full page with one centred column, built for a phone first. A signed-in visitor who opens one goes straight on into the app.
+The pages a signed-out visitor uses: sign in, create an account, ask for a password reset link and choose a new password. Each is a full page with one centred column, built for a phone first. A signed-in visitor who opens sign-in, sign-up or the reset request goes straight on into the app. The page that chooses a new password opens either way.
 
 ## In detail
 
@@ -26,7 +26,7 @@ Titled "Reset your password". It asks for **Email** and sends a link with **Send
 
 ### Choose a new password
 
-The page the emailed link opens, titled "Choose a new password". It asks for **New password**, with the hint "At least 8 characters.", and **Repeat the new password**, and saves with **Save password**. Two passwords that differ get "The passwords do not match." A saved password leads to the sign-in page with its note. A spent, expired or missing link says "This password reset link is invalid or has expired." with "Ask for a new reset link".
+The page the emailed link opens, titled "Choose a new password". It asks for **New password**, with the hint "At least 8 characters.", and **Repeat the new password**, and saves with **Save password**. Two passwords that differ get "The passwords do not match." The page opens whether or not this browser is signed in. After a saved password, a signed-in device [signs out](../features/authentication.md#forgotten-password), and the browser lands on the sign-in page with its note. A spent, expired or missing link says "This password reset link is invalid or has expired." with "Ask for a new reset link".
 
 ### Errors
 
@@ -44,9 +44,11 @@ No field takes focus as a page opens, so the keyboard comes up only on a tap. Em
 
 ### Route and entry
 
-The pages are `/auth/sign-in`, `/auth/sign-up`, `/auth/forgot-password` and `/auth/reset-password?token=`, under `apps/web/src/app/auth/(guest)/`. The group's layout reads on the server whether the backend offers Google, at request time, and passes it to the pages, so the button is right in the first paint. When the backend cannot be reached the pages render without Google.
+The pages are `/auth/sign-in`, `/auth/sign-up` and `/auth/forgot-password` under `apps/web/src/app/auth/(guest)/`, and `/auth/reset-password?token=` in `apps/web/src/app/auth/reset-password/`, outside the group. The group's layout reads on the server whether the backend offers Google, at request time, and passes it to the pages, so the button is right in the first paint. When the backend cannot be reached the pages render without Google.
 
-`GuestGuard` wraps every page. A visitor whose session is being restored sees a spinner. A signed-in visitor goes on to [the redirect target](../features/authentication.md#the-redirect-after-sign-in), which is a path on this site or the Day tab.
+`GuestGuard` wraps the three pages in the group. A visitor whose session is being restored sees a spinner. A signed-in visitor goes on to [the redirect target](../features/authentication.md#the-redirect-after-sign-in), which is a path on this site or the Day tab.
+
+The reset page has no `GuestGuard`, so a link opened in a signed-in browser shows its form. It reads the session from the auth context only when it saves: a signed-out browser goes straight to `/auth/sign-in?reset=1`, and any other signs out to the same address first.
 
 `AuthPage` also frames two pages the signed-in routes show in place of the tabs: "You are offline" on a device without a known session, and "Something went wrong" on a server fault. [The app shell](shell.md#when-the-server-is-at-fault) describes when each appears.
 

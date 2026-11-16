@@ -6,7 +6,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Accounts
 
-- **[Authentication](features/authentication.md)**: signing up and in with a password or Google, staying signed in, recovering a forgotten password, choosing how to sign in, and deleting the account with everything in it. No browser JavaScript ever holds a refresh token.
+- **[Authentication](features/authentication.md)**: signing up and in with a password or Google, staying signed in, recovering a forgotten password, changing, adding or removing the password, linking or unlinking Google, signing out on all devices, and deleting the account with everything in it. No browser JavaScript ever holds a refresh token.
 
 ## Targets
 
