@@ -18,7 +18,7 @@ Moving an entry changes its date and keeps its place in the order. Moving an eat
 
 ### Copying entries
 
-Copying entries to another day adds them there as planned, with the figures of the entries they copy, in their original order. Up to 100 entries copy at once. A day whose saved meal was deleted since copies too.
+Copying entries to another day adds them there as planned, with the figures of the entries they copy, in their original order. Up to 100 entries copy at once. A day whose saved meal was deleted since copies too. Each copy carries its own new id, and no two ids in a request may match. A source may repeat, so one request can add the same entry to the day several times.
 
 ### Recent items and the last amount
 

@@ -40,7 +40,7 @@ A user can mark any food they can see as a favourite, and unmark it. Favourites 
 
 ### Food-name language
 
-Each user reads food names in Finnish or in English. Finnish is the default. A food without an English name shows its Finnish name in either setting. Search matches both names whatever the setting.
+Each user reads food names in Finnish or in English, and chooses which in Settings. Finnish is the default. A food without an English name shows its Finnish name in either setting. Search matches both names whatever the setting.
 
 ### Fineli
 
@@ -127,4 +127,5 @@ Requirements: FR-FOOD-01 to FR-FOOD-08, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC
 
 ## Where it appears
 
+- [Settings](../app/settings.md#food-names): the food-name language.
 - The web app has no food screens yet. The API is reached directly.

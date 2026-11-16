@@ -1,18 +1,26 @@
 # Targets
 
-A user's daily targets: a calorie range and a protein range, each with a lower and an upper bound, in the user's own numbers. Targets change from a date the user picks, and a change never rewrites the days before it.
+A user's daily targets: a calorie range and a protein range, each with a lower and an upper bound, in the user's own numbers. Targets change from a date the user picks, and each day is measured against the change in force on it. The app offers no default and no suggestion.
 
 ## In detail
 
 ### Setting your targets
 
-Targets are two ranges. Calories run from a lower to an upper number of kcal. Protein runs from a lower to an upper number of grams, and its lower number is the floor. Every bound is a number above zero with at most one decimal. The lower bound may equal the upper one, but never exceed it. Calories go up to 99999.9 and protein up to 9999.9. Those are storage limits and say nothing about what a target should be.
+Targets are two ranges. Calories run from a lower to an upper number of kcal. Protein runs from a lower to an upper number of grams, and its lower number is the floor. A range needs both bounds. Every bound is a number above zero with at most one decimal. The lower bound may equal the upper one, but never exceed it. Calories go up to 99999.9 and protein up to 9999.9. Those are storage limits and say nothing about what a target should be.
 
 ### Changing your targets
 
 A change holds both ranges and starts on a date the user picks, in the past, today or in the future. It stays in force until the next change starts. Saving a change on a date that already has one replaces that change, so a date holds one change at most.
 
-A new change leaves every day before its date as it was. Editing or removing a change on a past date does change the days it covers: every day from its date to the day before the next change. The first change also covers every day before it, so editing it changes those days too.
+A change covers every day from its date to the day before the next change, or every day from its date on when no change follows. The first change also covers every day before it.
+
+Saving or removing a change rewrites the days it covers, and only those:
+
+- A new change on a future date, after an earlier change, rewrites no day that has passed. Every day before its date keeps its targets.
+- A new change on today or a past date rewrites every day it covers, from its date on.
+- A new change before every other change becomes the first one. It covers every day before the next change, so it rewrites those days, today and the past included, even when its own date is in the future.
+- Editing a change rewrites every day it covers.
+- Removing a change hands its days to the change before it, or, for the first change, to the next one.
 
 A change can be removed, except the last one. A user who has targets always keeps a set.
 
@@ -20,15 +28,28 @@ A change can be removed, except the last one. A user who has targets always keep
 
 A day uses the change with the latest start on or before that day. A day before the first change uses the first change. So once a user has targets, every day has targets. [Where a day stands](days.md#where-a-day-stands) is measured against them.
 
-"Today" is the calendar date in the user's time zone. The time zone is an account setting, and a new account starts with Helsinki time. A day starts at local midnight in that zone.
+"Today" is the calendar date in the user's time zone. The time zone is an account setting, and a new account starts with Helsinki time. A day starts at local midnight in that zone. The web app stores its device's time zone on the account at each start, when the two differ, so "today" follows the device the app last ran on. A refused zone or a failed write is dropped without a word, the stored zone stays, and the next start tries again.
 
 ### The first run
 
 A new account has no targets, and no day has targets in force until the first change is saved. Asked for a day's targets, the app then answers that there are none, with no number at all.
 
+Until then the web app shows one page in place of the tabs. It asks for both ranges and saves them as a change starting today. Signing out and deleting the account stay on that page.
+
+### The first-run gate
+
+The web app decides between the first-run page and the tabs on one fact: whether the account has any targets change. It reads that from the targets in force today.
+
+- No answer yet while the read runs: a spinner, and only on the first decision. Once the tabs have shown, a read that starts later keeps them until it answers.
+- An answer with no change: the first-run page, in place of the tabs.
+- An answer with a change: the tabs, whatever a later read is doing, so a refetch never closes an open sheet.
+- No answer because the device is offline or the server failed: the tabs, with the offline line.
+
+Only a definite answer that the account has no targets shows the first-run page, so a person with targets is never asked again because a request failed. An app that starts without a connection has an offline session, and makes no read at all until the session is back. The page has no address of its own, so a deep link survives the gate.
+
 ### Not advice
 
-Hovimestari never suggests, prefills or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be.
+Hovimestari never suggests, prefills or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. Every target field opens empty, a later change's included, and holds no example. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be.
 
 ## How it works
 
@@ -65,10 +86,11 @@ A date in a path or a query is a `YYYY-MM-DD` that exists, or 400 `invalid_date`
 
 ### Known gaps
 
-- No screen asks a new user for targets before the rest of the app, because the web app has no targets screens yet.
+- The note that the app is not a source of nutrition or medical advice shows where targets are set. The rules a connected assistant reads arrive with the assistant step.
 
-Requirements: FR-TGT-01, FR-TGT-02, FR-TGT-04 to FR-TGT-07, NFR-ADV-01 (requirements 3.1 and 4)
+Requirements: FR-TGT-01 to FR-TGT-07, NFR-ADV-01, NFR-ADV-02 (requirements 3.1 and 4)
 
 ## Where it appears
 
-- The web app has no targets screens yet. The API is reached directly.
+- [First run](../app/first-run.md): the first targets, before any other part of the app.
+- [Settings](../app/settings.md#targets): the targets in force, later and earlier changes, the targets sheet and removing a change.

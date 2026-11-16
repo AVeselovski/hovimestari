@@ -21,10 +21,10 @@ src/
 │   │   └── layout.tsx          Reads on the server whether Google is offered
 │   ├── auth/reset-password/    Choose a new password, open with or without a session
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
-│   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then AppShell
+│   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then the first-run gate, then AppShell
 │   │   ├── page.tsx            Day
 │   │   ├── recipes/, groceries/  The two other content tabs
-│   │   └── settings/           Settings: Appearance, Sign-in methods and Account, and their sheets
+│   │   └── settings/           Settings: Targets, Food names, Appearance, Sign-in methods and Account, and their sheets
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
 │       ├── _guard.ts           The same-origin guard every POST handler runs first
@@ -35,6 +35,7 @@ src/
 │       └── google/link/start/, google/link/complete/ The two ends of linking Google, bound by a nonce cookie
 ├── components/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
+│   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, shared by Settings and the first-run page
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
 │   ├── form/                   The form parts the guest pages and the sheets share:
 │   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
@@ -49,7 +50,17 @@ src/
 │   ├── QueryProvider.tsx       The query client for one signed-in user
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
-│   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, and the overlays:
+│   ├── targets/                Targets on the web:
+│   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell
+│   │   ├── FirstRunTargets.tsx The first-run page: the first targets, Sign out and Delete account
+│   │   ├── TargetsSheet.tsx    A dated targets change: the date, the in-force line, the fields, the days it rewrites, removal
+│   │   ├── TargetRangeFields.tsx  The four target fields, as two ranges with a shared line under each
+│   │   ├── NotAdviceNote.tsx   The note that the app gives no nutrition or medical advice
+│   │   ├── targetForm.ts       parseTargetFields(): the fields through parseDecimalInput and the shared schema
+│   │   └── targetLines.ts      Which days a save or a removal changes, from the list of changes
+│   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, the fields and the overlays:
+│       ├── NativeDateInput.tsx The platform's date field, uncontrolled so iOS's Reset can empty it
+│       ├── DecimalField.tsx    A number field with its unit inside: text with an inputMode, never type=number
 │       ├── BottomSheet.tsx     The one sheet and dialog primitive, on Base UI's Drawer
 │       ├── ConfirmDialog.tsx   A BottomSheet that asks before a consequential action
 │       ├── FormSheet.tsx       A BottomSheet that holds one form: every form sheet is one
@@ -72,9 +83,13 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
+│   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
+│   ├── localDate.ts            YYYY-MM-DD arithmetic in UTC, and formatDay() in the device's language
+│   ├── targetFormat.ts         formatTarget(): a target's figure, with no digit grouping
+│   ├── deviceTimeZone.ts       Stores the device's time zone on the account once per app start, failures dropped quietly
 │   ├── providers.ts            Reads GET /auth/providers on the server
 │   ├── queryClient.ts          The query client's defaults
 │   ├── queryKeys.ts            Every query key, from one factory
@@ -104,6 +119,7 @@ No browser JavaScript holds a refresh token. Signing in, signing up, renewing an
 Rules that bind every change:
 
 - A new route handler that accepts a POST runs `requireSameOrigin` from `_guard.ts` first. `allHandlersGuarded.test.ts` finds every handler and fails otherwise.
+- A GET handler cannot run that guard, because a link from another site can start one. The same test lists every GET handler with what it changes, and fails on a new one until it is listed.
 - A response body never carries the refresh token.
 - No signed-in page puts user data in server-rendered HTML. Signed-in pages render on the device behind `AuthGuard`, which is what makes caching pages in the service worker safe.
 - `BACKEND_URL` and `BFF_SECRET` are server only and never prefixed `NEXT_PUBLIC_`.
@@ -134,6 +150,24 @@ To add a form sheet, such as logging a food:
 4. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
+
+## Numbers and dates
+
+A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder.
+
+Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid` or a `number`:
+
+- It accepts digits with one comma or one point as the decimal separator, whatever the device's language. "9,8" and "9.8" are both 9.8.
+- It refuses a sign, grouping and more decimals than `maxDecimals`, and never rounds. Trailing zeros count for nothing, so "120.50" fits one decimal.
+- A fraction of exactly three digits counts as three decimals, because it may be a thousands group. So a field with one decimal refuses "1,000" and "1.500".
+
+Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back.
+
+A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room when the hint takes two lines. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock.
+
+[The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
+
+After a write, refresh what it made stale through a function in `src/lib/invalidation.ts`. Each one cancels the reads still on their way before it reads again, so an answer from before the write never lands after it.
 
 ## Commands
 
