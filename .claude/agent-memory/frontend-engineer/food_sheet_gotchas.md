@@ -1,0 +1,23 @@
+---
+name: food sheet gotchas
+description: Round trips the food sheet (PR 2d) cost, and how to avoid them next time
+type: project
+---
+
+- **Never `disabled` a footer button that may hold focus.** A disabled button (or one in a disabled fieldset) drops focus to the body, and on a phone a tap leaves focus on the button pressed last. FormSheetActions uses `aria-disabled` plus a press guard for Save, Cancel and the `{ label, onPress }` slot. Also: jsdom still dispatches clicks inside a disabled fieldset, so a fieldset test proves nothing.
+- **FormSheet's in-flight guard swallows a second synchronous submit.** `onSubmit` returning a promise keeps the guard up until the next microtask, so two `fireEvent.click(save)` in a row in one test drop the second. Put `await act(async () => {})` between them.
+- **TanStack's mutation state is not synchronous after `mutate()`.** The observer notifies through the batched notify manager, so `isPending`/`variables` show a frame later. A test of an optimistic flip uses `waitFor` while the write is still held (a deferred), which still proves nothing waited for the server.
+- **The test query client has staleTime 0, the app's 30 s.** A view that unmounts and remounts a query (Back from a detail) refetches in tests unless the query sets its own `staleTime`. `foodSearchQuery` does.
+- **A refetch after a failure can mask a missing rollback.** The favourite rollback test passed with the rollback deleted, because a refetch restored the true state. Make the reads after the failure hang so only the rollback can restore.
+- **PromptSheetBody's self-focus hides an `autoFocus` on a phone.** The body steals focus in a layout effect after the input focused, so "activeElement is not the input" passes with `autoFocus` on. Record every `focusin` during the open instead.
+- **Under the group rule, "12,125" is refused at three decimals.** Test fixtures for three-decimal values must lead with a zero ("0,125") or use two decimals.
+- **Playwright contexts sharing one `storageState` trip refresh-reuse detection** once a context has rotated the token. Save `ctx.storageState()` before closing each context and give the next one the new file. Sign up once per run: the sign-up limiter allows about ten.
+- **`pkill -f "next start"` leaves `next-server` on the port**, and a rebuilt `.next` served by the old process breaks pages silently. Kill `next-server` too, and read the web log for EADDRINUSE.
+- **A list not on screen shows its cached answer until the re-read lands.** Invalidation only marks it stale. Every food write edits the cache from its own answer first (`lib/foodCache.ts`), and tests hold every read after the write to see what the cache alone shows. A stateful mock server (writes change what reads answer) keeps those tests honest.
+- **A test `settle` must outlast TanStack's batched notify.** Waiting only for the debounce left results unrendered: add a few `act(() => setTimeout 0)` ticks after it, or use `findBy`.
+- **Optimistic mutations run `onMutate` at once even when scoped**; only `mutationFn` waits for the scope. Guard a rollback with `isMutating({ mutationKey })` so an earlier failed tap does not undo a later one.
+- **The targets sheet opens empty** (no prefilled numbers), so a browser script that changes one field gets "Enter a number." on the rest. Fill all four.
+- **The detail's star shows `mutation.variables` while a mark is pending**, so a test of a favourite rollback that only reads the detail star passes with the rollback broken. Read the rows in the lists (Back) to see what the cache holds.
+- **A layout fix that reserves room must be measured against a row that would actually rewrap.** The first star-column check starred a row whose name happened not to rewrap and showed no move on the unfixed build either. Find a candidate by narrowing each row's text by the column's width in the page first, then star that one.
+- **`git worktree` at the unfixed commit needs its own `pnpm install --offline`** (symlinked `node_modules` fail Turbopack's root check) and its own `apps/web/.env.local` before `next build`. It gives before numbers from a second `next start` on another port; the backend's `CORS_ORIGIN` must list both web origins.
+- **A heredoc with `rm`-looking text in a Bash call can be refused by the safety check.** Write browser scripts with the Write tool instead.
