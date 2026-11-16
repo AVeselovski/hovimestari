@@ -118,6 +118,7 @@ export function entryOf(row: EntryRow): Entry {
           },
     count: e.mealCount,
     note: e.note,
+    basis: basisOf(e),
     figures: entryFigures(basisOf(e), scaleOf(e)),
     isEstimate: e.kind === "estimate",
   };

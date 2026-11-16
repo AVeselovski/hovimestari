@@ -5,6 +5,7 @@ import {
   DayParamSchema,
   DayRangeQuerySchema,
   EntryPatchBodySchema,
+  EntrySchema,
   FoodAmountSchema,
   SavedMealBodySchema,
   SavedMealsQuerySchema,
@@ -89,5 +90,31 @@ describe("SavedMealBodySchema", () => {
     expect(SavedMealsQuerySchema.parse({})).toEqual({ archived: false });
     expect(SavedMealsQuerySchema.parse({ archived: "true" })).toEqual({ archived: true });
     expect(SavedMealsQuerySchema.safeParse({ archived: "yes" }).success).toBe(false);
+  });
+});
+
+describe("EntrySchema", () => {
+  const entry = {
+    id,
+    date: "2026-11-16",
+    position: 1,
+    status: "eaten",
+    kind: "estimate",
+    name: "Ravintola",
+    food: null,
+    savedMeal: null,
+    grams: null,
+    portion: null,
+    count: null,
+    note: null,
+    basis: figures,
+    figures,
+    isEstimate: true,
+  };
+
+  it("takes an entry with its basis and refuses one without it", () => {
+    expect(EntrySchema.parse(entry).basis).toEqual(figures);
+    expect(EntrySchema.safeParse({ ...entry, basis: undefined }).success).toBe(false);
+    expect(EntrySchema.safeParse({ ...entry, basis: null }).success).toBe(false);
   });
 });
