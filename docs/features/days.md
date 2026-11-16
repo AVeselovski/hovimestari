@@ -75,7 +75,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`. 
 | GET    | `/days/:date`     | 200 with the day. `:date` is a date or `today`. 400 `invalid_date`                                               |
 | GET    | `/days?from=&to=` | 200 `{ days }`, every day without its entries. `from` on or before `to`, at most 42 days, else `invalid_request` |
 
-A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy` and `protein` (each `{ position, distance }`, or null without targets) and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `figures` and `isEstimate`. The shapes are in `packages/types/src/days.ts` and `entries.ts`.
+A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy` and `protein` (each `{ position, distance }`, or null without targets) and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
 
 ### Data
 

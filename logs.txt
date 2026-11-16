@@ -190,3 +190,10 @@
 [documentation-specialist STARTED] (2026-11-16T08:44:04Z) docs pass for PR 2c, targets on the web
 [documentation-specialist DONE] (2026-11-16T08:48:07Z) PR 2c docs pass: targets rules once, format-only examples, field conventions, TODO items; docs:check clean
 [documentation-specialist DONE] (2026-11-16T08:48:35Z) PR 2c docs pass: targets rules once, format-only examples, field conventions
+[backend-engineer STARTED] (2026-11-16T09:42:03Z) PR 3b.0: the entry answer gains its basis
+[backend-engineer STARTED] 2026-11-16T09:42:22Z PR 3b.0 entry basis on every answered entry
+[backend-engineer DONE] 2026-11-16T09:46:01Z PR 3b.0 entry basis: EntrySchema.basis, entryOf sets it, db and types tests, days.md; gate green
+[validator STARTED] (2026-11-16T09:46:21Z) PR 3b.0: the gate and the contract, and a diff review
+[backend-engineer STARTED] 2026-11-16T09:50:55Z PR 3b.0 validator wording fixes and wider basis tests
+[backend-engineer DONE] 2026-11-16T09:53:16Z PR 3b.0 wording fixed (days.md, basis comment), stay-rule and estimate edit tests added
+[validator DONE] (2026-11-16T09:53:34Z) PR 3b.0 at 2515527: code PASS (855 entry checks, 0 mismatches), wording FAIL, fixed by the engineer in 93099a4 (161k tokens)
