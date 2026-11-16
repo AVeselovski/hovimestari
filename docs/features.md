@@ -2,7 +2,7 @@
 
 Every feature Hovimestari has, one or two sentences each, with a link to its detail doc. Anything not listed here is not built. What is planned is in [the requirements](requirements.md#mvp-scope-and-later), and the product framing is in the [overview](overview.md).
 
-Feature docs and page docs are two different axes. A feature doc says what a feature is and how it works. A page doc says what a page is for, what it shows and which features it composes. A page composes several features, and a feature appears on several pages. A new feature starts from [the feature template](_templates/feature.md) and a new page from [the page template](_templates/page.md).
+Feature docs and page docs are two different axes. A feature doc says what a feature is and how it works. A page doc says what a page is for, what it shows and which features it composes. A page composes several features, and a feature appears on several pages. A new feature starts from [the feature template](_templates/feature.md) and a new page from [the page template](_templates/page.md). The pages follow the features.
 
 ## Accounts
 
@@ -18,11 +18,21 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Days and logging
 
-- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance. Built in the API, with no screen yet.
-- **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Built in the API, with no screen yet.
+- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance. The Day tab shows one day at a time. The week is in the API only.
+- **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Marking eaten, editing, moving and removing, each with Undo, are on the Day tab. Adding, copying and recent items are in the API only.
 - **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. Built in the API, with no screen yet.
 
 ## The app
 
 - **[Appearance](features/appearance.md)**: a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.
 - **[Installable app](features/installable-app.md)**: installs to a phone's home screen and opens without the browser's bar. A visited tab opens again offline, with a plain line saying so.
+
+## Pages
+
+- **[The app shell](app/shell.md)**: the frame every signed-in screen sits in, with the four tabs, the sheets and the toasts.
+- **[Day](app/day.md)**: one day, its two readings against the person's targets, and its entries to mark, change and remove.
+- **[The food sheet](app/food-sheet.md)**: finding a food, reading its figures and keeping foods of your own.
+- **[Settings](app/settings.md)**: targets, the language of food names, the theme, sign-in methods, the account and the food data credit.
+- **[First run](app/first-run.md)**: the page that asks a new account for its targets before the tabs.
+- **[Sign-in and account pages](app/auth.md)**: signing in, creating an account and resetting a password.
+- **[Colours and type](app/colors.md)**: the design tokens every screen paints with.

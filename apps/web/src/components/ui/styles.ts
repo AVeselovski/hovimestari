@@ -106,8 +106,43 @@ export const sectionTitle = "section-label";
  * the page takes its class from here.
  */
 export const zShell = "z-30";
+/**
+ * A toast: above the shell, under every sheet, so an open sheet always
+ * covers a toast and a toast never covers a sheet's footer. A press on a
+ * toast's button over a modal sheet would count as a press outside it and
+ * close the sheet.
+ */
+export const zToast = "z-40";
 /** A sheet, its backdrop and its viewport. */
 export const zSheet = "z-50";
+
+// ---------------------------------------------------------------------------
+// Toasts (components/ui/Toast.tsx): one at a time, above the tab bar on a
+// phone, at the bottom of the content column from `md`. The offset reads the
+// tab bar's own height token, so the two never drift apart.
+// ---------------------------------------------------------------------------
+
+/**
+ * The fixed line a toast hangs from. Below `md` it spans the screen above the
+ * tab bar and the home indicator. From `md` it spans the area right of the
+ * side rail, near the bottom edge.
+ */
+export const toastViewport = `fixed inset-x-0 ${zToast} h-0 bottom-[calc(var(--spacing-tab-bar)+var(--safe-bottom)+0.5rem)] outline-hidden md:left-(--spacing-rail) md:bottom-[calc(var(--safe-bottom)+1.5rem)]`;
+
+/**
+ * The toast: ink, with the page colour as its text, so it reads apart from
+ * every surface under it. It hangs from the bottom of the viewport box, so a
+ * toast fading out and the next fading in share one place and nothing above
+ * them moves. Within the page gutter, centred in the content column from `md`.
+ */
+export const toastRoot =
+  "toast-motion absolute bottom-0 right-[calc(var(--safe-right)+1rem)] left-[calc(var(--safe-left)+1rem)] mx-auto flex max-w-page items-center gap-3 rounded-control bg-ink py-2 pr-2 pl-4 text-bg outline-hidden select-none md:right-8 md:left-8";
+
+/** The toast's line: at most three lines, a long name cut short, so a page's `toast-clearance` always clears it. */
+export const toastTitle = "min-w-0 flex-1 py-2.5 text-base line-clamp-3 break-words";
+
+/** The toast's one action, such as Undo: a 44px target in the inverted ink. */
+export const toastAction = `inline-flex min-h-11 shrink-0 items-center rounded-sm px-3 text-base font-semibold text-bg underline decoration-bg/60 underline-offset-4 hover:decoration-bg active:decoration-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bg`;
 
 // ---------------------------------------------------------------------------
 // Sheets: the parts `BottomSheet` renders on Base UI's Drawer. Below `md` a

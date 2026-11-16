@@ -54,6 +54,15 @@ export interface DecimalFieldProps extends InputProps {
   layout?: "stacked" | "beside";
 }
 
+/**
+ * The room the field keeps at its end for its unit, so a long typed value
+ * stops short of the unit word: "g" and "kcal" fit 3.5rem, a word such as
+ * "portions" or "meals" (about 62 px at 16 px) takes 5.5rem.
+ */
+function unitRoom(unit: string): string {
+  return unit.length > 4 ? "pr-22" : "pr-14";
+}
+
 export function DecimalField({
   id,
   label,
@@ -91,7 +100,7 @@ export function DecimalField({
             onChange={(e) => onValueChange(e.target.value)}
             aria-invalid={invalid ? true : undefined}
             aria-describedby={describedByIds}
-            className={`${inputClass} pr-14 font-mono tabular-nums`}
+            className={`${inputClass} ${unitRoom(unit)} font-mono tabular-nums`}
           />
           <span
             id={unitId}

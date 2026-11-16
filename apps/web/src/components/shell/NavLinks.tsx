@@ -16,7 +16,7 @@ export function NavLinks({ active, variant }: { active: TabKey | null; variant: 
   const t = useTranslations("shell.tabs");
   const linkClass =
     variant === "bar"
-      ? "flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-1.5 text-xs font-semibold select-none active:bg-surface-raised"
+      ? "flex min-h-tab-bar flex-col items-center justify-center gap-1 px-1 py-1.5 text-xs font-semibold select-none active:bg-surface-raised"
       : "flex min-h-11 items-center gap-3 rounded-control px-3 text-base font-semibold hover:bg-surface-raised active:bg-surface-raised";
 
   return (

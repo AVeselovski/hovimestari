@@ -29,6 +29,24 @@ export const queryKeys = {
   foodFavourites: () => ["foods", "favourites"] as const,
   /** The user's own foods. */
   foodOwn: () => ["foods", "own"] as const,
+
+  // Days and logging -------------------------------------------------------
+  /** Every day read: one day and the ranges. */
+  days: () => ["days"] as const,
+  /**
+   * One day, always by a concrete date, never "today": one cache entry per
+   * day, so a write's answered day lands in exactly one place, and midnight
+   * changes the key instead of leaving yesterday under a key named today.
+   */
+  day: (date: string) => ["days", "day", date] as const,
+  /** Every cached range of day summaries (the week view reads under it). */
+  dayRanges: () => ["days", "range"] as const,
+  /** Every food detail, for a write that changes what any of them shows, such as a last amount. */
+  foodDetails: () => ["foods", "detail"] as const,
+  /** Every log read: recent items live under it. */
+  log: () => ["log"] as const,
+  /** Every saved meal read. */
+  savedMeals: () => ["savedMeals"] as const,
 };
 
 /**

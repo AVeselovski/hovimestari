@@ -108,4 +108,39 @@ describe("token contrast", () => {
     expect(contrast(token(theme, "ink-muted"), token(theme, "bg"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token(theme, "ink-muted"), token(theme, "surface"))).toBeGreaterThanOrEqual(4.5);
   });
+
+  // The day gauge (components/day/Gauge.tsx, docs/app/colors.md "The gauge").
+  it.each(["light", "dark"] as const)("the gauge's band, plan border and ticks hold their lines, %s", (theme) => {
+    const track = token(theme, "gauge-track");
+    expect(contrast(token(theme, "gauge-range"), track)).toBeGreaterThanOrEqual(1.5);
+    for (const [hue, tint] of [
+      ["energy", "energy-plan"],
+      ["protein", "protein-plan"],
+    ]) {
+      expect([hue, contrast(token(theme, hue), track) >= 3]).toEqual([hue, true]);
+      // A tick is ink with an edge of the page colour: one of the two stands out on every surface it crosses.
+      for (const under of [hue, tint, "gauge-range"]) {
+        const best = Math.max(
+          contrast(token(theme, "ink"), token(theme, under)),
+          contrast(token(theme, "bg"), token(theme, under)),
+        );
+        expect([under, best >= 3]).toEqual([under, true]);
+      }
+    }
+  });
+
+  // Where the eaten fill meets the plan segment, the boundary must read, and the tint must still show on the track.
+  it.each(["light", "dark"] as const)("each eaten fill reaches 3 to 1 against its plan tint, %s", (theme) => {
+    for (const [hue, tint] of [
+      ["energy", "energy-plan"],
+      ["protein", "protein-plan"],
+    ]) {
+      expect([hue, contrast(token(theme, hue), token(theme, tint)) >= 3]).toEqual([hue, true]);
+      expect([tint, contrast(token(theme, tint), token(theme, "gauge-track")) >= 1.15]).toEqual([tint, true]);
+    }
+  });
+
+  it("pins the light energy plan tint", () => {
+    expect(token("light", "energy-plan")).toBe("#e6d3b4");
+  });
 });

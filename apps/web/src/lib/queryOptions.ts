@@ -1,4 +1,5 @@
 import { getProviders } from "@/lib/api/auth";
+import { getDay } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getTargets } from "@/lib/api/targets";
 import { getMe } from "@/lib/api/users";
@@ -30,11 +31,17 @@ export function providersQuery() {
   });
 }
 
-/** The targets in force on the user's today, every change and today itself. */
+/**
+ * The targets in force on the user's today, every change and today itself.
+ * Read again when the page is shown or the connection returns, so "today"
+ * follows the server across midnight (components/targets/TodayProvider.tsx).
+ */
 export function targetsQuery() {
   return queryOptions({
     queryKey: queryKeys.targets(),
     queryFn: ({ signal }) => getTargets(undefined, { signal }),
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -48,6 +55,8 @@ export function targetsOnQuery(date: string) {
     queryKey: queryKeys.targetsOn(date),
     queryFn: ({ signal }) => getTargets(date, { signal }),
     placeholderData: keepPreviousData,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
 
@@ -90,5 +99,23 @@ export function ownFoodsQuery() {
   return queryOptions({
     queryKey: queryKeys.foodOwn(),
     queryFn: ({ signal }) => getOwnFoods({ signal }),
+  });
+}
+
+// Days and logging -----------------------------------------------------------
+
+/**
+ * One day by its date. Fresh for 30 seconds, and read again when the page is
+ * shown or the connection returns, since another device may have logged to
+ * it. The `today` it answers moves the app's today forward when it is newer
+ * (`TodayProvider` watches the cache).
+ */
+export function dayQuery(date: string) {
+  return queryOptions({
+    queryKey: queryKeys.day(date),
+    queryFn: ({ signal }) => getDay(date, { signal }),
+    staleTime: STALE.live,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }

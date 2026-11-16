@@ -13,7 +13,7 @@ public/
 src/
 ├── app/
 │   ├── layout.tsx              The document: fonts, viewport, the pre-paint theme script, the providers
-│   ├── globals.css             The design tokens, the safe-area and motion tokens, and the sheet motion utilities
+│   ├── globals.css             The design tokens, the safe-area and motion tokens, and the sheet, toast, gauge and footer utilities
 │   ├── manifest.ts             The web manifest at /manifest.webmanifest
 │   ├── not-found.tsx, error.tsx, global-error.tsx  The page for an unknown address and the two error pages
 │   ├── fonts/                  Fraunces, Instrument Sans and JetBrains Mono, variable woff2
@@ -22,7 +22,7 @@ src/
 │   ├── auth/reset-password/    Choose a new password, open with or without a session
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then the first-run gate, then AppShell
-│   │   ├── page.tsx            Day: Search foods, which opens the food sheet
+│   │   ├── page.tsx            Day: renders DayTab inside Suspense, since it reads ?date=
 │   │   ├── recipes/, groceries/  The two other content tabs
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Sign-in methods, Account and Food data, and their sheets
 │   └── api/auth/               The session route handlers
@@ -36,13 +36,32 @@ src/
 ├── components/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
 │   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, shared by Settings and the first-run page
+│   ├── day/                    The Day tab:
+│   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry sheet's mount
+│   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
+│   │   ├── DaySummary.tsx      Both readings, the distances, carbohydrates and fat, and the two notes, each line in its reserved room
+│   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
+│   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
+│   │   ├── EntryList.tsx       "Entries", Mark all eaten, the rows and the empty line
+│   │   ├── EntryRow.tsx        One entry: its state mark and the button that opens the entry sheet
+│   │   └── MarkEatenButton.tsx The 44px state mark: the circle that marks, the check, the dashed circle
+│   ├── entries/                The entry sheet and its fields:
+│   │   ├── EntrySheet.tsx      A FormSheet on one entry: Eaten or Planned, the amount, its figures, the date, Remove entry
+│   │   ├── AmountField.tsx     A food's amount: the unit chips and one number field
+│   │   ├── MealCount.tsx       A saved meal entry's count of meals
+│   │   ├── EstimateFields.tsx  An estimate's name, four figures and note
+│   │   ├── StateChoice.tsx     Eaten or Planned, with Eaten unavailable on a future date
+│   │   ├── portionLabel.ts     A portion's name for a reader
+│   │   ├── amount.ts           An amount as typed: grams or a count, its parsing, its grams and chip switches
+│   │   └── entryForm.ts        The sheet's fields, the PATCH of changed fields, its exact inverse and the preview
+│   ├── figures/                MacroFigures, the four figures in rows, and MacroDot, the dot in a macro's hue
 │   ├── foods/                  Foods on the web:
 │   │   ├── FoodSearchLauncher.tsx  "Search foods" on the Day tab, which owns the food sheet
 │   │   ├── FoodSheet.tsx       The tall food sheet: the search view, a food's detail, and the sheets stacked on it
 │   │   ├── FoodSearchView.tsx  Browse lists, results, no results, offline and failure, under the pinned field
 │   │   ├── FoodRow.tsx         One food in a list: names, energy and protein, the star and "Yours"
 │   │   ├── FoodDetail.tsx      A food's detail: the header with Back and the star, and the body with figures and portions
-│   │   ├── Per100gFigures.tsx  The four figures per 100 g, the one place the macro hues are drawn
+│   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
 │   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the Fineli credit
 │   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
@@ -52,7 +71,7 @@ src/
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
 │   ├── form/                   The form parts the guest pages and the sheets share:
 │   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
-│   │   ├── FormError.tsx       The announced line under a form for a refusal that belongs to no field
+│   │   ├── FormError.tsx       The announced line for a refusal that belongs to no field, under a page's form or in a sheet's footer
 │   │   ├── focus.ts            focusField(): puts focus in a field by its id
 │   │   └── issues.ts           firstIssues() and passwordFieldError(): a schema's or the server's error, per field
 │   ├── ErrorFrame.tsx          The body of the error pages
@@ -64,7 +83,8 @@ src/
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
 │   ├── targets/                Targets on the web:
-│   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell
+│   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider
+│   │   ├── TodayProvider.tsx   The app's today: the server's, moved by any newer answer, asked again by the device's clock
 │   │   ├── FirstRunTargets.tsx The first-run page: the first targets, Sign out and Delete account
 │   │   ├── TargetsSheet.tsx    A dated targets change: the date, the in-force line, the fields, the days it rewrites, removal
 │   │   ├── TargetRangeFields.tsx  The four target fields, as two ranges with a shared line under each
@@ -77,13 +97,16 @@ src/
 │       ├── BottomSheet.tsx     The one sheet and dialog primitive, on Base UI's Drawer
 │       ├── ConfirmDialog.tsx   A BottomSheet that asks before a consequential action
 │       ├── FormSheet.tsx       A BottomSheet that holds one form: every form sheet is one
+│       ├── Toast.tsx           ToastProvider, ToastRegion and useToast: one toast at a time, under the sheets
 │       ├── PromptSheetBody.tsx A form sheet's body, which takes focus on a phone so no keyboard rises mid-slide
 │       └── FormSheetActions.tsx  Cancel and the submit button in a form sheet's footer
 ├── contexts/
 │   ├── AuthContext.tsx         The session: status, user, signIn, signUp, signOut, renewal and its retries, all under one lock
 │   ├── ThemeContext.tsx        The theme choice, data-theme and the browser chrome colour
 │   └── ProvidersContext.tsx    Whether the guest pages show Google
-├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, useDebouncedValue, useFoodNameLanguage, and the sheet hooks:
+├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, useDebouncedValue, useFoodNameLanguage, and:
+│   ├── useToday.ts             The app's today and the state of the check that keeps it current
+│   ├── useEntryActions.ts      Every write to an entry from the Day tab, its cache update, its toast and its undo
 │   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open, the control that opened it and what it opens on
 │   ├── useRetainedValue.ts     The last non-null value, so an overlay slides out with its content
 │   ├── useFormDirty.ts         Whether a form holds unsaved input
@@ -96,13 +119,14 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
 │   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
-│   ├── localDate.ts            YYYY-MM-DD arithmetic in UTC, and formatDay() in the device's language
+│   ├── localDate.ts            YYYY-MM-DD arithmetic in UTC, formatDay() and formatDayShort() in the device's language, todayIn() and dayLabel()
 │   ├── targetFormat.ts         formatTarget(): a target's figure, with no digit grouping
 │   ├── foodFormat.ts           formatKcal(), formatMacroGrams() and formatGrams() for display, and formatDecimalForField() for a saved value as typed
+│   ├── entryFormat.ts          formatCount(): a portion or meal count for display
 │   ├── deviceTimeZone.ts       Stores the device's time zone on the account once per app start, failures dropped quietly
 │   ├── providers.ts            Reads GET /auth/providers on the server
 │   ├── queryClient.ts          The query client's defaults
@@ -151,7 +175,7 @@ The catalog tests check that the catalog works: no empty entry, no code word suc
 
 ## Styling
 
-Style only through the tokens in `src/app/globals.css` and the recipes in `src/components/ui/styles.ts`. Tailwind's own palette is switched off, and a raw palette class is a lint error. [The colour reference](../../docs/app/colors.md) says what each token is for. Light and dark both have to look right. The safe-area insets are read in `globals.css` only, as `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`.
+Style only through the tokens in `src/app/globals.css` and the recipes in `src/components/ui/styles.ts`. Tailwind's own palette is switched off, and a raw palette class is a lint error. [The colour reference](../../docs/app/colors.md) says what each token is for. Light and dark both have to look right. The four macro hues are drawn by `MacroDot` and `Gauge` only, and a test fails when any other file names one. The safe-area insets are read in `globals.css` only, as `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`.
 
 ## Sheets and dialogs
 
@@ -164,13 +188,20 @@ To add a form sheet, such as logging a food:
    - `{ label, onPress }` for an action that opens something, such as a delete that asks first. `onPress` gets the button, for a confirmation to return focus to.
    - `{ label, busy, submit }` for a second submit of the same form, such as "Save meal" beside "Save and log". `onSubmit` receives `submit` as its mode. Save and Enter call it with no mode.
 3. In the caller, keep it mounted with `useSheetTarget`: render it while `shown` is set, with `key={shown.key}`, `open={isOpen}` and `returnFocusTo={shown.opener}`. A sheet that opens on something takes it as `useSheetTarget<T>()`, `open(opener, value)` and `shown.value`.
-4. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
+4. Pass `held` while the sheet's writes must wait, such as while `useToday()` reports `holding`. Save and the secondary action then ignore a press, and Cancel and every dismissal stay free.
+5. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
+
+A refusal that belongs to no field goes in `formError`. `FormSheet` shows it in the pinned footer above the buttons, in two lines of room it keeps while the keyboard is closed.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
+## Toasts
+
+A short outcome on the page, such as "Removed Rahka." with Undo, is a toast from `src/components/ui/Toast.tsx`. `AppShell` mounts its one region, so a screen only calls `useToast().show({ message, action })`. The action's `onPress` receives `{ fromKeyboard }`, so it can move focus where its result shows after a keyboard press. Only one toast shows at a time, and it sits under every sheet: a sheet shows its own outcomes inside itself. A page whose last rows hold actions passes `clearToast` to `PageContainer`, so a toast never covers them. [The toast primitive](../../docs/app/shell.md#the-toast-primitive) states its rules.
+
 ## Numbers and dates
 
-A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels.
+A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels. The field keeps room at its end for its unit: 3.5rem for a short unit such as "g" or "kcal", and 5.5rem for a word such as "portions" or "meals".
 
 Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid`, `group` or a `number`:
 
@@ -180,7 +211,7 @@ Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib
 
 Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
-A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room when the hint takes two lines. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock.
+A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room when the hint takes two lines. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 

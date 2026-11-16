@@ -23,24 +23,19 @@ The container has no Docker daemon. Run `/home/user/start-local-postgres.sh` to 
 
 ## Hand-over point
 
-The planned hand-over is after build step 3 in `docs/design/pivot-plan.md`: sign in, set targets, search foods, log a day, see both totals. That is the first version worth running locally. Go further only if step 3 lands with nothing that needs Artur's eyes.
+The planned hand-over is after build step 3 in `docs/design/pivot-plan.md`, at PR 3c: sign in, set targets, search foods, log a day, see both totals. That is the first version worth running locally. Go further only if step 3 lands with nothing that needs Artur's eyes.
 
 ## State
 
-Updated 2026-11-15 20:50 UTC. Three checkouts are in use, one per piece of work in flight.
+Updated 2026-11-16 by the documentation specialist on `feat/day-web`. Pull requests #27 to #37 are merged: the brief, the backend scaffold and auth, the web scaffold and shell, the session renewal fix, targets and foods on the backend, the Fineli import, account settings, targets on the web, days and logging on the backend (3a), the entry basis (3b.0) and foods on the web.
 
-| Step                                            | Branch and checkout                                   | Pull request | State                                                                                                                                                                                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Brief, workflow kit, requirements               | `feat/pivot-brief`                                    | #27          | merged                                                                                                                                                                                                                                         |
-| 1a. Backend scaffold and auth API               | `feat/scaffold-backend-auth`                          | #28          | merged                                                                                                                                                                                                                                         |
-| 1b. Web scaffold, auth pages, shell, PWA        | `feat/scaffold-web-shell` in `/home/user/hovi-web`    |              | built, validated (PASS), ui-validated (PASS with findings), reviewed (approve after fixes). frontend-engineer on fix cycle 1 with 16 items. Next: re-check by reviewer and ui-validator, documentation-specialist, squash, pull request, merge |
-| 1c. Account settings on sheets                  | `feat/account-settings`                               |              | not started. Waits for 1b. Design is PR 3 in `docs/design/scaffold-and-auth.md`                                                                                                                                                                |
-| Fix: a lost refresh response signs the user out | `fix/lost-refresh-response` in `/home/user/hovi-auth` |              | architect writing `docs/design/session-renewal.md`. Then design review, backend-engineer, validator, reviewer, pull request. Must land before the hand-over                                                                                    |
-| 2a. Targets and foods backend                   | `feat/targets-foods` in `/home/user/hovimestari`      |              | built (372 tests). validator and reviewer running at `86eb804`. Next: fixes, documentation-specialist, squash, pull request, merge                                                                                                             |
-| 2b. Fineli importer                             | `feat/fineli-import`                                  |              | not started. Cut from `master` after 2a merges. Design in `docs/design/targets-and-foods.md`                                                                                                                                                   |
-| 2c. Targets web                                 | `feat/targets-web`                                    |              | waits for 1b, 1c and 2a                                                                                                                                                                                                                        |
-| 2d. Foods web                                   | `feat/foods-web`                                      |              | waits for 2c                                                                                                                                                                                                                                   |
-| 3. Days and quick logging                       |                                                       |              | design not started. Start the architect once 2a is merged                                                                                                                                                                                      |
+| Step                          | Branch and checkout                      | Pull request | State                                                                                                                        |
+| ----------------------------- | ---------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 3b. The Day tab               | `feat/day-web` in `/home/user/hovi-days` |              | built, two fix cycles, validated, ui-validated, reviewed, docs reviewed. Ready for its pull request: squash, open, CI, merge |
+| 3c. The log sheet             | `feat/quick-log-web`                     |              | next. Cut from `master` after 3b merges. Design in `docs/design/days-and-logging.md`, R5, and its "Carried to PR 3c" list    |
+| 3d. The week view and copying | `feat/week-copy-web`                     |              | waits for 3c and the hand-over                                                                                               |
+
+The hand-over point is 3c: once the log sheet lands, a person can sign in, set targets, search foods, log a day and see both totals.
 
 ## Notes for the next wake-up
 

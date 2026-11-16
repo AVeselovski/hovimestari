@@ -1,22 +1,18 @@
-import { FoodSearchLauncher } from "@/components/foods/FoodSearchLauncher";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { PageContainer } from "@/components/ui/PageContainer";
+import { DayTab } from "@/components/day/DayTab";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import type { ReactElement } from "react";
+import { Suspense, type ReactElement } from "react";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("shell.tabs");
   return { title: t("day") };
 }
 
-/** Day: the food search at the top. The day itself comes with its own step. */
-export default async function DayPage(): Promise<ReactElement> {
-  const t = await getTranslations("shell");
+/** Day: one day, its summary and its entries. `DayTab` reads `?date=`, so it renders inside Suspense. */
+export default function DayPage(): ReactElement {
   return (
-    <PageContainer>
-      <FoodSearchLauncher />
-      <EmptyState title={t("empty")} />
-    </PageContainer>
+    <Suspense>
+      <DayTab />
+    </Suspense>
   );
 }

@@ -178,6 +178,9 @@ describe("TargetsGate", () => {
         ...args: ConstructorParameters<typeof realFormat>
       ) {
         const real = new realFormat(...args);
+        // Only the device's own format reports the unknown zone. A format
+        // asked for a named zone (the day check's) is the runtime's own.
+        if (args.length > 0) return real;
         return Object.assign(Object.create(real), {
           resolvedOptions: () => ({ ...real.resolvedOptions(), timeZone: "Mars/Olympus" }),
         });

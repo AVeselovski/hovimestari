@@ -58,7 +58,14 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | targets sheet, change targets, remove a change   | `app/settings.md#targets`                                               | `### Targets`                                    |
 | food names setting, Finnish or English choice    | `app/settings.md#food-names`                                            | `### Food names`                                 |
 | food data credit in Settings, Fineli attribution | `app/settings.md#food-data`                                             | `### Food data`                                  |
-| Day tab, Search foods launcher                   | `app/day.md`                                                            | Doc                                              |
+| Day tab, Search foods launcher, date bar         | `app/day.md`                                                            | Doc                                              |
+| the day summary, the gauge on screen             | `app/day.md#the-summary`                                                | `### The summary`                                |
+| the gauge's drawing, band, ticks, end-cap        | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
+| entry rows, mark eaten, Mark all eaten           | `app/day.md#the-entries`                                                | `### The entries`                                |
+| entry sheet                                      | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
+| toast, undo toast                                | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
+| the toast primitive, useToast                    | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
+| gauge colours, plan tints, target band           | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
 | food sheet, food search screen                   | `app/food-sheet.md`                                                     | Doc                                              |
 | food search results, browse lists, no results    | `app/food-sheet.md#the-search`                                          | `### The search`                                 |
 | food detail, per 100 g figures, favourite star   | `app/food-sheet.md#a-foods-detail`                                      | `### A food's detail`                            |
@@ -111,6 +118,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | logging again                              | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
 | client-chosen ids, replays                 | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
 | undo, removing and restoring an entry      | `features/quick-logging.md#undo`                             | `### Undo`                             |
+| without a connection, refused writes       | `features/quick-logging.md#without-a-connection`             | `### Without a connection`             |
+| web entry writes, counted writes, held     | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
 | user row lock, write races                 | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
 | saved meal, meal source                    | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
 | archiving and deleting a saved meal        | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |

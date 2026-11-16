@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { btnSecondary, focusRing } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
+import { useToday } from "@/hooks/useToday";
 import { formatDay } from "@/lib/localDate";
 import { targetsQuery } from "@/lib/queryOptions";
 import { formatTarget } from "@/lib/targetFormat";
@@ -24,6 +25,9 @@ export function TargetsSection(): ReactElement {
   const t = useTranslations("settings.targets");
   const { status } = useAuth();
   const { data } = useQuery({ ...targetsQuery(), enabled: status === "authenticated" });
+  // The app's one today (TodayProvider), so Settings and the Day tab never disagree.
+  const { today: appToday } = useToday();
+  const today = appToday ?? data?.today ?? "";
   const sheet = useSheetTarget();
   // Which change the open sheet edits, kept while it slides out.
   const [editing, setEditing] = useState<string | undefined>(undefined);
@@ -38,7 +42,7 @@ export function TargetsSection(): ReactElement {
   const inForce = data?.inForce ?? null;
   const changes = data?.changes ?? [];
   const later = inForce
-    ? changes.filter((c) => c.effectiveFrom > (data?.today ?? "") && c.effectiveFrom !== inForce.effectiveFrom)
+    ? changes.filter((c) => c.effectiveFrom > today && c.effectiveFrom !== inForce.effectiveFrom)
     : [];
   const earlier = inForce ? changes.filter((c) => c.effectiveFrom < inForce.effectiveFrom).reverse() : [];
 
@@ -102,7 +106,7 @@ export function TargetsSection(): ReactElement {
           returnFocusTo={sheet.shown.opener}
           onClose={sheet.close}
           onSaved={() => {}}
-          today={data.today}
+          today={today}
           changes={data.changes}
           editing={editing}
           focusAfterRemove={() => changeRef.current}

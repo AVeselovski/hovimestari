@@ -1,4 +1,4 @@
-import { addDays, dayBefore, formatDay, isIsoDate } from "../localDate";
+import { addDays, dayBefore, dayLabel, formatDay, formatDayShort, isIsoDate } from "../localDate";
 
 describe("localDate", () => {
   it("knows a real date from a malformed or impossible one", () => {
@@ -24,5 +24,20 @@ describe("localDate", () => {
     expect(formatDay("2026-11-16", "en-GB")).toBe("16 November 2026");
     expect(formatDay("2026-11-16", "en-US")).toBe("November 16, 2026");
     expect(formatDay("2026-01-01", "fi-FI")).toBe("1. tammikuuta 2026");
+  });
+});
+
+describe("today and its neighbours", () => {
+  it("names a date's relation to today in a word, or null further away", () => {
+    expect(dayLabel("2026-11-16", "2026-11-16")).toBe("today");
+    expect(dayLabel("2026-11-15", "2026-11-16")).toBe("yesterday");
+    expect(dayLabel("2026-11-17", "2026-11-16")).toBe("tomorrow");
+    expect(dayLabel("2027-01-01", "2026-12-31")).toBe("tomorrow");
+    expect(dayLabel("2026-11-18", "2026-11-16")).toBeNull();
+  });
+
+  it("formats a date short in the given language, with the year only when it is not today's", () => {
+    expect(formatDayShort("2026-11-17", "en-GB", "2026-11-16")).toBe("Tue 17 Nov");
+    expect(formatDayShort("2025-11-17", "en-GB", "2026-11-16")).toBe("Mon 17 Nov 2025");
   });
 });

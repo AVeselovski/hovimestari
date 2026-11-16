@@ -2,6 +2,10 @@
 [frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
 [frontend-engineer STARTED] 2026-11-16T03:51:11Z PR 2c targets on the web, step 2c.1
 [frontend-engineer DONE] 2026-11-16T07:11:50Z PR 2c targets on the web: gate, first run, targets sheet, Settings Targets and Food names, docs; carried sign-in limit and GET pin; gate green (backend 437, types 97, web 648)
+[backend-engineer STARTED] 2026-11-16T09:42:22Z PR 3b.0 entry basis on every answered entry
+[backend-engineer DONE] 2026-11-16T09:46:01Z PR 3b.0 entry basis: EntrySchema.basis, entryOf sets it, db and types tests, days.md; gate green
+[backend-engineer STARTED] 2026-11-16T09:50:55Z PR 3b.0 validator wording fixes and wider basis tests
+[backend-engineer DONE] 2026-11-16T09:53:16Z PR 3b.0 wording fixed (days.md, basis comment), stay-rule and estimate edit tests added
 [general-purpose STARTED] (2026-11-14T11:12:52Z) distil finanssi's mobile UI and component-library lessons into docs/design/mobile-ui-lessons.md
 [general-purpose DONE] (2026-11-14T11:17:18Z) wrote docs/design/mobile-ui-lessons.md, 142 lines (256k tokens)
 [architect STARTED] (2026-11-15T18:09:47Z) design doc for build step 1, scaffold and auth
@@ -198,6 +202,11 @@
 [reviewer DONE] (2026-11-16T09:08:27Z) PR 2d: approve after fixes; favourite rollback restores every foods query (major), 10 minors, nits (158k tokens)
 [validator DONE] (2026-11-16T09:08:27Z) PR 2d at 74626f3: FAIL on two majors (stale lists after the user's own write; docs overclaim the name check); figures 0 mismatches on 65 foods
 [frontend-engineer STARTED] (2026-11-16T09:08:27Z) PR 2d fix cycle 1, starting with the merge of the targets branch
+[architect STARTED] (2026-11-16T09:09:26Z) Day tab and log sheet: bring the design up to date with what was built since
+[architect DONE] (2026-11-16T09:25:02Z) Day tab and log sheet: revised frontend section for 3b and 3c in days-and-logging.md (R0 to R9), owner questions Q1 to Q4, basis-in-API step 3b.0
+[reviewer STARTED] (2026-11-16T09:25:39Z) review of the revised frontend design for the Day tab and the log sheet
+[architect STARTED] (2026-11-16T09:35:05Z) Day tab and log sheet: apply design review round 1 of the revised section
+[architect DONE] (2026-11-16T09:41:06Z) Day tab and log sheet: design review round 1 applied (22 items), PR 3b.0 contract written
 [backend-engineer STARTED] (2026-11-16T09:42:03Z) PR 3b.0: the entry answer gains its basis
 [backend-engineer STARTED] 2026-11-16T09:42:22Z PR 3b.0 entry basis on every answered entry
 [backend-engineer DONE] 2026-11-16T09:46:01Z PR 3b.0 entry basis: EntrySchema.basis, entryOf sets it, db and types tests, days.md; gate green
@@ -214,6 +223,35 @@
 [validator DONE] (2026-11-16T12:34:11Z) PR 2d at f9b577b: FAIL on one major (a portion write not shown at once), three minors; earlier findings fixed (344k tokens)
 [ui-validator DONE] (2026-11-16T12:34:11Z) PR 2d at f9b577b: pass with fixes; the own-food form moves under an error (major), eight minors
 [frontend-engineer STARTED] (2026-11-16T12:34:11Z) PR 2d fix cycle 2
+[frontend-engineer STARTED] (2026-11-16T12:35:23Z) the Day tab, PR 3b
+[frontend-engineer STARTED] (2026-11-16T12:36:15Z) PR 3b Day tab: date bar, summary gauges, entries, entry sheet, undo toast
+[frontend-engineer CHECKPOINT] (2026-11-16T13:30:43Z) Day tab built, browser runs done, docs written; merge with the foods work next
 [frontend-engineer DONE] (2026-11-16T13:10:30Z) PR 2d fix cycle 2: merged master (logs.txt only), 16 items; web 865 tests (842 before), gate green; own-food fields hold at 320/375/390/1280, content 792px at 320 (2.1 screens, was 800 to 900); user-visible
 [documentation-specialist STARTED] (2026-11-16T13:11:22Z) PR 2d docs pass
 [documentation-specialist DONE] (2026-11-16T13:16:31Z) PR 2d docs pass: food sheet states and limit, foods rules (decimal rule linked to README, name check, Fineli credit), shell primitives (value, handle, beside, star column), colours test and contrast, catalog line, TODO ranking item moved to Artur; docs:check clean
+[frontend-engineer DONE] (2026-11-16T13:37:15Z) PR 3b Day tab built; merged keep/foods-web-unsquashed; master merge (b) undone, it changed 3 files; gate green (web 970, backend 576, types 130), docs:check 0
+[frontend-engineer DONE] (2026-11-16T13:38:35Z) the Day tab, PR 3b: built and measured; web 970 tests (625k tokens)
+[frontend-engineer STARTED] (2026-11-16T13:38:35Z) PR 3b: a shorter day summary, so entries show on the first screen
+[frontend-engineer STARTED] (2026-11-16T13:39:27Z) PR 3b layout revision: compact the Day summary (two-row macro table, short distance forms, tighter rhythm)
+[frontend-engineer DONE] (2026-11-16T14:03:35Z) PR 3b layout revision: summary 504 to 316 px at 390x844 (332 past), two entry rows above the tab bar, gate green
+[reviewer DONE] (2026-11-16T14:04:12Z) PR 3b at 93794bd: approve after fixes; three majors (today cannot move back after a zone change, holding can last while offline, an undo that cannot succeed keeps retrying), minors and nits (197k tokens)
+[frontend-engineer DONE] (2026-11-16T14:04:12Z) PR 3b: the summary compacted to 316px at 390; web 971 tests (273k tokens)
+[ui-validator STARTED] (2026-11-16T14:04:12Z) PR 3b in a real browser
+[ui-validator DONE] (2026-11-16T14:36:27Z) PR 3b at e08f7a5: fail on five majors (long names not clamped, a sheet's failure line out of sight, the date input's Tab stops, the toast over the last mark button, the count unit reading as a clear button); gauge and stability pass
+[frontend-engineer STARTED] (2026-11-16T14:36:27Z) PR 3b fix cycle 1
+[frontend-engineer STARTED] (2026-11-16T14:37:25Z) PR 3b fix cycle 1: 26 review and ui-validator items
+[validator DONE] (2026-11-16T15:09:35Z) PR 3b Day tab at 93794bd: FAIL on one major (double tap on Undo opens the entry under the closing toast, NFR-UX-06) and four minors; figures, previews, writes, undo, midnight, isolation and 12 mutations pass. Findings forwarded to fix cycle 1 as items 27-31 (353k tokens)
+[frontend-engineer DONE] (2026-11-16T15:22:05Z) PR 3b fix cycle 1: items 1-31 fixed with red-before tests, layout measured at 320/375/390/768/1280 both themes, gate green (web 1011, backend 576, types 130 tests), screenshots retaken
+[frontend-engineer DONE] (2026-11-16T15:24:42Z) PR 3b fix cycle 1: 31 items fixed at 6fa3f52 (web 1011 tests, gate green); first screen reaches the entries, two columns from lg, keyboard date bar, closing toast catches presses (452k tokens)
+[reviewer STARTED] (2026-11-16T15:24:42Z) PR 3b confirm of fix cycle 1 (6df344a..6fa3f52), pinned 6fa3f52
+[ui-validator STARTED] (2026-11-16T15:24:42Z) PR 3b confirm of fix cycle 1 in a real browser, both themes; entry sheet order change
+[reviewer DONE] (2026-11-16T16:11:28Z) PR 3b confirm at 6fa3f52: approve after fixes; round-one findings fixed; one major (a date picked in a picker opened by keyboard is dropped) and seven minors (251k tokens)
+[ui-validator DONE] (2026-11-16T16:11:28Z) PR 3b confirm: FAIL on behaviour (date pick lost after a keyboard open, a fading toast swallows the new toast's taps, focus left in the hidden toast, a row retaking focus on remount); layout, stability, contrast and both themes pass; reordered the entry sheet (ee6c0e2) and gave a word unit its room (4e679c3); web 1015 tests
+[frontend-engineer STARTED] (2026-11-16T16:11:28Z) PR 3b fix cycle 2: date bar picker, toast order and focus, focus request, undo counted on the entries' date, Eaten or planned first in the entry sheet, footer room with the keyboard open
+[frontend-engineer DONE] (2026-11-16T17:40:12Z) PR 3b fix cycle 2: ten items at d8bd7e6 (web 1027 tests, gate green): date bar applies a pick from a keyboard-opened picker, the live toast sits above a closing one, focus never inside a hidden toast, one-use focus request, Eaten or planned first in the entry sheet, footer room collapses with the keyboard open
+[ui-validator STARTED] (2026-11-16T17:40:12Z) PR 3b confirm of fix cycle 2 at d8bd7e6, read-only
+[reviewer STARTED] (2026-11-16T17:40:12Z) PR 3b confirm of fix cycle 2 (71d21d8..d8bd7e6), read-only
+[reviewer DONE] (2026-11-16T17:45:26Z) PR 3b second confirm at 14859dc: approve; last round's major and seven minors fixed, 8 of 9 mutations caught (the survivor is a defensive reset); nothing to change before the PR
+[documentation-specialist STARTED] (2026-11-16T17:45:26Z) PR 3b docs pass: day page, shell, quick logging, targets, colours, catalog, link map, READMEs
+[documentation-specialist DONE] (2026-11-16T17:51:29Z) PR 3b docs pass at 43f61eb: day page, shell, colours, quick logging (new home "Writes from the web app"), targets, catalog with its Pages section, link map, web README, TODO.md; docs:check 0 findings in 33 files
+[ui-validator DONE] (2026-11-16T18:02:46Z) PR 3b confirm of fix cycle 2 at 14859dc: PASS; date bar, two toasts, focus through the fade, chevrons, entry sheet order and stability, footer with the keyboard, nothing moves; two findings at 320x568 filed in TODO.md for the log sheet's change (a refused amount's line under the footer, Save under the keyboard with a refusal) (206k tokens)
