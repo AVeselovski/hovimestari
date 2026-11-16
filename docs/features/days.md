@@ -92,4 +92,4 @@ Requirements: FR-DAY-01 to FR-DAY-04, FR-DAY-06 to FR-DAY-10, FR-DAY-13 to FR-DA
 
 ## Where it appears
 
-- The web app has no day screens yet. The API is reached directly.
+- [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries.

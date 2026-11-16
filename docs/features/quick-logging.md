@@ -49,6 +49,16 @@ A restore is exact. The other inverses bring back the entry's date, status, amou
 
 After an add was undone, sending the same add again adds nothing, so a late retry cannot bring back an entry the user undid.
 
+An amount entered as a count of a portion is undone as that count, weighed at the portion's grams at the time of the undo. When the portion was edited in between, the grams differ from before. When the portion is gone, the amount is undone in grams.
+
+On screen, every mark, save and removal offers Undo for six seconds. Undo sends the inverse of exactly what changed: the ids a mark changed, a restore after a remove, and every field an edit changed, read from the entry before and the entry the server answered, so a move that planned an eaten entry is undone eaten again. Marking all of a day's planned entries eaten offers one Undo for every entry it changed, also when it took a second try.
+
+Try again is offered only when the undo may not have landed: the device was offline, there was no answer, it timed out or it met a server fault. Trying again sends the same inverse. An undo the server refused, such as a restore after its ten minutes or an edit's undo on an entry another device removed, says why with no Try again, and the day is read again.
+
+### Without a connection
+
+Nothing is queued. A write the app knows it cannot send, because the device is offline, is not sent, and the screen says "You are offline. Changes need a connection.". A write that got no answer may have landed or not, so the screen says it could not confirm and offers to try again. Trying again sends the same request: a mark sets a state, so a second one changes nothing more, and an add carries the id it was sent with, so it applies once.
+
 ## How it works
 
 ### Writes
@@ -70,6 +80,16 @@ The status batch and the planned rewrite lock the entries they change in id orde
 ### Recent items in code
 
 `listRecents` in `apps/backend/src/services/reads/log.ts` walks the user's eaten entries newest first down the index `entries_user_eaten_idx`, ordered by `eaten_at` and then position. Each step takes the next older entry of a food or meal the user can still log and has not met yet, and the walk stops at the limit. A long history costs little while the user keeps logging the same foods, because the walk reads only the entries newer than the last item it answers. When the user has fewer foods and meals they can log than the limit, the last step reads the rest of the history. The walk and the amounts and sources it answers are one statement, so they come from one snapshot. `lastAmountsOf` answers the last amount for a list of foods, for `getFood` and `listFavouriteFoods`. Both read the portion only through the rule a day's entries use: the entry's portion of the entry's food, visible to the user.
+
+### Writes from the web app
+
+`useEntryActions` in `apps/web/src/hooks/useEntryActions.ts` makes every entry write the web app sends, shows its toast and holds its undo. `undo(send, { goneIsDone, focusId, fromKeyboard })` runs an inverse. With `goneIsDone`, a 404 counts as undone, as for the `DELETE` that undoes an add.
+
+- **The cache.** Each write puts the days it answered into the cache through `afterEntryWrite` in `apps/web/src/lib/invalidation.ts`, so a row and its day change with the answer and no extra read. An answered day whose `today` is older than the app's is read again.
+- **Writes that overlap.** Every write runs through `counted`, which counts it against the dates it may answer with `beginEntryWrite`. When the last of two or more writes out at once on a date settles, that day is read again, so an older answer landing last never stands. A mark's undo counts against the date the mark was made on.
+- **The time zone.** `counted` also takes `zoneEpoch` before it sends. An answer to a write sent before the account's time zone changed stays out of the cache, and its days are read again. [Today and the time zone](targets.md#today-and-the-time-zone) says why.
+- **Holding.** While `useToday()` reports `holding`, a mark sends nothing, and a sheet's write answers `held` without sending. An undo never waits, because it names its ids and dates.
+- **Marking many.** Mark all eaten sends 100 ids per request, one request after another. When a request fails, Try again sends that one and every one not yet sent, and its Undo covers the entries the earlier requests changed too.
 
 ### API
 
@@ -98,9 +118,11 @@ A recent item is `{ kind: "food", food, last }` with a food summary and a last a
 ### Known gaps
 
 - The assistant's tools for logging arrive with the connected AI step. Until then only the API reaches these services.
+- Adding entries, copying them and recent items have no screen. Only the API reaches them.
+- A Mark all eaten that fails partway, with its failure toast dismissed, leaves the entries its earlier requests marked with no Undo.
 
 Requirements: FR-DAY-05, FR-DAY-11, FR-DAY-12, FR-LOG-02 (amounts only), FR-LOG-03 to FR-LOG-05 (requirements 3.3 and 3.4)
 
 ## Where it appears
 
-- The web app has no logging screens yet. The API is reached directly.
+- [The Day tab](../app/day.md): marking one entry or all of a day's planned entries eaten, editing, moving and removing an entry in the entry sheet, each with Undo.

@@ -65,6 +65,12 @@ Validation is `SetTargetsBodySchema` in `packages/types/src/targets.ts`, and two
 
 `contextFor(req)` in `apps/backend/src/lib/requestContext.ts` builds the context every service gets: the user, the database, `now`, the user's `time_zone` and `today`. `calendarDate(now, zone)` in `apps/backend/src/lib/userTime.ts` gives the `YYYY-MM-DD` that `now` falls on in that zone, through `Intl`. A daylight-saving switch moves the hour a date starts at, never which date an instant falls on. A stored zone the runtime no longer knows falls back to `Europe/Helsinki`, with a log line.
 
+The web app follows the server's today.
+
+Every answer that carries a newer today, a targets read, a day read or a write, moves the whole app to it, and the days are read again. Today moves forward only, so a late answer from before midnight cannot take the app back a day. A change of the account's time zone is the exception: the first targets answer after it is taken as it is, earlier or not, because a zone to the west can make today earlier. An entry write still out when the zone changes answers with the old zone's days. Its answer is left out of the cache and those days are read again, so the old zone's today never moves the app forward again.
+
+The app also asks again when the page is shown, when the connection returns and, while the device's own date is ahead of the server's, at most every 5 minutes. Each ask is sent once and ends when the device goes offline, so writes never wait on it for long. While it is out the day on screen stays. The server's date always wins. `TodayProvider` in `apps/web/src/components/targets/` holds it, and the Day tab and Settings both read it.
+
 The zone is written through `PATCH /users/me/settings`. `TimeZoneSchema` in `packages/types/src/dates.ts` stores the zone's canonical IANA name, so `europe/helsinki` becomes `Europe/Helsinki`. It refuses a name `Intl` does not know, an offset-style name such as `+02:00` and a name over 64 characters, each with `invalid_time_zone`.
 
 ### API
@@ -93,4 +99,5 @@ Requirements: FR-TGT-01 to FR-TGT-07, NFR-ADV-01, NFR-ADV-02 (requirements 3.1 a
 ## Where it appears
 
 - [First run](../app/first-run.md): the first targets, before any other part of the app.
+- [The Day tab](../app/day.md): the ranges the summary measures each day against, and the day it opens on.
 - [Settings](../app/settings.md#targets): the targets in force, later and earlier changes, the targets sheet and removing a change.
