@@ -1,4 +1,5 @@
 import type { AuthHandlers } from "@/lib/api";
+import { endAllSessions } from "@/lib/api/auth";
 import { act, render, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { TEST_USER, testPassword } from "../../__tests__/helpers/auth";
@@ -32,6 +33,16 @@ function wrapper({ children }: { children: ReactNode }): ReactNode {
   return <AuthProvider>{children}</AuthProvider>;
 }
 
+/**
+ * A session the server has ended: the backend's 401, then the route's own
+ * 401 to the one retry, sent with no cookie left.
+ */
+function endedSession(): void {
+  fetchSpy
+    .mockResolvedValueOnce(status(401, { code: "session_expired" }))
+    .mockResolvedValueOnce(status(401, { code: "session_expired" }));
+}
+
 /** The paths the provider has called, in order. */
 const calls = (): string[] => fetchSpy.mock.calls.map(([url]) => String(url));
 
@@ -51,10 +62,11 @@ describe("restoring the session on launch", () => {
     expect(calls()).toEqual(["/api/auth/refresh"]);
   });
 
-  it("is unauthenticated on a 401", async () => {
-    fetchSpy.mockResolvedValueOnce(status(401, { code: "session_expired" }));
+  it("is unauthenticated on a 401, after one retry under the lock", async () => {
+    endedSession();
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unauthenticated"));
+    expect(calls()).toEqual(["/api/auth/refresh", "/api/auth/refresh"]);
   });
 
   it.each([
@@ -155,7 +167,7 @@ describe("a server fault is not the network", () => {
   });
 
   it("refuses a sign-in whose 200 is not a session, without hanging", async () => {
-    fetchSpy.mockResolvedValueOnce(status(401));
+    endedSession();
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.status).toBe("unauthenticated"));
     fetchSpy.mockResolvedValueOnce(new Response("not json", { status: 200 }));
@@ -175,7 +187,7 @@ describe("the known-session marker", () => {
     await waitFor(() => expect(result.current.status).toBe("authenticated"));
     expect(localStorage.getItem("hovi-signed-in")).toBe("1");
 
-    fetchSpy.mockResolvedValueOnce(status(401));
+    endedSession();
     await act(async () => result.current.retry());
     await waitFor(() => expect(result.current.status).toBe("unauthenticated"));
     expect(localStorage.getItem("hovi-signed-in")).toBeNull();
@@ -192,7 +204,7 @@ describe("the known-session marker", () => {
 
 describe("signing in, up and out", () => {
   async function signedOut() {
-    fetchSpy.mockResolvedValueOnce(status(401));
+    endedSession();
     const hook = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(hook.result.current.status).toBe("unauthenticated"));
     fetchSpy.mockReset();
@@ -233,6 +245,40 @@ describe("signing in, up and out", () => {
     expect(result.current.signedOut).toBe(true);
     expect(localStorage.getItem("hovi-signed-in")).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith("/auth/sign-in");
+  });
+
+  it("signs out to the sign-in page the caller names, and keeps it for the guard", async () => {
+    fetchSpy.mockResolvedValueOnce(session());
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await act(() => result.current.signOut({ to: "/auth/sign-in?deleted=1" }));
+    expect(mockReplace).toHaveBeenCalledWith("/auth/sign-in?deleted=1");
+    expect(result.current.afterSignOut).toBe("/auth/sign-in?deleted=1");
+    expect(result.current.status).toBe("unauthenticated");
+  });
+
+  it("remembers the session's address on the device while it lasts, and forgets it on sign-out", async () => {
+    fetchSpy.mockResolvedValueOnce(session());
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+    expect(localStorage.getItem("hovi-last-email")).toBe(TEST_USER.email);
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await act(() => result.current.signOut());
+    expect(localStorage.getItem("hovi-last-email")).toBeNull();
+  });
+
+  it("when signing out everywhere cannot reach the server, throws and leaves this device signed in", async () => {
+    fetchSpy.mockResolvedValueOnce(session());
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe("authenticated"));
+    jest.mocked(endAllSessions).mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await expect(act(() => result.current.signOut({ everywhere: true }))).rejects.toBeInstanceOf(TypeError);
+    expect(calls()).toEqual(["/api/auth/refresh"]);
+    expect(result.current.status).toBe("authenticated");
+    expect(result.current.signedOut).toBe(false);
+    expect(localStorage.getItem("hovi-signed-in")).toBe("1");
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("still ends the local session when the sign-out handler cannot be reached", async () => {

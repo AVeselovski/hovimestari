@@ -16,6 +16,7 @@ export function fakeAuth(status: AuthStatus, overrides: Partial<AuthContextValue
     user: status === "authenticated" ? TEST_USER : null,
     status,
     signedOut: false,
+    afterSignOut: "/auth/sign-in",
     retry: jest.fn(),
     signIn: jest.fn(),
     signUp: jest.fn(),

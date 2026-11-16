@@ -1,8 +1,13 @@
 "use client";
 
 import { AuthPage } from "@/components/auth/AuthPage";
+import { Field } from "@/components/form/Field";
+import { FormError } from "@/components/form/FormError";
+import { focusField } from "@/components/form/focus";
+import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
 import { btnPrimary, errorNoticeClass, standaloneLinkClass } from "@/components/ui/styles";
+import { useAuth } from "@/contexts/AuthContext";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { resetPassword } from "@/lib/api/auth";
 import { ResetPasswordBodySchema } from "@hovimestari/types";
@@ -10,15 +15,20 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent, type ReactElement } from "react";
-import { Field } from "../_components/Field";
-import { FormError } from "../_components/FormError";
-import { focusField } from "../_components/focus";
-import { firstIssues } from "../_components/issues";
 
+/**
+ * Choose a new password from a reset link. It opens whether or not this
+ * device has a session, so a link opened in a signed-in browser is usable.
+ * After any reset this device signs out, if it was signed in, and lands on
+ * the sign-in page with its note. That holds even when the link was for
+ * another account than the one signed in here: the outcome is the same for
+ * every link, which is predictable and safe.
+ */
 function ResetPasswordForm(): ReactElement {
   const t = useTranslations("auth.resetPassword");
   const errors = useErrorCopy();
   const router = useRouter();
+  const { status, signOut } = useAuth();
   const token = useSearchParams().get("token");
 
   const [password, setPassword] = useState("");
@@ -45,12 +55,17 @@ function ResetPasswordForm(): ReactElement {
     setSubmitting(true);
     try {
       await resetPassword(parsed.data);
-      router.replace("/auth/sign-in?reset=1");
     } catch (err) {
       setFormError(errors.forError(err));
       setSubmitting(false);
       focusField("new-password");
+      return;
     }
+    // Signed out after every reset. When the link was this account's, the
+    // reset ended its sessions anyway. When it was another account's, this
+    // session still held, and is ended so every reset lands the same way.
+    if (status === "unauthenticated") router.replace("/auth/sign-in?reset=1");
+    else await signOut({ to: "/auth/sign-in?reset=1" });
   }
 
   if (!token) {

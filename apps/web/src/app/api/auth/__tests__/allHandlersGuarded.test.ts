@@ -43,6 +43,7 @@ beforeEach(() => {
 describe("every POST route handler is guarded", () => {
   it("finds the handlers", () => {
     expect(postFiles.map((f) => path.relative(API_ROOT, f)).sort()).toEqual([
+      "api/auth/google/link/start/route.ts",
       "api/auth/refresh/route.ts",
       "api/auth/sign-in/route.ts",
       "api/auth/sign-out/route.ts",

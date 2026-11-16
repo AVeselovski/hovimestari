@@ -34,6 +34,10 @@
   /* The focus ring is ink, so it never reads as selection. */
   --color-focus: #1d2e22;
 
+  /* The dim behind an open sheet or dialog. Ink at a little under half, so
+     the page stays legible but clearly out of reach. */
+  --color-scrim: rgb(29 46 34 / 0.45);
+
   /* Reserved for the four macro figures' marks. Nothing else may use these hues. */
   --color-energy: #a86a12;
   --color-protein: #2f6690;
@@ -51,9 +55,8 @@
   --radius-card: 1rem;
   --radius-pill: 9999px;
 
-  /* Content widths from md up: the three content tabs, and Settings. */
+  /* The content column from md up, shared by every tab and the header. */
   --container-page: 40rem;
-  --container-page-narrow: 36rem;
   /* The guest pages' column. */
   --container-auth: 26rem;
   /* The side rail from md up. */
@@ -64,6 +67,10 @@
   --text-title--line-height: 1.15;
   --text-title-lg: 2.25rem;
   --text-title-lg--line-height: 1.1;
+
+  /* Motion. The sheet curve: fast out, long settle, the curve iOS sheets
+     move on. Generates `ease-sheet`. */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 [data-theme="dark"] {
@@ -74,9 +81,10 @@
   --color-ink-muted: #a39880;
   --color-rule: #34402f;
   --color-field-rule: #727d6a;
-  --color-accent: #d56f6a;
+  --color-accent: #de7b75;
   --color-on-accent: #121a15;
   --color-focus: #ece4d2;
+  --color-scrim: rgb(0 0 0 / 0.6);
   --color-energy: #e0a64a;
   --color-protein: #7fb0d8;
   --color-carbs: #b893c4;
@@ -93,6 +101,26 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Motion durations. Theme-agnostic. Read as `duration-(--duration-*)` or
+     from the sheet utilities below. */
+  /* A sheet sliding in, and springing back from a drag that let go early. */
+  --duration-sheet: 450ms;
+  /* A sheet sliding out. A swipe release scales it by the release speed. */
+  --duration-sheet-exit: 400ms;
+  /* The centred panel from md fading and scaling in and out. */
+  --duration-dialog: 200ms;
+  /* What reduced motion gets instead of a slide or a scale. */
+  --duration-fade: 150ms;
+
+  /* The shortest a sheet stands below md, before the bottom safe area. */
+  --sheet-min-height: 14rem;
+  /* A sheet with another stacked on it shrinks to this, about its top edge. */
+  --sheet-stack-scale: 0.94;
+  /* How much of the sheet underneath always shows above the one on top. */
+  --sheet-stack-peek: 0.75rem;
+  /* The stacked sheet's own dim, as a share of the scrim's. */
+  --sheet-stack-dim: 0.5;
 }
 
 :root[data-theme="dark"] {
@@ -122,4 +150,150 @@ body {
 /* The receipt rule under the header. */
 @utility rule-dashed {
   border-bottom: 1px dashed var(--color-rule);
+}
+
+/* ------------------------------------------------------------------ */
+/* Sheet motion (components/ui/BottomSheet.tsx, on Base UI's Drawer).   */
+/* Base UI marks the parts with data-starting-style / data-ending-style */
+/* while they enter and leave, data-swiping while a finger drags the    */
+/* sheet, and writes the drag as --drawer-swipe-movement-y (popup) and  */
+/* --drawer-swipe-progress (backdrop, 0 at rest to 1 fully dragged).    */
+/* Below md the sheet slides up from the bottom edge. From md it is a   */
+/* centred panel that fades and scales. Reduced motion keeps only a     */
+/* short fade. A drag still follows the finger, since that motion is    */
+/* the reader's own.                                                    */
+/* ------------------------------------------------------------------ */
+
+@utility sheet-backdrop-motion {
+  opacity: calc(var(--sheet-backdrop-opacity, 1) * (1 - var(--drawer-swipe-progress, 0)));
+  transition-property: opacity;
+  transition-duration: var(--duration-sheet);
+  transition-timing-function: var(--ease-sheet);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+  }
+  &[data-ending-style] {
+    transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--duration-sheet-exit));
+  }
+  @variant md {
+    transition-duration: var(--duration-dialog);
+    &[data-ending-style] {
+      transition-duration: var(--duration-dialog);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: var(--duration-fade);
+    &[data-ending-style] {
+      transition-duration: var(--duration-fade);
+    }
+  }
+  &[data-swiping] {
+    transition-duration: 0ms;
+  }
+
+  /* The dim behind a sheet stacked on another: lighter, since the page
+     behind is already dimmed by the sheet underneath. */
+  &[data-sheet-stacked] {
+    --sheet-backdrop-opacity: var(--sheet-stack-dim);
+  }
+}
+
+@utility sheet-popup-motion {
+  transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  transition-property: transform, opacity;
+  transition-duration: var(--duration-sheet);
+  transition-timing-function: var(--ease-sheet);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    transform: translateY(100%);
+  }
+  &[data-ending-style] {
+    transition-duration: calc(var(--drawer-swipe-strength, 1) * var(--duration-sheet-exit));
+  }
+
+  /* A strip of the same surface below the bottom edge, so dragging the
+     sheet upwards past its rest shows more sheet, never a gap. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: 3rem;
+    background-color: var(--color-surface);
+  }
+
+  @variant md {
+    transition-duration: var(--duration-dialog);
+    &[data-starting-style],
+    &[data-ending-style] {
+      transform: translateY(var(--drawer-swipe-movement-y, 0px)) scale(0.96);
+      opacity: 0;
+    }
+    &[data-ending-style] {
+      transition-duration: var(--duration-dialog);
+    }
+    &::after {
+      content: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: var(--duration-fade);
+    &[data-starting-style],
+    &[data-ending-style] {
+      transform: translateY(var(--drawer-swipe-movement-y, 0px));
+      opacity: 0;
+    }
+    &[data-ending-style] {
+      transition-duration: var(--duration-fade);
+    }
+  }
+
+  &[data-swiping] {
+    transition-duration: 0ms;
+    user-select: none;
+  }
+
+  /* The stack, below md. While another sheet is stacked on this one, Base
+     UI marks it data-nested-drawer-open and writes --drawer-height (this
+     sheet), --drawer-frontmost-height (the one on top) and
+     --drawer-swipe-progress (how far the one on top is dragged away). This
+     sheet recedes: it shrinks about its top edge and, when the one on top is
+     as tall or taller, lifts so its top still shows --sheet-stack-peek above
+     it. Dragging the one on top brings this one back by the same share. */
+  @variant max-md {
+    transform-origin: 50% 0;
+
+    &[data-nested-drawer-open]:not([data-ending-style]) {
+      --sheet-stack-progress: clamp(0, var(--drawer-swipe-progress, 0), 1);
+      --sheet-stack-lift: min(
+        0px,
+        calc(var(--drawer-height, 0px) - var(--drawer-frontmost-height, 0px) - var(--sheet-stack-peek))
+      );
+      transform: translateY(
+          calc(var(--drawer-swipe-movement-y, 0px) + var(--sheet-stack-lift) * (1 - var(--sheet-stack-progress)))
+        )
+        scale(calc(1 - (1 - var(--sheet-stack-scale)) * (1 - var(--sheet-stack-progress))));
+    }
+  }
+
+  &[data-nested-drawer-swiping] {
+    transition-duration: 0ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-nested-drawer-open]:not([data-ending-style]) {
+      transform: translateY(var(--drawer-swipe-movement-y, 0px));
+    }
+  }
+}
+
+/* A focus put back by code after a tap paints no ring
+   (lib/lastInputModality.ts). A key press or a blur clears the marker. */
+[data-focus-restored]:focus-visible,
+[data-focus-restored]:focus-visible::after {
+  outline: none;
 }

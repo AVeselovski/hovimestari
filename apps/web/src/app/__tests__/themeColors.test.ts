@@ -64,6 +64,16 @@ describe("token contrast", () => {
     expect(contrast(token(theme, "accent"), token(theme, "surface"))).toBeGreaterThanOrEqual(4.5);
   });
 
+  // An outlined destructive button: accent text on the raised surface a secondary button is filled with.
+  it.each(["light", "dark"] as const)("accent text reaches 4.5 to 1 on a raised surface, %s", (theme) => {
+    expect(contrast(token(theme, "accent"), token(theme, "surface-raised"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  // A primary or destructive button: its label on the accent fill.
+  it.each(["light", "dark"] as const)("text on an accent fill reaches 4.5 to 1, %s", (theme) => {
+    expect(contrast(token(theme, "on-accent"), token(theme, "accent"))).toBeGreaterThanOrEqual(4.5);
+  });
+
   it.each(["light", "dark"] as const)("muted text reaches 4.5 to 1 on the page and a panel, %s", (theme) => {
     expect(contrast(token(theme, "ink-muted"), token(theme, "bg"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token(theme, "ink-muted"), token(theme, "surface"))).toBeGreaterThanOrEqual(4.5);

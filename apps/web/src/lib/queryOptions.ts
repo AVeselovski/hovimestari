@@ -1,3 +1,4 @@
+import { getProviders } from "@/lib/api/auth";
 import { getMe } from "@/lib/api/users";
 import { queryKeys } from "@/lib/queryKeys";
 import { queryOptions } from "@tanstack/react-query";
@@ -13,6 +14,15 @@ export function meQuery() {
   return queryOptions({
     queryKey: queryKeys.me(),
     queryFn: ({ signal }) => getMe({ signal }),
+    staleTime: Infinity,
+  });
+}
+
+/** Which sign-in providers this deployment offers. It changes only with a deploy. */
+export function providersQuery() {
+  return queryOptions({
+    queryKey: queryKeys.providers(),
+    queryFn: ({ signal }) => getProviders({ signal }),
     staleTime: Infinity,
   });
 }

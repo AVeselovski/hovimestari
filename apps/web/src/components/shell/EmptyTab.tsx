@@ -9,7 +9,7 @@ import type { ReactElement } from "react";
 export function EmptyTab(): ReactElement {
   const t = useTranslations("shell");
   return (
-    <PageContainer width="page">
+    <PageContainer>
       <EmptyState title={t("empty")} />
     </PageContainer>
   );

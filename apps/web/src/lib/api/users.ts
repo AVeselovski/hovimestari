@@ -1,8 +1,18 @@
 import { api, type RequestOptions } from "@/lib/api";
-import type { Me } from "@hovimestari/types";
+import type { ChangePasswordBody, DeleteAccountBody, Me } from "@hovimestari/types";
 
 /** `GET /users/me`: the signed-in user. */
 export async function getMe(req?: RequestOptions): Promise<Me> {
   const res = await api.get<Me>("/users/me", { signal: req?.signal });
   return res.data;
+}
+
+/** `PUT /users/me/password`. Ends every session, this device's included. */
+export async function changePassword(body: ChangePasswordBody): Promise<void> {
+  await api.put("/users/me/password", body);
+}
+
+/** `DELETE /users/me`. Deletes the account and everything it owns. */
+export async function deleteAccount(body: DeleteAccountBody): Promise<void> {
+  await api.delete("/users/me", { data: body });
 }

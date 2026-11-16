@@ -3,6 +3,10 @@
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { POST_LOGIN_REDIRECT_KEY } from "@/components/GuestGuard";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { Field } from "@/components/form/Field";
+import { FormError } from "@/components/form/FormError";
+import { fieldOfCode, focusField } from "@/components/form/focus";
+import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
 import { btnPrimary, errorNoticeClass, noticeClass, standaloneLinkClass } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,10 +19,6 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent, type ReactElement } from "react";
-import { Field } from "../_components/Field";
-import { FormError } from "../_components/FormError";
-import { fieldOfCode, focusField } from "../_components/focus";
-import { firstIssues } from "../_components/issues";
 
 function SignInForm(): ReactElement {
   const t = useTranslations("auth.signIn");

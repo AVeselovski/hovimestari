@@ -7,4 +7,6 @@
 export const queryKeys = {
   /** The signed-in user. */
   me: () => ["me"] as const,
+  /** Which sign-in providers this deployment offers. */
+  providers: () => ["providers"] as const,
 };

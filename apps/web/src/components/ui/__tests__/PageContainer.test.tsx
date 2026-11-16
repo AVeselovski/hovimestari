@@ -3,12 +3,9 @@ import { PageContainer } from "../PageContainer";
 
 const classes = (el: HTMLElement): string[] => el.className.split(/\s+/);
 
-function column(
-  width: "page" | "narrow",
-  className?: string,
-): { content: HTMLElement; shared: HTMLElement; outer: HTMLElement } {
+function column(className?: string): { content: HTMLElement; shared: HTMLElement; outer: HTMLElement } {
   render(
-    <PageContainer width={width} className={className}>
+    <PageContainer className={className}>
       <p>Content</p>
     </PageContainer>,
   );
@@ -17,26 +14,18 @@ function column(
 }
 
 describe("PageContainer", () => {
-  it.each(["page", "narrow"] as const)(
-    "puts the %s width in the one centred 40rem column every tab shares",
-    (width) => {
-      const { shared } = column(width);
-      expect(classes(shared)).toEqual(expect.arrayContaining(["mx-auto", "md:max-w-page"]));
-    },
-  );
-
-  it("caps Settings' content at 36rem, left-aligned in that column, so its title lines up with the others", () => {
-    const { content } = column("narrow");
-    expect(classes(content)).toContain("md:max-w-page-narrow");
-    expect(classes(content)).not.toContain("mx-auto");
+  it("puts every page in the one centred 40rem column every tab shares, the header's", () => {
+    const { shared } = column();
+    expect(classes(shared)).toEqual(expect.arrayContaining(["mx-auto", "md:max-w-page"]));
   });
 
-  it("leaves the page width's content the full column", () => {
-    expect(classes(column("page").content)).not.toContain("md:max-w-page-narrow");
+  it("gives the content the full column, so the header's rule spans exactly the content under it", () => {
+    const { content } = column();
+    expect(classes(content).filter((c) => c.startsWith("md:max-w"))).toEqual([]);
   });
 
   it("keeps the gutter clear of the side insets, and puts the caller's classes on the content", () => {
-    const { content, outer } = column("page", "space-y-6");
+    const { content, outer } = column("space-y-6");
     expect(outer.className).toContain("var(--safe-left)");
     expect(outer.className).toContain("var(--safe-right)");
     expect(content).toHaveClass("space-y-6");

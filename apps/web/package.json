@@ -14,6 +14,7 @@
     "test:watch": "NODE_OPTIONS=--max-old-space-size=4096 jest --watch"
   },
   "dependencies": {
+    "@base-ui/react": "1.8.0",
     "@hovimestari/types": "workspace:*",
     "@tanstack/react-query": "5.107.1",
     "axios": "^1.21.1",
