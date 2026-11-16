@@ -18,7 +18,7 @@ A change can be removed, except the last one. A user who has targets always keep
 
 ### Which targets a day uses
 
-A day uses the change with the latest start on or before that day. A day before the first change uses the first change. So once a user has targets, every day has targets.
+A day uses the change with the latest start on or before that day. A day before the first change uses the first change. So once a user has targets, every day has targets. [Where a day stands](days.md#where-a-day-stands) is measured against them.
 
 "Today" is the calendar date in the user's time zone. The time zone is an account setting, and a new account starts with Helsinki time. A day starts at local midnight in that zone.
 
@@ -36,7 +36,7 @@ Hovimestari never suggests, prefills or computes a target. It holds no default v
 
 `target_changes` holds one row per change: the user, `effective_from` and the four bounds. `targetsOn(ctx, date)` in `apps/backend/src/services/reads/targets.ts` reads the row with the latest `effective_from` on or before `date`, and falls back to the user's earliest row. It answers null only for a user with no rows. `targetsOverview` answers that change, every change oldest first, the date asked for and the user's today.
 
-`setTargets` in `apps/backend/src/services/writes/targets.ts` inserts the row, or overwrites the one on the same date. An identical save writes nothing. `removeTargetChange` runs in a transaction that first locks the user's row in `users`, then refuses a date with no change (404) and the last change (409). The lock makes two removals at once wait for each other, so they cannot both find another change left.
+`setTargets` in `apps/backend/src/services/writes/targets.ts` inserts the row, or overwrites the one on the same date. An identical save writes nothing. It first takes the user's row `FOR KEY SHARE` through `lockUserForWrite`, so a save never waits behind a session renewal, and one that races an account deletion answers 404 `user_not_found`. `removeTargetChange` runs in a transaction that first locks the user's row in `users`, then refuses a date with no change (404) and the last change (409). The lock makes two removals at once wait for each other, so they cannot both find another change left.
 
 Validation is `SetTargetsBodySchema` in `packages/types/src/targets.ts`, and two CHECKs repeat the range rule in the database.
 
