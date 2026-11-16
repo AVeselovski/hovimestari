@@ -59,6 +59,20 @@ export const ERROR_CODES = [
   "portion_name_too_long",
   "portion_grams_invalid",
   "invalid_time_zone",
+  "entry_not_found",
+  "entry_id_taken",
+  "entry_kind_mismatch",
+  "entry_eaten_in_future",
+  "entry_grams_invalid",
+  "entry_count_invalid",
+  "figure_required",
+  "figure_invalid",
+  "name_required",
+  "name_too_long",
+  "note_too_long",
+  "saved_meal_not_found",
+  "saved_meal_id_taken",
+  "meal_source_too_long",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
