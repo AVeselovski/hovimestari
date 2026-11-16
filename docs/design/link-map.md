@@ -79,6 +79,29 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | Fineli import, Fineli release             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
 | food visibility, food scope               | `features/foods.md#visibility`           | `### Visibility`           |
 
+## Days and logging
+
+| Concept                                    | Home                                                         | Heading                                |
+| ------------------------------------------ | ------------------------------------------------------------ | -------------------------------------- |
+| day, entry, food entry, saved meal entry   | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
+| planned and eaten, unmarked                | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
+| the two totals, eaten, with plan, rounding | `features/days.md#the-two-totals`                            | `### The two totals`                   |
+| position, distance, where a day stands     | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
+| figures that stay, basis, hidden source    | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
+| the week, a range of days                  | `features/days.md#the-week`                                  | `### The week`                         |
+| estimate                                   | `features/days.md#estimates`                                 | `### Estimates`                        |
+| the figure computation                     | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
+| adding, editing and moving an entry        | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
+| marking eaten, marking planned             | `features/quick-logging.md#marking-eaten`                    | `### Marking eaten`                    |
+| copying entries                            | `features/quick-logging.md#copying-entries`                  | `### Copying entries`                  |
+| recent items, the last amount              | `features/quick-logging.md#recent-items-and-the-last-amount` | `### Recent items and the last amount` |
+| logging again                              | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
+| client-chosen ids, replays                 | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
+| undo, removing and restoring an entry      | `features/quick-logging.md#undo`                             | `### Undo`                             |
+| user row lock, write races                 | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
+| saved meal, meal source                    | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
+| archiving and deleting a saved meal        | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |
+
 ## Example area
 
 | Concept                      | Home                                             | Heading                         |

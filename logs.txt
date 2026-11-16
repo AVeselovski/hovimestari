@@ -62,6 +62,8 @@
 [architect STARTED] (2026-11-15T20:37:58Z) revise the session renewal design
 [architect STARTED] (2026-11-15T20:38:04Z) revise session-renewal.md for the design review
 [architect DONE] (2026-11-15T20:40:54Z) session-renewal.md revised for review round 1: lock tests, 503 on lock wait, corrected theft table, sweep dropped, sign-in under the lock
+[architect STARTED] (2026-11-15T20:41:24Z) design doc for build step 3, days and quick logging
+[architect STARTED] (2026-11-15T20:42:12Z) design step 3 days and quick logging
 [frontend-engineer DONE] (2026-11-15T20:43:08Z) PR 2 fix cycle 1: 16 findings fixed, each test red without its fix; gates green, 257 web tests
 [frontend-engineer DONE] (2026-11-15T20:43:30Z) fix cycle 1 for PR 2: 16 findings fixed, 257 web tests
 [reviewer STARTED] (2026-11-15T20:43:30Z) re-review PR 2 after fix cycle 1
@@ -77,12 +79,23 @@
 [reviewer DONE] (2026-11-15T20:51:31Z) re-review of PR 2a: approve at 53862b6; three follow-ups filed
 [documentation-specialist DONE] (2026-11-15T20:51:31Z) docs pass for PR 2a in 6ffe0b5
 [ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed
+[architect DONE] (2026-11-15T20:59:06Z) design doc docs/design/days-and-logging.md for step 3: data model, readings and gauge, quick log, saved meals, estimates, 3 PRs
 [frontend-engineer STARTED] (2026-11-15T20:59:47Z) fix the web build after merging the targets and foods types
+[reviewer STARTED] (2026-11-15T21:00:10Z) design review of docs/design/days-and-logging.md, round 1
 [backend-engineer STARTED] (2026-11-15T21:00:56Z) PR 2b: the Fineli importer
 [backend-engineer STARTED] (2026-11-15T21:01:08Z) fix: a lost refresh response no longer signs the user out
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
 [backend-engineer STARTED] (2026-11-15T21:04:11Z) PR 2b: Fineli importer, fixtures, runbook, carried 2a review items
 [frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
+[reviewer DONE] (2026-11-15T21:05:56Z) design review of days and quick logging, round 1: ready after fixes; figures model sound; 7 major, 12 minor
+[architect STARTED] (2026-11-15T21:05:56Z) revise the days and quick logging design for review round 1
+[architect STARTED] (2026-11-15T21:06:02Z) revise step 3 design after review
+[architect DONE] (2026-11-15T21:11:58Z) revised days-and-logging design after review round 1: basis written once, fixed gauge scale, ids per action, stale-today guard, 4 PRs
+[reviewer STARTED] (2026-11-15T21:12:32Z) design review of days and quick logging, round 2, the majors only
+[reviewer DONE] (2026-11-15T21:13:45Z) design review of days and quick logging, round 2: ready after one fix (a pending plus-button id can swallow a second, intended log)
+[architect STARTED] (2026-11-15T21:13:45Z) revise the days and quick logging design for review round 2
+[architect STARTED] (2026-11-15T21:14:08Z) design review round 2 fixes
+[architect DONE] (2026-11-15T21:15:16Z) design review round 2 fixes: pending id clearing and replay outcome, removed_entries restore, portion hint rules, gauge clamp, shorter new-meal path
 [frontend-engineer STARTED] (2026-11-15T21:19:00Z) PR 3 of the scaffold: the Base UI sheets and the account section
 [backend-engineer DONE] (2026-11-15T21:19:09Z) session renewal by token families, user row lock, migration 0003, docs; 343 backend tests, session suites green 5 runs in a row
 [validator STARTED] (2026-11-15T21:19:44Z) validate the session renewal fix
@@ -119,14 +132,21 @@
 [validator STARTED] (2026-11-16T02:41:33Z) account settings validation
 [ui-validator STARTED] (2026-11-16T02:41:33Z) account settings in a real browser
 [reviewer STARTED] (2026-11-16T02:41:33Z) account settings code review
+[backend-engineer STARTED] (2026-11-16T02:42:52Z) days and quick logging backend, PR 3a
 [reviewer DONE] (2026-11-16T02:57:36Z) account settings: approve after fixes; change-password re-sign-in race (major), form sheet frame duplicated (major), 11 minors and nits (160k tokens)
 [validator DONE] (2026-11-16T02:57:36Z) account settings at 699c58e: FAIL on one stale page doc (docs/app/auth.md); code meets every check; 3 minors
 [frontend-engineer STARTED] (2026-11-16T02:57:36Z) account settings fix cycle 1
+[backend-engineer DONE] (2026-11-16T03:15:10Z) PR 3a built: types, migration 0004, services, routes, 6 new db suites, docs and TODO. Gate green with CI=true: types 122, web 283, backend 537 tests, docs:check 0. 32 rule mutations seen red (tokens n/a)
+[validator STARTED] (2026-11-16T03:15:55Z) days and quick logging backend, PR 3a
+[reviewer STARTED] (2026-11-16T03:15:55Z) days and quick logging backend, PR 3a code review
 [frontend-engineer DONE] (2026-11-16T03:23:36Z) account settings fix cycle 1: items 1 to 23; sign-in under the renewal lock, FormSheet, contrast and copy fixes, master merged; gate green (web 548, backend 437, types 97); forced renewal and sheet geometry checked in a production build
 [ui-validator DONE] (2026-11-16T03:24:18Z) account settings at 699c58e: pass with fixes; dark-mode contrast of outlined destructive buttons (major), 6 minors (234k tokens)
 [frontend-engineer DONE] (2026-11-16T03:24:18Z) account settings fix cycle 1: 23 items, master merged; web 548 tests
 [reviewer STARTED] (2026-11-16T03:24:18Z) account settings delta review after fix cycle 1
 [frontend-engineer STARTED] (2026-11-16T03:28:59Z) account settings fix cycle 2: items A to J
+[reviewer DONE] (2026-11-16T03:30:07Z) PR 3a: approve after fixes; concurrent copy repeat answers 409 (major), 9 minors (188k tokens)
+[validator DONE] (2026-11-16T03:30:07Z) PR 3a at b874c8a: FAIL on two concurrency defects (a write racing account deletion answers 500; parallel copy answers 409); figures, isolation, replays and random walks all pass
+[backend-engineer STARTED] (2026-11-16T03:30:07Z) PR 3a fix cycle 1
 [frontend-engineer DONE] (2026-11-16T03:41:23Z) account settings fix cycle 2: A to J; sign-in deadlock fixed, one retry after session_expired, across-state reauth checks, FormSheet options, footer row and in-flight ref; gate green (web 562, backend 437, types 97); two-tab password change and footer row checked in a production build
 [reviewer DONE] (2026-11-16T03:41:50Z) account settings delta review: all 13 closed; approve after fixes A to J (211k tokens)
 [frontend-engineer DONE] (2026-11-16T03:41:50Z) account settings fix cycle 2: A to J; web 562 tests
@@ -134,4 +154,18 @@
 [documentation-specialist STARTED] (2026-11-16T03:41:50Z) account settings docs pass
 [documentation-specialist STARTED] (2026-11-16T03:42:20Z) Docs pass for account settings (scaffold PR 3) at a62a942
 [documentation-specialist DONE] (2026-11-16T03:46:56Z) Docs pass for account settings: settings, auth, shell, colors, authentication, catalog, web README, TODO; docs:check clean
+[backend-engineer DONE] (2026-11-16T03:48:25Z) PR 3a fix cycle 1: all 14 items done; deletion races answer user_not_found, concurrent copy replays, id-ordered locks, restore refusals mapped, recents index walk (90 ms to 0.5 ms); gate green, races 10/10
+[validator STARTED] (2026-11-16T03:49:19Z) PR 3a re-validation after fix cycle 1
+[reviewer STARTED] (2026-11-16T03:49:19Z) PR 3a delta review after fix cycle 1
 [reviewer DONE] (2026-11-16T03:49:48Z) account settings fix cycle 2 confirmed: approve (225k tokens)
+[backend-engineer STARTED] (2026-11-16T03:58:33Z) PR 3a fix cycle 2
+[backend-engineer DONE] (2026-11-16T07:24:11Z) PR 3a fix cycle 2: saved meal repeats skip either unique key, food/target/settings writes answer user_not_found racing a deletion, recents in one statement, copy 409 race test, [deadlock] tag, master merged; gate green on merged tree, races 10/10
+[validator DONE] (2026-11-16T07:24:51Z) PR 3a re-validation at b3aca21: FAIL on one major (a saved meal create repeated in flight answers 500); both earlier defects gone (335k tokens)
+[reviewer DONE] (2026-11-16T07:24:51Z) PR 3a delta review: approve, four minors and two nits (244k tokens)
+[backend-engineer DONE] (2026-11-16T07:24:51Z) PR 3a fix cycle 2: eight items, master merged; 570 backend tests
+[validator STARTED] (2026-11-16T07:24:51Z) PR 3a: confirm fix cycle 2
+[documentation-specialist STARTED] (2026-11-16T07:24:51Z) PR 3a docs pass
+[documentation-specialist STARTED] (2026-11-16T07:25:24Z) docs pass for PR 3a days and quick logging
+[documentation-specialist DONE] (2026-11-16T07:29:50Z) split days, quick-logging and saved-meals docs to one home per rule, fixed catalog, link map, READMEs and TODO, docs:check clean
+[documentation-specialist DONE] (2026-11-16T07:39:18Z) PR 3a docs pass: each rule one home, examples recomputed (210k tokens)
+[validator DONE] (2026-11-16T07:39:18Z) PR 3a at bc1a1cf: PASS; one optional minor filed in TODO.md
