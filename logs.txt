@@ -52,9 +52,16 @@
 [backend-engineer DONE] (2026-11-15T20:25:25Z) PR 2a: targets and foods schema, services, routes, ranked search, tests and docs; all gates green, real-database suites ran
 [validator STARTED] (2026-11-15T20:25:51Z) validate PR 2a, targets and foods backend
 [reviewer STARTED] (2026-11-15T20:25:51Z) code review of PR 2a
+[architect STARTED] (2026-11-15T20:27:07Z) design for session renewal after a lost refresh response
 [reviewer DONE] (2026-11-15T20:30:31Z) code review of PR 2a: approve after fixes; nothing critical or major, 8 minor, 4 nit
+[architect DONE] (2026-11-15T20:33:07Z) docs/design/session-renewal.md: token families with sibling successors, fam claim for reuse, user-row lock; no web change
+[reviewer STARTED] (2026-11-15T20:33:43Z) design review of docs/design/session-renewal.md
 [validator DONE] (2026-11-15T20:37:30Z) PR 2a: PASS at 86eb804; 372 tests; UTF-8 clusters agree; search medians 9 to 24 ms on 10,001 foods; 5 minor
 [backend-engineer STARTED] (2026-11-15T20:37:30Z) fix cycle 1 for PR 2a: reviewer and validator findings
+[reviewer DONE] (2026-11-15T20:37:58Z) design review of session renewal: ready after fixes; mechanism sound; 3 major (two tests prove less than claimed, a lock timeout becomes a 500, the stolen-token table is wrong in one row), 4 minor
+[architect STARTED] (2026-11-15T20:37:58Z) revise the session renewal design
+[architect STARTED] (2026-11-15T20:38:04Z) revise session-renewal.md for the design review
+[architect DONE] (2026-11-15T20:40:54Z) session-renewal.md revised for review round 1: lock tests, 503 on lock wait, corrected theft table, sweep dropped, sign-in under the lock
 [frontend-engineer DONE] (2026-11-15T20:43:08Z) PR 2 fix cycle 1: 16 findings fixed, each test red without its fix; gates green, 257 web tests
 [frontend-engineer DONE] (2026-11-15T20:43:30Z) fix cycle 1 for PR 2: 16 findings fixed, 257 web tests
 [reviewer STARTED] (2026-11-15T20:43:30Z) re-review PR 2 after fix cycle 1
@@ -72,19 +79,36 @@
 [ui-validator DONE] (2026-11-15T20:55:35Z) re-check of PR 2: PASS at 29a0912; 0px movement in all 40 error cases; field borders 3.66 and 4.10 to 1; three polish items filed
 [frontend-engineer STARTED] (2026-11-15T20:59:47Z) fix the web build after merging the targets and foods types
 [backend-engineer STARTED] (2026-11-15T21:00:56Z) PR 2b: the Fineli importer
+[backend-engineer STARTED] (2026-11-15T21:01:08Z) fix: a lost refresh response no longer signs the user out
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
 [backend-engineer STARTED] (2026-11-15T21:04:11Z) PR 2b: Fineli importer, fixtures, runbook, carried 2a review items
+[backend-engineer DONE] (2026-11-15T21:19:09Z) session renewal by token families, user row lock, migration 0003, docs; 343 backend tests, session suites green 5 runs in a row
+[validator STARTED] (2026-11-15T21:19:44Z) validate the session renewal fix
+[reviewer STARTED] (2026-11-15T21:19:44Z) code review of the session renewal fix
 [backend-engineer DONE] (2026-11-15T21:20:12Z) PR 2b importer, fixtures, runbook, name rule, fi-x-icu pin, docs; validator not invoked per brief
 [validator STARTED] (2026-11-15T21:22:11Z) validate PR 2b, the Fineli importer
 [reviewer STARTED] (2026-11-15T21:22:11Z) code review of PR 2b
+[reviewer DONE] (2026-11-15T21:24:39Z) code review of the session renewal fix: approve after fixes; state machine, locks and migration sound; 2 must-fix minors, follow-ups
+[backend-engineer STARTED] (2026-11-15T21:24:39Z) fix cycle 1 for the session renewal fix
 [reviewer DONE] (2026-11-15T21:27:09Z) code review of PR 2b: approve after fixes; reader, conversion and write path sound; 4 must-fix minors, 5 follow-ups
 [backend-engineer STARTED] (2026-11-15T21:27:09Z) fix cycle 1 for PR 2b
 [backend-engineer DONE] (2026-11-16T02:17:10Z) PR 2b fix cycle 1 and validator findings V1 to V4
+[backend-engineer DONE] (2026-11-16T02:17:53Z) fix cycle 1 for the session renewal fix: reuse ends the family, review findings fixed, master merged; 361 backend, 283 web, 88 types tests
+[orchestrator] (2026-11-16T02:18:10Z) session fix: engineer done with fix cycle 1 + merge of master; delta review and re-validation start
+[reviewer STARTED] (2026-11-16T02:18:10Z) delta review of the session renewal fix after fix cycle 1
+[validator STARTED] (2026-11-16T02:18:10Z) re-validation of the session renewal fix after fix cycle 1
 [backend-engineer DONE] (2026-11-16T02:18:56Z) Fineli importer fix cycle 1 plus validator findings V1-V4; 388 backend tests, release 18 import unchanged (391k tokens)
 [reviewer STARTED] (2026-11-16T02:18:56Z) delta review of the Fineli importer after fix cycle 1
 [backend-engineer DONE] (2026-11-16T02:26:54Z) PR 2b fix cycle 2: N1 to N3, nits A and B
+[backend-engineer DONE] (2026-11-16T02:27:50Z) fix cycle 2 for the session renewal fix: sign-out reuse, busy judged by code, docs; 364 backend, 283 web, 88 types tests
+[reviewer DONE] (2026-11-16T02:28:19Z) session renewal fix delta review: approve after one fix (sign-out with a dead token of a live family), two minors (176k tokens)
+[validator DONE] (2026-11-16T02:28:19Z) session renewal fix re-validation at f7e5f9e: PASS, five minor doc findings (191k tokens)
+[backend-engineer DONE] (2026-11-16T02:28:19Z) session renewal fix cycle 2: reuse on sign-out, busy by code, docs; 364 backend tests
+[documentation-specialist STARTED] (2026-11-16T02:28:19Z) session renewal fix docs pass, with the validator's five doc findings
+[documentation-specialist STARTED] (2026-11-16T02:28:23Z) docs pass for session renewal fix
 [reviewer DONE] (2026-11-16T02:29:12Z) Fineli importer delta review: approve, three minors and two nits (197k tokens)
 [backend-engineer DONE] (2026-11-16T02:29:12Z) Fineli importer fix cycle 2: all five closed; 391 backend tests, release 18 import unchanged
 [documentation-specialist STARTED] (2026-11-16T02:29:12Z) Fineli importer docs pass
 [documentation-specialist STARTED] (2026-11-16T02:29:16Z) docs pass for the Fineli importer
+[documentation-specialist DONE] (2026-11-16T02:30:08Z) reuse policy, cap order, caught-copy wording and busy causes brought in line with the code across design doc, memory, feature doc, TODO and backend README. docs:check clean
 [documentation-specialist DONE] (2026-11-16T02:32:22Z) Fineli import docs pass: runbook checked against cli.ts and report.ts and a fixture run, foods.md guards and overrides, catalog, TODO ranking item

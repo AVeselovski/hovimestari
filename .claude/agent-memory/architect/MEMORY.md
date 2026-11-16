@@ -5,3 +5,4 @@
 - [Fineli access](reference_fineli_access.md): fineli.fi is Cloudflare-blocked for agents; what sources work instead
 - [Cascade walk and shared rows](project_cascade_walk_shared_rows.md): foods is reached from users, so keys into it must cascade; retire, never delete
 - [Measure claims on real data](feedback_measure_claims_on_real_data.md): run ranking/parse rules on real rows before claiming results; literal FR wording wins
+- [Refresh-token families](project_refresh_token_families.md): siblings not replacement, fam claim for reuse, user-row lock before any token write

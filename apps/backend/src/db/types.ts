@@ -6,3 +6,6 @@ import type * as schema from "./schema/index.js";
  * that take a handle can name its type without importing the pool.
  */
 export type Db = NodePgDatabase<typeof schema>;
+
+/** A transaction on the database. Code that must hold a lock until it commits takes this, never `Db`. */
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];

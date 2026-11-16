@@ -23,9 +23,9 @@ Joining them is done on purpose, while signed in. A Google-only account can add 
 
 ### Staying signed in
 
-A session lasts 7 days without use and renews itself while the app is in use. Closing the app and opening it again keeps the person signed in.
+A session lasts 7 days without use and renews itself while the app is in use. Closing the app and opening it again keeps the person signed in. A renewal whose answer never reaches the phone, on a dropped network say, does not sign the person out: the phone renews again later and gets a new session. Two windows renewing at the same moment both stay signed in. When an older token of a session is presented after a newer one has been used, the server takes it as a copy and ends that session. The person signs in again on that device, and their other devices stay signed in.
 
-Signing out ends the session on this device. **Sign out on all devices** ends every session. A device that is open at that moment keeps working until its short-lived pass runs out, within 15 minutes, and only while the app is open there. A closed app cannot use it at all. Changing or resetting the password ends every session the same way.
+Signing out ends the session on this device. **Sign out on all devices** ends every session, including a renewal or a sign-in that is under way at that moment. A device that is open at that moment keeps working until its short-lived pass runs out, within 15 minutes, and only while the app is open there. A closed app cannot use it at all. Changing or resetting the password ends every session the same way, and a sign-in that checked the old password just before the change is refused.
 
 When the server cannot be reached, nobody is signed out. A device that was signed in opens the app as usual, says it is offline and tries again on its own, and again as soon as it is back online. A device that was signed out, or never signed in, opens the sign-in side instead, with the same offline line. When the server answers but with a fault of its own, the app keeps the session, says something went wrong and offers **Try again**.
 
@@ -49,11 +49,26 @@ Deleting the account removes it and everything it owns, at once and for good. A 
 
 ### Tokens
 
-Two JWTs with separate secrets carry `sub`, the user id, in `apps/backend/src/lib/jwt.ts`. The access token lasts `JWT_ACCESS_EXPIRES_IN`, `15m` by default. The refresh token lasts `JWT_REFRESH_EXPIRES_IN`, `7d` by default, and carries a random `jti`, so two signed in the same second differ.
+Two JWTs with separate secrets carry `sub`, the user id, in `apps/backend/src/lib/jwt.ts`. Both are signed and verified with HS256 only, so a token signed another way, or not signed, is refused. The access token lasts `JWT_ACCESS_EXPIRES_IN`, `15m` by default. The refresh token lasts `JWT_REFRESH_EXPIRES_IN`, `7d` by default, and carries a random `jti`, so two signed in the same second differ.
 
-The server stores only a SHA-256 hash of each refresh token, one row per session. A refresh token works while its signature checks out and its row exists. `issueSession` in `apps/backend/src/lib/sessions.ts` writes every session in one transaction: it deletes the spent row and requires that the delete removed it, sweeps the user's expired rows and inserts the new one. Two refreshes racing with one token therefore give exactly one new session. The loser waits on the row's lock, finds it gone and gets 401. A spent refresh token that is presented again is refused in the same way and nothing else happens: the server does not treat it as a sign of theft and does not end the user's other sessions.
+The server stores only a SHA-256 hash of each refresh token. `apps/backend/src/lib/sessions.ts` holds every write to the stored tokens.
 
-`endAllSessions` in the same file deletes every refresh row of a user. Password change, password reset and sign out everywhere call it inside their transactions. An access token already handed out stays valid until it expires, which is the 15-minute window above.
+**Families.** Every refresh token belongs to a family, the line of tokens one sign-in produces. The family id rides in the refresh token as the claim `fam` and in its row as `family_id`. A token without `fam` is found by its hash alone. Its first renewal answers a token that carries its row's family.
+
+**Renewing.** `renewSession` renews a token whose signature checks out and whose row exists and has not expired:
+
+- A live token is marked superseded and gets one successor. Every other row of its family is deleted, superseded rows and unused successors alike.
+- A superseded token renews again. Each renewal adds another successor, a sibling, beside the earlier ones, which all stay live. A family keeps at most 5 unused siblings, and an older one is deleted to make room for a sixth.
+
+So a renewal whose answer was lost can be repeated with the same token until one of its successors is used. A family holds at most six rows: one superseded token and its live siblings. The first sibling used deletes the rest.
+
+**Reuse.** A token whose signature checks out but whose row is gone, while its family still has rows, is a reuse: a predecessor presented after its successor was used, or a sibling deleted when another one was used or the cap trimmed it. `onRefreshReuse` handles every reuse. It refuses the token, deletes every row of that family under the user lock, and logs the user id and the family id. The user's other families stay. Whoever presented the token is refused either way, and the web server then deletes that browser's cookie, so the person loses nothing more than that sign-in. Take someone holding a copied token who renews it before the person does. If they have also used the token that renewal gave them, the person's next renewal is a reuse and ends the family. If they have not, the person's renewal gets a sibling and succeeds. The first of the two siblings used deletes the other, and the family ends when the side that lost presents its deleted sibling. The cost is that anyone holding an old copy of a token, at any time within its 7 days, can end that sign-in whenever they like by presenting it. That signs the person out of one sign-in and gives the copy's holder no session. A token of a family that has ended, or a token without `fam` whose row is gone, is refused without a reuse log.
+
+**One lock per user.** Every write to a user's refresh rows takes that user's row lock first, with `FOR NO KEY UPDATE`: a renewal, a sign-in, a sign out, a sign out everywhere, a password change and a reset. Writes for one user therefore run one after another, across all their devices, so a sign out everywhere or a password change cannot miss a renewal or a sign-in that is under way. A sign-in checks again under the lock that the password hash or the Google id it verified is still the account's, and is refused otherwise. A request that waits longer than the pool's 3-second `lock_timeout` answers 503 with `Retry-After: 2`. Nothing was written, so the same token works on the next try.
+
+Expiry is judged by the database clock. A row expires at `now() + JWT_REFRESH_EXPIRES_IN`, set in SQL, and an expired row is refused and deleted. A sign-in and a renewal also sweep the same user's other expired rows. A sign out and a sign out everywhere delete the rows they end, expired or not.
+
+`endSession` signs out: it deletes every row of the presented token's family. A token whose row is gone, while its family still has rows, is a reuse and ends the family, as it does on a renewal. So a person who signs out with a token whose row a copy's renewals already deleted also ends the copy's session. A token of a family that has ended ends nothing. `endAllSessions` deletes every refresh row of a user. Password change, password reset and sign out everywhere call it inside their transactions. An access token already handed out stays valid until it expires, which is the 15-minute window above.
 
 `authenticate` in `apps/backend/src/middleware/authenticate.ts` accepts a `Bearer` access token and answers 401 `unauthorized` otherwise.
 
@@ -73,9 +88,9 @@ The refresh handler deletes the cookie only on the backend's 401 `session_expire
 
 The page's auth context, `AuthContext`, owns renewal. On 503 `server_unreachable`, a failed request, or a request that has not answered within 12 seconds, it reports `offline` and retries after 2, 5 and 15 seconds, then every minute, and at once when the browser comes back online. On any other failure it reports `error` and waits for the person to retry, because retrying a misconfiguration on a timer only repeats it. Neither state ends the session.
 
-A refresh token works once, and the cookie is shared by every tab. So renewal runs one request at a time within a tab, and, where the browser has the Web Locks API, one at a time across tabs under the lock `hovi-session-renewal`. A tab that waited sends the cookie the previous renewal rotated, so both tabs stay signed in. The 12-second limit means a hung request never holds the lock for longer than that.
+The cookie is shared by every tab. Renewal runs one request at a time within a tab, and, where the browser has the Web Locks API, one at a time across tabs under the lock `hovi-session-renewal`. A tab that waited sends the cookie the previous renewal set, which spares the server a second successor. Without Web Locks two tabs can renew with the same token at the same moment, and both still get a working token, because a renewed token stays usable until one of its successors is used. [Tokens](#tokens) has the rule. The 12-second limit means a hung request never holds the lock for longer than that.
 
-Sign-out takes the same lock, and without Web Locks it waits for this tab's renewal. A renewal already in flight finishes and sets its cookie first, and the sign-out then ends that session and deletes the cookie last. Any renewal answer that arrives after the person tapped **Sign out** is discarded, so a late renewal can never sign the device back in. Without Web Locks, two tabs renewing at the same moment can still collide, and the one that loses is signed out.
+Sign-out takes the same lock, and without Web Locks it waits for this tab's renewal. A renewal already in flight finishes and sets its cookie first, and the sign-out then ends that session and deletes the cookie last. Any renewal answer that arrives after the person tapped **Sign out** is discarded, so a late renewal can never sign the device back in.
 
 The context keeps a plain flag, `hovi-signed-in` in local storage, set when a session starts and cleared on sign-out and when the server ends the session. It holds no token. It only decides what an offline launch shows: the app for a device with a known session, the sign-in side for any other.
 
@@ -142,27 +157,27 @@ A Google callback never answers JSON, because the browser is on its way back to 
 
 All under `/api/v1`. **Relay** means `X-Bff-Secret` is required. **Bearer** means an access token is required.
 
-| Method | Path                         | Who           | Answers                                                                                         |
-| ------ | ---------------------------- | ------------- | ----------------------------------------------------------------------------------------------- |
-| POST   | `/auth/register`             | Relay         | 201 with the access token, the refresh token and the user                                       |
-| POST   | `/auth/login`                | Relay         | 200 with the same                                                                               |
-| POST   | `/auth/refresh`              | Relay         | 200 with a rotated session, or 401 `session_expired`                                            |
-| POST   | `/auth/logout`               | Relay         | 204. Ends the session the presented refresh token belongs to                                    |
-| POST   | `/auth/logout-all`           | Bearer        | 204. Ends every session of the user                                                             |
-| GET    | `/auth/providers`            | Anyone        | `{ google }`                                                                                    |
-| GET    | `/auth/google`               | Anyone        | 302 to Google. Needs `?bind=`                                                                   |
-| GET    | `/auth/google/callback`      | Google        | 302 to the web server's `/api/auth/google/complete?code=`, or to `/auth/sign-in?error=`         |
-| POST   | `/auth/google/exchange`      | Relay         | 200 with a session for a code and its nonce, or 401 `google_failed`                             |
-| POST   | `/auth/forgot-password`      | Anyone        | 200 with the same answer for every address                                                      |
-| POST   | `/auth/reset-password`       | Anyone        | 204, or 400 `reset_link_invalid`                                                                |
-| POST   | `/auth/link/password`        | Bearer        | 200 with the user, or 409 `password_already_set`                                                |
-| POST   | `/auth/link/google/start`    | Bearer, Relay | 200 `{ url }`, Google's consent URL, or 409 `google_already_linked`                             |
-| GET    | `/auth/link/google/callback` | Google        | 302 to the web server's `/api/auth/google/link/complete?code=`, or to `/settings?google=failed` |
-| POST   | `/auth/link/google/exchange` | Relay         | 204, or 401 `google_failed`, 409 `google_taken` or `google_already_linked`                      |
-| DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user. `method` is `google` or `password`                                           |
-| GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle, foodNameLanguage, timeZone }`                         |
-| PUT    | `/users/me/password`         | Bearer        | 204, or 401 `current_password_wrong`, 403 `no_password`                                         |
-| DELETE | `/users/me`                  | Bearer        | 204, or 400 `confirmation_mismatch`. Takes `{ password }` or `{ email }`                        |
+| Method | Path                         | Who           | Answers                                                                                                                                      |
+| ------ | ---------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/register`             | Relay         | 201 with the access token, the refresh token and the user                                                                                    |
+| POST   | `/auth/login`                | Relay         | 200 with the same                                                                                                                            |
+| POST   | `/auth/refresh`              | Relay         | 200 with a renewed session, also for a token whose successors are all unused. 401 `session_expired` otherwise. 503 when the database is busy |
+| POST   | `/auth/logout`               | Relay         | 204. Ends the whole family the presented refresh token belongs to                                                                            |
+| POST   | `/auth/logout-all`           | Bearer        | 204. Ends every session of the user                                                                                                          |
+| GET    | `/auth/providers`            | Anyone        | `{ google }`                                                                                                                                 |
+| GET    | `/auth/google`               | Anyone        | 302 to Google. Needs `?bind=`                                                                                                                |
+| GET    | `/auth/google/callback`      | Google        | 302 to the web server's `/api/auth/google/complete?code=`, or to `/auth/sign-in?error=`                                                      |
+| POST   | `/auth/google/exchange`      | Relay         | 200 with a session for a code and its nonce, or 401 `google_failed`                                                                          |
+| POST   | `/auth/forgot-password`      | Anyone        | 200 with the same answer for every address                                                                                                   |
+| POST   | `/auth/reset-password`       | Anyone        | 204, or 400 `reset_link_invalid`                                                                                                             |
+| POST   | `/auth/link/password`        | Bearer        | 200 with the user, or 409 `password_already_set`                                                                                             |
+| POST   | `/auth/link/google/start`    | Bearer, Relay | 200 `{ url }`, Google's consent URL, or 409 `google_already_linked`                                                                          |
+| GET    | `/auth/link/google/callback` | Google        | 302 to the web server's `/api/auth/google/link/complete?code=`, or to `/settings?google=failed`                                              |
+| POST   | `/auth/link/google/exchange` | Relay         | 204, or 401 `google_failed`, 409 `google_taken` or `google_already_linked`                                                                   |
+| DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user. `method` is `google` or `password`                                                                                        |
+| GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle, foodNameLanguage, timeZone }`                                                                      |
+| PUT    | `/users/me/password`         | Bearer        | 204, or 401 `current_password_wrong`, 403 `no_password`                                                                                      |
+| DELETE | `/users/me`                  | Bearer        | 204, or 400 `confirmation_mismatch`. Takes `{ password }` or `{ email }`                                                                     |
 
 The request and response shapes are the Zod schemas in `packages/types/src/auth.ts`.
 
@@ -184,7 +199,7 @@ The refresh cookie `__refresh_token` is `httpOnly`, `SameSite=Strict`, `Secure` 
 Three tables, in `apps/backend/src/db/schema/`:
 
 - `users`: `email` unique and always lower case, `password_hash` null on a Google-only account, `google_id` unique and null on a password-only account. The CHECK `users_has_sign_in_method` requires one of the two. The CHECK `users_email_lower` refuses a mixed-case email. It also holds `food_name_language`, whose rule is in [food-name language](foods.md#food-name-language), and `time_zone`, whose rule is in [today and the time zone](targets.md#today-and-the-time-zone).
-- `refresh_tokens`: one row per session, with `token_hash` unique and `expires_at`.
+- `refresh_tokens`: one row per refresh token, with `token_hash` unique, `family_id` naming the sign-in it descends from, `superseded_at` set once it was renewed, and `expires_at`.
 - `password_reset_tokens`: one row per reset link, with `token_hash` unique and `expires_at`.
 
 Both token tables point at `users` with `ON DELETE CASCADE`. Every table that holds a user's data does the same, directly or through a chain of cascading foreign keys, so deleting a user is one `DELETE` and Postgres removes the rest. `apps/backend/src/db/__tests__/userCascade.db.test.ts` fails when a table breaks that rule or is left out of its deletion check.

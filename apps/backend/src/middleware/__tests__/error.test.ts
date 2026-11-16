@@ -18,6 +18,16 @@ function mockRes() {
 }
 
 const req = {} as Request;
+
+/** A failed query as drizzle wraps it: the SQL and params in the message and fields, the driver error as `cause`. */
+function wrapped(driver: { code?: string; constraint?: string }, message: string, params: unknown[] = []): Error {
+  const cause = Object.assign(new Error(message), driver);
+  return Object.assign(new Error(`Failed query: insert into foods values ($1)\nparams: ${params.join(",")}`), {
+    query: "insert into foods values ($1)",
+    params,
+    cause,
+  });
+}
 const next = jest.fn() as unknown as NextFunction;
 
 describe("errorHandler", () => {
@@ -50,6 +60,11 @@ describe("errorHandler", () => {
       "a lock wait that gave up",
       Object.assign(new Error("canceling statement due to lock timeout"), { code: "55P03" }),
     ],
+    [
+      "a lock wait that gave up, as drizzle wraps it",
+      wrapped({ code: "55P03" }, "canceling statement due to lock timeout"),
+    ],
+    ["a client-side query timeout, as drizzle wraps it", wrapped({}, "Query read timeout")],
     ["a pool connect timeout", new Error("timeout exceeded when trying to connect")],
     ["a client-side query timeout", new Error("Query read timeout")],
   ])("answers 503 with Retry-After for %s", (_label, err) => {
@@ -59,6 +74,55 @@ describe("errorHandler", () => {
     expect(res.set).toHaveBeenCalledWith("Retry-After", "2");
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith({ message: "The server is busy. Please try again." });
+  });
+
+  it("logs a wrapped busy error's driver message, never the wrapper's query params", () => {
+    const res = mockRes();
+    const logged = jest.spyOn(console, "error").mockImplementation(() => {});
+    const param = `param-${randomUUID()}`;
+    errorHandler(
+      wrapped({ code: "55P03" }, "canceling statement due to lock timeout", [param]),
+      req,
+      res as unknown as Response,
+      next,
+    );
+    const said = logged.mock.calls.map((c) => format(...c)).join("\n");
+    expect(said).toContain("55P03 canceling statement due to lock timeout");
+    expect(said).not.toContain(param);
+    logged.mockRestore();
+  });
+
+  it.each([
+    ["a refused row", { code: "23505", constraint: "some_unmapped_key" }, "duplicate key value"],
+    ["a dropped connection", {}, "Connection terminated unexpectedly"],
+  ])(
+    "never reads a busy phrase from a wrapped query's params as busy, for %s, and logs none of them",
+    (_l, driver, message) => {
+      const res = mockRes();
+      const logged = jest.spyOn(console, "error").mockImplementation(() => {});
+      // A food named after a busy phrase, in an INSERT that failed.
+      const param = `Query read timeout ${randomUUID()}`;
+      errorHandler(wrapped(driver, message, [param]), req, res as unknown as Response, next);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.set).not.toHaveBeenCalled();
+      const said = logged.mock.calls.map((c) => format(...c)).join("\n");
+      expect(said).not.toContain(param);
+      logged.mockRestore();
+    },
+  );
+
+  it("judges a Postgres error by its code, even when its message quotes a busy phrase, and logs none of the input", () => {
+    const res = mockRes();
+    const logged = jest.spyOn(console, "error").mockImplementation(() => {});
+    const input = `Query read timeout ${randomUUID()}`;
+    const refused = Object.assign(new Error(`invalid input syntax for type uuid: "${input}"`), { code: "22P02" });
+    errorHandler(refused, req, res as unknown as Response, next);
+    expect(res.status).toHaveBeenCalledWith(500); // before: 503, the message matched a busy phrase
+    expect(res.set).not.toHaveBeenCalled();
+    const said = logged.mock.calls.map((c) => format(...c)).join("\n");
+    expect(said).toContain("code=22P02");
+    expect(said).not.toContain(input);
+    logged.mockRestore();
   });
 
   it("keeps every other error a 500 without details", () => {

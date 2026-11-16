@@ -22,6 +22,15 @@ describe("failureOf", () => {
     expect(line).not.toContain("Failing row");
   });
 
+  it("withholds a data exception's message, which quotes the refused input, and keeps its code and frames", () => {
+    const input = `typed-by-a-person-${Date.now()}`;
+    const bad = Object.assign(new Error(`invalid input syntax for type uuid: "${input}"`), { code: "22P02" });
+    const line = failureOf(bad);
+    expect(line).not.toContain(input);
+    expect(line).toContain("code=22P02");
+    expect(line).toMatch(/\n\s+at /);
+  });
+
   it("reads the code and constraint from a wrapping error's cause", () => {
     const wrapped = new Error("Failed query", { cause: refused() });
     expect(failureOf(wrapped)).toContain("code=23514 constraint=x_check");
