@@ -85,7 +85,7 @@ export interface FormSheetProps extends Pick<
 /** The `BottomSheet` options a form sheet may set. */
 export type FormSheetOptions = Pick<
   BottomSheetProps,
-  "panelClassName" | "holdScroll" | "headerNote" | "stacked" | "onClosed"
+  "panelClassName" | "titleClassName" | "holdScroll" | "headerNote" | "stacked" | "onClosed"
 >;
 
 export function FormSheet({

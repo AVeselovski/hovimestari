@@ -1,20 +1,19 @@
 "use client";
 
+import { DeleteAccountButton } from "@/components/account/DeleteAccountButton";
+import { SignOutButton } from "@/components/account/SignOutButton";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { StableLabel } from "@/components/ui/StableLabel";
 import { btnSecondary, btnSecondaryDanger } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { getErrorCode } from "@/lib/errors";
-import { forgetSignedInPages } from "@/lib/forgetDevice";
 import { meQuery } from "@/lib/queryOptions";
 import { lastKnownEmail } from "@/lib/sessionMarker";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useState, useSyncExternalStore, type ReactElement, type ReactNode } from "react";
-import { DeleteAccountSheet } from "./DeleteAccountSheet";
 
 const noSubscription = (): (() => void) => () => {};
 
@@ -35,17 +34,10 @@ export function AccountSection(): ReactElement {
   const account = me ?? user;
   // Read from storage after hydration: the server render knows no device.
   const remembered = useSyncExternalStore(noSubscription, lastKnownEmail, () => null);
-  const [signingOut, setSigningOut] = useState(false);
 
   const everywhere = useSheetTarget();
   const [everywhereBusy, setEverywhereBusy] = useState(false);
   const [everywhereError, setEverywhereError] = useState<string | null>(null);
-  const deleteSheet = useSheetTarget();
-
-  async function handleSignOut(): Promise<void> {
-    setSigningOut(true);
-    await signOut();
-  }
 
   async function handleSignOutEverywhere(): Promise<void> {
     setEverywhereError(null);
@@ -61,13 +53,6 @@ export function AccountSection(): ReactElement {
     }
   }
 
-  // The query cache needs no clearing: it lives inside the signed-in tree,
-  // which goes when the sign-out ends the session (lib/forgetDevice.ts).
-  async function afterDeletion(): Promise<void> {
-    await forgetSignedInPages();
-    await signOut({ to: "/auth/sign-in?deleted=1" });
-  }
-
   return (
     <Card labelledBy="settings-account">
       <Card.Header id="settings-account" title={t("title")} />
@@ -79,14 +64,7 @@ export function AccountSection(): ReactElement {
         )
       )}
       <div className="grid gap-2 md:flex md:flex-wrap md:gap-3">
-        <button
-          type="button"
-          onClick={() => void handleSignOut()}
-          disabled={signingOut}
-          className={`w-full md:w-auto ${btnSecondary}`}
-        >
-          <StableLabel active={signingOut} idle={t("signOut")} busy={t("signingOut")} />
-        </button>
+        <SignOutButton className={`w-full md:w-auto ${btnSecondary}`} />
         {account && (
           <button
             type="button"
@@ -102,13 +80,7 @@ export function AccountSection(): ReactElement {
       </div>
       {account && (
         <div className="mt-6 border-t border-rule pt-6">
-          <button
-            type="button"
-            onClick={(e) => deleteSheet.open(e.currentTarget)}
-            className={`w-full md:w-auto ${btnSecondaryDanger}`}
-          >
-            {t("deleteAccount")}
-          </button>
+          <DeleteAccountButton me={account} className={`w-full md:w-auto ${btnSecondaryDanger}`} />
         </div>
       )}
 
@@ -126,16 +98,6 @@ export function AccountSection(): ReactElement {
           returnFocusTo={everywhere.shown.opener}
           onConfirm={() => void handleSignOutEverywhere()}
           onCancel={everywhere.close}
-        />
-      )}
-      {deleteSheet.shown && account && (
-        <DeleteAccountSheet
-          key={deleteSheet.shown.key}
-          open={deleteSheet.isOpen}
-          me={account}
-          returnFocusTo={deleteSheet.shown.opener}
-          onClose={deleteSheet.close}
-          onSaved={() => void afterDeletion()}
         />
       )}
     </Card>

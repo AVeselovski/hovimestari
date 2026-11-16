@@ -51,9 +51,10 @@ Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's ed
 - The accent as text on the page: 5.8 to 1 in light and 6.1 to 1 in dark. On the tab bar and a panel: 5.4 to 1 in both.
 - The accent as text on a raised surface, as on an outlined destructive button: 6.2 to 1 in light and 4.7 to 1 in dark.
 - Text on an accent fill: 6.2 to 1 in light and 6.1 to 1 in dark.
-- A field's border, and a secondary button's: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
+- A field's border, a secondary button's and a segmented control's tray: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
+- A text button's underline, the mark that makes the words a button: `--color-field-rule` for an ordinary one, and the accent at 70 % for one that leads to something destructive. The accent's underline reaches 3.3 to 1 on the page and 3.2 to 1 on a panel in light, 3.6 to 1 and 3.3 to 1 in dark. On a raised surface, the field rule reaches 3.9 to 1 in light and 3.2 to 1 in dark, and the accent's underline 3.4 to 1 and 3.1 to 1. Under the pointer or a press, either fills in, to ink or the full accent.
 
-`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, accent text, text on an accent fill or muted text drops under its line.
+`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, a text button's underline, accent text, text on an accent fill or muted text drops under its line.
 
 ### Motion
 

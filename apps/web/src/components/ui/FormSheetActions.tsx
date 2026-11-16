@@ -66,7 +66,11 @@ export function FormSheetActions({
       <button
         type="submit"
         form={formId}
-        disabled={submitting || submitDisabled}
+        // Busy is aria-disabled, not disabled: a disabled button drops the
+        // keyboard focus it holds to <body>, outside the modal. FormSheet
+        // refuses a second submit while one runs.
+        disabled={submitDisabled}
+        aria-disabled={submitting || undefined}
         {...submitGuard}
         className={`${tone === "danger" ? btnDanger : btnPrimary} ${touchTarget}`}
       >

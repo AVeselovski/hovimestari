@@ -53,6 +53,10 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | bottom sheet, confirm dialog, sheet conventions | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 | sign-in pages, guest pages                      | `app/auth.md`                                                           | Doc                                              |
 | settings, sign-in methods, account actions      | `app/settings.md`                                                       | Doc                                              |
+| first-run page                                  | `app/first-run.md`                                                      | Doc                                              |
+| number fields, date fields, parseDecimalInput   | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
+| targets sheet, change targets, remove a change  | `app/settings.md#targets`                                               | `### Targets`                                    |
+| food names setting, Finnish or English choice   | `app/settings.md#food-names`                                            | `### Food names`                                 |
 
 ## Targets
 
@@ -62,6 +66,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | dated change, targets in force               | `features/targets.md#changing-your-targets`    | `### Changing your targets`    |
 | which targets a day uses                     | `features/targets.md#which-targets-a-day-uses` | `### Which targets a day uses` |
 | first run, no targets yet                    | `features/targets.md#the-first-run`            | `### The first run`            |
+| first-run gate, spinner or tabs or first run | `features/targets.md#the-first-run-gate`       | `### The first-run gate`       |
 | not advice, no default target                | `features/targets.md#not-advice`               | `### Not advice`               |
 | today, the user's time zone                  | `features/targets.md#today-and-the-time-zone`  | `### Today and the time zone`  |
 

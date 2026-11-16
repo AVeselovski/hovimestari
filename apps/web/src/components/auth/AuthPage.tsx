@@ -12,7 +12,16 @@ import type { ReactElement, ReactNode } from "react";
  * at the same place on every guest page and nothing above a form moves when
  * its content changes. A line at the top says so while the app is offline.
  */
-export function AuthPage({ title, children }: { title: string; children: ReactNode }): ReactElement {
+export function AuthPage({
+  title,
+  titleId,
+  children,
+}: {
+  title: string;
+  /** The title's id, for a form on the page that takes its name from it. */
+  titleId?: string;
+  children: ReactNode;
+}): ReactElement {
   const t = useTranslations("common");
   const tShell = useTranslations("shell");
   const online = useOnlineStatus();
@@ -31,7 +40,9 @@ export function AuthPage({ title, children }: { title: string; children: ReactNo
       <main className="mx-auto w-full max-w-auth px-4 pt-[calc(var(--safe-top)+2.5rem)] pb-[calc(var(--safe-bottom)+2rem)] md:pt-24">
         <p className="font-display text-2xl font-semibold tracking-tight text-ink">{t("appName")}</p>
         <div className="mt-2 mb-8 rule-dashed" />
-        <h1 className="mb-6 font-display text-title font-medium text-ink md:text-title-lg">{title}</h1>
+        <h1 id={titleId} className="mb-6 font-display text-title font-medium text-ink md:text-title-lg">
+          {title}
+        </h1>
         {children}
       </main>
     </div>

@@ -36,8 +36,8 @@ export interface FormSheetContract {
   typedField: () => HTMLElement;
   /** Fills the form so Save is enabled. */
   fillValid: () => void;
-  /** Makes the next save hang until the returned `resolve` is called. */
-  holdSave: () => { resolve: () => void };
+  /** Makes the next save hang until the returned `resolve` is called, or fail at `reject`. */
+  holdSave: () => { resolve: () => void; reject: () => void };
   /** The field that takes focus on open at `md`+. */
   firstField: () => HTMLElement;
   /** The panel's width at `md`+. Default `md:max-w-sm`. */
@@ -187,6 +187,30 @@ export function describeFormSheetContract(c: FormSheetContract): void {
       await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     });
 
+    it("keeps focus on Save while the save runs and after it fails, so keyboard focus never leaves the dialog", async () => {
+      const save = c.holdSave();
+      renderOpen();
+      c.fillValid();
+      const button = screen.getByRole("button", { name: saveName });
+      act(() => button.focus());
+      fireEvent.click(button);
+      const busy = await screen.findByRole("button", { name: busyName });
+      expect(busy).toBe(button);
+      expect(button).toHaveFocus();
+      expect(button).toHaveAttribute("aria-disabled", "true");
+      expect(button).not.toBeDisabled();
+
+      // A second press while it runs sends nothing more.
+      fireEvent.click(button);
+      expect(onSaved).not.toHaveBeenCalled();
+
+      await act(async () => save.reject());
+      await screen.findByRole("button", { name: saveName });
+      expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+      expect(button).toHaveFocus();
+      expect(button).not.toHaveAttribute("aria-disabled");
+    });
+
     describe("while it slides out", () => {
       let restore: () => void;
       beforeEach(() => {
@@ -207,7 +231,10 @@ export function describeFormSheetContract(c: FormSheetContract): void {
         await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 
         const closing = screen.getByRole("dialog", { hidden: true });
-        expect(within(closing).getByRole("button", { name: busyName, hidden: true })).toBeDisabled();
+        expect(within(closing).getByRole("button", { name: busyName, hidden: true })).toHaveAttribute(
+          "aria-disabled",
+          "true",
+        );
         expect(c.typedField()).toHaveValue(typed);
       });
     });
