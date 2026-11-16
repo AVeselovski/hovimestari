@@ -30,7 +30,7 @@ export function failureOf(err: unknown): string {
   const own = err as PgFields;
   const fields = typeof own.code === "string" ? own : ((err.cause ?? {}) as PgFields);
   return [
-    err.stack ?? `${err.name}: ${err.message}`,
+    quotesInput(fields.code) ? withheld(err) : (err.stack ?? `${err.name}: ${err.message}`),
     typeof fields.code === "string" ? `code=${fields.code}` : "",
     typeof fields.constraint === "string" ? `constraint=${fields.constraint}` : "",
   ]
@@ -38,7 +38,20 @@ export function failureOf(err: unknown): string {
     .join(" ");
 }
 
-function isQueryWrapper(err: Error): err is Error & { cause: Error } {
+/**
+ * A Postgres data exception (SQLSTATE class 22: invalid input syntax, a
+ * value out of range, a bad date) quotes the refused input in its message.
+ * Such an error logs its name and stack frames, never its message.
+ */
+const quotesInput = (code: unknown): boolean => typeof code === "string" && code.startsWith("22");
+
+function withheld(err: Error): string {
+  const frames = (err.stack ?? "").split("\n").filter((line) => line.trimStart().startsWith("at "));
+  return [`${err.name}: (message withheld, it quotes the input)`, ...frames].join("\n");
+}
+
+/** A failed query as drizzle-orm 0.44 and later wrap it: the SQL in `query`, its values in `params`, the driver error as `cause`. */
+export function isQueryWrapper(err: Error): err is Error & { cause: Error } {
   const shape = err as Error & { query?: unknown; params?: unknown };
   return typeof shape.query === "string" && Array.isArray(shape.params) && err.cause instanceof Error;
 }

@@ -126,7 +126,11 @@ googleRouter.get(
       res.redirect(signInFailed("google_email_unverified"));
       return;
     }
-    const code = issueOneTimeCode("google-sign-in", { userId: outcome.id, bind: res.locals.bind as string });
+    const code = issueOneTimeCode("google-sign-in", {
+      userId: outcome.id,
+      bind: res.locals.bind as string,
+      googleId: outcome.googleId,
+    });
     res.redirect(`${env.FRONTEND_URL}/api/auth/google/complete?code=${encodeURIComponent(code)}`);
   },
 );
@@ -137,9 +141,11 @@ googleRouter.post("/google/exchange", requireBff, async (req, res) => {
   // A well-formed exchange spends the code, whatever the outcome. A body without a nonce is refused before this.
   const grant = redeemOneTimeCode(code, "google-sign-in");
   if (!grant || !nonceMatchesBind(nonce, grant.bind)) throw appError("google_failed", 401);
+  // The proof is the Google account that consented, which the code carries. issueSession checks it is still the account's.
+  if (!grant.googleId) throw appError("google_failed", 401);
   const user = await findUser(grant.userId);
   if (!user) throw appError("google_failed", 401);
-  res.status(200).json(await issueSession(user));
+  res.status(200).json(await issueSession(user, { googleId: grant.googleId }));
 });
 
 // ---------------------------------------------------------------------------

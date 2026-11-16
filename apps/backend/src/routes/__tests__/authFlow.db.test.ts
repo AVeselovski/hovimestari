@@ -100,28 +100,22 @@ await describeWithDb("authFlow", (suite) => {
     expect(wrong.body.code).toBe("invalid_credentials");
   });
 
-  it("rotates a refresh token, and a token used twice succeeds once", async () => {
-    const { refreshToken } = await signedUp();
+  it("rotates a refresh token: the successor renews, and the spent row stays until it is used", async () => {
+    const { refreshToken, user } = await signedUp();
 
     const first = await refresh(refreshToken);
     expect(first.status).toBe(200);
     expect(first.body.refreshToken).not.toBe(refreshToken);
-
-    const again = await refresh(refreshToken);
-    expect(again.status).toBe(401);
-    expect(again.body.code).toBe("session_expired");
+    expect(await count("refresh_tokens", user.id)).toBe(2);
 
     expect((await refresh(first.body.refreshToken)).status).toBe(200);
+    const reuse = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    expect((await refresh(refreshToken)).status).toBe(401);
+    expect(reuse).toHaveBeenCalledTimes(1);
+    reuse.mockRestore();
   });
 
-  it("gives two concurrent refreshes with one token exactly one success", async () => {
-    const { refreshToken, user } = await signedUp();
-
-    const results = await Promise.all([refresh(refreshToken), refresh(refreshToken), refresh(refreshToken)]);
-
-    expect(results.map((r) => r.status).sort()).toEqual([200, 401, 401]);
-    expect(await count("refresh_tokens", user.id)).toBe(1);
-  });
+  // Repeated renewals, races, reuse and the user lock: sessionRenewal.db.test.ts and sessionLocks.db.test.ts.
 
   it("logs out one session, and the token stops working", async () => {
     const { refreshToken, user } = await signedUp();
@@ -298,9 +292,15 @@ await describeWithDb("authFlow", (suite) => {
       ({ id, emails: [{ value: email, verified }] }) as never;
 
     const linked = await googleOnlyUser();
-    expect(await signInWithGoogle(profile(linked.googleId, "other@example.com"))).toEqual({ id: linked.id });
+    expect(await signInWithGoogle(profile(linked.googleId, "other@example.com"))).toEqual({
+      id: linked.id,
+      googleId: linked.googleId,
+    });
     // Found by Google id, the address is never read: an unverified one does not lock the owner out.
-    expect(await signInWithGoogle(profile(linked.googleId, linked.email, false))).toEqual({ id: linked.id });
+    expect(await signInWithGoogle(profile(linked.googleId, linked.email, false))).toEqual({
+      id: linked.id,
+      googleId: linked.googleId,
+    });
 
     // The address belongs to an account linked to a different Google id: never signed in.
     expect(await signInWithGoogle(profile(`google-other-${Date.now()}`, linked.email))).toEqual({
@@ -320,7 +320,9 @@ await describeWithDb("authFlow", (suite) => {
     });
 
     const fresh = freshEmail();
-    const created = await signInWithGoogle(profile(`google-fresh-${Date.now()}`, fresh.toUpperCase()));
+    const freshGoogleId = `google-fresh-${Date.now()}`;
+    const created = await signInWithGoogle(profile(freshGoogleId, fresh.toUpperCase()));
+    expect(created.googleId).toBe(freshGoogleId);
     const { rows } = await suite.client.query("SELECT email, password_hash FROM users WHERE id = $1", [created.id]);
     expect(rows[0]).toEqual({ email: fresh, password_hash: null });
   });
@@ -337,13 +339,13 @@ await describeWithDb("authFlow", (suite) => {
 
     const mine = browserNonce();
     const foreign = await exchange(
-      issueOneTimeCode("google-sign-in", { userId: google.id, bind: mine.bind }),
+      issueOneTimeCode("google-sign-in", { userId: google.id, bind: mine.bind, googleId: google.googleId }),
       browserNonce().nonce,
     );
     expect(foreign.status).toBe(401);
     expect(foreign.body.code).toBe("google_failed");
 
-    const code = issueOneTimeCode("google-sign-in", { userId: google.id, bind: mine.bind });
+    const code = issueOneTimeCode("google-sign-in", { userId: google.id, bind: mine.bind, googleId: google.googleId });
     const ok = await exchange(code, mine.nonce);
     expect(ok.status).toBe(200);
     expect(ok.body.user.id).toBe(google.id);

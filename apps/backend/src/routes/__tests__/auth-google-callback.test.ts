@@ -13,7 +13,7 @@ enableGoogle();
 type AuthenticateMiddleware = (req: Request, res: Response, next: NextFunction) => void;
 
 const makePassportAuthenticateMock =
-  (user: { id: string; error?: string }): AuthenticateMiddleware =>
+  (user: { id: string; googleId?: string; error?: string }): AuthenticateMiddleware =>
   (_req: Request & { user?: unknown }, _res: Response, next: NextFunction) => {
     (_req as Request & { user?: unknown }).user = user;
     next();
@@ -76,9 +76,9 @@ describe("GET /api/v1/auth/google/callback", () => {
     expect(res.headers.location).toBe(`${env.FRONTEND_URL}/auth/sign-in?error=google_email_unverified`);
   });
 
-  it("hands the web server a one-time code bound to the user and the bind, and no token", async () => {
+  it("hands the web server a one-time code bound to the user, the bind and the Google account, and no token", async () => {
     const USER_ID = "user-id-abc";
-    passportAuthenticateMock = makePassportAuthenticateMock({ id: USER_ID });
+    passportAuthenticateMock = makePassportAuthenticateMock({ id: USER_ID, googleId: "google-abc" });
     const { bind } = browserNonce();
 
     const res = await signInCallback(bind);
@@ -88,6 +88,6 @@ describe("GET /api/v1/auth/google/callback", () => {
     expect(location.startsWith(COMPLETE)).toBe(true);
     expect(location).not.toMatch(/token/i);
     const code = decodeURIComponent(location.slice(COMPLETE.length));
-    expect(redeemOneTimeCode(code, "google-sign-in")).toEqual({ userId: USER_ID, bind });
+    expect(redeemOneTimeCode(code, "google-sign-in")).toEqual({ userId: USER_ID, bind, googleId: "google-abc" });
   });
 });

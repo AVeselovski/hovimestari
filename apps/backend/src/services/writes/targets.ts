@@ -53,7 +53,7 @@ export async function setTargets(
  */
 export async function removeTargetChange(ctx: WriteContext, effectiveFrom: string): Promise<WriteOutcome<null>> {
   await ctx.db.transaction(async (tx) => {
-    await tx.select({ id: users.id }).from(users).where(eq(users.id, ctx.userId)).for("update");
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, ctx.userId)).for("no key update");
     const mine = eq(targetChanges.userId, ctx.userId);
     const [target] = await tx
       .select({ id: targetChanges.id })
