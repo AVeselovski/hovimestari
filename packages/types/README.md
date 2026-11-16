@@ -17,15 +17,22 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 - A schema refusal that the web app shows names an error code as its message, with Zod 4's `error` option: `z.email({ error: "invalid_email" })`. The backend answers that code. Every code is listed in `ERROR_CODES`.
 - Limits both sides enforce are exported constants in upper case, such as `MAX_PASSWORD_BYTES`.
 - The package is NodeNext ESM: relative imports inside `src/` end in `.js`. Every module is re-exported from `src/index.ts`.
+- Every figure the app shows is computed by the functions in `figures.ts`, in integers. The server answers every figure through them, and web code that shows a figure calls the same ones, so a preview is the figure saved. Never compute a figure with floating-point arithmetic elsewhere.
 
 ## Modules
 
 ```text
-auth.ts      Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
-dates.ts     IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
-errors.ts    ERROR_CODES, ErrorCode, ApiError and isErrorCode
-foods.ts     Food sources, Fineli portion units, food-name languages, the food, portion and list shapes, the search query, the own food and portion bodies, and hasSearchableWord
-targets.ts   The target ranges, the set-targets body, a dated change and the targets overview
+auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
+dates.ts       IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
+days.ts        A day, its readings and summary, and the day and range queries
+entries.ts     Entry kinds and statuses, the limits, the add, patch, status and copy bodies, and an entry
+errors.ts      ERROR_CODES, ErrorCode, ApiError and isErrorCode
+figures.ts     Figures, positions, and the one figure computation: entryFigures, totalOf, positionOf, gramsForPortion
+foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, and hasSearchableWord
+log.ts         A recent item and the recents query
+results.ts     What each entry write and save-and-log answers: the entry or entries, the days they changed, and the outcome
+savedMeals.ts  A saved meal, its bodies, the list query and the save-and-log body
+targets.ts     The target ranges, the set-targets body, a dated change and the targets overview
 ```
 
 ## Tests

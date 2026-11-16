@@ -64,6 +64,8 @@ describe("errorHandler", () => {
       "a lock wait that gave up, as drizzle wraps it",
       wrapped({ code: "55P03" }, "canceling statement due to lock timeout"),
     ],
+    ["a transaction the deadlock detector ended", Object.assign(new Error("deadlock detected"), { code: "40P01" })],
+    ["a deadlock, as drizzle wraps it", wrapped({ code: "40P01" }, "deadlock detected")],
     ["a client-side query timeout, as drizzle wraps it", wrapped({}, "Query read timeout")],
     ["a pool connect timeout", new Error("timeout exceeded when trying to connect")],
     ["a client-side query timeout", new Error("Query read timeout")],
@@ -74,6 +76,17 @@ describe("errorHandler", () => {
     expect(res.set).toHaveBeenCalledWith("Retry-After", "2");
     expect(res.status).toHaveBeenCalledWith(503);
     expect(res.json).toHaveBeenCalledWith({ message: "The server is busy. Please try again." });
+  });
+
+  it.each([
+    ["a deadlock", { code: "40P01" }, "deadlock detected", "[deadlock] 40P01 deadlock detected"],
+    ["a lock wait that gave up", { code: "55P03" }, "canceling statement due to lock timeout", "[busy] 55P03"],
+  ])("tags %s apart in the log", (_label, driver, message, line) => {
+    const res = mockRes();
+    const logged = jest.spyOn(console, "error").mockImplementation(() => {});
+    errorHandler(wrapped(driver, message), req, res as unknown as Response, next);
+    expect(logged.mock.calls.map((c) => format(...c))).toEqual([expect.stringContaining(line)]);
+    logged.mockRestore();
   });
 
   it("logs a wrapped busy error's driver message, never the wrapper's query params", () => {

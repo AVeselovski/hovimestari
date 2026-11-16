@@ -69,15 +69,38 @@ export const PortionSchema = z.object({
   isOwn: z.boolean(),
 });
 
+/**
+ * The amount of a food's latest eaten entry, offered the next time. `portion`
+ * is set when it was entered as a count of a portion, and its `id` is null
+ * when that portion no longer exists.
+ */
+export const LastAmountSchema = z.object({
+  grams: z.number(),
+  portion: z
+    .object({
+      id: z.uuid().nullable(),
+      unit: z.enum(FINELI_PORTION_UNITS).nullable(),
+      name: z.string().nullable(),
+      count: z.number(),
+    })
+    .nullable(),
+});
+
 export const FoodDetailSchema = FoodSummarySchema.extend({
   /** Only ever set on the user's own food. */
   barcode: z.string().nullable(),
   fineli: z.object({ id: z.number().int(), type: z.string(), process: z.string() }).nullable(),
   /** Fineli's first in a fixed unit order, then the user's by name. */
   portions: z.array(PortionSchema),
+  /** The amount the user last ate of it, or null. */
+  lastAmount: LastAmountSchema.nullable(),
 });
 
 export const FoodListSchema = z.object({ foods: z.array(FoodSummarySchema) });
+
+/** A favourite food with the amount the user last ate of it. */
+export const FavouriteFoodSchema = FoodSummarySchema.extend({ lastAmount: LastAmountSchema.nullable() });
+export const FavouriteFoodListSchema = z.object({ foods: z.array(FavouriteFoodSchema) });
 
 /** The query of `GET /foods/search`. A bad one answers invalid_request: no screen can send it. */
 export const FoodSearchQuerySchema = z.object({
@@ -132,7 +155,10 @@ export type FoodNameLanguage = (typeof FOOD_NAME_LANGUAGES)[number];
 export type Per100g = z.infer<typeof Per100gSchema>;
 export type FoodSummary = z.infer<typeof FoodSummarySchema>;
 export type Portion = z.infer<typeof PortionSchema>;
+export type LastAmount = z.infer<typeof LastAmountSchema>;
 export type FoodDetail = z.infer<typeof FoodDetailSchema>;
+export type FavouriteFood = z.infer<typeof FavouriteFoodSchema>;
+export type FavouriteFoodList = z.infer<typeof FavouriteFoodListSchema>;
 export type FoodList = z.infer<typeof FoodListSchema>;
 export type FoodSearchQuery = z.infer<typeof FoodSearchQuerySchema>;
 export type FoodListQuery = z.infer<typeof FoodListQuerySchema>;

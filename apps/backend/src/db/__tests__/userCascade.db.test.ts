@@ -1,6 +1,13 @@
 import { expect, it } from "@jest/globals";
 import { walkCascadeGraph } from "./support/cascadeGraph.js";
-import { insertFineliFood, insertUser, SEEDED_TABLES, seedOneOfEach } from "./support/seedOneOfEach.js";
+import {
+  insertFineliFood,
+  insertFoodEntry,
+  insertMealEntry,
+  insertUser,
+  SEEDED_TABLES,
+  seedOneOfEach,
+} from "./support/seedOneOfEach.js";
 import { describeWithDb } from "./support/throwawayDb.js";
 
 // Deleting an account deletes everything it owns. Every user-owned table
@@ -57,6 +64,44 @@ await describeWithDb("userCascade", (suite) => {
     expect(food.rows[0].n).toBe(1);
     expect(portions.rows).toEqual([{ fineli_unit: "PORTM", user_id: null }]);
     expect(favourites.rows[0].n).toBe(0);
+  });
+
+  it("reads the composite key from entries to saved_meals as one cascading edge", async () => {
+    const report = await walkCascadeGraph(suite.client);
+    const { rows } = await suite.client.query(
+      `SELECT confdeltype::text AS on_delete, array_length(conkey, 1) AS columns
+         FROM pg_constraint WHERE conname = 'entries_saved_meal_user_fk'`,
+    );
+    expect(rows).toEqual([{ on_delete: "c", columns: 2 }]);
+    expect(report.reached).toEqual(expect.arrayContaining(["entries", "saved_meals", "removed_entries"]));
+  });
+
+  it("removes the user's entries on a Fineli food and keeps the food", async () => {
+    const gone = await insertUser(suite.client);
+    const fineli = await insertFineliFood(suite.client, 900_002);
+    await insertFoodEntry(suite.client, gone, fineli);
+
+    await suite.client.query("DELETE FROM users WHERE id = $1", [gone]);
+
+    const left = await suite.client.query("SELECT count(*)::int AS n FROM entries WHERE food_id = $1", [fineli]);
+    const food = await suite.client.query("SELECT count(*)::int AS n FROM foods WHERE id = $1", [fineli]);
+    expect(left.rows[0].n).toBe(0);
+    expect(food.rows[0].n).toBe(1);
+  });
+
+  it("refuses an entry that points at another user's saved meal, by the composite key", async () => {
+    const owner = await insertUser(suite.client);
+    const other = await insertUser(suite.client);
+    const meal = await suite.client.query(
+      `INSERT INTO saved_meals (user_id, name, energy_kcal, protein_g, carbs_g, fat_g)
+       VALUES ($1, 'Owner meal', 600, 40, 60, 20) RETURNING id`,
+      [owner],
+    );
+    await expect(insertMealEntry(suite.client, other, meal.rows[0].id as string)).rejects.toMatchObject({
+      code: "23503",
+      constraint: "entries_saved_meal_user_fk",
+    });
+    await expect(insertMealEntry(suite.client, owner, meal.rows[0].id as string)).resolves.toBeDefined();
   });
 
   it("fails the walk for a child table that points at a user-owned table with ON DELETE SET NULL", async () => {

@@ -16,6 +16,12 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 - **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
 
+## Days and logging
+
+- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance. Built in the API, with no screen yet.
+- **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Built in the API, with no screen yet.
+- **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. Built in the API, with no screen yet.
+
 ## The app
 
 - **[Appearance](features/appearance.md)**: a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.

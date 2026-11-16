@@ -26,5 +26,7 @@ export async function updateSettings(ctx: WriteContext, body: SettingsBody): Pro
     .set({ ...next, updatedAt: ctx.now })
     .where(eq(users.id, ctx.userId))
     .returning();
+  // Deleted between the read and the update: the update waited on its row and found it gone.
+  if (!user) throw appError("user_not_found", 404);
   return { value: user, outcome: "changed" };
 }

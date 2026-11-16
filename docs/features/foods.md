@@ -28,7 +28,7 @@ The rule puts the right kind of food first, not the plain variant of it. On real
 
 ### Your own foods
 
-A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters and holds at least two letters or digits in a row, because search leaves out shorter words and could never find the food. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. An own food has one name, shown in either food-name language. A user's own foods are listed in Finnish alphabetical order, 100 by default and 200 at most.
+A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters and holds at least two letters or digits in a row, because search leaves out shorter words and could never find the food. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. Editing or deleting an own food that days use follows [the rules for figures that stay](days.md#figures-that-stay), and a deleted one frees its barcode. An own food has one name, shown in either food-name language. A user's own foods are listed in Finnish alphabetical order, 100 by default and 200 at most.
 
 ### Portions
 
@@ -36,7 +36,7 @@ A portion is a way to enter grams, such as one egg or one tub, with its weight i
 
 ### Favourites
 
-A user can mark any food they can see as a favourite, and unmark it. Favourites are listed newest first, 100 by default and 200 at most, and rank first within their match in search.
+A user can mark any food they can see as a favourite, and unmark it. Favourites are listed newest first, 100 by default and 200 at most, and rank first within their match in search. Each favourite, like a food's detail, carries [the amount the user last ate](quick-logging.md#recent-items-and-the-last-amount) of it, or none.
 
 ### Food-name language
 
@@ -60,7 +60,7 @@ The import is safe to repeat: the same release a second time changes nothing. It
 
 ### Visibility
 
-`visibleTo(userId)` in `apps/backend/src/services/foodScope.ts` is the only place the rule is written: a food is visible when it is shared or the user's own. `portionVisibleTo(userId)` does the same for portions: one that came with the food's source, or the user's own. Every food read and write goes through them. Another user's own food answers 404 `food_not_found` on every route, never 403, and another user's portion answers 404 `portion_not_found`, so a response never tells that it exists. A read-only check comes after: a visible shared food answers 403 `food_read_only` to an edit or a delete, and a portion that came with a shared food answers 403 `portion_read_only`. Every update and delete also names the owner in its own `WHERE`, so a write never trusts the earlier read.
+`visibleTo(userId)` in `apps/backend/src/services/foodScope.ts` is the only place the rule is written: a food is visible when it is shared or the user's own, and its owner has not deleted it. `portionVisibleTo(userId)` does the same for portions: one that came with the food's source, or the user's own. Every food read and write goes through them. Another user's own food answers 404 `food_not_found` on every route, never 403, and another user's portion answers 404 `portion_not_found`, so a response never tells that it exists. A read-only check comes after: a visible shared food answers 403 `food_read_only` to an edit or a delete, and a portion that came with a shared food answers 403 `portion_read_only`. Every update and delete also names the owner in its own `WHERE`, so a write never trusts the earlier read.
 
 ### The search rule in code
 
@@ -85,7 +85,7 @@ The tests run on fixtures in `__tests__/fixtures/`: rows of release 18 in its ow
 
 ### Services
 
-The routes call these, and the assistant's tools will call the same ones. `reads/foods.ts`: `searchFoods`, `getFood`, `listFavouriteFoods`, `listOwnFoods`. `writes/foods.ts`: `createOwnFood`, `updateOwnFood`, `deleteOwnFood`, `addPortion`, `updatePortion`, `removePortion`, `setFavourite`. `writes/settings.ts`: `updateSettings`, for the food-name language and the time zone. A write answers `{ value, outcome }`, and the route sends `value`.
+The routes call these, and the assistant's tools will call the same ones. `reads/foods.ts`: `searchFoods`, `getFood`, `listFavouriteFoods`, `listOwnFoods`. `writes/foods.ts`: `createOwnFood`, `updateOwnFood`, `deleteOwnFood`, `addPortion`, `updatePortion`, `removePortion`, `setFavourite`. `writes/settings.ts`: `updateSettings`, for the food-name language and the time zone. A write answers `{ value, outcome }`, and the route sends `value`. Every write that inserts a row first takes the user's row `FOR KEY SHARE` through `lockUserForWrite`, as [entry writes](quick-logging.md#locks-and-races) do, so a write that races an account deletion answers 404 `user_not_found`. A portion edit or remove changes one row the deletion takes with the user, and answers 404 `portion_not_found` when it meets one. `updateSettings` answers 404 `user_not_found` when the user is gone by the time it writes.
 
 ### API
 
@@ -94,12 +94,12 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`.
 | Method | Path                             | Answers                                                                                                         |
 | ------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | GET    | `/foods/search?q=&limit=`        | 200 `{ foods }`. `q` 1 to 100 characters after trimming, `limit` 1 to 50, 30 by default. Else `invalid_request` |
-| GET    | `/foods/favourites?limit=`       | 200 `{ foods }`, newest favourite first. `limit` 1 to 200, 100 by default                                       |
+| GET    | `/foods/favourites?limit=`       | 200 `{ foods }`, newest favourite first, each with `lastAmount`. `limit` 1 to 200, 100 by default               |
 | GET    | `/foods/own?limit=`              | 200 `{ foods }`, in Finnish alphabetical order. `limit` 1 to 200, 100 by default                                |
-| GET    | `/foods/:id`                     | 200 with the food, its barcode, its Fineli id, type and process, and its portions. 404 `food_not_found`         |
+| GET    | `/foods/:id`                     | 200 with the food, its barcode, Fineli id, type and process, portions and `lastAmount`. 404 `food_not_found`    |
 | POST   | `/foods`                         | 201 with the new food. 409 `barcode_taken`                                                                      |
 | PUT    | `/foods/:id`                     | 200 with the food. 403 `food_read_only`. 404. 409 `barcode_taken`                                               |
-| DELETE | `/foods/:id`                     | 204. 403 `food_read_only`. 404                                                                                  |
+| DELETE | `/foods/:id`                     | 204, deleted, or hidden when days use it. 403 `food_read_only`. 404                                             |
 | POST   | `/foods/:id/portions`            | 201 with the portion. 404 `food_not_found`                                                                      |
 | PUT    | `/foods/:id/portions/:portionId` | 200 with the portion. 403 `portion_read_only`. 404 `portion_not_found`                                          |
 | DELETE | `/foods/:id/portions/:portionId` | 204. 403 `portion_read_only`. 404 `portion_not_found`                                                           |
@@ -111,7 +111,7 @@ A food in a list has `id`, `source`, `name` in the user's language, `otherName` 
 
 ### Data
 
-- `foods`: `source` (`fineli`, `open_food_facts` or `user`), `user_id` set only on an own food, `fineli_id` set only on a Fineli food, `name` (Finnish for Fineli), `name_en`, the four values per 100 g, `barcode`, `fineli_type` and `fineli_process`, `retired_at`, and the generated search columns. CHECKs tie the owner and the Fineli id to the source, keep the values in range and the barcode to 8 to 14 digits. `foods_user_barcode_uq` keeps one barcode per user.
+- `foods`: `source` (`fineli`, `open_food_facts` or `user`), `user_id` set only on an own food, `fineli_id` set only on a Fineli food, `name` (Finnish for Fineli), `name_en`, the four values per 100 g, `barcode`, `fineli_type` and `fineli_process`, `retired_at`, `deleted_at` on an own food its owner deleted while days use it, and the generated search columns. CHECKs tie the owner and the Fineli id to the source, keep the values in range and the barcode to 8 to 14 digits. `foods_user_barcode_uq` keeps one barcode per user.
 - `food_portions`: `food_id`, `user_id` set only on a user's own portion, `fineli_unit` or `name` (exactly one), `grams` above zero and up to 5000. A Fineli portion has no owner, and the CHECK `food_portions_fineli_unit_known` keeps `fineli_unit` to the units the API names. `food_portions_fineli_unit_uq` keeps one of each Fineli unit per food.
 - `food_favourites`: `user_id` and `food_id`, one row per favourite.
 - `users.food_name_language`: `fi` or `en`, `fi` by default.
@@ -123,7 +123,7 @@ Every table with `user_id` cascades from `users`, so deleting an account removes
 - The catalogue holds no Open Food Facts food yet.
 - The import is tested on Fineli release 18 only. A newer release may name its files or columns differently, and the import then stops and names what it did not find.
 
-Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SET-01, NFR-SEC-01, NFR-PERF-01, NFR-DATA-01 (requirements 3.2, 3.12 and 4)
+Requirements: FR-FOOD-01 to FR-FOOD-08, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC-01, NFR-PERF-01, NFR-DATA-01 (requirements 3.2, 3.3, 3.4, 3.12 and 4)
 
 ## Where it appears
 

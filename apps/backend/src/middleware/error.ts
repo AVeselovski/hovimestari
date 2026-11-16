@@ -5,9 +5,10 @@ import { ReadAbandoned } from "../lib/requestAborted.js";
 
 /** Postgres and pool conditions that mean "busy right now", not "broken":
  *  a cancelled statement (statement_timeout), a lock wait that gave up
- *  (lock_timeout) and a connection that did not come free in time. The web
- *  app can retry these or show a busy state. */
-const BUSY_PG_CODES = new Set(["57014", "55P03"]);
+ *  (lock_timeout), a transaction the deadlock detector ended (40P01) and a
+ *  connection that did not come free in time. The web app can retry these or
+ *  show a busy state. */
+const BUSY_PG_CODES = new Set(["57014", "55P03", "40P01"]);
 // The pool and client timeouts carry no code, only these messages, as pg 8.x
 // and pg-pool 3.x word them. The error middleware test pins both strings, so
 // a pg upgrade that rewords them fails there rather than in production.
@@ -68,7 +69,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (isBusyError(err)) {
     const { code, message } = driverErrorOf(err);
-    console.error("[busy]", code ?? "", message);
+    // A deadlock is a lock-order fault, not load: its own tag makes a regression stand out.
+    console.error(code === "40P01" ? "[deadlock]" : "[busy]", code ?? "", message);
     res.set("Retry-After", "2");
     res.status(503).json({ message: "The server is busy. Please try again." });
     return;
