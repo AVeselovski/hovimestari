@@ -95,6 +95,15 @@ describe("token contrast", () => {
     expect(contrast(token(theme, "on-accent"), token(theme, "accent"))).toBeGreaterThanOrEqual(4.5);
   });
 
+  // The per-100 g dots sit on a sheet's surface, a stacked sheet's raised one, or the page.
+  it.each(["light", "dark"] as const)("each macro hue reaches 3 to 1 as a mark on every surface, %s", (theme) => {
+    for (const hue of ["energy", "protein", "carbs", "fat"]) {
+      for (const surface of ["bg", "surface", "surface-raised"]) {
+        expect([hue, surface, contrast(token(theme, hue), token(theme, surface)) >= 3]).toEqual([hue, surface, true]);
+      }
+    }
+  });
+
   it.each(["light", "dark"] as const)("muted text reaches 4.5 to 1 on the page and a panel, %s", (theme) => {
     expect(contrast(token(theme, "ink-muted"), token(theme, "bg"))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(token(theme, "ink-muted"), token(theme, "surface"))).toBeGreaterThanOrEqual(4.5);

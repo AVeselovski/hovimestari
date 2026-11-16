@@ -181,8 +181,13 @@
 [frontend-engineer DONE] (2026-11-16T08:02:15Z) PR 2c fix cycle 1: 13 items; web 689 tests (244k tokens)
 [ui-validator STARTED] (2026-11-16T08:02:15Z) PR 2c in a real browser
 [reviewer STARTED] (2026-11-16T08:02:15Z) PR 2c: confirm fix cycle 1
+[frontend-engineer STARTED] (2026-11-16T08:03:08Z) foods on the web, PR 2d: the food sheet, own foods, portions, favourites
+[frontend-engineer STARTED] (2026-11-16T08:03:56Z) PR 2d foods on the web, step 2d.1
 [frontend-engineer STARTED] (2026-11-16T08:17:59Z) PR 2c fix cycle 2: reserved error and rewrite room, figure wrap, focus on Save, contrast, title retention
+[frontend-engineer DONE] (2026-11-16T08:41:31Z) PR 2d foods on the web: food sheet, own foods, portions, favourites, Fineli credit, decimal group rule, footerStart disabled during save, backend name check; gate green (web 774, backend 571, types 122), browser run at 4 widths x 2 themes
 [frontend-engineer DONE] (2026-11-16T08:42:22Z) PR 2c fix cycle 2: 12 items and the quick-logging line, gate green (web 707, backend 570, types 122), layout measured at 5 widths, 37 screenshots retaken
+[validator STARTED] (2026-11-16T08:42:23Z) foods on the web, PR 2d
+[reviewer STARTED] (2026-11-16T08:42:23Z) foods on the web, PR 2d code review
 [reviewer DONE] (2026-11-16T08:43:36Z) PR 2c fix cycle 1 confirmed: approve (192k tokens)
 [ui-validator DONE] (2026-11-16T08:43:36Z) PR 2c at 566e2e4: pass with fixes; 3 majors on reserved room and wrapping, 9 minors (230k tokens)
 [frontend-engineer DONE] (2026-11-16T08:43:36Z) PR 2c fix cycle 2: 12 items; web 707 tests (374k tokens)
@@ -190,10 +195,25 @@
 [documentation-specialist STARTED] (2026-11-16T08:44:04Z) docs pass for PR 2c, targets on the web
 [documentation-specialist DONE] (2026-11-16T08:48:07Z) PR 2c docs pass: targets rules once, format-only examples, field conventions, TODO items; docs:check clean
 [documentation-specialist DONE] (2026-11-16T08:48:35Z) PR 2c docs pass: targets rules once, format-only examples, field conventions
+[reviewer DONE] (2026-11-16T09:08:27Z) PR 2d: approve after fixes; favourite rollback restores every foods query (major), 10 minors, nits (158k tokens)
+[validator DONE] (2026-11-16T09:08:27Z) PR 2d at 74626f3: FAIL on two majors (stale lists after the user's own write; docs overclaim the name check); figures 0 mismatches on 65 foods
+[frontend-engineer STARTED] (2026-11-16T09:08:27Z) PR 2d fix cycle 1, starting with the merge of the targets branch
 [backend-engineer STARTED] (2026-11-16T09:42:03Z) PR 3b.0: the entry answer gains its basis
 [backend-engineer STARTED] 2026-11-16T09:42:22Z PR 3b.0 entry basis on every answered entry
 [backend-engineer DONE] 2026-11-16T09:46:01Z PR 3b.0 entry basis: EntrySchema.basis, entryOf sets it, db and types tests, days.md; gate green
 [validator STARTED] (2026-11-16T09:46:21Z) PR 3b.0: the gate and the contract, and a diff review
+[frontend-engineer DONE] (2026-11-16T09:50:23Z) PR 2d fix cycle 1: merged the targets work (8 conflicts, master merge changed no file), 15 items; gate green (web 842, backend 572, types 129); items 1, 9 and 12 checked in Chromium with delayed reads
 [backend-engineer STARTED] 2026-11-16T09:50:55Z PR 3b.0 validator wording fixes and wider basis tests
+[frontend-engineer DONE] (2026-11-16T09:51:14Z) PR 2d fix cycle 1: targets branch merged, 15 items; web 842 tests
+[ui-validator STARTED] (2026-11-16T09:51:14Z) PR 2d in a real browser
+[validator STARTED] (2026-11-16T09:51:14Z) PR 2d: confirm fix cycle 1
+[reviewer STARTED] (2026-11-16T09:51:14Z) PR 2d: confirm fix cycle 1
 [backend-engineer DONE] 2026-11-16T09:53:16Z PR 3b.0 wording fixed (days.md, basis comment), stay-rule and estimate edit tests added
 [validator DONE] (2026-11-16T09:53:34Z) PR 3b.0 at 2515527: code PASS (855 entry checks, 0 mismatches), wording FAIL, fixed by the engineer in 93099a4 (161k tokens)
+[reviewer DONE] (2026-11-16T12:34:11Z) PR 2d fix cycle 1 confirmed: approve; two minors (favourite rollback value, footer action) (188k tokens)
+[validator DONE] (2026-11-16T12:34:11Z) PR 2d at f9b577b: FAIL on one major (a portion write not shown at once), three minors; earlier findings fixed (344k tokens)
+[ui-validator DONE] (2026-11-16T12:34:11Z) PR 2d at f9b577b: pass with fixes; the own-food form moves under an error (major), eight minors
+[frontend-engineer STARTED] (2026-11-16T12:34:11Z) PR 2d fix cycle 2
+[frontend-engineer DONE] (2026-11-16T13:10:30Z) PR 2d fix cycle 2: merged master (logs.txt only), 16 items; web 865 tests (842 before), gate green; own-food fields hold at 320/375/390/1280, content 792px at 320 (2.1 screens, was 800 to 900); user-visible
+[documentation-specialist STARTED] (2026-11-16T13:11:22Z) PR 2d docs pass
+[documentation-specialist DONE] (2026-11-16T13:16:31Z) PR 2d docs pass: food sheet states and limit, foods rules (decimal rule linked to README, name check, Fineli credit), shell primitives (value, handle, beside, star column), colours test and contrast, catalog line, TODO ranking item moved to Artur; docs:check clean

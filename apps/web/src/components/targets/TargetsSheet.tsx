@@ -3,7 +3,7 @@
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
-import { btnTextDanger, labelClass } from "@/components/ui/styles";
+import { labelClass } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
@@ -192,7 +192,7 @@ export function TargetsSheet({
     }
     void afterTargetsChange(client);
     // Still busy: the sheet slides out showing what was on screen.
-    onSaved();
+    onSaved?.();
     onClose();
   }
 
@@ -218,18 +218,7 @@ export function TargetsSheet({
         titleClassName: editing === undefined ? "max-md:min-h-16" : undefined,
         stacked: remove.dialog,
       }}
-      footerStart={
-        canRemove ? (
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={(e) => remove.open(editing, e.currentTarget)}
-            className={`justify-center ${btnTextDanger}`}
-          >
-            {t("remove")}
-          </button>
-        ) : undefined
-      }
+      footerStart={canRemove ? { label: t("remove"), onPress: (opener) => remove.open(editing, opener) } : undefined}
     >
       {({ autoFocus }) => (
         <>

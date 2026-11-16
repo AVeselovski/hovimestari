@@ -50,10 +50,10 @@ export const btnGhost = `${btnShape} ${btnSize} text-ink hover:bg-surface active
  * An action that reads as a word rather than a button, such as Sign out on
  * the first-run page: underlined, with a full 44px target on a phone.
  */
-export const btnText = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`;
+export const btnText = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
 /** A text button that leads to something destructive, such as Delete account: in the accent. A press or a hover fills in its underline, as with `btnText`. */
-export const btnTextDanger = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-accent underline decoration-accent/70 underline-offset-4 hover:decoration-accent active:decoration-accent ${focusRing} disabled:cursor-not-allowed disabled:opacity-60`;
+export const btnTextDanger = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-accent underline decoration-accent/70 underline-offset-4 hover:decoration-accent active:decoration-accent ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
 /** A text link inside copy. A press darkens its underline, so a tap shows at once. */
 export const linkClass = `rounded-sm font-medium text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing}`;
@@ -63,8 +63,19 @@ export const inputClass = `block h-12 w-full rounded-control border border-field
 
 export const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
+/** A label on the left of its field, on the same row (`DecimalField`'s `layout="beside"`). */
+export const labelBesideClass = "min-w-0 flex-1 text-base font-semibold text-ink";
+
 /** A line under a field: what the field wants. */
 export const fieldHintClass = "mt-1.5 text-sm text-ink-muted";
+
+/**
+ * The room a field's line keeps whether or not it holds anything, in lines
+ * of text, so an error that wraps moves nothing below it.
+ */
+export function lineRoom(rows: 1 | 2): string {
+  return rows === 2 ? "min-h-10" : "min-h-5";
+}
 
 /** The text of a line that says what went wrong. Errors use the accent. */
 export const errorTextClass = "text-sm font-medium text-accent";
@@ -142,6 +153,15 @@ export const sheetPopup = `${sheetPopupShape} bg-surface`;
 /** A sheet stacked on another: the raised surface, so the two read apart. */
 export const sheetPopupStacked = `${sheetPopupShape} bg-surface-raised`;
 
+/**
+ * A tall sheet (`BottomSheet size="tall"`): one fixed height that never
+ * follows its content. On a phone it stands 3rem short of the top safe area,
+ * so the page still shows above it. As the centred panel from `md` it is
+ * `min(44rem, 85dvh)`. Its top edge therefore stays put however its content
+ * changes.
+ */
+export const sheetPopupTall = "h-[calc(100dvh-var(--safe-top)-3rem)] md:h-[min(44rem,85dvh)]";
+
 /** The drag handle: the one visible cue that a sheet can be swiped. A phone-only affordance. */
 export const sheetHandle = "mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-pill bg-field-rule md:hidden";
 
@@ -184,8 +204,10 @@ export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:just
  * A secondary action in a `sheetActions` row, such as "Delete entry": a row
  * of its own above the two buttons, the full width below `md` and at the
  * start from `md`. A `md:max-w-sm` dialog has no room for three in a row.
+ * It is a `<fieldset>`, so the browser's own border, padding and minimum
+ * width are reset.
  */
-export const sheetActionsStart = "col-span-2 grid md:flex md:basis-full";
+export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:flex md:basis-full";
 
 // ---------------------------------------------------------------------------
 // Segmented controls: a few options in one tray, one chosen, such as the

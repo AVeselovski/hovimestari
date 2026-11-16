@@ -1,6 +1,6 @@
 # Settings
 
-The fourth tab. It holds the choices a person makes rarely: their daily targets, the language of food names, how the app looks, how they sign in, and their account. Each part is a panel with a small-caps label.
+The fourth tab. It holds the choices a person makes rarely: their daily targets, the language of food names, how the app looks, how they sign in, and their account. It ends with the credit for the food data. Each part is a panel with a small-caps label.
 
 ## In detail
 
@@ -13,7 +13,7 @@ The fourth tab. It holds the choices a person makes rarely: their daily targets,
 The **targets sheet** is titled "Change targets", or "Targets from {date}" when the date already has a change. Its fields, top to bottom:
 
 - **Starts on**, the device's own date picker, set to today.
-- Directly under the date, a line with the targets in force on that date: "In force on {date}: {energyLower} to {energyUpper} kcal, {proteinLower} to {proteinUpper} g protein." It follows the date as it changes, is announced to a screen reader, and is empty while the date is not a date.
+- Directly under the date, a line with the targets in force on that date: "In force on {date}: {energyLower} to {energyUpper} kcal, {proteinLower} to {proteinUpper} g protein." It follows the date as it changes, is announced to a screen reader, and is empty while the date is not a date.
 - The four fields of the first run, **Calories** and **Protein**, each **From** and **To**. Every one opens empty, with no example in it. The targets in force appear in the line above and never in a field.
 - When the save changes days that already have targets, a line that says which: "This changes the targets for every day from 16 November 2026 on.", "This changes the targets for every day from 1 November 2026 to 30 November 2026.", "This changes the targets for 15 November 2026." for a single day, "This changes the targets for every day before 1 December 2026." when the date comes before every change, or "This changes the targets for every day." It is announced to a screen reader as the date changes. A new change on a future date after an earlier change has no such line. [Changing your targets](../features/targets.md#changing-your-targets) holds the rule for which days a save rewrites.
 - The note on advice.
@@ -76,6 +76,10 @@ A long email wraps before its "@" or a dot rather than mid-word.
 
 On a launch with no server in reach and no session confirmed yet, the Sign-in methods panel is absent. Account says "Last signed in as" with the address this device remembers, so it never claims the session was just checked, and offers **Sign out** alone. A device that remembers no address shows **Sign out** alone.
 
+### Food data
+
+The last panel credits the food data: "Food composition data comes from Fineli, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the Creative Commons Attribution 4.0 licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL." **Fineli** links to Fineli's site and **Creative Commons Attribution 4.0** to the licence, each in a new tab. Its terms come from [Fineli's licence](../features/foods.md#fineli). Every Fineli food's detail in [the food sheet](food-sheet.md#a-foods-detail) links here.
+
 ### On a phone
 
 The panels fill the width, and every button is a full-width 48 pixel target. Each targets row is at least 44 pixels tall. On a phone narrower than 372 pixels, each theme segment's icon sits above its label, so all three fit. The sheets slide up from the bottom with a drag handle, and their two buttons sit side by side at the bottom, above the keyboard while one is up. [The app shell](shell.md#sheets-and-dialogs) says how every sheet behaves.
@@ -84,7 +88,7 @@ The panels fill the width, and every button is a full-width 48 pixel target. Eac
 
 ### Route and entry
 
-`/settings`, in `apps/web/src/app/(app)/settings/`. The page composes five sections from its `_components/` folder: `TargetsSection`, `FoodNamesSection`, `AppearanceSection`, `SignInMethodsSection` and `AccountSection`. The sheets are `ChangePasswordSheet` and `AddPasswordSheet` beside them, `DeleteAccountSheet` with the Sign out and Delete account buttons in `apps/web/src/components/account/`, which the first-run page shares, and `TargetsSheet` in `apps/web/src/components/targets/`. Each sheet is a [`FormSheet`](shell.md#the-sheet-primitives). The removals and sign-out on all devices use `ConfirmDialog`. Removing a targets change stacks its confirmation on the targets sheet.
+`/settings`, in `apps/web/src/app/(app)/settings/`. The page composes six sections from its `_components/` folder: `TargetsSection`, `FoodNamesSection`, `AppearanceSection`, `SignInMethodsSection`, `AccountSection` and `FoodDataSection`. The food data panel carries the id `food-data`, so `/settings#food-data` lands on it. The sheets are `ChangePasswordSheet` and `AddPasswordSheet` beside them, `DeleteAccountSheet` with the Sign out and Delete account buttons in `apps/web/src/components/account/`, which the first-run page shares, and `TargetsSheet` in `apps/web/src/components/targets/`. Each sheet is a [`FormSheet`](shell.md#the-sheet-primitives). The removals and sign-out on all devices use `ConfirmDialog`. Removing a targets change stacks its confirmation on the targets sheet.
 
 ### Layout
 
@@ -96,13 +100,13 @@ Focus follows [the sheet conventions](shell.md#the-sheet-primitives). On a phone
 
 The sections show the account the session already carries, and read `GET /users/me` to keep it current. They do not read while the server is out of reach. Every account change refreshes the read through `afterAccountChange` in `apps/web/src/lib/invalidation.ts`. Whether to show Google comes from `GET /auth/providers`, read once.
 
-Targets read `GET /targets`, the same read as the first-run gate, and the sheet's in-force line reads `GET /targets?date=` for its date, so the app never applies the in-force rule itself. Saving sends `PUT /targets/<date>`, removing `DELETE /targets/<date>`, and both refresh every targets read. Food names send `PATCH /users/me/settings` and refresh the account and every food read. Dates show in the device's language, and figures never group digits, so what shows can be typed back into a field.
+Targets read `GET /targets`, the same read as the first-run gate, and the sheet's in-force line reads `GET /targets?date=` for its date, so the app never applies the in-force rule itself. Saving sends `PUT /targets/<date>`, removing `DELETE /targets/<date>`, and both refresh every targets read. Food names send `PATCH /users/me/settings`, drop every food read not on screen, so nothing shows in the old language, and refresh the account and the rest. Dates show in the device's language, and figures never group digits, so what shows can be typed back into a field.
 
 Each account action calls the backend: `PUT /users/me/password`, `POST /auth/link/password`, `DELETE /auth/unlink/:method`, `POST /auth/logout-all` and `DELETE /users/me`. Linking Google goes through the app's own `POST /api/auth/google/link/start`. [Authentication](../features/authentication.md) holds the rules behind each.
 
 ## Features on this page
 
 - [Targets](../features/targets.md): the ranges, dated changes, which days a change covers, and removing one.
-- [Foods](../features/foods.md): the food-name language.
+- [Foods](../features/foods.md): the food-name language and the credit for Fineli's data.
 - [Appearance](../features/appearance.md): what the theme choice does and where it is kept.
 - [Authentication](../features/authentication.md): the sign-in methods, changing the password, signing out everywhere, linking Google and deleting the account.

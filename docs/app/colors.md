@@ -41,7 +41,7 @@ Four hues are reserved for the four figures a day is measured in. Nothing else m
 | `--color-carbs`   | `#7a4f86` | `#b893c4` | Carbohydrate marks, heather |
 | `--color-fat`     | `#2f7a72` | `#6fbfb3` | Fat marks, teal             |
 
-They colour marks such as bars, dots and gauge fills. The figures themselves stay in ink. No screen uses them yet. Their values may be tuned when the first figures are drawn, but each keeps its hue.
+They colour marks such as bars, dots and gauge fills. The figures themselves stay in ink. Today they mark the four rows of a food's figures per 100 g in [the food sheet](food-sheet.md#a-foods-detail), as 10 pixel dots, and nothing else draws them. `Per100gFigures.test.tsx` fails when any other source file uses one as a colour class, when a colour class is built from a template string, and when `globals.css` names one outside its own declaration. Their values may be tuned as more figures are drawn, but each keeps its hue.
 
 ### Contrast
 
@@ -51,10 +51,11 @@ Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's ed
 - The accent as text on the page: 5.8 to 1 in light and 6.1 to 1 in dark. On the tab bar and a panel: 5.4 to 1 in both.
 - The accent as text on a raised surface, as on an outlined destructive button: 6.2 to 1 in light and 4.7 to 1 in dark.
 - Text on an accent fill: 6.2 to 1 in light and 6.1 to 1 in dark.
+- The macro hues as marks: in light from 3.6 to 1 (energy on a panel) up to 5.9 to 1, in dark from 5.3 to 1 (carbohydrates on a raised surface) up to 8.3 to 1, against the page, a panel and a raised surface.
 - A field's border, a secondary button's and a segmented control's tray: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
 - A text button's underline, the mark that makes the words a button: `--color-field-rule` for an ordinary one, and the accent at 70 % for one that leads to something destructive. The accent's underline reaches 3.3 to 1 on the page and 3.2 to 1 on a panel in light, 3.6 to 1 and 3.3 to 1 in dark. On a raised surface, the field rule reaches 3.9 to 1 in light and 3.2 to 1 in dark, and the accent's underline 3.4 to 1 and 3.1 to 1. Under the pointer or a press, either fills in, to ink or the full accent.
 
-`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, a text button's underline, accent text, text on an accent fill or muted text drops under its line.
+`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, a text button's underline, accent text, text on an accent fill or muted text drops under its line, and when a macro hue drops under 3 to 1 on any surface.
 
 ### Motion
 

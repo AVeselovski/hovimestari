@@ -29,7 +29,7 @@ export interface FormSheetContract {
   /** The dialog's accessible name. */
   name: RegExp;
   /** The form sheet, rendered with the caller's props. */
-  renderSheet: (props: FormSheetCallerProps) => ReactElement;
+  renderSheet: (props: Required<FormSheetCallerProps>) => ReactElement;
   /** Makes the form dirty with a value `typedValue()` can read back. */
   type: () => void;
   /** The field `type` wrote into, for the "value unchanged" checks. */
@@ -169,13 +169,15 @@ export function describeFormSheetContract(c: FormSheetContract): void {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it("is not dismissible while the save runs and Cancel is disabled; the save then closes it", async () => {
+    it("is not dismissible while the save runs and Cancel is unavailable; the save then closes it", async () => {
       const save = c.holdSave();
       renderOpen();
       c.fillValid();
       fireEvent.click(screen.getByRole("button", { name: saveName }));
       await screen.findByRole("button", { name: busyName });
-      expect(screen.getByRole("button", { name: /^cancel$/i })).toBeDisabled();
+      const cancel = screen.getByRole("button", { name: /^cancel$/i });
+      expect(cancel).toHaveAttribute("aria-disabled", "true");
+      fireEvent.click(cancel);
 
       fireEvent.keyDown(document, { key: "Escape" });
       pressOutsideSheet();
@@ -209,6 +211,28 @@ export function describeFormSheetContract(c: FormSheetContract): void {
       expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
       expect(button).toHaveFocus();
       expect(button).not.toHaveAttribute("aria-disabled");
+    });
+
+    it("keeps focus on Cancel through a save that fails, and ignores a press on it while the save runs", async () => {
+      const save = c.holdSave();
+      renderOpen();
+      c.fillValid();
+      const cancel = screen.getByRole("button", { name: /^cancel$/i });
+      act(() => cancel.focus());
+      // Enter in a field, or a tap on Save that leaves focus where it was, as on a phone.
+      fireEvent.submit(screen.getByRole("dialog").querySelector("form")!);
+      await screen.findByRole("button", { name: busyName });
+      expect(cancel).toHaveAttribute("aria-disabled", "true");
+      expect(cancel).not.toBeDisabled();
+      expect(cancel).toHaveFocus();
+      fireEvent.click(cancel);
+      expect(onClose).not.toHaveBeenCalled();
+
+      await act(async () => save.reject());
+      await screen.findByRole("button", { name: saveName });
+      expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+      expect(cancel).toHaveFocus();
+      expect(cancel).not.toHaveAttribute("aria-disabled");
     });
 
     describe("while it slides out", () => {

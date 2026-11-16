@@ -17,7 +17,7 @@ describe("parseTargetFields", () => {
     });
     expect(parseTargetFields({ ...filled, energyLower: "2,000" })).toEqual({
       ok: false,
-      errors: { energyLower: "target_value_invalid" },
+      errors: { energyLower: "digit_group" },
     });
   });
 

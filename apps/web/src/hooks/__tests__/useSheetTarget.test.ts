@@ -25,3 +25,17 @@ describe("useSheetTarget", () => {
     expect(result.current.shown!.key).not.toBe(opened.key);
   });
 });
+
+describe("useSheetTarget with a value", () => {
+  it("keeps the value of the open it shows, also while it slides out, and a double tap keeps the first", () => {
+    const { result } = renderHook(() => useSheetTarget<{ foodId: string }>());
+    act(() => result.current.open(null, { foodId: "a" }));
+    act(() => result.current.open(null, { foodId: "b" }));
+    expect(result.current.shown?.value).toEqual({ foodId: "a" });
+    act(() => result.current.close());
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.shown?.value).toEqual({ foodId: "a" });
+    act(() => result.current.open(null, { foodId: "b" }));
+    expect(result.current.shown?.value).toEqual({ foodId: "b" });
+  });
+});

@@ -66,7 +66,7 @@ export function DeleteAccountSheet({
       return;
     }
     // Still busy: the sheet slides out showing "Deleting…" while the caller signs out.
-    onSaved();
+    onSaved?.();
     onClose();
   }
 

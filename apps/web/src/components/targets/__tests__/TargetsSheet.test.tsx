@@ -307,7 +307,7 @@ describe("TargetsSheet", () => {
 
       const closing = screen.getByRole("dialog", { hidden: true });
       expect(closing).toHaveAccessibleName(title);
-      expect(within(closing).getByText(/^In force on /)).toHaveTextContent(lineText ?? "");
+      expect(within(closing).getByText(/^In force on /).textContent).toBe(lineText);
       expect(closing.querySelector("[data-rewrite]")?.textContent).toBe(rewrite);
       expect(within(closing).getByRole("button", { name: "Remove these targets", hidden: true })).toBeInTheDocument();
     });

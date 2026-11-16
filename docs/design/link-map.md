@@ -28,35 +28,43 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## The app
 
-| Concept                                         | Home                                                                    | Heading                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
-| theme, light and dark, following the device     | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
-| the pre-paint theme script                      | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
-| the browser chrome colour, `theme-color`        | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
-| installing the app, home screen                 | `features/installable-app.md#installing`                                | `### Installing`                                 |
-| the web manifest                                | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
-| offline, the offline line                       | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
-| the service worker, cached pages                | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
-| safe areas, insets                              | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
-| the app shell, tabs, tab bar, side rail         | `app/shell.md`                                                          | Doc                                              |
-| server fault, Something went wrong, Try again   | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
-| the known-session flag, offline sign-in side    | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
-| the shell's layout, one scroll container        | `app/shell.md#layout`                                                   | `### Layout`                                     |
-| design tokens, colours                          | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
-| the accent, what it means                       | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
-| macro hues, energy, protein, carbohydrates, fat | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
-| contrast                                        | `app/colors.md#contrast`                                                | `### Contrast`                                   |
-| type, typefaces, type scale                     | `app/colors.md#type`                                                    | `### Type`                                       |
-| motion tokens, sheet curve, reduced motion      | `app/colors.md#motion`                                                  | `### Motion`                                     |
-| z-index ladder, layers                          | `app/colors.md#layers`                                                  | `### Layers`                                     |
-| sheets and dialogs, swipe to close              | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
-| bottom sheet, confirm dialog, sheet conventions | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
-| sign-in pages, guest pages                      | `app/auth.md`                                                           | Doc                                              |
-| settings, sign-in methods, account actions      | `app/settings.md`                                                       | Doc                                              |
-| first-run page                                  | `app/first-run.md`                                                      | Doc                                              |
-| number fields, date fields, parseDecimalInput   | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
-| targets sheet, change targets, remove a change  | `app/settings.md#targets`                                               | `### Targets`                                    |
-| food names setting, Finnish or English choice   | `app/settings.md#food-names`                                            | `### Food names`                                 |
+| Concept                                          | Home                                                                    | Heading                                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------ |
+| theme, light and dark, following the device      | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
+| the pre-paint theme script                       | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
+| the browser chrome colour, `theme-color`         | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
+| installing the app, home screen                  | `features/installable-app.md#installing`                                | `### Installing`                                 |
+| the web manifest                                 | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
+| offline, the offline line                        | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
+| the service worker, cached pages                 | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
+| safe areas, insets                               | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
+| the app shell, tabs, tab bar, side rail          | `app/shell.md`                                                          | Doc                                              |
+| server fault, Something went wrong, Try again    | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
+| the known-session flag, offline sign-in side     | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
+| the shell's layout, one scroll container         | `app/shell.md#layout`                                                   | `### Layout`                                     |
+| design tokens, colours                           | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
+| the accent, what it means                        | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
+| macro hues, energy, protein, carbohydrates, fat  | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
+| contrast                                         | `app/colors.md#contrast`                                                | `### Contrast`                                   |
+| type, typefaces, type scale                      | `app/colors.md#type`                                                    | `### Type`                                       |
+| motion tokens, sheet curve, reduced motion       | `app/colors.md#motion`                                                  | `### Motion`                                     |
+| z-index ladder, layers                           | `app/colors.md#layers`                                                  | `### Layers`                                     |
+| sheets and dialogs, swipe to close               | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
+| bottom sheet, confirm dialog, sheet conventions  | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| sign-in pages, guest pages                       | `app/auth.md`                                                           | Doc                                              |
+| settings, sign-in methods, account actions       | `app/settings.md`                                                       | Doc                                              |
+| first-run page                                   | `app/first-run.md`                                                      | Doc                                              |
+| number fields, date fields, parseDecimalInput    | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
+| targets sheet, change targets, remove a change   | `app/settings.md#targets`                                               | `### Targets`                                    |
+| food names setting, Finnish or English choice    | `app/settings.md#food-names`                                            | `### Food names`                                 |
+| food data credit in Settings, Fineli attribution | `app/settings.md#food-data`                                             | `### Food data`                                  |
+| Day tab, Search foods launcher                   | `app/day.md`                                                            | Doc                                              |
+| food sheet, food search screen                   | `app/food-sheet.md`                                                     | Doc                                              |
+| food search results, browse lists, no results    | `app/food-sheet.md#the-search`                                          | `### The search`                                 |
+| food detail, per 100 g figures, favourite star   | `app/food-sheet.md#a-foods-detail`                                      | `### A food's detail`                            |
+| own-food sheet, add a food, edit food            | `app/food-sheet.md#adding-or-editing-your-own-food`                     | `### Adding or editing your own food`            |
+| portion sheet, add a portion                     | `app/food-sheet.md#portions-of-your-own`                                | `### Portions of your own`                       |
+| tall sheet, sheet with a fixed height            | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 
 ## Targets
 

@@ -23,6 +23,11 @@ export const ICONS = {
   chevronRight: "M8.25 4.5l7.5 7.5-7.5 7.5",
   chevronDown: "M19.5 8.25l-7.5 7.5-7.5-7.5",
   close: "M6 18L18 6M6 6l12 12",
+  search: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z",
+  star: "M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z",
+  plus: "M12 4.5v15m7.5-7.5h-15",
+  pencil:
+    "m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125",
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -32,14 +37,16 @@ interface IconProps {
   className?: string;
   /** Stroke weight in the 24-unit viewBox, so the rendered width is `strokeWidth × size / 24`. */
   strokeWidth?: number;
+  /** Fills the shape in the current colour as well as drawing its outline, such as a marked favourite's star. */
+  filled?: boolean;
 }
 
-export function Icon({ name, className = "h-5 w-5", strokeWidth = 1.5 }: IconProps): ReactElement {
+export function Icon({ name, className = "h-5 w-5", strokeWidth = 1.5, filled = false }: IconProps): ReactElement {
   return (
     <svg
       aria-hidden="true"
       className={className}
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       viewBox="0 0 24 24"
       stroke="currentColor"
       strokeWidth={strokeWidth}

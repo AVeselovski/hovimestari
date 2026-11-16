@@ -4,6 +4,7 @@ import {
   FoodSearchQuerySchema,
   hasAtMostDecimals,
   OwnFoodBodySchema,
+  OwnFoodUpdateBodySchema,
   PortionBodySchema,
   SettingsBodySchema,
 } from "../index.js";
@@ -54,6 +55,23 @@ describe("OwnFoodBodySchema", () => {
 
   it("accepts a barcode of 8 to 14 digits", () => {
     expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
+  });
+});
+
+describe("OwnFoodUpdateBodySchema", () => {
+  // The service checks a changed name for search, so an edit of a food's
+  // values never fails on the name it already has.
+  it.each(["A", "- % -", "½"])("accepts %p, a name search cannot find", (name) => {
+    expect(OwnFoodUpdateBodySchema.parse({ name, per100g })).toEqual({ name, per100g, barcode: null });
+  });
+
+  it.each([
+    [{ name: " ", per100g }, "food_name_required"],
+    [{ name: "x".repeat(121), per100g }, "food_name_too_long"],
+    [{ name: "Ab", per100g: { ...per100g, fatG: 100.5 } }, "food_macro_invalid"],
+    [{ name: "Ab", per100g, barcode: "1234567" }, "barcode_invalid"],
+  ])("refuses %j with %p, as a create does", (input, code) => {
+    expect(firstMessage(OwnFoodUpdateBodySchema.safeParse(input))).toBe(code);
   });
 });
 

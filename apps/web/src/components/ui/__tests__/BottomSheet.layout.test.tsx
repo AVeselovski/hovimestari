@@ -37,6 +37,51 @@ describe("BottomSheet footer and minimum height", () => {
   });
 });
 
+describe("BottomSheet size", () => {
+  const TALL = ["h-[calc(100dvh-var(--safe-top)-3rem)]", "md:h-[min(44rem,85dvh)]"];
+
+  it("follows its content by default", () => {
+    render(
+      <BottomSheet open onClose={jest.fn()} ariaLabel="Auto">
+        <p>Body</p>
+      </BottomSheet>,
+    );
+    const classes = screen.getByRole("dialog").className.split(" ");
+    for (const c of TALL) expect(classes).not.toContain(c);
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-sheet-size", "auto");
+  });
+
+  it("stands at one fixed height when tall, whatever its content", () => {
+    const { rerender } = render(
+      <BottomSheet open onClose={jest.fn()} ariaLabel="Tall" size="tall">
+        <p>One line</p>
+      </BottomSheet>,
+    );
+    const before = screen.getByRole("dialog").className;
+    expect(before.split(" ")).toEqual(expect.arrayContaining(TALL));
+    rerender(
+      <BottomSheet open onClose={jest.fn()} ariaLabel="Tall" size="tall">
+        {Array.from({ length: 50 }, (_, i) => (
+          <p key={i}>Row {i}</p>
+        ))}
+      </BottomSheet>,
+    );
+    expect(screen.getByRole("dialog").className).toBe(before);
+  });
+
+  it("puts a custom header in the fixed row above the body, and is named by its label", () => {
+    render(
+      <BottomSheet open onClose={jest.fn()} ariaLabel="Foods" header={<input aria-label="Search" />} size="tall">
+        <p>Body</p>
+      </BottomSheet>,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Foods" });
+    const headerRow = dialog.querySelector("[data-sheet-header]")!;
+    expect(headerRow).toContainElement(screen.getByLabelText("Search"));
+    expect(dialog.querySelector("[data-sheet-body]")).not.toContainElement(screen.getByLabelText("Search"));
+  });
+});
+
 describe("BottomSheet title", () => {
   it("names the dialog with a heading in a fixed row above the scrolling body", () => {
     render(

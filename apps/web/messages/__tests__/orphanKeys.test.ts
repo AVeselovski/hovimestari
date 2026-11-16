@@ -31,6 +31,9 @@ const DYNAMIC_KEY_NAMESPACES = [
   // components/ui/ThemeToggle.tsx: {t(m)}, where `m` is a ThemeMode from a
   // local MODES array. `ariaLabel` is a literal and resolves without this.
   "settings.appearance.themeToggle",
+  // components/foods/FoodDetail.tsx: t(portion.unit) in usePortionLabel,
+  // where the key is a FineliPortionUnit. tsc checks every unit has a line.
+  "foods.portionUnits",
 ];
 
 type MessageTree = { readonly [key: string]: string | MessageTree };

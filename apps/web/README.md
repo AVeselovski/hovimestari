@@ -22,9 +22,9 @@ src/
 │   ├── auth/reset-password/    Choose a new password, open with or without a session
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then the first-run gate, then AppShell
-│   │   ├── page.tsx            Day
+│   │   ├── page.tsx            Day: Search foods, which opens the food sheet
 │   │   ├── recipes/, groceries/  The two other content tabs
-│   │   └── settings/           Settings: Targets, Food names, Appearance, Sign-in methods and Account, and their sheets
+│   │   └── settings/           Settings: Targets, Food names, Appearance, Sign-in methods, Account and Food data, and their sheets
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
 │       ├── _guard.ts           The same-origin guard every POST handler runs first
@@ -36,6 +36,19 @@ src/
 ├── components/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
 │   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, shared by Settings and the first-run page
+│   ├── foods/                  Foods on the web:
+│   │   ├── FoodSearchLauncher.tsx  "Search foods" on the Day tab, which owns the food sheet
+│   │   ├── FoodSheet.tsx       The tall food sheet: the search view, a food's detail, and the sheets stacked on it
+│   │   ├── FoodSearchView.tsx  Browse lists, results, no results, offline and failure, under the pinned field
+│   │   ├── FoodRow.tsx         One food in a list: names, energy and protein, the star and "Yours"
+│   │   ├── FoodDetail.tsx      A food's detail: the header with Back and the star, and the body with figures and portions
+│   │   ├── Per100gFigures.tsx  The four figures per 100 g, the one place the macro hues are drawn
+│   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
+│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the Fineli credit
+│   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
+│   │   ├── OwnFoodSheet.tsx    Add or edit an own food, with its delete
+│   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
+│   │   └── ownFoodForm.ts      The two forms' fields, their parsing and the shared schemas
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
 │   ├── form/                   The form parts the guest pages and the sheets share:
 │   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
@@ -70,8 +83,8 @@ src/
 │   ├── AuthContext.tsx         The session: status, user, signIn, signUp, signOut, renewal and its retries, all under one lock
 │   ├── ThemeContext.tsx        The theme choice, data-theme and the browser chrome colour
 │   └── ProvidersContext.tsx    Whether the guest pages show Google
-├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, and the sheet hooks:
-│   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open and the control that opened it
+├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, useDebouncedValue, useFoodNameLanguage, and the sheet hooks:
+│   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open, the control that opened it and what it opens on
 │   ├── useRetainedValue.ts     The last non-null value, so an overlay slides out with its content
 │   ├── useFormDirty.ts         Whether a form holds unsaved input
 │   ├── useConfirmedDelete.tsx  A confirmation in front of a write that takes a row off the page, and the write
@@ -83,12 +96,13 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
 │   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
 │   ├── localDate.ts            YYYY-MM-DD arithmetic in UTC, and formatDay() in the device's language
 │   ├── targetFormat.ts         formatTarget(): a target's figure, with no digit grouping
+│   ├── foodFormat.ts           formatKcal(), formatMacroGrams() and formatGrams() for display, and formatDecimalForField() for a saved value as typed
 │   ├── deviceTimeZone.ts       Stores the device's time zone on the account once per app start, failures dropped quietly
 │   ├── providers.ts            Reads GET /auth/providers on the server
 │   ├── queryClient.ts          The query client's defaults
@@ -96,6 +110,7 @@ src/
 │   ├── queryOptions.ts         The options for every read
 │   ├── redirect.ts             Resolves a redirect target and keeps it only when it stays on this site
 │   ├── sessionMarker.ts        The non-secret flag that says this device has a known session, and its address
+│   ├── foodCache.ts            Edits to the cached food reads from a write's own answer
 │   ├── invalidation.ts         What each write makes stale
 │   ├── forgetDevice.ts         Drops the cached signed-in pages after the account is deleted
 │   ├── googleLink.ts           The results a Google link comes back with
@@ -145,29 +160,31 @@ Every overlay is `BottomSheet`, `ConfirmDialog` or `FormSheet` from `src/compone
 To add a form sheet, such as logging a food:
 
 1. Write it as a `FormSheet`. Pass `dirty` from `useFormDirty`, `submitting`, `onSubmit` and `formError`, and render the fields from its render prop, giving the first field the `autoFocus` it hands you. `FormSheet` does the rest: dismissal only while clean and idle, the keyboard, the body that takes focus on a phone, the footer and the in-flight guard.
-2. Put other `BottomSheet` options in `sheet`, and a secondary action such as a delete in `footerStart`.
-3. In the caller, keep it mounted with `useSheetTarget`: render it while `shown` is set, with `key={shown.key}`, `open={isOpen}` and `returnFocusTo={shown.opener}`.
+2. Put other `BottomSheet` options in `sheet`, and a secondary action in `footerStart`, with `tone: "neutral"` to draw it in ink rather than the accent. It takes one of two forms:
+   - `{ label, onPress }` for an action that opens something, such as a delete that asks first. `onPress` gets the button, for a confirmation to return focus to.
+   - `{ label, busy, submit }` for a second submit of the same form, such as "Save meal" beside "Save and log". `onSubmit` receives `submit` as its mode. Save and Enter call it with no mode.
+3. In the caller, keep it mounted with `useSheetTarget`: render it while `shown` is set, with `key={shown.key}`, `open={isOpen}` and `returnFocusTo={shown.opener}`. A sheet that opens on something takes it as `useSheetTarget<T>()`, `open(opener, value)` and `shown.value`.
 4. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
 ## Numbers and dates
 
-A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder.
+A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels.
 
-Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid` or a `number`:
+Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid`, `group` or a `number`:
 
 - It accepts digits with one comma or one point as the decimal separator, whatever the device's language. "9,8" and "9.8" are both 9.8.
-- It refuses a sign, grouping and more decimals than `maxDecimals`, and never rounds. Trailing zeros count for nothing, so "120.50" fits one decimal.
-- A fraction of exactly three digits counts as three decimals, because it may be a thousands group. So a field with one decimal refuses "1,000" and "1.500".
+- It refuses a sign, grouping and more decimals than `maxDecimals`, and never rounds. Trailing zeros in a fraction of one or two digits count for nothing, so "120.50" fits one decimal.
+- A number that may be one thousands group, such as "2,000" or "1.500", comes back as `group` in every field, also one that allows three decimals. Leading zeros are dropped first, so "012,345" is a group too. So a value from 1 to 999 cannot carry a third decimal when typed. A form shows `group` with the line `common.digitGroup`, so the reader learns what to type instead.
 
-Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back.
+Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
 A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room when the hint takes two lines. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock.
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 
-After a write, refresh what it made stale through a function in `src/lib/invalidation.ts`. Each one cancels the reads still on their way before it reads again, so an answer from before the write never lands after it.
+After a write, refresh what it made stale through a function in `src/lib/invalidation.ts`. Each one cancels the reads still on their way before it reads again, so an answer from before the write never lands after it. A food write first puts its own answer into every cached food read, through `src/lib/foodCache.ts`, so a list not on screen comes back with the new state before its read lands.
 
 ## Commands
 
