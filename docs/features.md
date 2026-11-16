@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, and one ranked search over both names. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names, and a repeatable Fineli import that retires, never deletes, a food that leaves a release. From the Day tab a person searches it, reads a food's figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own.
 
 ## Days and logging
 

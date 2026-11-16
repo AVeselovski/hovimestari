@@ -18,6 +18,7 @@ A range that breaks a rule says so in the line under its pair, and focus moves t
 - Zero: "Enter a number above zero."
 - A lower number above the upper one: "The second number cannot be below the first." Focus goes to To.
 - Anything that is not a number with at most one decimal under the limit: "Enter a number below 100000, with one decimal at most." for calories and "Enter a number below 10000, with one decimal at most." for protein.
+- A number that may mean thousands, such as "1,800": "This may mean thousands. Type it with no comma or point, or with fewer decimals."
 
 A refusal from the server shows its line above the button, such as "A number is too large or has more than one decimal.", and Save works again.
 

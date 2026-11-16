@@ -2,6 +2,8 @@
 
 The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
 
+From the Day tab a person searches the catalogue in [the food sheet](../app/food-sheet.md), reads a food's figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own.
+
 ## In detail
 
 ### The food catalogue
@@ -28,7 +30,7 @@ The rule puts the right kind of food first, not the plain variant of it. On real
 
 ### Your own foods
 
-A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters and holds at least two letters or digits in a row, because search leaves out shorter words and could never find the food. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. Editing or deleting an own food that days use follows [the rules for figures that stay](days.md#figures-that-stay), and a deleted one frees its barcode. An own food has one name, shown in either food-name language. A user's own foods are listed in Finnish alphabetical order, 100 by default and 200 at most.
+A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. A typed value that may hold a thousands group, such as "1,500", is refused rather than read as 1.5. That has a cost: a value from 1 to 999 cannot be typed with a third decimal, though "0,125" can. Every number field in the app follows [the same rule](../../apps/web/README.md#numbers-and-dates). A saved value left untouched in an edit is sent as saved, so a third decimal already stored stays. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters and holds at least two letters or digits in a row, because search leaves out shorter words and could never find the food. A new name is checked for search when a food is added and when an edit changes it. A name left as saved is not checked, so the values of a food whose saved name search cannot find can still be edited, on screen and through the API. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. Editing or deleting an own food that days use follows [the rules for figures that stay](days.md#figures-that-stay), and a deleted one frees its barcode. An own food has one name, shown in either food-name language. A user's own foods are listed in Finnish alphabetical order, 100 by default and 200 at most.
 
 ### Portions
 
@@ -45,6 +47,8 @@ Each user reads food names in Finnish or in English, and chooses which in Settin
 ### Fineli
 
 Fineli is the Finnish food composition database of the Finnish Institute for Health and Welfare (THL), used under the [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL.
+
+The app shows this credit in those words, and every Fineli food names Fineli as its source and leads to the credit.
 
 ### The Fineli import
 
@@ -107,7 +111,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`.
 | DELETE | `/foods/:id/favourite`           | 204, also when it is not one. 404 `food_not_found`                                                              |
 | PATCH  | `/users/me/settings`             | 200 with the user. Takes `foodNameLanguage`, `timeZone` or both. 400 `invalid_time_zone` or `invalid_request`   |
 
-A food in a list has `id`, `source`, `name` in the user's language, `otherName` (the other language's name when it differs), `per100g`, `isFavourite`, `isOwn` and `retired`. A refused own food answers `food_name_required`, `food_name_too_long`, `food_name_not_searchable`, `food_value_required`, `food_energy_invalid`, `food_macro_invalid` or `barcode_invalid`. A refused portion answers `portion_name_required`, `portion_name_too_long` or `portion_grams_invalid`. The detail's `portions` list the shared food's portions first, in the fixed order of `FINELI_PORTION_UNITS`, then the user's own by name. Each portion has `unit` for a shared one or `name` for an own one, `grams` and `isOwn`. The shapes are in `packages/types/src/foods.ts`.
+A food in a list has `id`, `source`, `name` in the user's language, `otherName` (the other language's name when it differs), `per100g`, `isFavourite`, `isOwn` and `retired`. A refused own food answers `food_name_required`, `food_name_too_long`, `food_name_not_searchable`, `food_value_required`, `food_energy_invalid`, `food_macro_invalid` or `barcode_invalid`. A refused portion answers `portion_name_required`, `portion_name_too_long` or `portion_grams_invalid`. The detail's `portions` list the shared food's portions first, in the fixed order of `FINELI_PORTION_UNITS`, then the user's own by name. Each portion has `unit` for a shared one or `name` for an own one, `grams` and `isOwn`. The shapes are in `packages/types/src/foods.ts`. `POST /foods` reads `OwnFoodBodySchema`, which refuses a name search cannot find. `PUT /foods/:id` reads `OwnFoodUpdateBodySchema`, which leaves that check to the service, for a changed name only.
 
 ### Data
 
@@ -127,5 +131,5 @@ Requirements: FR-FOOD-01 to FR-FOOD-08, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC
 
 ## Where it appears
 
-- [Settings](../app/settings.md#food-names): the food-name language.
-- The web app has no food screens yet. The API is reached directly.
+- [The food sheet](../app/food-sheet.md): the search, a food's detail and its figures, favourites, own foods and portions.
+- [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's data.
