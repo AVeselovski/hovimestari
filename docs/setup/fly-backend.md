@@ -30,7 +30,7 @@ flyctl postgres create --name hovimestari-db --region arn --vm-size shared-cpu-1
 flyctl postgres attach hovimestari-db -a hovimestari-backend
 ```
 
-Food search needs a UTF-8 database and the `pg_trgm` and `unaccent` extensions. Migration `0001` refuses any other encoding and creates both extensions. Both are trusted extensions, so the app's own role may create them. The attach step names the app's database `hovimestari_backend`. Check it:
+Food search needs a UTF-8 database, the `pg_trgm` and `unaccent` extensions, and the ICU collation `fi-x-icu`, which sorts food names in Finnish order. Migration `0001` refuses any other encoding and a server without the collation, and creates both extensions. Both are trusted extensions, so the app's own role may create them, as long as it has `CREATE` on the database. The attach step names the app's database `hovimestari_backend`, and its role has the same name. Check all of it:
 
 ```bash
 flyctl postgres connect -a hovimestari-db --database hovimestari_backend
@@ -38,10 +38,15 @@ flyctl postgres connect -a hovimestari-db --database hovimestari_backend
 # SHOW server_encoding;
 # One row: UTF8.
 # SELECT name FROM pg_available_extensions WHERE name IN ('pg_trgm', 'unaccent');
-# Two rows. Quit with \q.
+# Two rows.
+# SELECT has_database_privilege('hovimestari_backend', 'hovimestari_backend', 'CREATE');
+# One row: t. If it is f, run:
+# GRANT CREATE ON DATABASE hovimestari_backend TO hovimestari_backend;
+# SELECT collname FROM pg_collation WHERE collname = 'fi-x-icu';
+# One row. Quit with \q.
 ```
 
-If the encoding is not `UTF8` or a row is missing, the migration fails at the first deploy and no machine takes traffic.
+If the encoding is not `UTF8`, an extension row or the collation row is missing, or the role lacks `CREATE`, the migration fails at the first deploy and no machine takes traffic. A missing collation means the server was built without ICU. These checks show the same thing before the deploy does.
 
 The attach step creates a database role and a database for the app and sets `DATABASE_URL` as a secret on it. That value is never written down anywhere else. Fly prints the cluster's superuser password once when it creates it. Keep it in a password manager. Normal operation never needs it.
 
@@ -94,6 +99,8 @@ flyctl deploy --remote-only --ha=false --config apps/backend/fly.toml
 ```
 
 A first deploy without `--ha=false` creates two machines. Later deploys keep the machine count, so the flag matters only the first time and does no harm after. The `release_command` in `fly.toml` runs `drizzle-kit migrate` before the new machine takes traffic. A failed migration aborts the deploy. `flyctl logs -a hovimestari-backend` shows why.
+
+The food catalogue starts empty. Load Fineli's foods with [the Fineli import runbook](fineli-import.md): steps 1 and 2 download and unzip the release on your machine, and steps 8 to 10 import it on Fly.
 
 ### Rotating BFF_SECRET
 

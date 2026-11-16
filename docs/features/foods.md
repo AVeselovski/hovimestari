@@ -1,6 +1,6 @@
 # Foods
 
-The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name.
+The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
 
 ## In detail
 
@@ -20,7 +20,7 @@ Results are ranked by a fixed rule, and the first difference decides:
 2. The user's favourites, then the user's own foods, then the rest.
 3. Fineli's basic foods before its dishes, then anything else.
 4. Fewer parts in the name, where a comma and a space separate the parts.
-5. A shorter name, then the name in alphabetical order.
+5. A shorter name, then the name in Finnish alphabetical order, where å, ä and ö come after z.
 
 Steps 4 and 5 read the name in the user's food-name language.
 
@@ -28,11 +28,11 @@ The rule puts the right kind of food first, not the plain variant of it. On real
 
 ### Your own foods
 
-A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. An own food has one name, shown in either food-name language. A user's own foods are listed by name, 100 by default and 200 at most.
+A user can add a food of their own with a name, the four values per 100 g copied from a label, and optionally a barcode of 8 to 14 digits. Energy runs from 0 to 1000 kcal with at most two decimals, and each macro from 0 to 100 g with at most three, which is what the catalogue stores. A name is at most 120 characters and holds at least two letters or digits in a row, because search leaves out shorter words and could never find the food. Two of a user's own foods cannot share a barcode, but two users can each have one with the same barcode. Only its owner sees, edits or deletes an own food. Deleting it deletes its portions and favourites with it. An own food has one name, shown in either food-name language. A user's own foods are listed in Finnish alphabetical order, 100 by default and 200 at most.
 
 ### Portions
 
-A portion is a way to enter grams, such as one egg or one tub, with its weight in grams. A user can add portions of their own to any food they can see, with a name of at most 60 characters and a weight above zero, up to 5000 g, with at most one decimal. A user's own portion is theirs alone, even on a shared food. Portions that come with a shared food are read-only.
+A portion is a way to enter grams, such as one egg or one tub, with its weight in grams. A Fineli food comes with Fineli's household measures as portions: small, medium and large pieces, one piece as sold, small, medium and large portions, a decilitre, a tablespoon and a teaspoon. A user can add portions of their own to any food they can see, with a name of at most 60 characters and a weight above zero, up to 5000 g, with at most one decimal. A user's own portion is theirs alone, even on a shared food. Portions that come with a shared food are read-only.
 
 ### Favourites
 
@@ -44,7 +44,17 @@ Each user reads food names in Finnish or in English. Finnish is the default. A f
 
 ### Fineli
 
-Fineli is the Finnish food composition database of the Finnish Institute for Health and Welfare (THL), used under the [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) licence. Hovimestari is not produced or endorsed by THL.
+Fineli is the Finnish food composition database of the Finnish Institute for Health and Welfare (THL), used under the [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/) licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL.
+
+### The Fineli import
+
+Fineli publishes its data as a release, a zip of files. An import loads a release into the catalogue, and [the Fineli import runbook](../setup/fineli-import.md) has the steps. Each Fineli food arrives with its Finnish and English names and four values per 100 g: energy, protein, available carbohydrate (fibre not included, as on food labels) and total fat. Fineli gives energy in kilojoules, and the import converts it to kilocalories. Fineli's household measures arrive as the food's portions.
+
+A food missing one of the four values is left out, because a made-up zero would be a wrong figure. In release 18 that is 8 of 4,058 foods, such as water and a few spices.
+
+A food keeps its identity from one release to the next. A new release updates a food's names and values in place, so every favourite and portion that points at it keeps pointing at the same food. A food that is no longer in a release is retired, never deleted: search stops finding it, and it stays readable with its last figures. A food that a later release still lists but leaves out, for example because one of its values is now missing, is retired the same way, and the import report names it. A food that returns in a later release is live again. Fineli marks some foods with "(arc)" at the start of the name, and the import keeps those retired.
+
+The import is safe to repeat: the same release a second time changes nothing. It stops and writes nothing when the release would retire more than 10 % of the Fineli foods, because a wrong folder or a cut-off file looks just like that. It also stops when the release would rename more than 5 % of them, and more than ten, because a file read in the wrong encoding changes every name with å, ä or ö. A person who has checked the release can tell it to go ahead in either case. Every run prints a report of what it added, changed, retired and left out, with a line that adds the foods up to the number read. A rename is a food whose Finnish name changed under the same Fineli id. The report lists every one, so a person can check it is still the same food.
 
 ## How it works
 
@@ -54,13 +64,24 @@ Fineli is the Finnish food composition database of the Finnish Institute for Hea
 
 ### The search rule in code
 
-Migration `0001_search_functions.sql` installs `pg_trgm` and `unaccent` and three SQL functions. `food_search_norm` lowers a name, folds its accents and turns every run of other characters into one space. `food_search_head` gives the head of a name: the first word of its first part, with hyphens kept. Parts are split on a comma and a space, so the decimal comma in "rasvaa <0,5 %" never starts a part. The migration refuses a database that is not UTF-8, because on any other encoding `char_length` counts bytes and the character classes drop accented letters. The generated columns `search_name`, `search_name_en`, `search_all`, `search_head` and `search_head_en` call them, so the index, the filter and the ranking normalise names one way.
+Migration `0001_search_functions.sql` installs `pg_trgm` and `unaccent` and three SQL functions. `food_search_norm` lowers a name, folds its accents and turns every run of other characters into one space. `food_search_head` gives the head of a name: the first word of its first part, with hyphens kept. Parts are split on a comma and a space, so the decimal comma in "rasvaa <0,5 %" never starts a part. The migration refuses a database that is not UTF-8, because on any other encoding `char_length` counts bytes and the character classes drop accented letters. It also refuses a server without the ICU collation `fi-x-icu`, which the alphabetical order needs. The generated columns `search_name`, `search_name_en`, `search_all`, `search_head` and `search_head_en` call them, so the index, the filter and the ranking normalise names one way.
 
-`searchWords` in `apps/backend/src/services/foodSearch.ts` normalises the query with `food_search_norm` in the database, then splits it into words in TypeScript, drops words under two characters (`MIN_WORD_LENGTH`) and duplicates, and keeps the first eight (`MAX_WORDS`). A normalised word holds only letters and digits, so no `LIKE` wildcard reaches a pattern. With no word left, `searchFoods` in `apps/backend/src/services/reads/foods.ts` answers an empty list without a query. Otherwise `searchQuery` binds each pattern as one parameter and runs one ranked query. A food matches when `search_all` holds every word. The tier of step 1 is computed on `search_head` and `search_name`, and on their English twins, and the lower of the two wins. Steps 4 and 5 split the display name on `, ` and count its characters, and the id breaks the last tie. A word of three characters or more is served by the trigram index `foods_search_all_trgm`. The display name and its language come from the same query, so the screen and an assistant get the same names.
+`searchWords` in `apps/backend/src/services/foodSearch.ts` normalises the query with `food_search_norm` in the database, then splits it into words in TypeScript, drops words under two characters (`MIN_WORD_LENGTH`) and duplicates, and keeps the first eight (`MAX_WORDS`). A normalised word holds only letters and digits, so no `LIKE` wildcard reaches a pattern. With no word left, `searchFoods` in `apps/backend/src/services/reads/foods.ts` answers an empty list without a query. Otherwise `searchQuery` binds each pattern as one parameter and runs one ranked query. A food matches when `search_all` holds every word. The tier of step 1 is computed on `search_head` and `search_name`, and on their English twins, and the lower of the two wins. Steps 4 and 5 split the display name on `, ` and count its characters. The alphabetical step orders by `byName` in `apps/backend/src/services/foodRows.ts`, which adds `COLLATE "fi-x-icu"`, so the tests (which run under `C.UTF-8`) and any production locale sort alike. Every alphabetical order on a food or portion name uses it. The id breaks the last tie. A word of three characters or more is served by the trigram index `foods_search_all_trgm`. A two-character word has no trigram to look up, so its search scans the whole catalogue: a median of 24 ms on 10,001 foods. Measure it again before Open Food Facts products share the table. The display name and its language come from the same query, so the screen and an assistant get the same names.
 
-A bulk load fills the trigram index's pending list, and until a `VACUUM` the planner prices the index above a full scan. The tests run `VACUUM ANALYZE` before they check the plan.
+A bulk load fills the trigram index's pending list, and until a `VACUUM` the planner prices the index above a full scan. The import runs `VACUUM ANALYZE foods` after every run that writes, and the search tests run it before they check the plan.
 
 `apps/backend/src/services/__tests__/foodSearch.db.test.ts` pins the rule on 249 real Fineli names in `fixtures/fineli-names-r18.csv`, credited in the README next to it.
+
+### The import in code
+
+The command is `fineli:import` in `apps/backend/package.json`, and its code is in `apps/backend/src/scripts/fineliImport/`:
+
+- `readRelease.ts` reads the release folder and touches no database. It needs `food.csv`, `foodname_FI.csv`, `foodname_EN.csv`, `component_value.csv` and `foodaddunit.csv`, finds each file whatever the case of its name and each column by its header, and stops with a `ReleaseError` naming the file and the column when one is missing, or saying the file does not look semicolon-separated when its header is one field. Each file is read as UTF-8 when its bytes are valid UTF-8, else as Windows-1252, which release 18 uses for its name files. A file that fails UTF-8 but holds more than ten valid UTF-8 sequences (`MAX_UTF8_SEQUENCES_IN_WINDOWS_1252`) is damaged UTF-8 and stops the import, naming its first bad line and the count. Release 18's Windows-1252 files hold no such sequence. `descript.txt` is optional and only gives the release number, so when it cannot be read the report has no release number and the import goes on. Only the four needed components of `component_value.csv` are kept while it is parsed, so the import stays near 160 MB on release 18. Values take a decimal comma or point. The four values are `ENERC` (kJ, divided by 4.184 and rounded to two decimals), `PROT`, `CHOAVL` and `FAT`, rounded to the three decimals the columns hold. A food is left out when a value is missing, unreadable, or above 1000 kcal or 100 g. The measures kept are the ten units of `FINELI_PORTION_UNITS`, with grams rounded to one decimal, and a measure of another unit or a weight outside 0 to 5000 g is left out and counted. Release 18 has a turkey whose pieces weigh 6000 g and 8000 g.
+- `applyRelease.ts` writes in one transaction, behind an advisory lock so two imports never interleave. It upserts each food on `fineli_id`, so a known food keeps its `id`, and writes only the foods that changed. It sets `retired_at` on every live Fineli food the release no longer has, and tells apart a food absent from the release from one the release lists but left out. Both guards run before any write and throw `RetireGuardError` or `RenameGuardError`. The retire guard (`RETIRE_GUARD_SHARE`, 10 %) counts every live Fineli food the release would retire, left-out foods included, against the live Fineli foods. `--allow-retire` lifts it. The rename guard (`RENAME_GUARD_SHARE`, 5 %, never below `RENAME_GUARD_MIN`, ten foods) counts renames of live foods only, and `--allow-rename` lifts it. Its message shows three of the renames, and the report lists every rename. Adding or dropping "(arc)" is not a rename. Fineli measures are upserted on `(food_id, fineli_unit)`, and a released food's measure that the release dropped is deleted. A retired food keeps its measures, and a user's own portion is never touched. A dry run does all of it and rolls back.
+- `cli.ts` parses the arguments (`--dry-run`, `--allow-retire`, `--allow-rename`), runs the import, prints the report from `report.ts`, then runs `VACUUM ANALYZE foods`. It answers exit code 0 when done, 1 when nothing was written (the release cannot be read or a guard stopped it) or most likely nothing was (the database failed during the import), 2 for bad arguments, and 3 when the import was written but the statistics refresh failed. `index.ts` also answers 1 when `DATABASE_URL` is not set.
+- `index.ts` is the entry point. It needs only `DATABASE_URL`, so it runs on a Fly machine through the built `dist/scripts/fineliImport/index.js`.
+
+The tests run on fixtures in `__tests__/fixtures/`: rows of release 18 in its own bytes, credited in the README there, with a second release that changes, renames, drops and adds foods.
 
 ### Services
 
@@ -74,7 +95,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`.
 | ------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | GET    | `/foods/search?q=&limit=`        | 200 `{ foods }`. `q` 1 to 100 characters after trimming, `limit` 1 to 50, 30 by default. Else `invalid_request` |
 | GET    | `/foods/favourites?limit=`       | 200 `{ foods }`, newest favourite first. `limit` 1 to 200, 100 by default                                       |
-| GET    | `/foods/own?limit=`              | 200 `{ foods }`, by name. `limit` 1 to 200, 100 by default                                                      |
+| GET    | `/foods/own?limit=`              | 200 `{ foods }`, in Finnish alphabetical order. `limit` 1 to 200, 100 by default                                |
 | GET    | `/foods/:id`                     | 200 with the food, its barcode, its Fineli id, type and process, and its portions. 404 `food_not_found`         |
 | POST   | `/foods`                         | 201 with the new food. 409 `barcode_taken`                                                                      |
 | PUT    | `/foods/:id`                     | 200 with the food. 403 `food_read_only`. 404. 409 `barcode_taken`                                               |
@@ -86,7 +107,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`.
 | DELETE | `/foods/:id/favourite`           | 204, also when it is not one. 404 `food_not_found`                                                              |
 | PATCH  | `/users/me/settings`             | 200 with the user. Takes `foodNameLanguage`, `timeZone` or both. 400 `invalid_time_zone` or `invalid_request`   |
 
-A food in a list has `id`, `source`, `name` in the user's language, `otherName` (the other language's name when it differs), `per100g`, `isFavourite`, `isOwn` and `retired`. A refused own food answers `food_name_required`, `food_name_too_long`, `food_value_required`, `food_energy_invalid`, `food_macro_invalid` or `barcode_invalid`. A refused portion answers `portion_name_required`, `portion_name_too_long` or `portion_grams_invalid`. The detail's `portions` list the shared food's portions first, in the fixed order of `FINELI_PORTION_UNITS`, then the user's own by name. Each portion has `unit` for a shared one or `name` for an own one, `grams` and `isOwn`. The shapes are in `packages/types/src/foods.ts`.
+A food in a list has `id`, `source`, `name` in the user's language, `otherName` (the other language's name when it differs), `per100g`, `isFavourite`, `isOwn` and `retired`. A refused own food answers `food_name_required`, `food_name_too_long`, `food_name_not_searchable`, `food_value_required`, `food_energy_invalid`, `food_macro_invalid` or `barcode_invalid`. A refused portion answers `portion_name_required`, `portion_name_too_long` or `portion_grams_invalid`. The detail's `portions` list the shared food's portions first, in the fixed order of `FINELI_PORTION_UNITS`, then the user's own by name. Each portion has `unit` for a shared one or `name` for an own one, `grams` and `isOwn`. The shapes are in `packages/types/src/foods.ts`.
 
 ### Data
 
@@ -99,10 +120,10 @@ Every table with `user_id` cascades from `users`, so deleting an account removes
 
 ### Known gaps
 
-- The catalogue holds no Fineli or Open Food Facts food yet, and no Fineli portion. The Fineli import arrives separately.
-- Nothing sets `retired_at` yet. Search and the reads handle it as described.
+- The catalogue holds no Open Food Facts food yet.
+- The import is tested on Fineli release 18 only. A newer release may name its files or columns differently, and the import then stops and names what it did not find.
 
-Requirements: FR-FOOD-01, FR-FOOD-03 to FR-FOOD-08, FR-SET-01, NFR-SEC-01, NFR-PERF-01 (requirements 3.2, 3.12 and 4)
+Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SET-01, NFR-SEC-01, NFR-PERF-01, NFR-DATA-01 (requirements 3.2, 3.12 and 4)
 
 ## Where it appears
 

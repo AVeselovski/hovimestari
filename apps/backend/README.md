@@ -65,6 +65,13 @@ src/
 │   ├── foodScope.ts            visibleTo and portionVisibleTo, the only place the visibility rules are written
 │   ├── foodRows.ts             The selection every food read answers with, names in the user's language
 │   └── foodSearch.ts           The query's words and the ranked search query
+├── scripts/
+│   └── fineliImport/           The Fineli import command
+│       ├── index.ts            Entry point: a pool from DATABASE_URL alone, the default folder, the exit code
+│       ├── cli.ts              Arguments, the run, VACUUM ANALYZE foods, the exit codes
+│       ├── readRelease.ts      Reads a release folder into foods and portions, or names the missing file or column
+│       ├── applyRelease.ts     Writes a release in one transaction: upserts, retirement, the retire and rename guards, portions
+│       └── report.ts           The report a person reads after each run
 └── types/
     └── express.d.ts            req.user and req.relay
 ```
@@ -91,7 +98,10 @@ pnpm --filter @hovimestari/backend test         # Jest, every suite
 pnpm --filter @hovimestari/backend db:generate  # SQL migration from a schema change
 pnpm --filter @hovimestari/backend db:migrate   # apply migrations to DATABASE_URL
 pnpm --filter @hovimestari/backend db:studio    # Drizzle Studio on DATABASE_URL
+pnpm --filter @hovimestari/backend fineli:import [dir] [--dry-run] [--allow-retire] [--allow-rename]
 ```
+
+`fineli:import` loads an unzipped Fineli release into the food catalogue. The folder defaults to `apps/backend/data/fineli/`, which git ignores, and a relative folder is read from where you run the command. Only `DATABASE_URL` is needed. The steps, local and on Fly, are in [the Fineli import runbook](../../docs/setup/fineli-import.md), and how the import treats each food in [the foods feature doc](../../docs/features/foods.md#the-fineli-import).
 
 Local setup, from `pnpm env:init` to a running server, is in [the local development runbook](../../docs/setup/local-development.md).
 
@@ -109,7 +119,7 @@ The schema lives in `src/db/schema/`, and the migrations it produces in `drizzle
 
 3. Run `db:migrate` locally.
 
-If a migration fails on an existing local database, recreate it from the repository root. This deletes everything in the local database:
+Drizzle applies each migration once and never reads an applied file again, so a change to an applied migration reaches only a new database. If a migration fails on an existing local database, or a migration you already applied has changed, recreate it from the repository root. This deletes everything in the local database:
 
 ```bash
 docker compose down -v
@@ -117,7 +127,7 @@ pnpm db:up
 pnpm --filter @hovimestari/backend db:migrate
 ```
 
-Migration `0001_search_functions.sql` is written by hand: it was generated empty with `db:generate --custom` and installs `pg_trgm`, `unaccent` and the search functions the generated columns of `foods` call. It fails on a database that is not UTF-8. The Postgres server must ship both extensions, as the official image and Fly's do.
+Migration `0001_search_functions.sql` is written by hand: it was generated empty with `db:generate --custom` and installs `pg_trgm`, `unaccent` and the search functions the generated columns of `foods` call. It fails on a database that is not UTF-8 and on a server without the ICU collation `fi-x-icu`, which food names sort with. The Postgres server must ship both extensions and ICU, as the official image and Fly's do.
 
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
 
@@ -133,6 +143,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - `signUp(client)` in `src/__tests__/support/apiUser.ts` makes a user directly in a suite's database and signs an access token for it, past the sign-up rate limit. The targets, foods and search suites use it.
 - `src/services/__tests__/foodWrites.db.test.ts` changes a row's owner between a write's check and the write itself, and proves the write still touches only the caller's rows.
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
+- `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment

@@ -4,7 +4,7 @@ Hovimestari is a food planner and food log for people who bring their own calori
 
 ## Where the project stands
 
-Accounts, targets and the food catalogue are built in the backend, and the app's frame is built in the web app: signing up and in, the four tabs, the theme and the installable app. The tabs hold nothing yet, and no Fineli food is loaded. [The feature catalog](docs/features.md) lists what is built.
+Accounts, targets and the food catalogue are built in the backend, and the app's frame is built in the web app: signing up and in, the four tabs, the theme and the installable app. The tabs hold nothing yet. Fineli's foods load through an import command that Artur runs by hand, with [the Fineli import runbook](docs/setup/fineli-import.md). [The feature catalog](docs/features.md) lists what is built.
 
 - [The overview](docs/overview.md) frames the product.
 - [The requirements](docs/requirements.md) say what it must do.
