@@ -48,7 +48,9 @@ describe("AuthGuard", () => {
     mockUseAuth.mockReturnValue(fakeAuth("offline"));
     renderGuard();
     expect(screen.queryByText("Protected content")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "You are offline" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Not signed in" })).toBeInTheDocument();
+    // Said once, by the offline line, not again by the title.
+    expect(screen.getAllByText(/offline/i).map((el) => el.textContent)).toEqual(["You are offline."]);
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 
@@ -70,6 +72,17 @@ describe("AuthGuard", () => {
     mockUseAuth.mockReturnValue(fakeAuth("unauthenticated", { signedOut: true }));
     renderGuard();
     expect(mockReplace).toHaveBeenCalledWith("/auth/sign-in");
+  });
+
+  // The sign-out already went to its page. The guard must not replace it with
+  // plain sign-in, which would drop the note.
+  it("after a sign-out with a note, keeps the person on the page with the note", () => {
+    mockPathname = "/settings";
+    mockUseAuth.mockReturnValue(
+      fakeAuth("unauthenticated", { signedOut: true, afterSignOut: "/auth/sign-in?deleted=1" }),
+    );
+    renderGuard();
+    expect(mockReplace.mock.calls).toEqual([["/auth/sign-in?deleted=1"]]);
   });
 
   it("shows the spinner while the session is restored", () => {

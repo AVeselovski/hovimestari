@@ -13,28 +13,34 @@ public/
 src/
 ├── app/
 │   ├── layout.tsx              The document: fonts, viewport, the pre-paint theme script, the providers
-│   ├── globals.css             The design tokens, the safe-area tokens and two utilities
+│   ├── globals.css             The design tokens, the safe-area and motion tokens, and the sheet motion utilities
 │   ├── manifest.ts             The web manifest at /manifest.webmanifest
 │   ├── not-found.tsx, error.tsx, global-error.tsx  The page for an unknown address and the two error pages
 │   ├── fonts/                  Fraunces, Instrument Sans and JetBrains Mono, variable woff2
-│   ├── auth/(guest)/           Sign in, sign up, forgot and reset password, behind GuestGuard
-│   │   ├── layout.tsx          Reads on the server whether Google is offered
-│   │   └── _components/        A field, the form error line, where focus goes, schema issues
+│   ├── auth/(guest)/           Sign in, sign up and forgot password, behind GuestGuard
+│   │   └── layout.tsx          Reads on the server whether Google is offered
+│   ├── auth/reset-password/    Choose a new password, open with or without a session
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then AppShell
 │   │   ├── page.tsx            Day
 │   │   ├── recipes/, groceries/  The two other content tabs
-│   │   └── settings/           Settings, with the Appearance and Account sections
+│   │   └── settings/           Settings: Appearance, Sign-in methods and Account, and their sheets
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
 │       ├── _guard.ts           The same-origin guard every POST handler runs first
 │       ├── _relay.ts           relay(): the call to the backend with the secret and the client address
 │       ├── _session.ts         Turns a backend grant into the cookie and the browser's session
 │       ├── sign-in/, sign-up/, refresh/, sign-out/   POST handlers
-│       └── google/start/, google/complete/           The two ends of Google sign-in
+│       ├── google/start/, google/complete/           The two ends of Google sign-in
+│       └── google/link/start/, google/link/complete/ The two ends of linking Google, bound by a nonce cookie
 ├── components/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
+│   ├── form/                   The form parts the guest pages and the sheets share:
+│   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
+│   │   ├── FormError.tsx       The announced line under a form for a refusal that belongs to no field
+│   │   ├── focus.ts            focusField(): puts focus in a field by its id
+│   │   └── issues.ts           firstIssues() and passwordFieldError(): a schema's or the server's error, per field
 │   ├── ErrorFrame.tsx          The body of the error pages
 │   ├── GuestGuard.tsx          Renders a guest page, or sends a signed-in visitor on
 │   ├── FullPageSpinner.tsx     What shows while the session is restored
@@ -43,12 +49,27 @@ src/
 │   ├── QueryProvider.tsx       The query client for one signed-in user
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
-│   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts
+│   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, and the overlays:
+│       ├── BottomSheet.tsx     The one sheet and dialog primitive, on Base UI's Drawer
+│       ├── ConfirmDialog.tsx   A BottomSheet that asks before a consequential action
+│       ├── FormSheet.tsx       A BottomSheet that holds one form: every form sheet is one
+│       ├── PromptSheetBody.tsx A form sheet's body, which takes focus on a phone so no keyboard rises mid-slide
+│       └── FormSheetActions.tsx  Cancel and the submit button in a form sheet's footer
 ├── contexts/
-│   ├── AuthContext.tsx         The session: status, user, signIn, signUp, signOut, renewal and its retries
+│   ├── AuthContext.tsx         The session: status, user, signIn, signUp, signOut, renewal and its retries, all under one lock
 │   ├── ThemeContext.tsx        The theme choice, data-theme and the browser chrome colour
 │   └── ProvidersContext.tsx    Whether the guest pages show Google
-├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile
+├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, and the sheet hooks:
+│   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open and the control that opened it
+│   ├── useRetainedValue.ts     The last non-null value, so an overlay slides out with its content
+│   ├── useFormDirty.ts         Whether a form holds unsaved input
+│   ├── useConfirmedDelete.tsx  A confirmation in front of a write that takes a row off the page, and the write
+│   ├── useArmedAtRest.ts       A sheet's action takes a press only once the sheet is at rest on a phone
+│   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
+│   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
+│   ├── useStillUnderFinger.ts  No scroll by code while a finger is on the screen
+│   ├── useAnchoredPanel.ts     Holds a centred panel's top where it opened
+│   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
 │   ├── api/                    The calls, one file per area: auth.ts, users.ts
@@ -59,9 +80,19 @@ src/
 │   ├── queryKeys.ts            Every query key, from one factory
 │   ├── queryOptions.ts         The options for every read
 │   ├── redirect.ts             Resolves a redirect target and keeps it only when it stays on this site
-│   ├── sessionMarker.ts        The non-secret flag that says this device has a known session
+│   ├── sessionMarker.ts        The non-secret flag that says this device has a known session, and its address
+│   ├── invalidation.ts         What each write makes stale
+│   ├── forgetDevice.ts         Drops the cached signed-in pages after the account is deleted
+│   ├── googleLink.ts           The results a Google link comes back with
+│   ├── focus.ts                Whether focus is still inside an overlay, so closing it puts focus back only then
+│   ├── focusAfterRemoval.ts    Where focus goes when a row leaves the page
+│   ├── lastInputModality.ts    Which input the reader last used, so a focus put back after a tap paints no ring
 │   ├── backend.ts              The backend's URL for server code, which production refuses to guess
 │   └── theme/noFlashScript.ts  The pre-paint theme script and its storage key
+├── __tests__/
+│   ├── setup.ts                Runs before every test file: the real catalog and a query client per render
+│   ├── sheet.ts                Drives sheets through Base UI's own code: swipes, presses outside, exits, focus
+│   └── formSheet.tsx           describeFormSheetContract, the checks every form sheet runs, and stubPhone
 ├── i18n/request.ts             Pins the catalog's locale to English
 └── global.d.ts                 Types the catalog's keys
 ```
@@ -90,6 +121,19 @@ The catalog tests check that the catalog works: no empty entry, no code word suc
 ## Styling
 
 Style only through the tokens in `src/app/globals.css` and the recipes in `src/components/ui/styles.ts`. Tailwind's own palette is switched off, and a raw palette class is a lint error. [The colour reference](../../docs/app/colors.md) says what each token is for. Light and dark both have to look right. The safe-area insets are read in `globals.css` only, as `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`.
+
+## Sheets and dialogs
+
+Every overlay is `BottomSheet`, `ConfirmDialog` or `FormSheet` from `src/components/ui/`, never a hand-built one. Below `md` it is a bottom sheet with a drag handle, and from `md` a centred dialog. [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) state every convention they keep, and `docs/design/mobile-ui-lessons.md` says why.
+
+To add a form sheet, such as logging a food:
+
+1. Write it as a `FormSheet`. Pass `dirty` from `useFormDirty`, `submitting`, `onSubmit` and `formError`, and render the fields from its render prop, giving the first field the `autoFocus` it hands you. `FormSheet` does the rest: dismissal only while clean and idle, the keyboard, the body that takes focus on a phone, the footer and the in-flight guard.
+2. Put other `BottomSheet` options in `sheet`, and a secondary action such as a delete in `footerStart`.
+3. In the caller, keep it mounted with `useSheetTarget`: render it while `shown` is set, with `key={shown.key}`, `open={isOpen}` and `returnFocusTo={shown.opener}`.
+4. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
+
+A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
 ## Commands
 
@@ -127,4 +171,5 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - The default environment is jsdom plus Node's `Response`, `Request` and `Headers`. `fetch` is not provided, so a test that reaches the network stubs it.
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
+- `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them.

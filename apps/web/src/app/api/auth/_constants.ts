@@ -11,6 +11,10 @@ export const GOOGLE_NONCE_PATH = "/api/auth/google";
 /** Ten minutes, in seconds: long enough for Google's consent screen. */
 export const GOOGLE_NONCE_MAX_AGE = 60 * 10;
 
+/** The nonce that binds linking Google to the browser that started it. */
+export const GOOGLE_LINK_NONCE_COOKIE = "__google_link";
+export const GOOGLE_LINK_NONCE_PATH = "/api/auth/google/link";
+
 const secure = (): boolean => process.env.NODE_ENV === "production";
 
 /** The refresh cookie's attributes. `strict`: no other site's request ever carries it. */
@@ -37,4 +41,9 @@ export function googleNonceCookieOptions(): {
   maxAge: number;
 } {
   return { httpOnly: true, secure: secure(), sameSite: "lax", path: GOOGLE_NONCE_PATH, maxAge: GOOGLE_NONCE_MAX_AGE };
+}
+
+/** The Google link nonce cookie's attributes: as the sign-in nonce's, sent only to the link handlers. */
+export function googleLinkNonceCookieOptions(): ReturnType<typeof googleNonceCookieOptions> {
+  return { ...googleNonceCookieOptions(), path: GOOGLE_LINK_NONCE_PATH };
 }

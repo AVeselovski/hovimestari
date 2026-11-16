@@ -1,6 +1,10 @@
 "use client";
 
 import { AuthPage } from "@/components/auth/AuthPage";
+import { Field } from "@/components/form/Field";
+import { FormError } from "@/components/form/FormError";
+import { focusField } from "@/components/form/focus";
+import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
 import { btnPrimary, noticeClass, standaloneLinkClass } from "@/components/ui/styles";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
@@ -10,10 +14,6 @@ import { ForgotPasswordBodySchema } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState, type FormEvent, type ReactElement } from "react";
-import { Field } from "../_components/Field";
-import { FormError } from "../_components/FormError";
-import { focusField } from "../_components/focus";
-import { firstIssues } from "../_components/issues";
 
 export default function ForgotPasswordPage(): ReactElement {
   const t = useTranslations("auth.forgotPassword");

@@ -24,6 +24,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | error codes, the error body                                                  | `features/authentication.md#errors`                                     | `### Errors`                                     |
 | redirect after sign-in, `?redirect=`                                         | `features/authentication.md#the-redirect-after-sign-in`                 | `### The redirect after sign-in`                 |
 | the same-origin guard                                                        | `features/authentication.md#the-same-origin-guard`                      | `### The same-origin guard`                      |
+| linking Google, the link nonce, `?google=`                                   | `features/authentication.md#linking-google`                             | `### Linking Google`                             |
 
 ## The app
 
@@ -46,8 +47,12 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | macro hues, energy, protein, carbohydrates, fat | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
 | contrast                                        | `app/colors.md#contrast`                                                | `### Contrast`                                   |
 | type, typefaces, type scale                     | `app/colors.md#type`                                                    | `### Type`                                       |
+| motion tokens, sheet curve, reduced motion      | `app/colors.md#motion`                                                  | `### Motion`                                     |
+| z-index ladder, layers                          | `app/colors.md#layers`                                                  | `### Layers`                                     |
+| sheets and dialogs, swipe to close              | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
+| bottom sheet, confirm dialog, sheet conventions | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 | sign-in pages, guest pages                      | `app/auth.md`                                                           | Doc                                              |
-| settings, the Settings tab                      | `app/settings.md`                                                       | Doc                                              |
+| settings, sign-in methods, account actions      | `app/settings.md`                                                       | Doc                                              |
 
 ## Targets
 

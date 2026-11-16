@@ -82,6 +82,8 @@
 [backend-engineer STARTED] (2026-11-15T21:01:08Z) fix: a lost refresh response no longer signs the user out
 [frontend-engineer DONE] (2026-11-15T21:01:52Z) Fixed web fixtures for the new user fields and listed the targets and foods error codes as without copy until their screens land
 [backend-engineer STARTED] (2026-11-15T21:04:11Z) PR 2b: Fineli importer, fixtures, runbook, carried 2a review items
+[frontend-engineer DONE] 2026-11-15T21:15:44Z PR 30 review fixes: sign-out under the renewal lock with a session generation, frame-ancestors and X-Frame-Options, stale-while-revalidate manifest and icons, runbook and TODO
+[frontend-engineer STARTED] (2026-11-15T21:19:00Z) PR 3 of the scaffold: the Base UI sheets and the account section
 [backend-engineer DONE] (2026-11-15T21:19:09Z) session renewal by token families, user row lock, migration 0003, docs; 343 backend tests, session suites green 5 runs in a row
 [validator STARTED] (2026-11-15T21:19:44Z) validate the session renewal fix
 [reviewer STARTED] (2026-11-15T21:19:44Z) code review of the session renewal fix
@@ -112,3 +114,24 @@
 [documentation-specialist STARTED] (2026-11-16T02:29:16Z) docs pass for the Fineli importer
 [documentation-specialist DONE] (2026-11-16T02:30:08Z) reuse policy, cap order, caught-copy wording and busy causes brought in line with the code across design doc, memory, feature doc, TODO and backend README. docs:check clean
 [documentation-specialist DONE] (2026-11-16T02:32:22Z) Fineli import docs pass: runbook checked against cli.ts and report.ts and a fixture run, foods.md guards and overrides, catalog, TODO ranking item
+[frontend-engineer DONE] (2026-11-16T02:41:09Z) PR 3 of the scaffold: Base UI sheets lifted and adapted, Settings sign-in methods and account actions, Google link handlers, reset page opens with a session; gates green (web 518, backend 364, types 88); browser checks at 320, 375, 390 and 1280 in both themes
+[frontend-engineer DONE] (2026-11-16T02:41:33Z) account settings (scaffold PR 3): sheets lifted and adapted, sign-in methods, sign out everywhere, delete account; 518 web tests
+[validator STARTED] (2026-11-16T02:41:33Z) account settings validation
+[ui-validator STARTED] (2026-11-16T02:41:33Z) account settings in a real browser
+[reviewer STARTED] (2026-11-16T02:41:33Z) account settings code review
+[reviewer DONE] (2026-11-16T02:57:36Z) account settings: approve after fixes; change-password re-sign-in race (major), form sheet frame duplicated (major), 11 minors and nits (160k tokens)
+[validator DONE] (2026-11-16T02:57:36Z) account settings at 699c58e: FAIL on one stale page doc (docs/app/auth.md); code meets every check; 3 minors
+[frontend-engineer STARTED] (2026-11-16T02:57:36Z) account settings fix cycle 1
+[frontend-engineer DONE] (2026-11-16T03:23:36Z) account settings fix cycle 1: items 1 to 23; sign-in under the renewal lock, FormSheet, contrast and copy fixes, master merged; gate green (web 548, backend 437, types 97); forced renewal and sheet geometry checked in a production build
+[ui-validator DONE] (2026-11-16T03:24:18Z) account settings at 699c58e: pass with fixes; dark-mode contrast of outlined destructive buttons (major), 6 minors (234k tokens)
+[frontend-engineer DONE] (2026-11-16T03:24:18Z) account settings fix cycle 1: 23 items, master merged; web 548 tests
+[reviewer STARTED] (2026-11-16T03:24:18Z) account settings delta review after fix cycle 1
+[frontend-engineer STARTED] (2026-11-16T03:28:59Z) account settings fix cycle 2: items A to J
+[frontend-engineer DONE] (2026-11-16T03:41:23Z) account settings fix cycle 2: A to J; sign-in deadlock fixed, one retry after session_expired, across-state reauth checks, FormSheet options, footer row and in-flight ref; gate green (web 562, backend 437, types 97); two-tab password change and footer row checked in a production build
+[reviewer DONE] (2026-11-16T03:41:50Z) account settings delta review: all 13 closed; approve after fixes A to J (211k tokens)
+[frontend-engineer DONE] (2026-11-16T03:41:50Z) account settings fix cycle 2: A to J; web 562 tests
+[reviewer STARTED] (2026-11-16T03:41:50Z) account settings: confirm fix cycle 2
+[documentation-specialist STARTED] (2026-11-16T03:41:50Z) account settings docs pass
+[documentation-specialist STARTED] (2026-11-16T03:42:20Z) Docs pass for account settings (scaffold PR 3) at a62a942
+[documentation-specialist DONE] (2026-11-16T03:46:56Z) Docs pass for account settings: settings, auth, shell, colors, authentication, catalog, web README, TODO; docs:check clean
+[reviewer DONE] (2026-11-16T03:49:48Z) account settings fix cycle 2 confirmed: approve (225k tokens)

@@ -1,6 +1,6 @@
 # Authentication
 
-How a person gets into Hovimestari and stays in: signing up, signing in with a password or with Google, staying signed in on a phone, recovering a forgotten password, choosing how they sign in, and deleting the account with everything in it. An account belongs to one person, and everything else in the app belongs to an account.
+How a person gets into Hovimestari and stays in: signing up, signing in with a password or with Google, staying signed in on a phone, recovering a forgotten password, changing, adding or removing the password, linking or unlinking Google, signing out on all devices, and deleting the account with everything in it. An account belongs to one person, and everything else in the app belongs to an account.
 
 ## In detail
 
@@ -19,13 +19,17 @@ An account has a password, Google, or both. The two never join by themselves:
 - Signing up with the address of a Google-only account is refused, with a hint to sign in with Google.
 - Signing in with Google as the address of a password account is refused, with a hint to sign in with the password.
 
-Joining them is done on purpose, while signed in. A Google-only account can add a password. A password account can link its Google account. An account with both can remove either one. The last way in can never be removed: the server refuses it, and so does the database.
+Joining them is done on purpose, while signed in, on Settings. A Google-only account can add a password. A password account can link its Google account. An account with both can remove either one, after a confirmation. The last way in can never be removed: the server refuses it, and so does the database.
+
+Changing the password keeps this device signed in. The server ends every session, and the app signs this device straight back in with the new password. When that sign-in fails, this device signs out and opens the sign-in page with a note to sign in with the new password. Other devices sign out as described under staying signed in.
+
+Adding a password, linking Google and removing either method leave every session as it is, on this device and on others.
 
 ### Staying signed in
 
 A session lasts 7 days without use and renews itself while the app is in use. Closing the app and opening it again keeps the person signed in. A renewal whose answer never reaches the phone, on a dropped network say, does not sign the person out: the phone renews again later and gets a new session. Two windows renewing at the same moment both stay signed in. When an older token of a session is presented after a newer one has been used, the server takes it as a copy and ends that session. The person signs in again on that device, and their other devices stay signed in.
 
-Signing out ends the session on this device. **Sign out on all devices** ends every session, including a renewal or a sign-in that is under way at that moment. A device that is open at that moment keeps working until its short-lived pass runs out, within 15 minutes, and only while the app is open there. A closed app cannot use it at all. Changing or resetting the password ends every session the same way, and a sign-in that checked the old password just before the change is refused.
+Signing out ends the session on this device. **Sign out on all devices** asks first, then ends every session, including a renewal or a sign-in that is under way at that moment, and opens the sign-in page on this device. When the server cannot be reached it ends nothing: this device stays signed in and says so. A device that is open at that moment keeps working until its short-lived pass runs out, within 15 minutes, and only while the app is open there. A closed app cannot use it at all. Changing or resetting the password ends every session the same way, and a sign-in that checked the old password just before the change is refused.
 
 When the server cannot be reached, nobody is signed out. A device that was signed in opens the app as usual, says it is offline and tries again on its own, and again as soon as it is back online. A device that was signed out, or never signed in, opens the sign-in side instead, with the same offline line. When the server answers but with a fault of its own, the app keeps the session, says something went wrong and offers **Try again**.
 
@@ -41,9 +45,13 @@ Sign-up allows 10 accounts per network an hour. Password reset allows 5 requests
 
 Asking for a reset link always gets the same answer, just as fast, so it cannot tell anyone which addresses have an account. Only an account with a password gets the email. The link works once, for one hour. Using it sets the new password, ends every session, and makes every other reset link of that account stop working.
 
+The link opens its form whether or not the browser is signed in. After any reset this device signs out, if it was signed in, and lands on the sign-in page with a note to use the new password. This holds even when the link was for another account than the one signed in here.
+
 ### Deleting the account
 
-Deleting the account removes it and everything it owns, at once and for good. A password account confirms with its password. A Google-only account confirms by typing its email address.
+Deleting the account removes it and everything it owns, at once and for good. A password account confirms with its password. A Google-only account confirms by typing its email address. A confirmation that does not match deletes nothing.
+
+Afterwards this device keeps nothing of the account. The session ends, the app's cached reads go, the flag that marks a known session goes with the remembered address, and the service worker drops its cached signed-in pages. The sign-in pages stay cached, so they still open offline. The browser lands on the sign-in page with a note that the account is deleted.
 
 ## How it works
 
@@ -92,11 +100,15 @@ The cookie is shared by every tab. Renewal runs one request at a time within a t
 
 Sign-out takes the same lock, and without Web Locks it waits for this tab's renewal. A renewal already in flight finishes and sets its cookie first, and the sign-out then ends that session and deletes the cookie last. Any renewal answer that arrives after the person tapped **Sign out** is discarded, so a late renewal can never sign the device back in.
 
-The context keeps a plain flag, `hovi-signed-in` in local storage, set when a session starts and cleared on sign-out and when the server ends the session. It holds no token. It only decides what an offline launch shows: the app for a device with a known session, the sign-in side for any other.
+Sign-in and sign-up take the same lock. A renewal answer from before them is discarded, because it belongs to the cookie the sign-in replaces. A renewal asked for while one is under way waits for it and sends the new cookie. This is what keeps a device signed in through a password change, which ends every session and then signs the device straight back in. When the sign-in fails, the session is what it was, and a renewal that was out when it started runs again, so an offline tab keeps its retries going.
+
+A renewal answered `session_expired` asks for the lock once more and renews again before the tab signs out. Another tab may have changed the password and signed back in while the first renewal was out, and the second try then finds that sign-in's cookie. On a real end the first answer already deleted the cookie, so the refresh handler answers the second try itself, without asking the backend. There is one retry only, and none after the tab has started signing out.
+
+The context keeps a plain flag, `hovi-signed-in` in local storage, set when a session starts and cleared on sign-out and when the server ends the session. It holds no token. It only decides what an offline launch shows: the app for a device with a known session, the sign-in side for any other. Beside it, `hovi-last-email` keeps the session's address, so Settings can say "Last signed in as" while the server cannot be asked. Both go together.
 
 ### The redirect after sign-in
 
-A visitor sent to sign in from a signed-in page carries that page's path in `?redirect=`, and lands back on it once signed in. A visitor who signed out on this tab goes to plain sign-in, so the next sign-in starts on the Day tab. `postLoginPath()` in `apps/web/src/components/GuestGuard.tsx` picks the target: `?redirect=`, else the path saved before a Google round trip, else `/`.
+A visitor sent to sign in from a signed-in page carries that page's path in `?redirect=`, and lands back on it once signed in. A visitor who signed out on this tab goes to plain sign-in, or to the sign-in page with a note after a reset or a deletion, so the next sign-in starts on the Day tab. `postLoginPath()` in `apps/web/src/components/GuestGuard.tsx` picks the target: `?redirect=`, else the path saved before a Google round trip, else `/`.
 
 `safeRedirectPath()` in `apps/web/src/lib/redirect.ts` resolves a target the way the browser would and keeps it only when it stays on the same origin. The resolved path must also not start with `//` or `/\`, and must resolve to itself again, so no later navigation can turn it into another host. That refuses `//host`, `/\host`, the same forms with a tab or a newline inside, and dot-segment forms such as `/.//host`. A refused target sends the visitor to the Day tab. The guard navigates to the resolved path, never to the raw text. Google's round trip loses the query string, so the sign-in and sign-up pages save the checked target in the tab's session storage just before leaving, and the guard reads it once on return.
 
@@ -119,6 +131,8 @@ A sign-in is tied to the browser twice:
 ### Linking Google
 
 Linking is bound to the starting browser in the same way. The web server relays the signed-in user's bearer and the hash of a fresh nonce to `POST /auth/link/google/start`, which answers Google's consent URL with a signed state over the user id and `bind`. The callback learns which Google account consented and links nothing. It hands the web server a link code bound to the user, the Google id and `bind`. `POST /auth/link/google/exchange` spends the code, checks the nonce, refuses a Google account another user holds, and only then links it.
+
+The web half is two route handlers. `POST /api/auth/google/link/start` runs the same-origin guard, requires the page's bearer, makes the nonce, keeps it in the `httpOnly` cookie `__google_link` (`sameSite: lax`, ten minutes, sent only to `/api/auth/google/link`), relays the hash, and answers the consent URL, which the page then opens. `GET /api/auth/google/link/complete` reads that cookie, deletes it whatever happens, and exchanges the code with it. It sends the browser back to `/settings?google=` with `linked`, `taken` (another account holds that Google account), `already` (this account holds another one) or `failed`. Settings says which, and takes the parameter off the address. The complete handler is a navigation that arrives from Google through the backend, so the same-origin guard cannot apply to it. The nonce protects it instead.
 
 The link callback sets no cookie of its own and checks none, unlike the sign-in callback. It does not need one. A linking flow starts from the web server, so the backend never has the starting browser in front of it to give a cookie to. The nonce does the same job one step later. Take someone who starts a link for their own account and gets another person to open the consent URL and approve it. The link code then goes to that other person's browser, which does not hold the starter's nonce, so the exchange is refused and the code is spent. The starter holds the nonce and never sees the code. Neither can finish, and nothing is linked.
 
@@ -174,7 +188,7 @@ All under `/api/v1`. **Relay** means `X-Bff-Secret` is required. **Bearer** mean
 | POST   | `/auth/link/google/start`    | Bearer, Relay | 200 `{ url }`, Google's consent URL, or 409 `google_already_linked`                                                                          |
 | GET    | `/auth/link/google/callback` | Google        | 302 to the web server's `/api/auth/google/link/complete?code=`, or to `/settings?google=failed`                                              |
 | POST   | `/auth/link/google/exchange` | Relay         | 204, or 401 `google_failed`, 409 `google_taken` or `google_already_linked`                                                                   |
-| DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user. `method` is `google` or `password`                                                                                        |
+| DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user, or 400 `last_sign_in_method`. `method` is `google` or `password`                                                          |
 | GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle, foodNameLanguage, timeZone }`                                                                      |
 | PUT    | `/users/me/password`         | Bearer        | 204, or 401 `current_password_wrong`, 403 `no_password`                                                                                      |
 | DELETE | `/users/me`                  | Bearer        | 204, or 400 `confirmation_mismatch`. Takes `{ password }` or `{ email }`                                                                     |
@@ -183,14 +197,16 @@ The request and response shapes are the Zod schemas in `packages/types/src/auth.
 
 The web app's own route handlers, on its origin under `/api/auth`. The browser calls only these for anything that carries a refresh token. None of them ever puts the refresh token in a body.
 
-| Method | Path                        | Answers                                                                                                                                                            |
-| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/api/auth/sign-in`         | 200 `{ accessToken, user }` and sets the cookie. A refusal passes through with its status, code and `Retry-After`                                                  |
-| POST   | `/api/auth/sign-up`         | 201 with the same                                                                                                                                                  |
-| POST   | `/api/auth/refresh`         | 200 and rotates the cookie. 401 `session_expired` and deletes it. 503 `server_unreachable` or 502 and keeps it                                                     |
-| POST   | `/api/auth/sign-out`        | 204 and deletes the cookie                                                                                                                                         |
-| GET    | `/api/auth/google/start`    | 302 to the backend's `/auth/google?bind=`, with the nonce cookie set. Without `NEXT_PUBLIC_API_URL` in production, 302 to `/auth/sign-in?error=google_unavailable` |
-| GET    | `/api/auth/google/complete` | 302 to `/auth/sign-in` with the cookie set, or to `/auth/sign-in?error=google_failed`. The nonce cookie is spent                                                   |
+| Method | Path                             | Answers                                                                                                                                                            |
+| ------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/api/auth/sign-in`              | 200 `{ accessToken, user }` and sets the cookie. A refusal passes through with its status, code and `Retry-After`                                                  |
+| POST   | `/api/auth/sign-up`              | 201 with the same                                                                                                                                                  |
+| POST   | `/api/auth/refresh`              | 200 and rotates the cookie. 401 `session_expired` and deletes it. 503 `server_unreachable` or 502 and keeps it                                                     |
+| POST   | `/api/auth/sign-out`             | 204 and deletes the cookie                                                                                                                                         |
+| GET    | `/api/auth/google/start`         | 302 to the backend's `/auth/google?bind=`, with the nonce cookie set. Without `NEXT_PUBLIC_API_URL` in production, 302 to `/auth/sign-in?error=google_unavailable` |
+| GET    | `/api/auth/google/complete`      | 302 to `/auth/sign-in` with the cookie set, or to `/auth/sign-in?error=google_failed`. The nonce cookie is spent                                                   |
+| POST   | `/api/auth/google/link/start`    | 200 `{ url }`, Google's consent URL, with the link nonce cookie set. Needs the page's bearer, else 401 `unauthorized`                                              |
+| GET    | `/api/auth/google/link/complete` | 302 to `/settings?google=` with the result. The link nonce cookie is spent                                                                                         |
 
 The refresh cookie `__refresh_token` is `httpOnly`, `SameSite=Strict`, `Secure` in production, sent only under `/api/auth`, and lasts 7 days. The nonce cookie `__google_sign_in` is `httpOnly`, `SameSite=Lax` so it rides the return from Google, sent only under `/api/auth/google`, and lasts 10 minutes.
 
@@ -209,5 +225,5 @@ Requirements: FR-AUTH-01 to FR-AUTH-07, NFR-SEC-01 to NFR-SEC-04, NFR-PRIV-02 (r
 ## Where it appears
 
 - [Sign-in and account pages](../app/auth.md): signing in and up with a password or Google, asking for a reset link and choosing a new password.
-- [Settings](../app/settings.md): who is signed in, and signing out of this device.
+- [Settings](../app/settings.md): who is signed in, the sign-in methods, signing out of this device or every device, and deleting the account.
 - [The app shell](../app/shell.md): every signed-in tab sits behind the session, and the shell stays up while the server is out of reach.

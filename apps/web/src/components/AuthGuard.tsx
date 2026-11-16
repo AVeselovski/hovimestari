@@ -15,18 +15,23 @@ import { useEffect, type ReactElement, type ReactNode } from "react";
  *   signed in, sees the guest side with the offline line instead.
  * - On a server fault the session is kept and a retry is offered.
  * - A visitor without a session goes to sign-in, which brings them back to
- *   the path they opened. After signing out on this tab, it is plain sign-in.
+ *   the path they opened. After signing out on this tab, it is the sign-in
+ *   page the sign-out named, which may carry a note.
  */
 export function AuthGuard({ children }: { children: ReactNode }): ReactElement | null {
-  const { status, signedOut } = useAuth();
+  const { status, signedOut, afterSignOut } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (status !== "unauthenticated") return;
-    const back = !signedOut && pathname && pathname !== "/" ? `?redirect=${encodeURIComponent(pathname)}` : "";
+    if (signedOut) {
+      router.replace(afterSignOut);
+      return;
+    }
+    const back = pathname && pathname !== "/" ? `?redirect=${encodeURIComponent(pathname)}` : "";
     router.replace(`/auth/sign-in${back}`);
-  }, [status, signedOut, router, pathname]);
+  }, [status, signedOut, afterSignOut, router, pathname]);
 
   if (status === "loading") return <FullPageSpinner />;
   if (status === "unauthenticated") return null;

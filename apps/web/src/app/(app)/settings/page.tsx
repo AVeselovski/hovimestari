@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import type { ReactElement } from "react";
 import { AccountSection } from "./_components/AccountSection";
 import { AppearanceSection } from "./_components/AppearanceSection";
+import { SignInMethodsSection } from "./_components/SignInMethodsSection";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("shell.tabs");
@@ -12,8 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function SettingsPage(): ReactElement {
   return (
-    <PageContainer width="narrow" className="space-y-6">
+    <PageContainer className="space-y-6">
       <AppearanceSection />
+      <SignInMethodsSection />
       <AccountSection />
     </PageContainer>
   );

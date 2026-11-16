@@ -10,18 +10,19 @@ A Nordic kitchen counter. By day, warm paper with dark forest-green ink and one 
 
 ### Colour tokens
 
-| Token                    | Light     | Dark      | For                                                                                      |
-| ------------------------ | --------- | --------- | ---------------------------------------------------------------------------------------- |
-| `--color-bg`             | `#f6efe1` | `#121a15` | The page background                                                                      |
-| `--color-surface`        | `#efe6d2` | `#1a251e` | Panels, the tab bar, the side rail                                                       |
-| `--color-surface-raised` | `#fbf6ec` | `#223027` | Fields, segmented controls, a secondary button                                           |
-| `--color-ink`            | `#1d2e22` | `#ece4d2` | Text and icons                                                                           |
-| `--color-ink-muted`      | `#6b604b` | `#a39880` | Secondary text: section labels, hints, the tabs that are not current                     |
-| `--color-rule`           | `#d8c9aa` | `#34402f` | Panel borders and the dashed header rule, as decoration                                  |
-| `--color-field-rule`     | `#8a7a5c` | `#727d6a` | A field's border, which must be found without its fill                                   |
-| `--color-accent`         | `#a13838` | `#d56f6a` | The primary action, the current tab, the chosen option, error lines, destructive actions |
-| `--color-on-accent`      | `#fbf6ec` | `#121a15` | Text on an accent fill                                                                   |
-| `--color-focus`          | `#1d2e22` | `#ece4d2` | The keyboard focus ring                                                                  |
+| Token                    | Light      | Dark         | For                                                                                      |
+| ------------------------ | ---------- | ------------ | ---------------------------------------------------------------------------------------- |
+| `--color-bg`             | `#f6efe1`  | `#121a15`    | The page background                                                                      |
+| `--color-surface`        | `#efe6d2`  | `#1a251e`    | Panels, the tab bar, the side rail                                                       |
+| `--color-surface-raised` | `#fbf6ec`  | `#223027`    | Fields, segmented controls, a secondary button                                           |
+| `--color-ink`            | `#1d2e22`  | `#ece4d2`    | Text and icons                                                                           |
+| `--color-ink-muted`      | `#6b604b`  | `#a39880`    | Secondary text: section labels, hints, the tabs that are not current                     |
+| `--color-rule`           | `#d8c9aa`  | `#34402f`    | Panel borders and the dashed header rule, as decoration                                  |
+| `--color-field-rule`     | `#8a7a5c`  | `#727d6a`    | A field's border and a secondary button's, which must be found without their fill        |
+| `--color-accent`         | `#a13838`  | `#de7b75`    | The primary action, the current tab, the chosen option, error lines, destructive actions |
+| `--color-on-accent`      | `#fbf6ec`  | `#121a15`    | Text on an accent fill                                                                   |
+| `--color-focus`          | `#1d2e22`  | `#ece4d2`    | The keyboard focus ring                                                                  |
+| `--color-scrim`          | ink at 45% | black at 60% | The dim behind an open sheet or dialog, the only shading in the app                      |
 
 The utilities are named after the token: `bg-surface`, `text-ink-muted`, `border-rule`, `bg-accent`, `text-on-accent`, `outline-focus`.
 
@@ -44,14 +45,27 @@ They colour marks such as bars, dots and gauge fills. The figures themselves sta
 
 ### Contrast
 
-Text meets 4.5 to 1 against the surface it sits on, and a mark meets 3 to 1. Measured in the browser:
+Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's edge meets 3 to 1. The ratios, from the token values:
 
 - Muted text: 5.4 to 1 on the page and 5.0 to 1 on a panel in light, 6.2 to 1 and 5.6 to 1 in dark.
-- The accent as text on the tab bar: 5.4 to 1 in light and 4.8 to 1 in dark.
-- Text on an accent fill: 6.2 to 1 in light and 5.3 to 1 in dark.
-- A field's border: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
+- The accent as text on the page: 5.8 to 1 in light and 6.1 to 1 in dark. On the tab bar and a panel: 5.4 to 1 in both.
+- The accent as text on a raised surface, as on an outlined destructive button: 6.2 to 1 in light and 4.7 to 1 in dark.
+- Text on an accent fill: 6.2 to 1 in light and 6.1 to 1 in dark.
+- A field's border, and a secondary button's: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
 
-`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, accent text or muted text drops under its line.
+`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, accent text, text on an accent fill or muted text drops under its line.
+
+### Motion
+
+A sheet slides up on the curve `--ease-sheet` (`cubic-bezier(0.32, 0.72, 0, 1)`), fast out and long to settle, the curve iOS sheets move on. It takes `--duration-sheet` (450ms) to arrive and to spring back from a drag let go too early, and `--duration-sheet-exit` (400ms) to leave, shortened by a fast swipe. From `md` the dialog fades and scales in `--duration-dialog` (200ms). With reduced motion every one of these is a fade of `--duration-fade` (150ms), and a drag still follows the finger. The rules are the utilities `sheet-popup-motion` and `sheet-backdrop-motion` in `globals.css`.
+
+A sheet lifts from the page by its surface colour and a hairline `--color-rule` border, never by a shadow. A sheet stacked on another takes `--color-surface-raised`, so the two read apart. `--sheet-min-height` (14rem) is the shortest a sheet stands on a phone.
+
+On a phone a sheet with another stacked on it shrinks to `--sheet-stack-scale` (0.94) about its top edge, and keeps `--sheet-stack-peek` (0.75rem) of itself in view above the one on top. The stacked sheet dims what is under it by `--sheet-stack-dim` (0.5) of the scrim, because the page is already dimmed once.
+
+### Layers
+
+One ladder, in `apps/web/src/components/ui/styles.ts`: the page at the default, the header, tab bar and side rail at 30 (`zShell`), and a sheet with its scrim at 50 (`zSheet`). The tab bar sits under every sheet. A new layer takes its class from the ladder, never a number of its own.
 
 ### Type
 
@@ -73,7 +87,7 @@ The fonts are the three variable `woff2` files in `apps/web/src/app/fonts/`, loa
 
 ### Other tokens
 
-- Widths: `--container-page` (40rem) and `--container-page-narrow` (36rem) for the tabs' content from `md`, `--container-auth` (26rem) for the guest pages' column, `--spacing-rail` (14rem) for the side rail.
+- Widths: `--container-page` (40rem) for every tab's content column from `md`, `--container-auth` (26rem) for the guest pages' column, `--spacing-rail` (14rem) for the side rail.
 - Radii: `--radius-control` for fields and buttons, `--radius-card` for panels, `--radius-pill`.
 - Safe areas: `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`, the device's insets.
 - Class recipes in `apps/web/src/components/ui/styles.ts` compose the tokens into buttons, fields, notices, panels and the focus ring, so a view never repeats a raw value.

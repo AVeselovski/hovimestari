@@ -40,21 +40,51 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 // latest session and deletes the cookie last. Each sign-out also starts a new
 // generation. A renewal answer from an older generation is discarded, so a
 // late answer can never sign the tab back in.
+//
+// Sign-in and sign-up take the lock and start a new generation too. A
+// password change ends every session and then signs this device straight
+// back in, and a renewal sent with the old cookie may still be out. Its 401
+// is discarded rather than signing the tab out, and the relay's cookie
+// delete that comes with it lands before the sign-in's new cookie, never
+// after. A renewal in this tab asked for while a sign-in is out waits for it
+// and then sends the new cookie, and so does one in any other tab, queued
+// behind the lock.
+//
+// A renewal answered `session_expired` asks for the lock once more and
+// renews again before the tab signs out. Another tab may have changed the
+// password and signed back in, queued behind it, and this tab then renews
+// with that new cookie. On a real end there is no cookie left, and the
+// route answers the second request itself.
 // ---------------------------------------------------------------------------
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated" | "offline" | "error";
 
+export interface SignOutOptions {
+  everywhere?: boolean;
+  /** The sign-in page, with a note when one applies, such as `?deleted=1`. */
+  to?: SignOutPath;
+}
+
+/** Where a sign-out may land. */
+export type SignOutPath = "/auth/sign-in" | "/auth/sign-in?reset=1" | "/auth/sign-in?deleted=1";
+
 export interface AuthContextValue {
   user: Me | null;
   status: AuthStatus;
-  /** True after this tab signed out, so the guard sends the person to plain sign-in. */
+  /** True after this tab signed out, so the guard sends the person to `afterSignOut`, not back here. */
   signedOut: boolean;
+  /** Where the last sign-out on this tab sent the person: plain sign-in, or sign-in with a note. */
+  afterSignOut: SignOutPath;
   /** Tries the session again after an `error` or while `offline`. */
   retry: () => void;
   signIn: (body: LoginBody) => Promise<void>;
   signUp: (body: RegisterBody) => Promise<void>;
-  /** Signs this device out, and with `everywhere` every other device at its next renewal. */
-  signOut: (options?: { everywhere?: boolean }) => Promise<void>;
+  /**
+   * Signs this device out and goes to `to` (default `/auth/sign-in`). With
+   * `everywhere`, every other device first, at its next renewal: when that
+   * call fails it throws and this device stays signed in.
+   */
+  signOut: (options?: SignOutOptions) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -93,9 +123,13 @@ export const RENEWAL_LOCK = "hovi-session-renewal";
  */
 export const RENEWAL_TIMEOUT_MS = 12_000;
 
+function webLocks(): LockManager | undefined {
+  return typeof navigator === "undefined" ? undefined : navigator.locks;
+}
+
 /** Runs `fn` under the cross-tab renewal lock, or directly where the browser has no Web Locks. */
 function underRenewalLock<T>(fn: () => Promise<T>): Promise<T> {
-  const locks = typeof navigator === "undefined" ? undefined : navigator.locks;
+  const locks = webLocks();
   return locks ? (locks.request(RENEWAL_LOCK, fn) as Promise<T>) : fn();
 }
 
@@ -129,20 +163,25 @@ async function postSessionHandler(path: string, body?: unknown, signal?: AbortSi
   });
 }
 
+type LockedPath = "/api/auth/refresh" | "/api/auth/sign-out" | "/api/auth/sign-in" | "/api/auth/sign-up";
+
 /**
- * Posts to a session handler with no body, aborting after
- * `RENEWAL_TIMEOUT_MS`, because both callers hold the renewal lock. The abort
- * rejects like a failed fetch, so the caller reads it as the server being out
+ * Posts to a session handler, aborting after `RENEWAL_TIMEOUT_MS`, because
+ * every caller holds the renewal lock. The abort rejects as a failed fetch
+ * does, with a `TypeError`, so every caller reads it as the server being out
  * of reach. The timer is cleared once the request settles.
  */
-async function postUnderLock(path: "/api/auth/refresh" | "/api/auth/sign-out"): Promise<Response> {
+async function postUnderLock(path: LockedPath, body?: LoginBody | RegisterBody): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(
-    () => controller.abort(new DOMException("The session renewal timed out.", "TimeoutError")),
+    () => controller.abort(new DOMException("The session request timed out.", "TimeoutError")),
     RENEWAL_TIMEOUT_MS,
   );
   try {
-    return await postSessionHandler(path, undefined, controller.signal);
+    return await postSessionHandler(path, body, controller.signal);
+  } catch (err) {
+    if (controller.signal.aborted) throw new TypeError("The session request timed out.");
+    throw err;
   } finally {
     clearTimeout(timer);
   }
@@ -156,16 +195,19 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const [user, setUser] = useState<Me | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [signedOut, setSignedOut] = useState(false);
+  const [afterSignOut, setAfterSignOut] = useState<SignOutPath>("/auth/sign-in");
 
   const accessTokenRef = useRef<string | null>(null);
   const renewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const renewRef = useRef<() => Promise<RenewalOutcome>>(async () => "unreachable");
-  // Advanced by every sign-out. A renewal applies its answer only while the
-  // generation it started in is still current.
+  // Advanced by every sign-out, sign-in and sign-up. A renewal applies its
+  // answer only while the generation it started in is still current.
   const generationRef = useRef(0);
   const signingOutRef = useRef(false);
+  // A sign-in or sign-up under way. A renewal asked for meanwhile waits for it.
+  const establishingRef = useRef<Promise<BrowserSession> | null>(null);
 
   const clearTimers = useCallback(() => {
     for (const ref of [renewTimerRef, retryTimerRef]) {
@@ -179,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       clearTimers();
       retryCountRef.current = 0;
       accessTokenRef.current = session.accessToken;
-      markSession(true);
+      markSession(true, session.user.email);
       setSignedOut(false);
       setUser(session.user);
       setStatus("authenticated");
@@ -214,10 +256,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const inFlightRef = useRef<Promise<RenewalOutcome> | null>(null);
 
   const renewOnce = useCallback(async (): Promise<RenewalOutcome> => {
+    // After a sign-in under way, so this renewal sends the cookie it sets.
+    // Awaited only when there is one: otherwise the lock is requested at once.
+    const establishing = establishingRef.current;
+    if (establishing) await establishing.catch(() => undefined);
     const generation = generationRef.current;
     const current = (): boolean => generation === generationRef.current && !signingOutRef.current;
     if (!current()) return "superseded";
-    const outcome = await underRenewalLock(async (): Promise<RenewalOutcome | BrowserSession> => {
+    const attempt = async (): Promise<RenewalOutcome | BrowserSession> => {
       // Queued behind a sign-out: its cookie is gone, so there is nothing to renew.
       if (!current()) return "superseded";
       let res: Response;
@@ -229,7 +275,15 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       if (res.ok) return (await sessionOf(res)) ?? "failed";
       if (res.status === 401) return "ended";
       return (await saysUnreachable(res)) ? "unreachable" : "failed";
-    });
+    };
+    let outcome = await underRenewalLock(attempt);
+    // Once more, under a fresh hold of the lock, before this tab signs out. A
+    // sign-in in another tab (after a password change there) may have been
+    // queued behind this renewal, and the cookie it set is then the browser's
+    // session. On a real end the first 401 deleted the cookie, so the route
+    // answers this one itself without asking the backend. Once only: a second
+    // `ended` signs out.
+    if (outcome === "ended" && current()) outcome = await underRenewalLock(attempt);
     // A sign-out began while this renewal was out: its answer, whatever it
     // is, belongs to a session that has ended.
     if (!current() || outcome === "superseded") return "superseded";
@@ -266,12 +320,35 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   }, [renew]);
 
   const establish = useCallback(
-    async (path: string, body: LoginBody | RegisterBody) => {
-      const res = await postSessionHandler(path, body);
-      if (!res.ok) throw await AuthRequestError.from(res);
-      const session = await sessionOf(res);
-      if (!session) throw new AuthRequestError(res.status, undefined);
-      applySession(session);
+    async (path: "/api/auth/sign-in" | "/api/auth/sign-up", body: LoginBody | RegisterBody) => {
+      // A renewal already out belongs to the cookie this replaces: its answer is discarded.
+      generationRef.current += 1;
+      const before = inFlightRef.current;
+      const run = underRenewalLock(async () => {
+        // Without Web Locks, this tab's own renewal is the whole wait. With
+        // them it is never awaited: a renewal that has asked for the lock is
+        // already ahead in its queue, and one that has not (it waits for an
+        // earlier sign-in) would queue behind this one, so awaiting it here
+        // would hold the lock forever.
+        if (!webLocks()) await before?.catch(() => undefined);
+        const res = await postUnderLock(path, body);
+        if (!res.ok) throw await AuthRequestError.from(res);
+        const session = await sessionOf(res);
+        if (!session) throw new AuthRequestError(res.status, undefined);
+        return session;
+      });
+      establishingRef.current = run;
+      try {
+        applySession(await run);
+      } catch (err) {
+        // The renewal that was out had its answer discarded for this sign-in.
+        // The sign-in failed, so the session is what it was: renew it again,
+        // or an offline tab would stop its retries until the browser is online.
+        if (before) void renewRef.current();
+        throw err;
+      } finally {
+        if (establishingRef.current === run) establishingRef.current = null;
+      }
     },
     [applySession],
   );
@@ -280,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const signUp = useCallback((body: RegisterBody) => establish("/api/auth/sign-up", body), [establish]);
 
   const signOut = useCallback(
-    async ({ everywhere = false }: { everywhere?: boolean } = {}) => {
+    async ({ everywhere = false, to = "/auth/sign-in" }: SignOutOptions = {}) => {
       // Before the new generation: this call may need a renewal on a 401.
       if (everywhere) await endAllSessions();
       generationRef.current += 1;
@@ -301,8 +378,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         signingOutRef.current = false;
       }
       setSignedOut(true);
+      setAfterSignOut(to);
       endLocalSession();
-      router.replace("/auth/sign-in");
+      router.replace(to);
     },
     [clearTimers, endLocalSession, router],
   );
@@ -328,8 +406,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   }, [status, retry]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, signedOut, retry, signIn, signUp, signOut }),
-    [user, status, signedOut, retry, signIn, signUp, signOut],
+    () => ({ user, status, signedOut, afterSignOut, retry, signIn, signUp, signOut }),
+    [user, status, signedOut, afterSignOut, retry, signIn, signUp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

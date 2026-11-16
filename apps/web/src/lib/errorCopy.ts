@@ -9,8 +9,6 @@ import type messages from "../../messages/en.json";
 // ---------------------------------------------------------------------------
 
 export const CODES_WITHOUT_COPY = [
-  // No screen sends a sign-in method the server could refuse.
-  "invalid_method",
   // The forgot-password page shows its usual answer for a limited request too.
   "reset_rate_limited",
   // Targets, foods and settings: these get their copy with the targets and
