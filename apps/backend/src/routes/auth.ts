@@ -10,17 +10,17 @@ import { randomBytes } from "crypto";
 import { and, eq, isNull, lt } from "drizzle-orm";
 import { Router, type Router as IRouter } from "express";
 import { db } from "../db/index.js";
-import { passwordResetTokens, refreshTokens, users } from "../db/schema/index.js";
+import { passwordResetTokens, users } from "../db/schema/index.js";
 import { sendPasswordResetEmail } from "../lib/email.js";
 import { env } from "../lib/env.js";
 import { appError } from "../lib/errors.js";
 import { failureOf } from "../lib/failureOf.js";
 import { googleEnabled } from "../lib/google.js";
-import { hashToken, verifyRefreshToken } from "../lib/jwt.js";
+import { hashToken } from "../lib/jwt.js";
 import { parseBody } from "../lib/parseBody.js";
 import { hashPassword, passwordMatches } from "../lib/passwords.js";
 import { isCheckViolation, isUniqueViolation } from "../lib/pgErrors.js";
-import { endAllSessions, issueSession, meOf } from "../lib/sessions.js";
+import { endAllSessions, endSession, issueSession, meOf, renewSession } from "../lib/sessions.js";
 import { findUser } from "../lib/users.js";
 import { authenticate } from "../middleware/authenticate.js";
 import {
@@ -62,7 +62,7 @@ authRouter.post("/register", requireBff, registerRateLimit, async (req, res) => 
     throw err;
   }
 
-  res.status(201).json(await issueSession(user));
+  res.status(201).json(await issueSession(user, { newAccount: true }));
 });
 
 // POST /login. Relayed by the web server only.
@@ -72,46 +72,27 @@ authRouter.post("/login", requireBff, loginAddressRateLimit, loginRateLimit, asy
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   // Compared even when there is no account or no password, so the timing tells nothing.
   const matches = await passwordMatches(password, user?.passwordHash);
-  if (!user || !matches) throw appError("invalid_credentials", 401);
+  if (!user?.passwordHash || !matches) throw appError("invalid_credentials", 401);
 
-  res.status(200).json(await issueSession(user));
+  res.status(200).json(await issueSession(user, { passwordHash: user.passwordHash }));
 });
 
 // POST /refresh. Relayed by the web server only: the refresh token lives in its cookie.
 authRouter.post("/refresh", requireBff, async (req, res) => {
   const { refreshToken } = parseBody(RefreshBodySchema, req.body);
-
-  let payload: { sub: string };
-  try {
-    payload = verifyRefreshToken(refreshToken);
-  } catch {
-    throw appError("session_expired", 401);
-  }
-
-  const tokenHash = hashToken(refreshToken);
-  const [row] = await db.select().from(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash)).limit(1);
-  if (!row || row.userId !== payload.sub) throw appError("session_expired", 401);
-  if (row.expiresAt < new Date()) {
-    await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, tokenHash));
-    throw appError("session_expired", 401);
-  }
-
-  const user = await findUser(row.userId);
-  if (!user) throw appError("session_expired", 401);
-
-  res.status(200).json(await issueSession(user, tokenHash));
+  res.status(200).json(await renewSession(refreshToken));
 });
 
-// POST /logout. Relayed by the web server, which holds the token: whoever presents it may end it.
+// POST /logout. Relayed by the web server, which holds the token: whoever presents it may end its session.
 authRouter.post("/logout", requireBff, async (req, res) => {
   const { refreshToken } = parseBody(RefreshBodySchema, req.body);
-  await db.delete(refreshTokens).where(eq(refreshTokens.tokenHash, hashToken(refreshToken)));
+  await endSession(refreshToken);
   res.status(204).send();
 });
 
 // POST /logout-all. Ends every session of the user. Other devices stop at their next refresh.
 authRouter.post("/logout-all", authenticate, async (req, res) => {
-  await endAllSessions(db, req.user!.id);
+  await db.transaction((tx) => endAllSessions(tx, req.user!.id));
   res.status(204).send();
 });
 
@@ -175,6 +156,14 @@ authRouter.post("/reset-password", async (req, res) => {
 
   const passwordHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
+    // The user row first, as every session write and an account deletion take it. Taking the link's row
+    // first would deadlock with a deletion, which locks the user and then cascades to the link.
+    const [owner] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, found.userId))
+      .for("no key update");
+    if (!owner) throw appError("reset_link_invalid", 400);
     // Spending the link and setting the password are one step: a second use racing this one finds no row.
     const spent = await tx
       .delete(passwordResetTokens)

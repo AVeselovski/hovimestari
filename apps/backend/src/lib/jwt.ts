@@ -2,6 +2,9 @@ import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from
 import jwt from "jsonwebtoken";
 import { env } from "./env.js";
 
+/** Tokens are signed with HS256 only. Verifying pins it, so no token signed another way, or unsigned, passes. */
+const VERIFY: jwt.VerifyOptions = { algorithms: ["HS256"] };
+
 export function signAccessToken(payload: { sub: string }): string {
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
@@ -9,8 +12,9 @@ export function signAccessToken(payload: { sub: string }): string {
 }
 
 /** A random `jti` makes every token unique. Tokens are stored by hash under a
- *  unique index, and two signed in the same second would otherwise be equal. */
-export function signRefreshToken(payload: { sub: string }): string {
+ *  unique index, and two signed in the same second would otherwise be equal.
+ *  `fam` names the token's family, the line of tokens one sign-in produces. */
+export function signRefreshToken(payload: { sub: string; fam: string }): string {
   return jwt.sign(payload, env.JWT_REFRESH_SECRET, {
     expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"],
     jwtid: randomUUID(),
@@ -18,19 +22,20 @@ export function signRefreshToken(payload: { sub: string }): string {
 }
 
 export function verifyAccessToken(token: string): { sub: string } {
-  const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as jwt.JwtPayload;
+  const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, VERIFY) as jwt.JwtPayload;
   if (typeof decoded.sub !== "string") {
     throw new Error("Invalid token payload");
   }
   return { sub: decoded.sub };
 }
 
-export function verifyRefreshToken(token: string): { sub: string } {
-  const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET) as jwt.JwtPayload;
+/** The token's user and family. A token signed before families existed has no `fam`. */
+export function verifyRefreshToken(token: string): { sub: string; fam?: string } {
+  const decoded = jwt.verify(token, env.JWT_REFRESH_SECRET, VERIFY) as jwt.JwtPayload;
   if (typeof decoded.sub !== "string") {
     throw new Error("Invalid token payload");
   }
-  return { sub: decoded.sub };
+  return typeof decoded.fam === "string" ? { sub: decoded.sub, fam: decoded.fam } : { sub: decoded.sub };
 }
 
 export function hashToken(token: string): string {

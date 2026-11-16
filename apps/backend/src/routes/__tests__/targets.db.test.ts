@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import type { Request } from "express";
+import pg from "pg";
 import request from "supertest";
 import { signUp, type ApiUser } from "../../__tests__/support/apiUser.js";
+import { sessionApi } from "../../__tests__/support/sessionApi.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
 
 // Targets on a real, migrated Postgres: the in-force rule, the overwrite on a
@@ -16,6 +18,7 @@ const ranges = (energy: [number, number], protein: [number, number] = [100, 150]
 });
 
 await describeWithDb("targets", (suite) => {
+  const sessions = sessionApi(suite);
   const api = () => request(suite.app);
   const put = (user: ApiUser, date: string, body: object) =>
     api().put(`/api/v1/targets/${date}`).set(user.auth).send(body);
@@ -154,10 +157,34 @@ await describeWithDb("targets", (suite) => {
       await put(user, "2026-11-10", ranges([1800, 2000]));
       await put(user, "2026-11-20", ranges([1500, 1700]));
 
-      const results = await Promise.all([remove(user, "2026-11-10"), remove(user, "2026-11-20")]);
+      // Both removals queue on the user row before either reads, so the second one counts after the first commits.
+      const lock = await sessions.holdUserLock(user.id);
+      const pending = [remove(user, "2026-11-10"), remove(user, "2026-11-20")].map((r) => r.then((res) => res));
+      const waited = await sessions.queuedOnLock(2);
+      await lock.release();
+      const results = await Promise.all(pending);
 
+      expect(waited).toBe(2); // without the lock: 0, and the race ends [204, 204] in some interleavings
       expect(results.map((r) => r.status).sort()).toEqual([204, 409]);
       expect(await rowCount(user.id)).toBe(1);
+    });
+
+    it("does not wait behind a write that only references the user, such as logging a food", async () => {
+      const user = await signUp(suite.client);
+      await put(user, "2026-11-10", ranges([1800, 2000]));
+      await put(user, "2026-11-20", ranges([1500, 1700]));
+      // An uncommitted insert into a table that references users holds FOR KEY SHARE on the user row.
+      const writer = new pg.Client({ connectionString: suite.url });
+      await writer.connect();
+      await writer.query("BEGIN");
+      await writer.query("SELECT id FROM users WHERE id = $1 FOR KEY SHARE", [user.id]);
+      try {
+        const res = await remove(user, "2026-11-20");
+        expect(res.status).toBe(204); // with FOR UPDATE: 503 once the 3 s lock_timeout runs out
+      } finally {
+        await writer.query("ROLLBACK");
+        await writer.end();
+      }
     });
   });
 

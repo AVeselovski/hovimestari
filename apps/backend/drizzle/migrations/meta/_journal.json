@@ -22,6 +22,13 @@
       "when": 1794775212046,
       "tag": "0002_targets_and_foods",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794776869669,
+      "tag": "0003_refresh_token_families",
+      "breakpoints": true
     }
   ]
 }

@@ -10,13 +10,13 @@ src/
 ├── app.ts                      The Express app: CORS, the JSON parser, Google when configured, /livez, /health, the routes, the error handler
 ├── db/
 │   ├── index.ts                Drizzle client, the pg pool and its settings, poolStats()
-│   ├── types.ts                Db, the type of the database or a transaction, without the pool
+│   ├── types.ts                Db, the database or a transaction, and Tx, a transaction only, for code that holds a lock
 │   └── schema/
 │       ├── index.ts            Re-exports every table
 │       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs, the food-name language and the time zone
 │       ├── targets.ts          target_changes: one row per dated change of a user's targets
 │       ├── foods.ts            foods, food_portions and food_favourites, with the generated search columns
-│       ├── refresh-tokens.ts   One row per session, the refresh token stored as a hash
+│       ├── refresh-tokens.ts   One row per token, grouped by sign-in into families, stored as a hash
 │       └── password-reset-tokens.ts  One row per reset link, stored as a hash
 ├── lib/
 │   ├── env.ts                  Typed env vars, parsed with Zod. Google all or none, Resend required in production
@@ -24,14 +24,14 @@ src/
 │   ├── parseBody.ts            parseBody and parseQuery: a body or a query string parsed with a shared schema, answering its error code on failure
 │   ├── requestContext.ts       contextForUser(user, now), the pure service context, and contextFor(req), which reads the user first
 │   ├── userTime.ts             calendarDate(now, zone), the fallback zone and the stored-zone check
-│   ├── failureOf.ts            What an unexpected error logs: stack, code and constraint, never the row values in `detail`
+│   ├── failureOf.ts            What an unexpected error logs: stack, code and constraint, never row values or a data error's message
 │   ├── lastResort.ts           Logs an unhandled rejection or uncaught exception through failureOf, then exits 1
 │   ├── shutdown.ts             On SIGTERM or SIGINT: finish requests in flight, end the pool, exit. Ten seconds at most
 │   ├── runtimeStats.ts         The 30 s pool and memory log line
 │   ├── requestAborted.ts       isAborted(req): has the client gone or the response been sent
 │   ├── clientIp.ts             The address the rate limiters key on: the relayed X-Client-Ip, Fly-Client-IP, or the socket
 │   ├── jwt.ts                  Token sign, verify and hash, and the signed OAuth state with its purpose
-│   ├── sessions.ts             issueSession, endAllSessions and meOf
+│   ├── sessions.ts             Sessions as token families: sign-in, renewal, sign-out and the user lock
 │   ├── passwords.ts            bcrypt at cost 12, the 72-byte rule and the dummy compare for refused sign-ins
 │   ├── users.ts                findUser
 │   ├── google.ts               googleConfig and googleEnabled
@@ -119,6 +119,8 @@ pnpm --filter @hovimestari/backend db:migrate
 
 Migration `0001_search_functions.sql` is written by hand: it was generated empty with `db:generate --custom` and installs `pg_trgm`, `unaccent` and the search functions the generated columns of `foods` call. It fails on a database that is not UTF-8. The Postgres server must ship both extensions, as the official image and Fly's do.
 
+Migration `0003_refresh_token_families.sql` adds `family_id` and `superseded_at` to `refresh_tokens`. Every stored token becomes a family of its own, so nobody is signed out by it. Run `db:migrate` after pulling it.
+
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
 
 Every table that holds a user's data has `user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE`, or reaches `users` through a chain of cascading foreign keys. `src/db/__tests__/userCascade.db.test.ts` walks the foreign keys from `users` and fails when an edge does not cascade or a table with `user_id` is not reached. A new user-owned table also adds a row to `seedOneOfEach` in `src/db/__tests__/support/seedOneOfEach.ts`, or that test fails.
@@ -132,6 +134,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - Suites named `*.db.test.ts` run on a real Postgres through `describeWithDb` in `src/db/__tests__/support/throwawayDb.ts`. It creates a throwaway UTF-8 database with the `C.UTF-8` locale next to the one `TEST_DATABASE_URL` names, so every machine sorts and folds names alike, migrates it, points `DATABASE_URL` at it, then imports the app for the suite, and drops the database at the end. Such a file never imports the app or the database statically. `TEST_DATABASE_URL` defaults to `postgresql://postgres@localhost:5433/postgres`, the compose database. With no Postgres there the suites are skipped with a warning, and in CI they fail.
 - `signUp(client)` in `src/__tests__/support/apiUser.ts` makes a user directly in a suite's database and signs an access token for it, past the sign-up rate limit. The targets, foods and search suites use it.
 - `src/services/__tests__/foodWrites.db.test.ts` changes a row's owner between a write's check and the write itself, and proves the write still touches only the caller's rows.
+- `src/routes/__tests__/sessionRenewal.db.test.ts` renews sessions on the real database: lost answers, races of renewals, reuse and every way a session ends. `src/routes/__tests__/sessionLocks.db.test.ts` holds a user's row lock on its own connection and reads `pg_locks` to see requests queue behind it, so no test waits on a sleep. Both use `sessionApi(suite)` in `src/__tests__/support/sessionApi.ts`. `src/db/__tests__/refreshTokenFamilies.db.test.ts` runs the token family migration over sessions stored before it.
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 

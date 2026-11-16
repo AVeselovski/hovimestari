@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler } from "express";
 import { AppError } from "../lib/errors.js";
-import { failureOf } from "../lib/failureOf.js";
+import { failureOf, isQueryWrapper } from "../lib/failureOf.js";
 import { ReadAbandoned } from "../lib/requestAborted.js";
 
 /** Postgres and pool conditions that mean "busy right now", not "broken":
@@ -13,10 +13,21 @@ const BUSY_PG_CODES = new Set(["57014", "55P03"]);
 // a pg upgrade that rewords them fails there rather than in production.
 const BUSY_MESSAGES = ["timeout exceeded when trying to connect", "Query read timeout"];
 
+/**
+ * The driver's own error: `err`, or its `cause` when drizzle wrapped a failed
+ * query. The wrapper's message holds the query's params, the request's own
+ * values, so it is never read or logged here.
+ */
+function driverErrorOf(err: object): { code?: unknown; message?: unknown } {
+  return err instanceof Error && isQueryWrapper(err) ? err.cause : err;
+}
+
 function isBusyError(err: unknown): boolean {
   if (typeof err !== "object" || err === null) return false;
-  const { code, message } = err as { code?: string; message?: string };
-  if (code && BUSY_PG_CODES.has(code)) return true;
+  const { code, message } = driverErrorOf(err);
+  // A Postgres error is judged by its code alone: some messages quote the refused value.
+  if (typeof code === "string") return BUSY_PG_CODES.has(code);
+  // Only the pool and client timeouts carry no code, and their messages are fixed text.
   return typeof message === "string" && BUSY_MESSAGES.some((m) => message.includes(m));
 }
 
@@ -56,7 +67,8 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   }
 
   if (isBusyError(err)) {
-    console.error("[busy]", (err as { code?: string }).code ?? "", (err as Error).message);
+    const { code, message } = driverErrorOf(err);
+    console.error("[busy]", code ?? "", message);
     res.set("Retry-After", "2");
     res.status(503).json({ message: "The server is busy. Please try again." });
     return;

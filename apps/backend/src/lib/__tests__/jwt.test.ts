@@ -13,6 +13,7 @@ import {
 } from "../jwt.js";
 
 const TEST_USER_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+const TEST_FAMILY_ID = "f1e2d3c4-b5a6-4789-8abc-def012345678";
 
 describe("signAccessToken / verifyAccessToken", () => {
   it("produces a token that verifies with the correct payload", () => {
@@ -38,13 +39,13 @@ describe("signAccessToken / verifyAccessToken", () => {
 
 describe("signRefreshToken / verifyRefreshToken", () => {
   it("produces a token that verifies with the correct payload", () => {
-    const token = signRefreshToken({ sub: TEST_USER_ID });
+    const token = signRefreshToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
     const payload = verifyRefreshToken(token);
     expect(payload.sub).toBe(TEST_USER_ID);
   });
 
   it("throws on a tampered token", () => {
-    const token = signRefreshToken({ sub: TEST_USER_ID });
+    const token = signRefreshToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
     expect(() => verifyRefreshToken(token + "x")).toThrow();
   });
 
@@ -52,8 +53,8 @@ describe("signRefreshToken / verifyRefreshToken", () => {
     // The refresh token is stored by its hash under a unique index, so two
     // sign-ins in one second must not produce the same token.
     jest.spyOn(globalThis.Date, "now").mockReturnValue(1_790_000_000_000);
-    const first = signRefreshToken({ sub: TEST_USER_ID });
-    const second = signRefreshToken({ sub: TEST_USER_ID });
+    const first = signRefreshToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
+    const second = signRefreshToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
     jest.spyOn(globalThis.Date, "now").mockRestore();
     expect(first).not.toBe(second);
     expect(hashToken(first)).not.toBe(hashToken(second));
@@ -62,6 +63,41 @@ describe("signRefreshToken / verifyRefreshToken", () => {
   it("throws on an expired token", () => {
     const expired = jwt.sign({ sub: TEST_USER_ID, exp: Math.floor(Date.now() / 1000) - 60 }, env.JWT_REFRESH_SECRET);
     expect(() => verifyRefreshToken(expired)).toThrow();
+  });
+
+  // Test 16 of docs/design/session-renewal.md.
+  it("carries the token's family in `fam` (fails today)", () => {
+    const token = signRefreshToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
+    expect(verifyRefreshToken(token)).toEqual({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
+  });
+
+  it("verifies a token signed before families existed, with no family (guard)", () => {
+    const legacy = jwt.sign({ sub: TEST_USER_ID }, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+    const payload = verifyRefreshToken(legacy);
+    expect(payload.sub).toBe(TEST_USER_ID);
+    expect(payload.fam).toBeUndefined();
+  });
+});
+
+describe("the signing algorithm", () => {
+  const unsigned = (payload: object) =>
+    `${Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url")}.${Buffer.from(
+      JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + 60 }),
+    ).toString("base64url")}.`;
+
+  it.each([
+    ["an access token", env.JWT_ACCESS_SECRET, verifyAccessToken],
+    ["a refresh token", env.JWT_REFRESH_SECRET, verifyRefreshToken],
+  ] as const)("refuses %s signed with the right secret but another HMAC algorithm", (_label, secret, verify) => {
+    const other = jwt.sign({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID }, secret, { algorithm: "HS384", expiresIn: 60 });
+    expect(() => verify(other)).toThrow();
+  });
+
+  it.each([
+    ["an access token", verifyAccessToken],
+    ["a refresh token", verifyRefreshToken],
+  ] as const)("refuses %s that is unsigned (guard)", (_label, verify) => {
+    expect(() => verify(unsigned({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID }))).toThrow();
   });
 });
 

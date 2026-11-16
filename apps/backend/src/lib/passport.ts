@@ -13,7 +13,7 @@ import type { GoogleConfig } from "./google.js";
  */
 export interface GoogleOutcome {
   id: string;
-  /** The Google account the consent returned, on the link strategy. */
+  /** The Google account the consent returned. A sign-in carries it into its one-time code, as the proof the session is issued on. */
   googleId?: string;
   error?: "email_taken" | "email_unverified";
 }
@@ -44,7 +44,7 @@ export async function signInWithGoogle(profile: Profile): Promise<GoogleOutcome>
   const email = profile.emails?.[0]?.value?.trim().toLowerCase();
 
   const byGoogleId = await db.select({ id: users.id }).from(users).where(eq(users.googleId, googleId)).limit(1);
-  if (byGoogleId.length > 0) return { id: byGoogleId[0].id };
+  if (byGoogleId.length > 0) return { id: byGoogleId[0].id, googleId };
 
   if (!email) throw new Error("No email from Google");
   // Only the paths that match or create an account by address read it, so only they need it verified.
@@ -54,7 +54,7 @@ export async function signInWithGoogle(profile: Profile): Promise<GoogleOutcome>
   if (byEmail.length > 0) return { id: "", error: "email_taken" };
 
   const inserted = await db.insert(users).values({ email, googleId, passwordHash: null }).returning({ id: users.id });
-  return { id: inserted[0].id };
+  return { id: inserted[0].id, googleId };
 }
 
 /**
