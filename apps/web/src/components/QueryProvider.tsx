@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { makeQueryClient } from "@/lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
@@ -18,14 +19,18 @@ interface QueryProviderProps {
  * leaves, and the discarded client is never read again. An unmount cleanup
  * would also run under StrictMode's simulated unmount in development and
  * double every first request.
+ *
+ * The query devtools' button shows in development from the `md` breakpoint.
+ * On a phone it sits over the tab bar, in the way of the screen being tried.
  */
 export function QueryProvider({ children }: QueryProviderProps): React.ReactElement {
   const [client] = useState(makeQueryClient);
+  const isMobile = useIsMobile();
 
   return (
     <QueryClientProvider client={client}>
       {children}
-      {process.env.NODE_ENV === "development" && <ReactQueryDevtools buttonPosition="bottom-left" />}
+      {process.env.NODE_ENV === "development" && !isMobile && <ReactQueryDevtools buttonPosition="bottom-left" />}
     </QueryClientProvider>
   );
 }

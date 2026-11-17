@@ -24,6 +24,8 @@ export function browserRequest(
   } = {},
 ): NextRequest {
   const h = new Headers(headers);
+  // A browser sends the address it loaded the page from.
+  if (!h.has("host")) h.set("host", new URL(ORIGIN).host);
   if (contentType) h.set("content-type", contentType);
   if (site !== null) h.set("sec-fetch-site", site);
   if (origin) h.set("origin", origin);

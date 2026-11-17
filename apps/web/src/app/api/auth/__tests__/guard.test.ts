@@ -20,6 +20,37 @@ describe("requireSameOrigin", () => {
     expect(requireSameOrigin(req, { readsBody: true })).toBeNull();
   });
 
+  it("without Sec-Fetch-Site, accepts the Origin of the address the page was loaded from, not only the configured one", () => {
+    // A phone on the same network loads the app from the machine's address over
+    // plain http, where no browser sends Sec-Fetch-Site. Next's own idea of the
+    // request's origin stays the configured one, so the guard compares against
+    // the Host the browser sent instead.
+    const lan = "192.168.1.131:3000";
+    const req = browserRequest("/api/auth/sign-in", {
+      body: json,
+      site: null,
+      origin: `http://${lan}`,
+      headers: { host: lan },
+    });
+    expect(requireSameOrigin(req, { readsBody: true })).toBeNull();
+  });
+
+  it("without Sec-Fetch-Site, refuses an Origin on this host over another scheme", () => {
+    const req = browserRequest("/api/auth/sign-in", { body: json, site: null, origin: "https://localhost:3000" });
+    expect(requireSameOrigin(req, { readsBody: true })?.status).toBe(403);
+  });
+
+  it("without Sec-Fetch-Site, takes the scheme from x-forwarded-proto behind a proxy", () => {
+    const host = "hovimestari.example";
+    const req = browserRequest("/api/auth/sign-in", {
+      body: json,
+      site: null,
+      origin: `https://${host}`,
+      headers: { host, "x-forwarded-proto": "https" },
+    });
+    expect(requireSameOrigin(req, { readsBody: true })).toBeNull();
+  });
+
   it("without Sec-Fetch-Site, refuses another Origin", () => {
     const req = browserRequest("/api/auth/sign-in", { body: json, site: null, origin: "https://evil.example" });
     expect(requireSameOrigin(req, { readsBody: true })?.status).toBe(403);

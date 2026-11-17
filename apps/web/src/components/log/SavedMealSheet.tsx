@@ -27,6 +27,7 @@ import { createSavedMeal, updateSavedMeal } from "@/lib/api/savedMeals";
 import { getErrorCode } from "@/lib/errors";
 import { OfflineError, unconfirmed } from "@/lib/failure";
 import { afterSavedMealChange, afterSavedMealCreated } from "@/lib/invalidation";
+import { newId } from "@/lib/newId";
 import type { EntryStatus, SavedMeal, SavedMealEditBody } from "@hovimestari/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -113,8 +114,8 @@ export function SavedMealSheet({
   const [saving, setSaving] = useState(false);
   const [chosen, setChosen] = useState<EntryStatus | null>(null);
   // Made once per open and kept across retries, so a repeat applies once.
-  const [mealId, setMealId] = useState(() => crypto.randomUUID());
-  const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  const [mealId, setMealId] = useState(() => newId());
+  const [entryId, setEntryId] = useState(() => newId());
   // What a send whose answer never came may have written under these ids (mealSends.ts).
   const held = useRef<MealSend | null>(null);
 
@@ -135,10 +136,10 @@ export function SavedMealSheet({
     }
     // An id another account holds: the next try makes new ones, under which nothing is held.
     if (code === "saved_meal_id_taken") {
-      setMealId(crypto.randomUUID());
+      setMealId(newId());
       held.current = null;
     }
-    if (code === "entry_id_taken") setEntryId(crypto.randomUUID());
+    if (code === "entry_id_taken") setEntryId(newId());
     setFormError({ line: failureLine(err), cause: err });
   }
 
@@ -154,7 +155,7 @@ export function SavedMealSheet({
       },
       dropEntry: (entry) => actions.withdrawAdd(entry.id, entry.date),
     });
-    const entry = fresh ? crypto.randomUUID() : entryId;
+    const entry = fresh ? newId() : entryId;
     if (fresh) setEntryId(entry);
     const sent: MealSend = { meal: body, entry: saveOnly ? null : entryOf(entry) };
     try {
@@ -165,7 +166,7 @@ export function SavedMealSheet({
         return saved;
       }
       const again = (): AddRequest => ({
-        body: { kind: "saved_meal", id: crypto.randomUUID(), date, status, savedMealId: mealId, count: 1 },
+        body: { kind: "saved_meal", id: newId(), date, status, savedMealId: mealId, count: 1 },
         name: body.name,
         amount: labels.meals(1),
         again,

@@ -327,6 +327,10 @@ describe("DayTab, Mark all eaten that fails partway", () => {
 });
 
 describe("DayTab while the app asks for today", () => {
+  // The device's clock reads the fixture's day, so the check at mount finds
+  // nothing ahead and no ask runs before the test starts its own. Without
+  // this the suite was bound to the real date being the fixture's.
+  beforeEach(() => clockFrom(`${TODAY}T12:00:00Z`));
   /** The device's date runs a day ahead, and the ask it starts gets no answer: writes hold. */
   function holdToday(): void {
     clockFrom("2026-11-17T12:00:00Z");
@@ -376,11 +380,13 @@ describe("DayTab while the app asks for today", () => {
   });
 });
 
+/** The real clock, taken before any test replaces `Date.now`, so a second `clockFrom` does not read the first. */
+const realNow = Date.now.bind(Date);
+
 /** The device's clock reads from `iso` on, and keeps running. */
 function clockFrom(iso: string): void {
-  const now = Date.now.bind(Date);
-  const start = now();
-  jest.spyOn(Date, "now").mockImplementation(() => Date.parse(iso) + (now() - start));
+  const start = realNow();
+  jest.spyOn(Date, "now").mockImplementation(() => Date.parse(iso) + (realNow() - start));
 }
 
 describe("DayTab across a time zone change", () => {

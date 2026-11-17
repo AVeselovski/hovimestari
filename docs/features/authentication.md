@@ -114,7 +114,7 @@ A visitor sent to sign in from a signed-in page carries that page's path in `?re
 
 ### The same-origin guard
 
-Every handler that accepts a POST runs the same-origin guard in `_guard.ts` first. It answers 403 `request_refused` unless `Sec-Fetch-Site` is `same-origin`, or, when a browser sends no such header, `Origin` is the app's own. It answers 415 `request_refused` to any body that is not `application/json`, so a form on another site cannot submit one. This is what stops another site signing a visitor into an account it controls. `src/app/api/auth/__tests__/allHandlersGuarded.test.ts` finds every POST handler on disk and fails when one skips the guard.
+Every handler that accepts a POST runs the same-origin guard in `_guard.ts` first. It answers 403 `request_refused` unless `Sec-Fetch-Site` is `same-origin`, or, when a browser sends no such header, `Origin` is the address the page was loaded from, read from the `Host` header and the proxy's scheme. Browsers send `Sec-Fetch-Site` only to a secure origin, so a page served over plain http from a network address, as a phone loads the development server, takes the `Origin` path. It answers 415 `request_refused` to any body that is not `application/json`, so a form on another site cannot submit one. This is what stops another site signing a visitor into an account it controls. `src/app/api/auth/__tests__/allHandlersGuarded.test.ts` finds every POST handler on disk and fails when one skips the guard.
 
 ### Google sign-in
 

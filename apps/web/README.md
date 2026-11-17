@@ -156,6 +156,7 @@ src/
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
 │   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts
+│   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
 │   ├── pendingIds.ts           A one-press add's id, kept until its answer, a day that holds it, or a minute, and held while its failure shows
 │   ├── failure.ts              What a failed write says: OfflineError, unconfirmed(), failureLine()
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError

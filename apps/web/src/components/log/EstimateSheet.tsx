@@ -8,6 +8,7 @@ import type { AddDone, EntryActions } from "@/hooks/entryActions";
 import { useFailureLine } from "@/hooks/useFailureLine";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
+import { newId } from "@/lib/newId";
 import type { AddEntryBody, EntryStatus } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import { useId, useState, type ReactElement } from "react";
@@ -68,7 +69,7 @@ export function EstimateSheet({
   const [saving, setSaving] = useState(false);
   const [chosen, setChosen] = useState<EntryStatus | null>(null);
   // Made once per open and kept across retries, so a repeat adds once.
-  const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  const [entryId, setEntryId] = useState(() => newId());
 
   const future = today !== null && date > today;
   const status: EntryStatus = future ? "planned" : (chosen ?? "eaten");
@@ -97,7 +98,7 @@ export function EstimateSheet({
       body: bodyFor(entry),
       name: read.name,
       amount: "",
-      again: () => request(crypto.randomUUID()),
+      again: () => request(newId()),
     });
     setSaving(true);
     try {
@@ -120,7 +121,7 @@ export function EstimateSheet({
         return;
       }
       // An id another account holds: the next try makes a new one.
-      if (code === "entry_id_taken") setEntryId(crypto.randomUUID());
+      if (code === "entry_id_taken") setEntryId(newId());
       setFormError({ line: failureLine(err), cause: err });
     }
   }
