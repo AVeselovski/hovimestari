@@ -285,3 +285,5 @@
 [ui-validator DONE] (2026-11-17T02:29:14Z) PR 3c confirm at 984da33: FAIL on one medium (a first read that lands after the sheet is at rest fills Recent and moves the lists under an armed press); open lists holding their order, own changes showing at once, the dialogs, the amount field and results from the top pass
 [frontend-engineer STARTED] (2026-11-17T02:29:14Z) PR 3c: browse shows its rows only once every list has its first answer
 [frontend-engineer DONE] (2026-11-17T03:02:35Z) PR 3c at b56b68b: browse shows its rows once every list has its first answer, and rows that came after a wait take presses only once at rest; web 1248 tests, gate green
+[frontend-engineer STARTED] (2026-11-17T20:45:40Z) tests that depend on the machine's locale, and the Fineli runbook naming Basic package 2 on release 20
+[frontend-engineer DONE] (2026-11-17T20:58:39Z) Web tests pinned to en-US in the setup with two guards, full web suite green under fi_FI, de_DE, en_US and no locale; Fineli runbook names Basic package 2

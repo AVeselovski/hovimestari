@@ -36,7 +36,7 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    pnpm --filter @hovimestari/backend db:migrate
    ```
 
-6. Load the Fineli food catalogue. Download the release in a browser and unzip it into `apps/backend/data/fineli/`, as steps 1 and 2 of [the Fineli import runbook](fineli-import.md) say. Then do the dry run and the import, and read each report as that runbook says. Without the catalogue the search finds only the foods you add yourself.
+6. Load the Fineli food catalogue. Download the release's "Basic package 2" in a browser and unzip it into `apps/backend/data/fineli/`, as steps 1 and 2 of [the Fineli import runbook](fineli-import.md) say. Then do the dry run and the import, and read each report as that runbook says. Without the catalogue the search finds only the foods you add yourself.
 
    ```bash
    pnpm --filter @hovimestari/backend fineli:import --dry-run
