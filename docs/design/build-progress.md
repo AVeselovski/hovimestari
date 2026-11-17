@@ -27,15 +27,15 @@ The planned hand-over is after build step 3 in `docs/design/pivot-plan.md`, at P
 
 ## State
 
-Updated 2026-11-16 by the documentation specialist on `feat/day-web`. Pull requests #27 to #37 are merged: the brief, the backend scaffold and auth, the web scaffold and shell, the session renewal fix, targets and foods on the backend, the Fineli import, account settings, targets on the web, days and logging on the backend (3a), the entry basis (3b.0) and foods on the web.
+Updated 2026-11-17 by the documentation specialist on `feat/log-sheet`. Pull requests #27 to #38 are merged: the brief, the backend scaffold and auth, the web scaffold and shell, the session renewal fix, targets and foods on the backend, the Fineli import, account settings, targets on the web, days and logging on the backend (3a), the entry basis (3b.0), foods on the web and the Day tab (3b).
 
-| Step                          | Branch and checkout                      | Pull request | State                                                                                                                        |
-| ----------------------------- | ---------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| 3b. The Day tab               | `feat/day-web` in `/home/user/hovi-days` |              | built, two fix cycles, validated, ui-validated, reviewed, docs reviewed. Ready for its pull request: squash, open, CI, merge |
-| 3c. The log sheet             | `feat/quick-log-web`                     |              | next. Cut from `master` after 3b merges. Design in `docs/design/days-and-logging.md`, R5, and its "Carried to PR 3c" list    |
-| 3d. The week view and copying | `feat/week-copy-web`                     |              | waits for 3c and the hand-over                                                                                               |
+| Step                          | Branch and checkout                       | Pull request | State                                                                                                                                     |
+| ----------------------------- | ----------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 3b. The Day tab               | `feat/day-web`                            | #38          | merged                                                                                                                                    |
+| 3c. The log sheet             | `feat/log-sheet` in `/home/user/hovi-web` |              | built in two parts, two fix cycles, validated, ui-validated, reviewed, docs reviewed. Ready for its pull request: squash, open, CI, merge |
+| 3d. The week view and copying | `feat/week-copy-web`                      |              | waits for Artur's go after his local testing. "Carried to PR 3d" in `docs/design/days-and-logging.md`                                     |
 
-The hand-over point is 3c: once the log sheet lands, a person can sign in, set targets, search foods, log a day and see both totals.
+**3c is the hand-over point for Artur's local testing.** Once its pull request merges, stop and tell Artur: he can sign in, set targets, load the Fineli catalogue, search foods, log a day and see both totals, by `docs/setup/local-development.md`. 3d waits for his go.
 
 ## Notes for the next wake-up
 

@@ -1823,3 +1823,217 @@ Later items above replace earlier ones. Read this list first; the numbered items
 - The estimate fields are sparse on a phone: six fields at about 132 pixels each, with two reserved lines apiece. The log sheet's estimate form should fix that, and the entry sheet takes the same fields, so the fix serves both sheets.
 - The offline wording in the targets sheet and the own-food form: offline they say "Something went wrong. Try again." where the entry sheet says "You are offline. Changes need a connection." (`TODO.md`).
 - "Calories" versus "Energy" is settled with Artur before more figure rows are built (`TODO.md`).
+
+## PR 3c part 1 (frontend engineer, 2026-11-16)
+
+Built on `feat/log-sheet`: the two refactors, `DayLauncher`, the status line, browsing with Recent, Favourites and Your foods, "+" with pending ids and replays, the food view and a minimal meal view with the log block and `LogFooter`, adds and their undo in `useEntryActions`, prefetching, the toasts and `entry_id_taken`'s copy. Part 2 (saved meals, estimates) builds on the same branch.
+
+### Deviations from R5 and from the brief
+
+1. **The food's name sits in the header row between Back and the star**, cut to one line (`FoodDetailHeader name`), and the body opens with the log block, then 2d's detail with the full name. R5 puts the log block "above Per 100 g", under the name block. Measured: with the name block first, the log block ended below the fold at 375 by 667. With the name in the header row, the row keeps its 44 px, nothing moves between views, and the meal view's header is the same component without the star (R5's "Back and the meal's name").
+2. **The log block's figures are one row of four** (`MacroFigures layout="row"`, dot and label over each figure, "Carbs" on screen and "Carbohydrates" aloud), and the amount's label sits beside its field (`AmountField`/`MealCount layout="beside"`), as decision 2 allowed. Measured on the production build, the block runs from 169 to 533 px at both 375 by 667 and 390 by 844, against a footer at 538 and 715: the whole block, state choice and its hint line included, is in view with the keyboard closed, 5 px to spare at 375 by 667. The figure row's padding is `py-1.5` and the header's gap 6 px to get there. The meal view's block ends at 473.
+3. **The log block's caption keeps one line** ("For this amount" or "Enter an amount to see its figures."), as the entry sheet's does. The refusal line is in `LogFooter` (decision 1). The block reserves two lines under the amount for its error, one for the caption and one for the state hint.
+4. **A log closes the sheet no sooner than `ARM_DELAY_MS` (500 ms) after the press**, with the pressed "+" or Log busy until then. Found in the browser: against a fast backend, a double tap on a "+" over an entry row closed the sheet within the double tap, and the second tap opened that entry's sheet on the Day tab, because Base UI's Drawer stops catching presses as its exit starts. With the wait, the second tap lands on the busy "+" and does nothing, at gaps of 60, 150 and 300 ms. Filed in `TODO.md` for Artur (the wait costs up to half a second per log) with the generic alternative in `BottomSheet`.
+5. **The toast shows from `BottomSheet`'s `onClosed`**, once the sheet's exit has ended. `useEntryActions.add` answers `announce` instead of showing it. In Chromium the first frame with the toast came after the last frame with the sheet, in every run.
+6. **A food opened from search results or your foods takes its last amount from the detail when it answers, while nothing has been typed or chosen.** Those rows carry no last amount. A recent item and a favourite carry theirs, so the field is filled at open. Nothing typed is ever rewritten.
+7. **"+" on favourites shows "Last {amount}" as the row's meta**, as recent items do, so the amount "+" adds is on screen, not only in its accessible name.
+8. **The recent items' unreadable line names the recent items only** ("Your recent items show here once Hovimestari can reach the server."). R5's line also names saved meals, which part 1 has no list of.
+9. **`afterFavouriteChange` is not split out.** `putFavourite` flips the recent items in place with the other lists, `useFavourite` cancels a recents read in flight before it flips and marks the recents stale on a rollback. Nothing needs a recents refetch after a mark, so `afterFavourite` (detail and favourites) stays as it was.
+10. **`useEntryActions.ts`'s types and plain helpers moved to `hooks/entryActions.ts`** (re-exported), so the file stays under 500 lines with the add in it.
+11. **The undo of an add passes no `focusId`**: the row it would focus is the one the undo removes. Focus after a keyboard Undo goes back to where it was before the toast, as `Toast` does for any action that leaves focus in it.
+12. **`SearchField` moved to its own file** beside `FoodSheet`. `FoodSheet.tsx` is 333 lines.
+13. **The log sheet's dialog is named "Log food"** (`foods.sheet.name`), as its launcher.
+14. **WebKit was not run**: the container has none.
+
+### Exit checks (R6, PR 3c, frontend-engineer)
+
+Ticked in part 1:
+
+- [x] Gates green.
+- [x] The two refactors land first with 2d's `FoodSheet` tests unchanged and green (commits `ef9fa4e`, `afd2379`, before any behaviour change).
+- [x] From a rendered Day tab, a recent item is logged in exactly two presses (`LogSheet.again.test.tsx`), and in three through its food view (`LogSheet.views.test.tsx`, row then Log).
+- [x] After the day has loaded, the sheet opens with its lists rendered and no request in flight for them (recents, favourites, your foods; saved meals are part 2).
+- [x] After "+", the new row and the summary come from the write's answer with no request for the day.
+- [x] A log sheet open across midnight reads "Logging to yesterday" and logs to that date.
+- [x] `FoodSheet.tsx` is under 500 lines (333).
+- [x] "+" sends a portion when its id is set and grams otherwise.
+- [x] "+" pressed again after a timeout resends the same id.
+- [x] The morning shake: once a day answer holds its id, or 60 s pass, the next "+" sends a new id and a second shake is added.
+- [x] A replay shows "Already logged" with "Log another", which sends a fresh id. A replay with no entry shows "This was removed. Log another?".
+- [x] A replay on a future day says "{name} is already in the plan." with "Plan another".
+- [x] A favourite tapped in the food view flips its star in recents too, in place, every row at the same index.
+- [x] "+" ignores a press until the sheet is at rest on a phone.
+- [x] The log block's figures equal `entryFigures` for the typed amount, and 2.5 meals of a 60 kcal, 8 g meal show 150 kcal and 20 g.
+- [x] A food never logged opens with an empty amount and Log `aria-disabled`.
+- [x] A future day forces Planned and the footer reads "Add to plan".
+- [x] Across states, a favourite flipped leaves every row at the same index.
+- [x] The food view with a changed amount refuses a swipe and springs back. Back still leaves it.
+- [x] Catalog tests pass. `CODES_WITHOUT_COPY` holds `reset_rate_limited`, `invalid_time_zone`, `saved_meal_not_found`, `saved_meal_id_taken` and `meal_source_too_long`.
+
+Left for part 2:
+
+- [ ] A new saved meal from the log sheet is created and logged in one request, and the browse view's first controls are "New saved meal" and "Add an estimate".
+- [ ] An unmatched query offers both with the name filled in.
+- [ ] The four lists include the active saved meals.
+- [ ] "Archived meals" shows with no archived list read, and the archived view.
+- [ ] "From" opens empty with the sources as chips. Enter in Name moves to Calories.
+- [ ] "Save meal" saves without logging, and "Save and log" of the same open makes no second meal. Planned in that sheet.
+- [ ] Source chips filter the list and the results.
+- [ ] "Save and log" closes both sheets in one update and focus lands on the launcher.
+- [ ] Edit meal replaces the row in place, and the planned entries' day refreshes.
+- [ ] `SavedMealSheet` and `EstimateSheet` pass `describeFormSheetContract`.
+- [ ] `CODES_WITHOUT_COPY` down to `reset_rate_limited` and `invalid_time_zone`.
+- [ ] Manual: Artur's weekday end to end, each tap counted.
+
+### Browser measurements (production build, Chromium, 2026-11-16)
+
+- **Top edge and status line**, in px from the viewport top, across browse, results, the food view, the meal view, a "+" that timed out (status line failure) and a 260 px keyboard emulated through `visualViewport`: the popup's top 48 and the status line 79 in every state, at 375 by 667 and 390 by 844 (and 320 by 568 and 1280 by 800, see the report).
+- **Keyboard:** at 375 by 667 the footer moves from 538 to 326, Log at 343 to 391 above the keyboard's edge at 407, and the amount field at 215 to 263 stays in view. At 390 by 844, Log 520 to 568 against 584, the amount 229 to 277.
+- **"+"** is 44 by 44, 8 px clear of the row's button.
+- **Double taps:** on the launcher, one sheet and nothing logged. On "+", one `POST /entries`. Gaps of 60, 150 and 300 ms on a "+" over an entry row: one add, no entry sheet opened, focus on the launcher.
+- **After "+":** `POST /entries`, then `GET /log/recents` and `GET /foods/favourites` (their last amounts), and no `GET /days/`. The new row and both totals from the answer.
+
+### For part 2
+
+What part 1 built that part 2 extends, by file and export:
+
+- `components/foods/FoodSheet.tsx`, `FoodSheet`: the `View` union (`search`, `food`, `meal`) is where `archivedMeals` joins. `showMeal(meal, opener, lastCount)` opens a meal from any row with `MEAL_ROW_ATTRIBUTE`. `mealGone()` is the `saved_meal_not_found` path. `onLogged(done, pressedAt)` is how a stacked "Save and log" or "Save estimate" closes the sheet and hands over its toast. The sheet's `stacked` slot is `FoodSheetStack`.
+- `components/foods/FoodSheetStack.tsx`, `FoodSheetStack`: add `SavedMealSheet` and `EstimateSheet` here, each from a `useSheetTarget` the sheet owns, and the meal's delete confirmation.
+- `components/foods/useSheetNavigation.ts`, `useSheetNavigation`: a real stack, tested three deep, so search, archived meals, meal works as is.
+- `components/foods/FoodSearchView.tsx`, `Browse`: the order is Recent, Favourites, Your foods, then "Add your own food". `CreateActions` goes first and the saved meals list between Favourites and Your foods. `FoodList` takes `list`, `rowExtras`. `logging: BrowseLogging` carries `again`, `held`, `planned`, `onOpenFood`, `onOpenMeal`.
+- `components/log/SavedMealRow.tsx`, `SavedMealRow`: `meta` is required. The saved meals list passes "{kcal} kcal · {protein} g protein per meal", and `trailing` takes "+" or "Restore".
+- `components/log/againItems.ts`, `mealAgainItem(meal, count, labels)`: "+" on a saved meal row, with `meal.lastCount ?? 1`.
+- `components/log/AgainButton.tsx`, `AgainButton`: a "+" from an item and the `BrowseLogging`.
+- `components/log/MealView.tsx`, `MealView`: Edit meal, Archive or Restore and Delete meal go under "Per meal". It takes the `SavedMeal` the row carried.
+- `components/log/useLogForm.ts`, `useLogForm`, `LogTarget`: the meal kind is done. `LogFooter` and `LogBlock` need nothing more.
+- `hooks/useEntryActions.ts`, `add(request)`, `AddRequest`, `AddDone`: an estimate is `body.kind === "estimate"` and its toast "Logged {name}." needs one branch in `announceAdd`. "Save and log" is a different route (`POST /saved-meals/log`), and wants an action of its own beside `add` with the same `counted([date])`, `announce` and Undo (`DELETE /entries/:id`, `goneIsDone`).
+- `lib/pendingIds.ts`: forms mint their own ids. The copy sheet in 3d uses `pendingIdFor` with its own key, or mints per open.
+- `messages/en.json`: `log.status`, `log.browse`, `log.again`, `log.block`, `log.mealGone`, and the add toasts under `toast`. `log.browse.recentUnavailable` names the recent items only and should name saved meals once their list shows.
+- `components/day/__tests__/harness.tsx`, `FakeDays.add`, `foods`, `meals`, `recents`: an estimate add throws there today, and the saved meal routes are not faked yet. `components/log/__tests__/logHarness.tsx`, `logWorld()`.
+
+Left deliberately: `CreateActions`, `SavedMealList`, `SourceChips`, `mealFilter`, `ArchivedMealsView`, `SavedMealSheet`, `EstimateSheet`, `lib/api/savedMeals.ts`, `savedMealsQuery`, the results' meal section and the create-from-query lines, the meal view's Edit, Archive, Restore and Delete, and the saved meal error codes' copy. No button for any of them is rendered.
+
+## PR 3c part 2 (frontend engineer, 2026-11-16)
+
+Built on `feat/log-sheet`: saved meals and estimates in the log sheet, and four shared fixes the orchestrator decided. Measured on a production build in Chromium at 320 by 568, 375 by 667, 390 by 844 and 1280 by 800, both themes. WebKit was not run: the container has none.
+
+### Shared fixes
+
+1. **A closing sheet swallows presses** (`components/ui/closingSheet.ts`). The press catcher is the sheet's own backdrop: Base UI sets `pointer-events: none` on it and on the viewport the moment `open` turns false, so `BottomSheet` passes the backdrop a style function that turns it back to `auto` while closed, and handlers that drop a press on a closed backdrop (`preventDefault` on pointer, mouse, click and touch end, so no focus moves). No new element and no state: the backdrop unmounts with Base UI's own exit end, and a reopen makes it an open backdrop again. A sheet opened during another's exit mounts its portal later in the document and lies above. Decision on stacking: a stacked sheet's backdrop covers its parent, so presses on the parent are swallowed during the stacked sheet's exit (its Save sits over the parent's rows, the portion sheet's over the food view's Log), and the parent takes presses the moment that exit ends. The log sheet's `ARM_DELAY_MS` wait went from `FoodSheet.onLogged`, `useLogAgain` and `useLogForm`. Browser, 390 by 844, touch double taps at 60, 150 and 300 ms on "+", Log, the entry sheet's Save and Remove entry, the own-food form's Save and the portion sheet's Save: one write each, no dialog opened, no navigation, every time. Under the second tap lay an entry row (the "+" at 60 ms), the Groceries tab (Log, entry sheet Save) and the food view's Log (own-food and portion Save).
+2. **A refused form sheet brings its first refused field into view** (`lib/revealRefused.ts`, `FormSheet`). FormSheet bumps a counter on a submit and again when its promise settles, and a layout effect scrolls the body, alone, to the focused refused field's block, else the first in form order. The block is found from `aria-describedby` (the smallest ancestor holding every line the field is described by), so no field needed a marker. Browser: the refused block's bottom is at or above the footer's top in every case: entry sheet with the amount cleared, 387 against 387 (320 by 568), 433 against 486 (375), 433 against 663 (390). Saved meal sheet with Fat empty: 387/387, 486/486, 641/663. Estimate sheet: 439/439, 509/538, 509/715.
+3. **The footer's second row with the keyboard.** Only the entry sheet's Remove entry yields (`FooterAction.yieldsToKeyboard`, `keyboard-yields` in `globals.css`, the same clamp as `footer-error-room`, with margins that take back the row gap and leave the focus ring room). "Save meal" does not: hidden while typing, the person who finishes the last figure sees only "Save and log", and Enter there submits it. 260 px keyboard emulated: entry sheet at 320 by 568, Save 16 px above the keyboard without and with a footer refusal (it was 8 px under). At 375 by 667, 16 and 16. Saved meal sheet at 320 by 568, 16 px above without a refusal and level with the keyboard's top with one (`TODO.md`), 16 and 16 at 375 by 667.
+4. **The figures two by two** (`components/entries/FigureFields.tsx`). One shared line under the whole grid, not one per row: it keeps two lines of room (the thousands line is two lines across 280 px), says the first refused figure's reason, and describes every refused figure. The saved meal sheet passes "Copy the figures from the label or the menu." as the line's hint, so the hint and the refusal share one room. Name and Note keep one line each. Measured, see "Fit" below.
+5. **Offline in every form sheet** (`FormSheet`, `hooks/useKnownOffline.ts`). FormSheet decides, when a failure line arrives, whether the app knew it was offline then (no network, or the session found the server out of reach), and shows "You are offline. Changes need a connection." in place of whatever the sheet passed. One place for every sheet, and it does not flip back when the connection returns. The saved meal sheet also sends nothing while offline.
+6. **The search field.** It never had a placeholder: 2d designed it with a visually hidden label and the icon, and the launcher said "Search foods". Part 1's launcher says "Log food", so the empty field says nothing. Its label is now "Search foods and meals" and its placeholder the same text, the one field with a placeholder (`docs/app/shell.md`, `TODO.md` for Artur's veto).
+
+### Deviations from R5 and from the brief
+
+1. **"Save meal" says so on the log sheet's status line** ("Saved {name}.", in ink, six seconds), not in a toast, which would sit under the open log sheet. An edit says the same. `StatusLine` takes a message with a tone (`useStatusMessage`), which `useLogAgain` now uses too.
+2. **The estimate sheet asks Eaten or planned first**, as the entry sheet does, so the choice, the name and the four figures fit 390 by 844 with the keyboard closed. R5 has the choice after the fields.
+3. **The saved meal sheet's From hint shows only while the user has no sources.** With chips the line keeps one line of room for its refusal. Saves 20 px, and the chips say what the field is for.
+4. **The figures share one line per grid**, not per row (the brief allowed either).
+5. **The adds moved to `hooks/useAddActions.ts`** (`add`, `saveAndLog`, their toasts, undo and "Log another"), which `useEntryActions` composes, so `useEntryActions.ts` stays under 500 lines (397).
+6. **A saved meal's id and its entry's id are made when the sheet opens, and remade only on `saved_meal_id_taken` or `entry_id_taken`**, where the same id can never succeed.
+7. **Archive and Restore have no toast.** Each is the other's undo, in place, as R5's cache table says. A failure shows on the status line, as a "+" does.
+8. **The results' meal section filters on the live text**, not the debounced one, since it is found on the device. The two create lines name that text.
+9. **The source chip's choice lives in `FoodSheet`**, so it holds across views and filters the results. A chosen source that no active meal names any more shows every meal.
+10. **`chip`, `chipOn`, `chipOff` and `chipRow` are recipes in `styles.ts`**, shared by the unit chips, the source chips and the meal sheet's source chips.
+11. **"Recent items and saved meals" unreadable** says one line: the recent items' line names both, and the saved meals say it only when the recent items could be read.
+12. **A part 1 test asserted right after `act` for a query answer**, and failed under a loaded full run because TanStack notifies on a timer. It waits for the value now (`LogSheet.views.test.tsx`). The component was right: one detail read, answered once.
+
+### Fit (production build, keyboard closed)
+
+- Entry sheet, an estimate: 390 by 844 shows the choice and all four figures (figures end at 539, footer at 663). 375 by 667 and 320 by 568 show the choice and the name, the figures under a scroll.
+- Estimate sheet: 390 by 844 shows the choice, the name and the four figures (627 against 715), Note under a 24 px scroll. 375 and 320 show the choice and the name.
+- New saved meal sheet, as part 2 built it: 390 by 844 showed Name, From with its chips and the four figures with their line (641 against 663), with Eaten or planned 96 px under the footer's top. 375 and 320 showed the name and From.
+- **Reordered by the ui-validator, at the orchestrator's call:** a new meal asks Eaten or planned first, then Name, From with its chips and Per meal, as the entry and estimate sheets do. Tab and Enter follow the visual order after the choice. Measured on the production build, keyboard closed: at 390 by 844 the choice, Name, From, the chips, the Per meal heading and the Calories and Protein row are in view, and the Carbohydrates and Fat row starts 2 px under the footer's top (112 px of the body under a scroll). At 375 by 667 the choice, Name and From are in view, the chips 3 px short. At 320 by 568 the choice and Name. Across Eaten and Planned, a chip chosen, and each field refused and fixed, every offset inside the body, the sheet's top (48), the footer's top (663, 486, 387) and both footer rows held to the pixel. The cost is on the `md` dialog: at 1280 by 800 and 1366 by 768 the choice, Name, From and the chips fill the body, and all four figures sit under a scroll (231 and 258 px of the body below the footer's top), where before the reorder they were in view. At 1440 by 900 and 768 by 1024 the Per meal heading shows too. Tab from From reaches Calories and scrolls it in. Recorded in `TODO.md`.
+
+### Exit checks (R6, PR 3c, frontend-engineer), ticked in part 2
+
+- [x] A new saved meal from the log sheet is created and logged in one request (`POST /saved-meals/log`, jsdom and browser), and browse's first controls under the search field are "New saved meal" and "Add an estimate".
+- [x] An unmatched query offers both with the name filled in.
+- [x] After the day has loaded, the sheet opens with its four lists rendered and no read in flight for them, saved meals included.
+- [x] "Archived meals" shows with no archived list read. The archived view reads it on open and shows its empty line.
+- [x] "From" opens empty with the user's sources as chips, and a chip fills it. Enter in Name moves to Calories.
+- [x] "Save meal" saves without logging (one `POST /saved-meals`, no entry), and a "Save and log" after a "Save meal" that timed out sends the same meal id. Choosing Planned sends `status: "planned"` and the primary reads "Save and add to plan".
+- [x] Source chips filter the list and the results.
+- [x] "Save and log" closes both sheets in one update (a mutation that closes the stacked sheet a task later turns the test red) and focus lands on the launcher.
+- [x] Edit meal replaces the row in place, and the planned entries' day is read again.
+- [x] `SavedMealSheet` and `EstimateSheet` pass `describeFormSheetContract`.
+- [x] Catalog tests pass. `CODES_WITHOUT_COPY` holds `reset_rate_limited` and `invalid_time_zone` only.
+- [x] Manual, the weekday in Chromium at 390 by 844: Log food, New saved meal, the name (typed, Enter to Calories, typed), Protein, Carbohydrates, Fat (each a tap, then typed), Save and log: 7 taps, five typed values, one `POST /saved-meals/log`, the toast "Saved Wolt poke bowl and logged 1 meal." with Remove from day, focus on Log food.
+- [x] "+" and the create actions ignore a press until the sheet is at rest on a phone.
+
+### Browser, the ui-validator list
+
+- Top edge and status line: popup top 48 and status line 79 in browse, results with a meal match, the food view, the meal view, the archived view, "You are offline." on the status line and a 260 px keyboard, at 320 by 568, 375 by 667 and 390 by 844. 60 and 85 at 1280 by 800.
+- Source chips: one row (one top) at every width, scrolling sideways.
+- "+": 44 by 44, 8 px clear of the row's button.
+- Save and log, sampled every frame at 390 by 844: the stacked sheet stays below its parent's top as both slide, and both leave the document in the same frame. The last frame with a sheet came at 517 ms, the first with the toast at 563 ms. No frame had the toast and a sheet.
+- Body background `rgb(246, 239, 225)` light, `rgb(18, 26, 21)` dark.
+
+## PR 3c fix cycle 1 (frontend engineer, 2026-11-16)
+
+From the reviewer's, the validator's and the ui-validator's findings at `a292a7e` and `d70c556`.
+
+1. **R1, a save pressed again after one that could not confirm.** Rule: the latest press decides. `components/log/mealSends.ts` keeps what an unconfirmed send may have written under the sheet's ids (`held`). On the next press, a changed meal is sent as `PUT /saved-meals/:id` first: 404 `saved_meal_not_found` means nothing landed (the meal and a Save and log's entry are one transaction), so the press goes on as before; 200 means the meal now reads as the form. An entry an earlier Save and log may have added is removed (`withdrawAdd`, `DELETE /entries/:id`, a 404 counts as done) when the press asks for other figures, the other state or no log, and the entry id is made again, because a removed id replays as "removed" and a kept one would replay the old basis (eaten entries keep their basis; only planned entries from today on follow a meal edit). A new name or source alone keeps the entry. Paths, each in `LogSheet.mealRetry.test.tsx` against the fake that answers as the backend does: Save meal (landed) → edit → Save meal: PUT, the create replays, one meal with the new value. Save meal (landed) → edit → Save and log: PUT, one meal and one entry with the new basis, toast "Saved … and logged". Save meal (never landed) → edit → Save and log: PUT 404, then as before. Save and log (landed) → edit Calories → Save and log: PUT, DELETE of the old entry, a new entry id, one entry with the new basis, toast "Saved … and logged", its Remove from day removes the new entry. Save and log (landed) → Planned → Save and add to plan: DELETE, one planned entry. Save and log (landed) → Save meal: DELETE, the meal saved, nothing logged. Name only: PUT, entry kept, "Already logged {new name}". Nothing changed: the same request, "Already logged". Left: an earlier request still in flight when the DELETE answers 404 could land after it. The validator reproduced it against this backend with a proxy that held the first `POST /saved-meals/log` before it reached the server (the client timed out after about 10 s), pressed again, then released the held request: on the status-only path the late request added a second entry (fixed in cycle 2, below), and a request landing between a PUT's 404 and the second POST logs the old figures once (filed in TODO.md).
+2. **F6, kept.** A "+" whose add could not confirm holds its pending id until `STATUS_MESSAGE_MS` after the failure (`holdPending`); a day read that holds the id marks it seen instead of letting it go. Try again then replays ("Already logged"). A keystroke that hides the line early does not end the hold: a replay is always true, and the hold is six seconds.
+3. **U2.** `useClosingPresses` records presses with React capture handlers on the popup, so a stacked sheet's press counts for its parent too (the stacked sheet unmounts with the parent's exit and its own swallow ends then). A key pressed inside since the press, and a click with `detail` 0, are never swallowed.
+4. **U4.** Shared rules: `FigureFields` one row of four from `md`, the footer's secondary action shares the buttons' row from `md` (`sheetActionsPair`, wraps when the three do not fit), the tall dialog `min(48rem, 100dvh - 2rem)`. Per sheet: the saved meal and estimate dialogs widen to `md:max-w-lg` (the log sheet's width), which takes the estimate sheet's description to one line, and the saved meal sheet's Name and From share a row from `md`. Measured, body client against scroll height: saved meal 577/577 at 768 by 1024, 1280 by 800 and 1440 by 900, 545/545 at 1366 by 768; estimate the same. The entry dialog for an estimate stays over (840 against 577 and 545), filed for Artur.
+5. **F4.** `FormSheet` takes `formError: FormFailure | null`, a line and its cause, and overrides to the offline line only for an `OfflineError` or an unconfirmed failure. Every form sheet passes its cause.
+6. **F3.** `lib/failure.ts` (`OfflineError`, `unconfirmed`, `failureLine`), `hooks/useFailureLine("form" | "status")`, `mealForm.fieldOfCode`, `useFormFields`, `MealRows`, `btnWide`. `log.block.offline`, `log.block.unconfirmed`, `entries.sheet.offline` and `entries.sheet.unconfirmed` gave way to `common.offline` and `common.unconfirmed`.
+7. **Flaky tests.** R3 and the create-actions twin: a fake clock for the arm delay and `animations.finish()` until armed. V4/U3: the 130-row test records toasts as they appear. Found in the runs under load and fixed: the held-writes test waited for the first targets read before holding; six tests read an alert's text before it was set (`findByRole("alert")` then text, now `waitFor` on the text); three slow tests (250 rows, four searches, three adds) got longer test timeouts, none racing a timer.
+8. **F11** not done: `FoodSheet.tsx` is 418 lines.
+
+## PR 3c fix cycle 2 (frontend engineer, 2026-11-17)
+
+1. **M1, a withdrawal that found nothing keeps its entry id.** `withdrawAdd` and `MealSendWrites.dropEntry` answer whether they removed an entry. `bringUpToDate` makes a new entry id only after a 200. On a 404 the id stays and `held` keeps the old entry, so a press refused after this one removes it again. Paths: nothing ever lands, then the second POST creates under the same id with the new state; the first lands after the second POST, then it replays, one entry; the first lands between the 404 and the second POST, then the second replays with the old state and says "Already logged" (the residual, filed with the PUT case as j3). Pinned in `LogSheet.mealRetry.test.tsx`, both red before.
+2. **M2, an add that could not confirm reads its day.** `useAddActions.sendAdd` wraps `counted` for `add` and `saveAndLog`: on an unconfirmed failure (not `OfflineError`) it calls `holdPending(id, now + UNCONFIRMED_HOLD_MS)` first, then `afterAddUnconfirmed(client, date, meal)`, which refreshes the day, the ranges, the log and, for a meal, the saved meals. The hold moved here from `useLogAgain` so it is set before the read's `forgetSeen` can run. `afterSavedMealCreated` lost its `logged` flag. `LogSheet.unconfirmed.test.tsx`, three red before. Browser, 390 by 844, route.fetch then abort: the line at about 950 ms, the row 26 ms later, both totals equal to the API's, "+" again answered "Already logged".
+3. **T2.** The hold is `UNCONFIRMED_HOLD_MS`, six seconds, equal to `STATUS_MESSAGE_MS` (pinned in `StatusLine.test.tsx`). A press after the line clears early still reuses the id, a replay. Comments and docs say so.
+4. **T4 and the ui-validator's F2.** `useClosingPresses` listens without `touchstart` and drops only a press within `CLOSING_PRESS_RADIUS_PX` (24) of the closing press's point until `CLOSING_PRESS_MS`. The closing backdrop is unchanged. The suite gives jsdom a `PointerEvent` that is a `MouseEvent`, as browsers have. Browser: at 1280 with a mouse, Add an estimate 250 ms after a stacked Cancel opens; at 390 the stacked sheet's exit lasts about 420 ms and its backdrop drops the press until then (450 ms opens). Double clicks and double taps 60, 150, 300 and 450 ms apart on "+", Log and Save estimate: one write each, nothing opened.
+5. **F1, figures two by two.** `FigureFields` two by two at every width. `DecimalField.unitRoom`: one letter `pr-7`, up to four `pr-12`, a word `pr-22`. To fit the extra row from `md`: the figures' line keeps one line of room from `md` (`lineRoom(2, 1)`), Eaten or planned shares the name's row in the estimate sheet (`EstimateFields.besideName`) and in the new saved meal sheet, whose From takes the full width under them (`pairRow`). The edit sheet keeps Name and From in one row. Measured, body over its room: estimate 0 at 768 by 1024, 1280 by 800, 1366 by 768 and 1440 by 900; saved meal new and edit 0 with up to four sources; with five, new 7 (39 at 1366 by 768) and edit 25 at 1366 by 768. Every figure field has room for "1234,5" from 320 (70 px against 58) to 1440, no label overlaps. Entry dialog for an estimate over by 105 to 361.
+6. **F3 and F4.** `revealRefused` returns early when the field, its label and its lines are in view. Source chips wrap from `md` (`chipRowWrapping`, shared with `AmountField`).
+7. **Tests.** The 250-row test records toasts as they appear (`recordToasts` in the day harness, shared with the 130-row test). `AuthContext.reauth` "renews again in place" waits on the renewal and checks that no backoff timer fired before it, through a `setTimeout` spy; red when the renewal is put behind the backoff.
+
+## PR 3c fix cycle 3 (frontend engineer, 2026-11-17)
+
+1. **F1, an open list never reorders under the finger.** One mechanism, `components/log/heldList.tsx`: `useHeldList` holds the order and the set of rows a list showed while it can be pressed and maps fresh data onto them by id, so a star, a "Last" line and a busy ring change in place. `HeldLists follow` (from `FoodSheet`) lets the lists follow their data while they cannot be pressed: not armed yet on a phone, or a stacked sheet `isOpen` (not `shown`, which `useRetainedValue` keeps for good). A list shown again (Back, the query cleared) starts from the cache. `releaseHeldLists(client)`, scheduled through `notifyManager` after TanStack's notify, applies the person's own writes: `onSavedMeal` and a favourite rollback in `useFavourite`. `afterAddUnconfirmed` refreshes the day and the ranges and marks `log` and, for a meal, `savedMeals` stale with `refetchType: "none"`, after a cancel. `FoodSheet.onClosed` calls `prefetchLogLists`, whose reads take no abort signal: a read with a consumed signal is cancelled and reverted when its last observer unmounts, which the closing sheet's lists do. `afterSavedMealCreated(client, meal)` puts the new meal in place by name (`putNewMeal`, `insertSorted` from `foodCache`) and resolves before the stacked sheet closes.
+   Found gone (reviewer, after cycle 3): `afterFoodGone` and `afterSavedMealGone` call `releaseHeldLists` right after the drop, inside the cancel-edit-refetch, so a food or meal a "+" finds gone leaves every held list at once. Before, `nav.reset()` from the search view kept browse mounted and the row stayed pressable. A delete or a gone found from the food or meal view goes Back and remounts, so it was fine already. Tests: three in `LogSheet.heldLists.test.tsx`, the two "+" cases red without the release.
+   The first read (ui-validator check 3, F1): `HeldLists` watches the four list queries through disabled observers (`useQueries`, `enabled: false`, so they read nothing and keep a read from being cancelled) and is `ready` once each has data, an error or a paused fetch. Computed live, not latched: a list with no data whose paused read resumes makes the lists wait again, and a list already holding rows keeps them. `useHeldList` shows no rows while not ready and nothing is held, then every list takes its rows in the render that turns ready; the unreadable lines (`RecentList`, `SavedMealList`, `listsUnavailable`) wait on `useListsReady` too. `ListsGuard` wraps the lists under `CreateActions` (the create actions and the field stay usable): phase `waiting`, `settling` from the ready render until a rAF plus a 0 ms timeout (the frame after the paint), then `armed`; a click counts only outside `settling` and when its pointerdown came in the same phase. Ready at mount means `armed` at once, so the cached open gains no frame. A slow list is bounded by the 10 s axios timeout plus one 1 s retry on a network error. Source chips carry `title`. Tests: four in `LogSheet.heldLists.test.tsx`, three red before; `listsInPlace()` in `foods/__tests__/support.ts` waits for `armed` before a test presses a row it just found.
+   Reaction time (coordinator, after the first-read fix): a press decided before the rows appeared lands 50 to 300 ms after them, a whole new press. `HeldLists` now arms through `useArmedAtRest(answered && waited, waited)`: `waited` turns true in any render where the lists wait, `open` turns true in the render that shows the rows (disarming), `onOpened` runs a rAF plus a 0 ms timeout later, and the hook's `ARM_DELAY_MS` timer runs from that commit. `settling` is now that whole span. No wait means `enabled` false, armed at once. A paused read that resumes can move rows (a Recent with no cache filling above cached lists), and it does wait: the lists wait again, `open` goes false then true, and the delay runs again. Test: the 100 ms press is red at 6718946.
+   Ways an open list could reorder, and what each does now: the unconfirmed "+" (marked stale, held); window focus and reconnect on `recentsQuery` (still read, held, shown at the next open; the other three lists have neither); a mount read on Back or on a cleared query (held after the remount's snapshot); the Day tab's prefetch or any read landing at open (followed until the sheet is at rest on a phone, held from the first render at `md`); a favourite flip (in place, `putFavourite`; a rollback releases); Save meal (in place by name, released); archive, restore, delete and a new own food (made from other views or a stacked sheet, so the list is remounted or following).
+   Tests: `LogSheet.heldLists.test.tsx` (eight), `LogSheet.unconfirmed.test.tsx` (two changed), `LogSheet.meals.test.tsx` (the chip test), `FoodSheet.test.tsx` (the favourite rollback pins the release). Each red with its rule removed. Browser, 390 by 844, light and dark: "+" on the second recent row with the response aborted after reaching the server, 122 frames over two seconds, no row moved; the failure line at about 60 ms; a tap at the same point 300 ms later said "Already logged Rahka.", entries 2 to 3; the next open had Rahka first.
+2. **F2.** The edit dialog's Name and From each take the full width. `chip` is `inline-block max-w-full truncate leading-10.5`, still 44 px. Measured with a 37-character source, three and five sources, at 768 by 1024, 1280 by 800, 1366 by 768 and 1440 by 900: no sideways scroll in either dialog; two chip rows; the body over by 1 px, 33 at 1366 by 768. At 320 the browse and sheet chip rows stay one row that scrolls, the long chip 280 px in a 288 px row.
+3. **F3.** `DecimalField.widestUnit`: a beside field is `w-44` when its widest unit is a word. `AmountField` passes "portions", so grams and portions share one width. 72 px of room for 58 ("1234,5") and 48 ("99,75"). At 320 the label is one line, 12 px clear of the field. The food view's block ends at 533 against the footer at 538 (375 by 667) and 715 (390 by 844), and the field moved 0 px across a chip switch.
+4. **F5.** `segmentedTrayBesideField` (`md:p-0.5`) and `segmentButtonBesideField` (`md:min-h-10.5`): 48 px from `md`, equal to Name, tops equal at 1280. The phone keeps 44 px options.
+5. **F8.** `FoodSearchView` scrolls the body to 0 when `query` or results-shown changes, mount included. Back still restores, because `useSheetNavigation`'s layout effect is the parent's and runs after. Browser: browse at 1026, Back restored 1026, a query put it at 0 with the first line 16 px under the body's top.
+
+### Where 3c ended up, against the design (documentation specialist, 2026-11-17)
+
+Later items above replace earlier ones. Read this list first; the numbered items hold the measurements and the reasons.
+
+- **The close wait → the closing layer.** Part 1's `ARM_DELAY_MS` wait before a log closes the sheet (part 1, deviation 4) is gone. A closing sheet's backdrop swallows every press until Base UI ends its exit (`closingBackdropStyle`, `closingBackdropHandlers` in `components/ui/closingSheet.ts`), and afterwards `useClosingPresses` drops only a press within 24 px of the closing press until 500 ms after it (fix cycle 2 item 4, replacing fix cycle 1 item 3's "every press for 500 ms"). The log sheet closes as the answer lands.
+- **The row of four → two by two.** `FigureFields` is two by two at every width (fix cycle 2 item 5, replacing fix cycle 1 item 4's row of four from `md`). The shared line keeps two lines on a phone and one from `md` (`lineRoom(2, 1)`). `DecimalField.unitRoom` has three sizes. The log block's read-only figures (`MacroFigures layout="row"`) stay one row.
+- **Where the adds live: `useAddActions`.** `add`, `saveAndLog` and `withdrawAdd`, their toasts, undo and "Log another", composed by `useEntryActions` (part 2 deviation 5). `sendAdd` holds the pending id and reads the day again after an unconfirmed failure (fix cycle 2 item 2).
+- **The retry rule.** The latest press decides (`components/log/mealSends.ts`, fix cycle 1 item 1). A new entry id only when the `DELETE` removed one, a 404 keeps it (fix cycle 2 item 1). A "+" that could not confirm holds its id for `UNCONFIRMED_HOLD_MS`, six seconds, equal to `STATUS_MESSAGE_MS` (fix cycle 2 item 3). The residual (j3: the first request landing between the `PUT`'s 404 and the second send) is in `TODO.md` with its server-side fix.
+- **The status line's one store.** `useStatusMessage` in `StatusLine.tsx` holds one message with a tone: failures of "+", archive and restore in the accent, "Saved {name}." after Save meal or an edit in ink (part 2 deviation 1). The latest replaces the last, and it clears after six seconds or at the next press or key.
+- **The saved meal sheet's order.** Eaten or planned first, then Name, From with its chips, and Per meal (the ui-validator's reorder, part 2 "Fit"). From `md` the choice sits beside Name and From takes the full width (`pairRow`); an edit puts Name and From in one row. The estimate sheet asks the choice first too, beside the name from `md` (`EstimateFields.besideName`). "Save meal" keeps its footer row while typing; only the entry sheet's Remove entry yields (`yieldsToKeyboard`).
+- **One offline line.** `FormSheet` takes `FormFailure` (`{ line, cause }`) and shows `common.offline` for a failure the connection explains while the app knew it was offline (fix cycle 1 item 5).
+
+## Carried to PR 3d
+
+What exists to build the week view and copying on:
+
+- The backend: `GET /days?from=&to=` (up to 42 days, no entries) and `POST /entries/copy` with client ids, both in PR 3a. The web app calls neither yet: `lib/api/days.ts` has `getDay` only and `lib/api/entries.ts` has no copy.
+- `queryKeys.dayRanges()` exists, and `afterEntryWrite` and `afterAddUnconfirmed` already refresh it. No `dayRangeQuery` and no `Gauge size="mini"` exist yet: "Footing for PR 3d" above lists them as 3d's to add.
+- `useEntryActions.counted(dates, send)` for the copy and its undo, `holding` for `held`, and `undo(send, { goneIsDone })`.
+- `lib/pendingIds.ts` (`pendingIdFor`, `pendingKey`, `holdPending`) for ids kept across a retry, or ids minted at open as `SavedMealSheet` does.
+- `FormSheet` with `FormFailure`, `held`, `footerStart` and the closing layer, so a copy sheet needs no wait and no offline wording of its own.
+
+Open items in `TODO.md` a week view would touch:
+
+- "The next day's read ahead is dropped after 5 minutes" (the day reads ahead, which the week view's range read can share).
+- "A distance of five digits takes one more line" (the mini gauge's rows show distances too).
+- "Protein and carbohydrates are hard to tell apart for some colour vision" (a mini gauge without a label beside each hue).
+- "Three wording and size choices on the Day tab's summary", "below the floor" and "to the upper bound" (the week's rows say the same distances).
+- "A centred dialog adds no keyboard inset on an iPad" and the iPhone checks (the copy sheet is a form sheet).

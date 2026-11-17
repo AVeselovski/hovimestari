@@ -208,16 +208,12 @@
 [architect STARTED] (2026-11-16T09:35:05Z) Day tab and log sheet: apply design review round 1 of the revised section
 [architect DONE] (2026-11-16T09:41:06Z) Day tab and log sheet: design review round 1 applied (22 items), PR 3b.0 contract written
 [backend-engineer STARTED] (2026-11-16T09:42:03Z) PR 3b.0: the entry answer gains its basis
-[backend-engineer STARTED] 2026-11-16T09:42:22Z PR 3b.0 entry basis on every answered entry
-[backend-engineer DONE] 2026-11-16T09:46:01Z PR 3b.0 entry basis: EntrySchema.basis, entryOf sets it, db and types tests, days.md; gate green
 [validator STARTED] (2026-11-16T09:46:21Z) PR 3b.0: the gate and the contract, and a diff review
 [frontend-engineer DONE] (2026-11-16T09:50:23Z) PR 2d fix cycle 1: merged the targets work (8 conflicts, master merge changed no file), 15 items; gate green (web 842, backend 572, types 129); items 1, 9 and 12 checked in Chromium with delayed reads
-[backend-engineer STARTED] 2026-11-16T09:50:55Z PR 3b.0 validator wording fixes and wider basis tests
 [frontend-engineer DONE] (2026-11-16T09:51:14Z) PR 2d fix cycle 1: targets branch merged, 15 items; web 842 tests
 [ui-validator STARTED] (2026-11-16T09:51:14Z) PR 2d in a real browser
 [validator STARTED] (2026-11-16T09:51:14Z) PR 2d: confirm fix cycle 1
 [reviewer STARTED] (2026-11-16T09:51:14Z) PR 2d: confirm fix cycle 1
-[backend-engineer DONE] 2026-11-16T09:53:16Z PR 3b.0 wording fixed (days.md, basis comment), stay-rule and estimate edit tests added
 [validator DONE] (2026-11-16T09:53:34Z) PR 3b.0 at 2515527: code PASS (855 entry checks, 0 mismatches), wording FAIL, fixed by the engineer in 93099a4 (161k tokens)
 [reviewer DONE] (2026-11-16T12:34:11Z) PR 2d fix cycle 1 confirmed: approve; two minors (favourite rollback value, footer action) (188k tokens)
 [validator DONE] (2026-11-16T12:34:11Z) PR 2d at f9b577b: FAIL on one major (a portion write not shown at once), three minors; earlier findings fixed (344k tokens)
@@ -225,10 +221,10 @@
 [frontend-engineer STARTED] (2026-11-16T12:34:11Z) PR 2d fix cycle 2
 [frontend-engineer STARTED] (2026-11-16T12:35:23Z) the Day tab, PR 3b
 [frontend-engineer STARTED] (2026-11-16T12:36:15Z) PR 3b Day tab: date bar, summary gauges, entries, entry sheet, undo toast
-[frontend-engineer CHECKPOINT] (2026-11-16T13:30:43Z) Day tab built, browser runs done, docs written; merge with the foods work next
 [frontend-engineer DONE] (2026-11-16T13:10:30Z) PR 2d fix cycle 2: merged master (logs.txt only), 16 items; web 865 tests (842 before), gate green; own-food fields hold at 320/375/390/1280, content 792px at 320 (2.1 screens, was 800 to 900); user-visible
 [documentation-specialist STARTED] (2026-11-16T13:11:22Z) PR 2d docs pass
 [documentation-specialist DONE] (2026-11-16T13:16:31Z) PR 2d docs pass: food sheet states and limit, foods rules (decimal rule linked to README, name check, Fineli credit), shell primitives (value, handle, beside, star column), colours test and contrast, catalog line, TODO ranking item moved to Artur; docs:check clean
+[frontend-engineer CHECKPOINT] (2026-11-16T13:30:43Z) Day tab built, browser runs done, docs written; merge with the foods work next
 [frontend-engineer DONE] (2026-11-16T13:37:15Z) PR 3b Day tab built; merged keep/foods-web-unsquashed; master merge (b) undone, it changed 3 files; gate green (web 970, backend 576, types 130), docs:check 0
 [frontend-engineer DONE] (2026-11-16T13:38:35Z) the Day tab, PR 3b: built and measured; web 970 tests (625k tokens)
 [frontend-engineer STARTED] (2026-11-16T13:38:35Z) PR 3b: a shorter day summary, so entries show on the first screen
@@ -254,4 +250,38 @@
 [reviewer DONE] (2026-11-16T17:45:26Z) PR 3b second confirm at 14859dc: approve; last round's major and seven minors fixed, 8 of 9 mutations caught (the survivor is a defensive reset); nothing to change before the PR
 [documentation-specialist STARTED] (2026-11-16T17:45:26Z) PR 3b docs pass: day page, shell, quick logging, targets, colours, catalog, link map, READMEs
 [documentation-specialist DONE] (2026-11-16T17:51:29Z) PR 3b docs pass at 43f61eb: day page, shell, colours, quick logging (new home "Writes from the web app"), targets, catalog with its Pages section, link map, web README, TODO.md; docs:check 0 findings in 33 files
+[frontend-engineer STARTED] (2026-11-16T17:53:18Z) PR 3c part 1 on feat/log-sheet: the food sheet becomes the log sheet (launcher, status line, recents and the one-tap add, the log block in the food view, a minimal meal view)
 [ui-validator DONE] (2026-11-16T18:02:46Z) PR 3b confirm of fix cycle 2 at 14859dc: PASS; date bar, two toasts, focus through the fade, chevrons, entry sheet order and stability, footer with the keyboard, nothing moves; two findings at 320x568 filed in TODO.md for the log sheet's change (a refused amount's line under the footer, Save under the keyboard with a refusal) (206k tokens)
+[frontend-engineer DONE] (2026-11-16T18:43:37Z) PR 3c part 1 at d7cdccb: launcher, status line, recents with the one-tap add, the log block in the food and meal views, the add and its undo; web 1069 tests, gate green (605k tokens)
+[frontend-engineer STARTED] (2026-11-16T18:43:37Z) PR 3c part 2: saved meals and estimates in the log sheet, a closing sheet that swallows presses, refused fields scrolled into view
+[frontend-engineer DONE] (2026-11-16T19:55:10Z) PR 3c part 2 at 4f7d94f: saved meals and estimates in the log sheet, a closing sheet swallows presses (the close wait removed), refused fields scrolled into view, Remove entry yields to the keyboard, figures two by two, one offline line for every form sheet; web 1158 tests, gate green
+[validator STARTED] (2026-11-16T19:55:35Z) PR 3c the log sheet at 8e0bb51: requirements, figures against the API, every write and its undo, replays, cache, isolation, mutations
+[ui-validator STARTED] (2026-11-16T19:55:35Z) PR 3c the log sheet in a real browser, both themes; puts Eaten or planned first in the new saved meal sheet
+[reviewer STARTED] (2026-11-16T19:55:35Z) PR 3c review of origin/master..8e0bb51
+[reviewer DONE] (2026-11-16T21:09:20Z) PR 3c at a292a7e: approve after fixes; four majors (a timed-out Save meal then an edit logs the old figures, the meal view loses focus and scroll on archive and edit, a flaky test, three untested rules), 14 of 20 mutations caught (221k tokens)
+[validator DONE] (2026-11-16T21:09:20Z) PR 3c at a292a7e: FAIL on test gaps only; 57 adds and a 320-step random sequence match the API with no divergence; five mutations survive; entry_id_taken resends the same id (393k tokens)
+[ui-validator DONE] (2026-11-16T21:09:20Z) PR 3c: PASS with two medium findings (a refused figure scrolls out of view with the keyboard open, a desktop double click reaches the page under a closing dialog); put Eaten or planned first in the new saved meal sheet (f9c205f); web 1160 tests
+[frontend-engineer STARTED] (2026-11-16T21:09:20Z) PR 3c fix cycle 1: the reviewer's, validator's and ui-validator's findings
+[frontend-engineer DONE] (2026-11-16T22:34:51Z) PR 3c fix cycle 1 at 830d261: the latest press decides after a save that could not confirm (PUT first, a stale entry withdrawn), the meal view keeps focus and scroll, a closing sheet swallows presses for 500 ms after the closing press, a refused field shown above the keyboard, dialogs from md fit their forms, every surviving mutation now caught, flaky tests fixed over five loaded runs; web 1203 tests, gate green
+[validator STARTED] (2026-11-16T22:34:51Z) PR 3c confirm of fix cycle 1: the gate, the mutations, the save-retry paths against the real backend
+[ui-validator STARTED] (2026-11-16T22:34:51Z) PR 3c confirm of fix cycle 1 in a real browser
+[reviewer STARTED] (2026-11-16T22:34:51Z) PR 3c confirm of fix cycle 1 (18ac7ae..830d261)
+[reviewer DONE] (2026-11-16T23:55:25Z) PR 3c confirm at 7be6725: approve; the save-retry rule is right against the backend, every earlier major fixed; a late first request filed for a server tombstone (272k tokens)
+[validator DONE] (2026-11-16T23:55:25Z) PR 3c confirm at 7be6725: PASS; 23 of 23 mutants killed, the save-retry paths correct against the real backend, five clean loaded runs; three minors (a held first request can add a second entry, an unconfirmed add leaves the Day tab short until a read, one flaky auth test on master)
+[frontend-engineer STARTED] (2026-11-16T23:55:25Z) PR 3c fix cycle 2: an unconfirmed add reads its day again, a withdrawal that found nothing keeps its entry id, flaky tests, filed items
+[ui-validator DONE] (2026-11-17T00:34:58Z) PR 3c confirm at 7be6725: FAIL on one medium (from md the figures in a row of four clip typed values); refused fields above the keyboard, double clicks and taps, the meal view's place, results, the status line and source chips pass
+[frontend-engineer DONE] (2026-11-17T00:34:58Z) PR 3c fix cycle 2 at ae84b6a: an unconfirmed add reads its day again, a withdrawal that found nothing keeps its entry id, figures two by two at every width with room for the unit, only a press near the closing press is dropped, source chips wrap from md, steadied tests; web 1219 tests, gate green
+[ui-validator STARTED] (2026-11-17T00:34:58Z) PR 3c confirm of fix cycle 2 in a real browser
+[documentation-specialist STARTED] (2026-11-17T00:34:58Z) PR 3c docs pass
+[documentation-specialist DONE] (2026-11-17T00:43:49Z) PR 3c docs pass at e5034ab: the log sheet page, saved meals (saving and logging, writes from the web app), quick logging, shell, catalog, link map, web README, TODO.md, and the local setup runbook from a pull to a logged day; docs:check 0 findings in 33 files
+[ui-validator DONE] (2026-11-17T01:20:03Z) PR 3c confirm at f83bf99: FAIL on two mediums (the recent list reorders after an unconfirmed add so a retry at the same spot logs another food; a long source chip overflows the edit dialog); figure fields, presses after a close and the no-scroll rule pass
+[frontend-engineer STARTED] (2026-11-17T01:20:03Z) PR 3c fix cycle 3: an open list keeps its order, the edit dialog's From at full width, room for a word unit, the choice tray's height, results from the top
+[frontend-engineer DONE] (2026-11-17T02:02:25Z) PR 3c fix cycle 3 at 2befedb: an open list holds its order and rows while it can be pressed, the edit dialog's fields at full width with chips cut to their row, room for a word unit, the choice tray's height, results from the top; web 1239 tests, gate green
+[ui-validator STARTED] (2026-11-17T02:02:25Z) PR 3c confirm of fix cycle 3 in a real browser
+[reviewer STARTED] (2026-11-17T02:02:25Z) PR 3c confirm of fix cycle 3 (502d2c0..2befedb)
+[reviewer DONE] (2026-11-17T02:10:23Z) PR 3c last confirm at 984da33: approve after one fix (a food or meal found gone stays in the held list); the held lists, the write path, the closing presses and the tests are sound, 8 of 8 mutations caught
+[frontend-engineer STARTED] (2026-11-17T02:10:23Z) PR 3c: a food or meal found gone leaves the open lists
+[frontend-engineer DONE] (2026-11-17T02:15:19Z) PR 3c at 1cf3189: a food or meal found gone leaves the open lists at once; web 1242 tests, gate green
+[ui-validator DONE] (2026-11-17T02:29:14Z) PR 3c confirm at 984da33: FAIL on one medium (a first read that lands after the sheet is at rest fills Recent and moves the lists under an armed press); open lists holding their order, own changes showing at once, the dialogs, the amount field and results from the top pass
+[frontend-engineer STARTED] (2026-11-17T02:29:14Z) PR 3c: browse shows its rows only once every list has its first answer
+[frontend-engineer DONE] (2026-11-17T03:02:35Z) PR 3c at b56b68b: browse shows its rows once every list has its first answer, and rows that came after a wait take presses only once at rest; web 1248 tests, gate green
