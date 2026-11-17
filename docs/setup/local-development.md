@@ -55,6 +55,8 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    pnpm --filter @hovimestari/web dev
    ```
 
+   A server that stops at once with `EADDRINUSE` found another app on its port. `lsof -nP -iTCP:3000 -sTCP:LISTEN` names the process. Stop it, or the address serves that app instead of this one.
+
    Open `http://localhost:3000` and create an account with an email address and a password. The account is signed in at once, with no mail to confirm. A new account asks for its calorie and protein targets on the first-run page, then lands on the Day tab, where **Log food** opens the log sheet. **Continue with Google** shows only once the backend has its Google settings, as [the Google sign-in runbook](google-sign-in.md) says. It is optional. The development server registers no service worker. To check installing or offline behaviour, run a production build as [the web app's README](../../apps/web/README.md#running-a-production-build-locally) says.
 
 9. Open the app from a phone on the same network, when you want to. The phone loads the page from this machine's address, and the browser on it calls the backend at that address too. Find the address, then set three values and restart both servers, because the web app reads its address at start. The first command is for macOS on Wi-Fi, the second for Linux.
@@ -64,7 +66,7 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    hostname -I
    ```
 
-   In `apps/web/.env.local`, set `NEXT_PUBLIC_API_URL` to `http://<address>:3001/api/v1` and `NEXT_DEV_ORIGINS` to `<address>`. In `apps/backend/.env`, add `http://<address>:3000` to `CORS_ORIGIN`, comma separated after the localhost origin. Open `http://<address>:3000` on the phone. The laptop keeps working at both addresses. The query devtools' button shows on the laptop only, from the `md` breakpoint, so nothing covers the tab bar on the phone. Without `NEXT_DEV_ORIGINS`, the development server refuses the phone its own resources and the page stays on its loading screen.
+   In `apps/web/.env.local`, set `NEXT_PUBLIC_API_URL` to `http://<address>:3001/api/v1` and `NEXT_DEV_ORIGINS` to `<address>`. In `apps/backend/.env`, add `http://<address>:3000` to `CORS_ORIGIN`, comma separated after the localhost origin. Open `http://<address>:3000` on the phone. The laptop keeps working at both addresses. The query devtools' button shows on the laptop only, from the `md` breakpoint, so nothing covers the tab bar on the phone. Without `NEXT_DEV_ORIGINS`, the development server refuses the phone its own resources and the page stays on its loading screen. Plain http on a network address is not a secure context, so the browser withholds what needs one, such as installing the app, the clipboard and sharing. The app's own code does not depend on one. A production build over https has them all.
 
 10. Run every check CI runs.
 
