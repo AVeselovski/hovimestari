@@ -185,7 +185,8 @@ src/
 │   ├── backend.ts              The backend's URL for server code, which production refuses to guess
 │   └── theme/noFlashScript.ts  The pre-paint theme script and its storage key
 ├── __tests__/
-│   ├── setup.ts                Runs before every test file: the real catalog and a query client per render
+│   ├── setup.ts                Runs before every test file: the real catalog, a query client per render, the pinned locale
+│   ├── helpers/locale.ts       Pins the locale tests format with to en-US, and setTestLocale for another
 │   ├── sheet.ts                Drives sheets through Base UI's own code: swipes, presses outside, exits, focus
 │   └── formSheet.tsx           describeFormSheetContract, the checks every form sheet runs, and stubPhone
 ├── i18n/request.ts             Pins the catalog's locale to English
@@ -291,6 +292,7 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 
 - Component tests mock `next/navigation` and `useAuth`. `src/__tests__/helpers/auth.ts` has `fakeAuth(status)` and `testPassword()`, which makes a password at run time, so no test holds a literal one.
 - Every `render` and `renderHook` gets the real catalog and its own query client from `src/__tests__/setup.ts`. Never mock `next-intl`.
+- Every test formats figures and dates in `en-US`, whatever the machine's locale. The app formats in the device's language, which under jest would be the machine's. `src/__tests__/helpers/locale.ts` pins it, and `setTestLocale("fi-FI")` shows a screen as a device in another language would, for that test only.
 - The default environment is jsdom plus Node's `Response`, `Request` and `Headers`. `fetch` is not provided, so a test that reaches the network stubs it.
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.

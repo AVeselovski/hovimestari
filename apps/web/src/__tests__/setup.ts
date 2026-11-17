@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { configure } from "@testing-library/react";
 import type { ComponentType, ReactElement, ReactNode } from "react";
+import { pinDefaultLocale, resetTestLocale } from "./helpers/locale";
 
 // Runs before every test file, in jsdom and in the node environment the
 // route handler suites ask for. The browser stubs below apply to jsdom only.
@@ -14,6 +15,11 @@ configure({ asyncUtilTimeout: 5000 });
 // no `getAnimations`, so the wait is skipped anyway. The flag makes that a
 // stated choice rather than an accident of what jsdom lacks.
 (globalThis as { BASE_UI_ANIMATIONS_DISABLED?: boolean }).BASE_UI_ANIMATIONS_DISABLED = true;
+
+// Every test formats figures and dates as a device set to `TEST_LOCALE` would,
+// never in the machine's own locale. helpers/locale.ts says how and why.
+pinDefaultLocale();
+afterEach(resetTestLocale);
 
 // jsdom's `crypto` has no `randomUUID`, which every supported browser has.
 if (typeof globalThis.crypto?.randomUUID !== "function") {

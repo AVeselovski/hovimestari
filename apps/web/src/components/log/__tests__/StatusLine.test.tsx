@@ -1,3 +1,4 @@
+import { setTestLocale } from "@/__tests__/helpers/locale";
 import { UNCONFIRMED_HOLD_MS } from "@/lib/pendingIds";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useEffect } from "react";
@@ -37,6 +38,17 @@ describe("The status line's message", () => {
     expect(screen.getByText("Saved Bowl.")).toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: "a" });
     expect(line()).not.toHaveTextContent("Saved Bowl.");
+  });
+});
+
+describe("The status line's day", () => {
+  it("names a day in the device's language", () => {
+    const view = render(<StatusLine date="2026-11-16" message={null} />);
+    expect(line()).toHaveTextContent("Logging to Mon, Nov 16");
+    view.unmount();
+    setTestLocale("fi-FI");
+    render(<StatusLine date="2026-11-16" message={null} />);
+    expect(line()).toHaveTextContent("Logging to ma 16.11.");
   });
 });
 
