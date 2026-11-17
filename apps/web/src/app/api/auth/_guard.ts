@@ -8,7 +8,12 @@ import { NextResponse, type NextRequest } from "next/server";
 //
 // A request passes when the browser says it is same-origin
 // (`Sec-Fetch-Site: same-origin`), or, from a browser that does not send that
-// header, when `Origin` is this site. A request with neither is refused.
+// header, when `Origin` is the address the page was loaded from. A request
+// with neither is refused. Browsers send `Sec-Fetch-Site` only to a secure
+// origin, so a page served over plain http from a network address, as a phone
+// loads the development server, always takes the `Origin` path. The address
+// comes from the `Host` header, because `request.nextUrl` carries the
+// configured hostname, not the one the browser used.
 // A JSON body is required where the handler reads one, and any other body
 // type is refused everywhere, so a cross-site `<form enctype="text/plain">`
 // that happens to hold valid JSON never reaches a parser.
@@ -19,11 +24,25 @@ function refused(status: 403 | 415): NextResponse {
   return NextResponse.json({ message: "The request was refused.", code }, { status });
 }
 
+/**
+ * The origin the browser loaded the page from: the proxy's scheme, if any, and
+ * the `Host` it sent. Without a proxy header the scheme is the one this server
+ * was reached over, which `nextUrl` reports as `http:` in development and
+ * `https:` behind TLS.
+ */
+function requestOrigin(request: NextRequest): string | null {
+  const host = request.headers.get("host");
+  if (host === null) return null;
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() || request.nextUrl.protocol.slice(0, -1);
+  return `${proto}://${host}`;
+}
+
 function isSameOrigin(request: NextRequest): boolean {
   const site = request.headers.get("sec-fetch-site");
   if (site !== null) return site === "same-origin";
   const origin = request.headers.get("origin");
-  return origin !== null && origin === request.nextUrl.origin;
+  const expected = requestOrigin(request);
+  return origin !== null && expected !== null && origin === expected;
 }
 
 function isJson(request: NextRequest): boolean {
