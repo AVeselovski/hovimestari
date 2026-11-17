@@ -176,7 +176,8 @@ describe("Settings, Food names", () => {
     render(<FoodNamesSection />);
     await waitFor(() => expect(within(group()).getByRole("radio", { name: "Finnish" })).toBeChecked());
     fireEvent.click(within(group()).getByRole("radio", { name: "English" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(/.+/);
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/.+/));
     expect(within(group()).getByRole("radio", { name: "Finnish" })).toBeChecked();
   });
 

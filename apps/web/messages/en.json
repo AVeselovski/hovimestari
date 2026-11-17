@@ -4,7 +4,9 @@
     "digitGroup": "This may mean thousands. Type it with no comma or point, or with fewer decimals.",
     "cancel": "Cancel",
     "delete": "Delete",
-    "deleting": "Deleting…"
+    "deleting": "Deleting…",
+    "offline": "You are offline. Changes need a connection.",
+    "unconfirmed": "Could not confirm. Check your connection and try again."
   },
   "components": {
     "fullPageSpinner": {
@@ -274,10 +276,17 @@
     "name_required": "Give it a name.",
     "name_too_long": "Use at most 120 characters.",
     "note_too_long": "Use at most 500 characters.",
-    "fallback": "Something went wrong. Try again."
+    "fallback": "Something went wrong. Try again.",
+    "entry_id_taken": "This could not be added. Try again.",
+    "saved_meal_not_found": "This saved meal is no longer available.",
+    "saved_meal_id_taken": "This could not be saved. Try again.",
+    "meal_source_too_long": "Use at most 40 characters."
   },
   "day": {
-    "launcher": "Search foods",
+    "launcher": {
+      "log": "Log food",
+      "plan": "Add to plan"
+    },
     "dateBar": {
       "today": "Today",
       "yesterday": "Yesterday",
@@ -353,9 +362,7 @@
       "saving": "Saving…",
       "foodGone": "This food is no longer in your foods.",
       "mealGone": "This saved meal was deleted.",
-      "figuresOnSave": "Figures update when you save.",
-      "offline": "You are offline. Changes need a connection.",
-      "unconfirmed": "Could not confirm. Check your connection and try again."
+      "figuresOnSave": "Figures update when you save."
     },
     "amount": {
       "grams": "g",
@@ -376,6 +383,85 @@
       "grams": "g"
     }
   },
+  "log": {
+    "status": {
+      "today": "Logging to today",
+      "yesterday": "Logging to yesterday",
+      "tomorrow": "Planning for tomorrow",
+      "logDate": "Logging to {date}",
+      "planDate": "Planning for {date}",
+      "unconfirmed": "Could not confirm. Try again.",
+      "offline": "You are offline."
+    },
+    "browse": {
+      "recent": "Recent",
+      "recentEmpty": "Foods and meals you log appear here.",
+      "last": "Last {amount}",
+      "recentUnavailable": "Your recent items and saved meals show here once Hovimestari can reach the server.",
+      "newMeal": "New saved meal",
+      "addEstimate": "Add an estimate",
+      "savedMeals": "Saved meals",
+      "savedMealsEmpty": "Meals you save appear here.",
+      "sources": "Where meals come from",
+      "allSources": "All",
+      "archived": "Archived meals",
+      "mealFigures": "{kcal} kcal · {protein} g protein per meal"
+    },
+    "again": {
+      "log": "Log {name} again, {amount}",
+      "plan": "Plan {name}, {amount}"
+    },
+    "block": {
+      "log": "Log",
+      "plan": "Add to plan",
+      "logging": "Logging…",
+      "perMeal": "Per meal",
+      "from": "From {source}"
+    },
+    "mealGone": "This saved meal is no longer available.",
+    "results": {
+      "saveAsMeal": "Save “{query}” as a meal",
+      "addAsEstimate": "Add “{query}” as an estimate",
+      "foods": "Foods",
+      "mealCount": "{count, plural, one {# saved meal} other {# saved meals}} found."
+    },
+    "archived": {
+      "title": "Archived meals",
+      "empty": "Meals you archive appear here.",
+      "unavailable": "Your archived meals show here once Hovimestari can reach the server.",
+      "restore": "Restore",
+      "restoreName": "Restore {name}"
+    },
+    "meal": {
+      "edit": "Edit meal",
+      "archive": "Archive meal",
+      "restore": "Restore meal",
+      "delete": "Delete meal",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "Days it was logged on keep their figures.",
+      "saved": "Saved {name}."
+    },
+    "mealSheet": {
+      "titleNew": "New saved meal",
+      "titleEdit": "Edit saved meal",
+      "name": "Name",
+      "source": "From (optional)",
+      "sourceHint": "Where the meal comes from, such as a delivery service.",
+      "sources": "Your sources",
+      "perMeal": "Per meal",
+      "perMealHint": "Copy the figures from the label or the menu.",
+      "saveAndLog": "Save and log",
+      "saveAndPlan": "Save and add to plan",
+      "saveMeal": "Save meal",
+      "saving": "Saving…"
+    },
+    "estimateSheet": {
+      "title": "Add an estimate",
+      "description": "For a meal you cannot weigh, such as a restaurant dinner.",
+      "save": "Save estimate",
+      "saving": "Saving…"
+    }
+  },
   "figures": {
     "energy": "Energy",
     "calories": "Calories",
@@ -385,7 +471,10 @@
     "kcal": "{value} kcal",
     "grams": "{value} g",
     "approx": "≈",
-    "estimated": "estimated"
+    "estimated": "estimated",
+    "carbsShort": "Carbs",
+    "unitKcal": "kcal",
+    "unitGrams": "g"
   },
   "toast": {
     "region": "Notifications",
@@ -402,12 +491,24 @@
     "undoFailed": "Could not undo.",
     "today": "today",
     "yesterday": "yesterday",
-    "tomorrow": "tomorrow"
+    "tomorrow": "tomorrow",
+    "logged": "Logged {name}, {amount}.",
+    "addedToPlan": "Added {name} to the plan.",
+    "alreadyLogged": "Already logged {name}.",
+    "alreadyPlanned": "{name} is already in the plan.",
+    "replayRemoved": "This was removed. Log another?",
+    "logAnother": "Log another",
+    "planAnother": "Plan another",
+    "loggedEstimate": "Logged {name}.",
+    "savedAndLogged": "Saved {name} and logged 1 meal.",
+    "savedAndPlanned": "Saved {name} and added it to the plan.",
+    "removeFromDay": "Remove from day",
+    "removeFromPlan": "Remove from plan"
   },
   "foods": {
     "sheet": {
-      "name": "Foods",
-      "searchLabel": "Search foods",
+      "name": "Log food",
+      "searchLabel": "Search foods and meals",
       "clear": "Clear the search",
       "favourites": "Favourites",
       "favouritesEmpty": "Foods you mark as favourite appear here.",

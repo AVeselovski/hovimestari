@@ -82,7 +82,8 @@ describe("SignInPage", () => {
     signIn.mockRejectedValue(new AuthRequestError(401, "invalid_credentials"));
     renderPage();
     fill("ada@example.com", testPassword());
-    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Invalid email or password."));
     expect(screen.getByLabelText("Email")).toHaveFocus();
   });
 
@@ -98,14 +99,18 @@ describe("SignInPage", () => {
     signIn.mockRejectedValue(new AuthRequestError(401, "invalid_credentials"));
     renderPage();
     fill("ada@example.com", testPassword());
-    expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Invalid email or password."));
   });
 
   it("says the server cannot be reached when the request never got there", async () => {
     signIn.mockRejectedValue(new TypeError("Failed to fetch"));
     renderPage();
     fill("ada@example.com", testPassword());
-    expect(await screen.findByRole("alert")).toHaveTextContent("Hovimestari cannot be reached right now.");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Hovimestari cannot be reached right now."),
+    );
   });
 
   it.each([

@@ -18,6 +18,11 @@ import { MacroDot, type Macro } from "./MacroDot";
 // decimals line up. With no figures, every row keeps its
 // height and its figure slot stays empty, so a preview filling in moves
 // nothing. An estimate's figures start with "≈", read as "estimated".
+//
+// `layout="row"` puts the four in one row of four columns, each its label
+// over its figure, for a surface whose first screen holds a form around
+// them, such as the log sheet's log block. Carbohydrates read "Carbs" there,
+// and "Carbohydrates" aloud, as on the Day tab's summary.
 // ---------------------------------------------------------------------------
 
 const ROWS = [
@@ -52,10 +57,18 @@ export interface MacroFiguresProps {
   estimate?: boolean;
   /** The energy row's label. Defaults to "Energy". */
   energyWord?: EnergyWord;
+  /** "table" (default): one row per figure. "row": the four side by side. */
+  layout?: "table" | "row";
 }
 
-export function MacroFigures({ figures, estimate = false, energyWord = "energy" }: MacroFiguresProps): ReactElement {
+export function MacroFigures({
+  figures,
+  estimate = false,
+  energyWord = "energy",
+  layout = "table",
+}: MacroFiguresProps): ReactElement {
   const t = useTranslations("figures");
+  if (layout === "row") return <MacroFigureRow t={t} figures={figures} estimate={estimate} energyWord={energyWord} />;
   return (
     <dl className="divide-y divide-rule border-y border-rule">
       {ROWS.map((row) => {
@@ -75,6 +88,58 @@ export function MacroFigures({ figures, estimate = false, energyWord = "energy" 
                 (row.unit === "kcal"
                   ? t("kcal", { value: formatKcal(value) })
                   : t("grams", { value: formatMacroGrams(value) }))}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
+/** The four figures side by side, each its label over the figure, the unit small after it. */
+function MacroFigureRow({
+  t,
+  figures,
+  estimate,
+  energyWord,
+}: {
+  t: T;
+  figures: Figures | null;
+  estimate: boolean;
+  energyWord: EnergyWord;
+}): ReactElement {
+  return (
+    <dl className="grid grid-cols-4 gap-x-1 border-y border-rule py-1.5">
+      {ROWS.map((row) => {
+        const value = figures === null ? null : row.value(figures);
+        return (
+          <div key={row.macro} data-macro={row.macro} className="min-w-0">
+            <dt className="flex items-center gap-1.5 text-xs whitespace-nowrap text-ink-muted md:text-sm">
+              <MacroDot macro={row.macro} />
+              {row.macro === "carbs" ? (
+                <>
+                  <span aria-hidden="true">{t("carbsShort")}</span>
+                  <span className="sr-only">{t("carbs")}</span>
+                </>
+              ) : (
+                labelOf(t, row.macro, energyWord)
+              )}
+            </dt>
+            <dd className="mt-0.5 min-h-6 font-mono text-base whitespace-nowrap text-ink tabular-nums">
+              {value !== null && estimate && (
+                <>
+                  <span aria-hidden="true">{t("approx")}</span>
+                  <span className="sr-only">{t("estimated")}</span>
+                </>
+              )}
+              {value !== null && (
+                <>
+                  {row.unit === "kcal" ? formatKcal(value) : formatMacroGrams(value)}
+                  <span className="ml-0.5 font-sans text-xs text-ink-muted">
+                    {row.unit === "kcal" ? t("unitKcal") : t("unitGrams")}
+                  </span>
+                </>
+              )}
             </dd>
           </div>
         );

@@ -14,14 +14,28 @@ import { foodEntry } from "./support";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/entries", () => ({
+  addEntry: jest.fn(),
   setEntriesStatus: jest.fn(),
   patchEntry: jest.fn(),
   removeEntry: jest.fn(),
   restoreEntry: jest.fn(),
 }));
 jest.mock("@/lib/api/targets", () => ({ getTargets: jest.fn(), putTargets: jest.fn(), deleteTargets: jest.fn() }));
-jest.mock("@/lib/api/foods", () => ({ getFood: jest.fn() }));
+jest.mock("@/lib/api/foods", () => ({
+  getFood: jest.fn(),
+  getFavouriteFoods: jest.fn().mockResolvedValue({ foods: [] }),
+  getOwnFoods: jest.fn().mockResolvedValue({ foods: [] }),
+}));
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
   useSearchParams: () => new URLSearchParams(),

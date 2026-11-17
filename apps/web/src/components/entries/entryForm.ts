@@ -47,6 +47,8 @@ export interface EntryFields {
 }
 
 export type EntryField = "date" | "amount" | "name" | "energy" | "protein" | "carbs" | "fat" | "note";
+/** The four typed figures of an estimate or a saved meal, in their order on screen. */
+export type FigureField = "energy" | "protein" | "carbs" | "fat";
 export type EntryFieldErrors = Partial<Record<EntryField, EntryFieldError>>;
 
 /** The fields as the entry holds them: every field prefilled from the entry itself. */
@@ -88,7 +90,10 @@ const FIGURE_FIELDS = [
 ] as const;
 
 /** An estimate's four figures as typed, or the first error of each field. */
-export function parseFigures(fields: EntryFields): { figures: Figures | null; errors: EntryFieldErrors } {
+export function parseFigures(fields: Pick<EntryFields, FigureField>): {
+  figures: Figures | null;
+  errors: EntryFieldErrors;
+} {
   const errors: EntryFieldErrors = {};
   const values: Partial<Record<keyof Figures, number>> = {};
   for (const [field, key] of FIGURE_FIELDS) {

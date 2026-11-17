@@ -45,8 +45,12 @@ export const queryKeys = {
   foodDetails: () => ["foods", "detail"] as const,
   /** Every log read: recent items live under it. */
   log: () => ["log"] as const,
+  /** The recent items the log sheet offers to log again. */
+  recents: () => ["log", "recents"] as const,
   /** Every saved meal read. */
   savedMeals: () => ["savedMeals"] as const,
+  /** The active saved meals, or the archived ones. */
+  savedMealList: (archived: boolean) => ["savedMeals", "list", archived] as const,
 };
 
 /**

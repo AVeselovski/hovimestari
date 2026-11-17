@@ -1,11 +1,14 @@
 import { getProviders } from "@/lib/api/auth";
 import { getDay } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
+import { getRecents } from "@/lib/api/log";
+import { getSavedMeals } from "@/lib/api/savedMeals";
 import { getTargets } from "@/lib/api/targets";
 import { getMe } from "@/lib/api/users";
+import { forgetSeen } from "@/lib/pendingIds";
 import { STALE } from "@/lib/queryClient";
 import { foodSearchKey, queryKeys } from "@/lib/queryKeys";
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
 
 // ---------------------------------------------------------------------------
 // The options for every read, built once: the key, the fetch and how long
@@ -113,9 +116,57 @@ export function ownFoodsQuery() {
 export function dayQuery(date: string) {
   return queryOptions({
     queryKey: queryKeys.day(date),
-    queryFn: ({ signal }) => getDay(date, { signal }),
+    queryFn: async ({ signal, client }) => {
+      const day = await getDay(date, { signal });
+      // An add that landed while its answer was lost lets go of its id.
+      forgetSeen(client, day);
+      return day;
+    },
     staleTime: STALE.live,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
+}
+
+/**
+ * The foods and saved meals eaten most recently, each with its last amount.
+ * Read again when the page is shown or the connection returns, as a day is,
+ * since another device may have logged.
+ */
+export function recentsQuery() {
+  return queryOptions({
+    queryKey: queryKeys.recents(),
+    queryFn: ({ signal }) => getRecents({ signal }),
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+}
+
+/**
+ * The user's saved meals by name: the active ones, or the archived ones. The
+ * log sheet filters them on the device, by name and source, so one read
+ * serves browsing and every search.
+ */
+export function savedMealsQuery(archived: boolean) {
+  return queryOptions({
+    queryKey: queryKeys.savedMealList(archived),
+    queryFn: ({ signal }) => getSavedMeals(archived, { signal }),
+  });
+}
+
+/**
+ * Reads every list the log sheet's browsing shows that is stale or not held
+ * yet: the recent items, the favourites, the user's own foods and the active
+ * saved meals. A fresh one is not read. The Day tab calls it once its day is
+ * on screen, and the log sheet once it has closed, so the next open shows
+ * what a write left stale while the sheet held its lists
+ * (components/log/heldList.tsx). These reads take no abort signal: a read
+ * whose signal is taken is cancelled when the last list showing it unmounts,
+ * as the closing sheet's lists do.
+ */
+export function prefetchLogLists(client: QueryClient): void {
+  void client.prefetchQuery({ ...recentsQuery(), queryFn: () => getRecents() });
+  void client.prefetchQuery({ ...favouriteFoodsQuery(), queryFn: () => getFavouriteFoods() });
+  void client.prefetchQuery({ ...ownFoodsQuery(), queryFn: () => getOwnFoods() });
+  void client.prefetchQuery({ ...savedMealsQuery(false), queryFn: () => getSavedMeals(false) });
 }

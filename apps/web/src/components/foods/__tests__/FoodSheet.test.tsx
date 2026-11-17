@@ -15,9 +15,29 @@ import type { FoodDetail, FoodList, FoodSummary } from "@hovimestari/types";
 import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { FoodSheet, SEARCH_DEBOUNCE_MS } from "../FoodSheet";
-import { detailOf, favouriteOf, fineliFood, fineliPortion, ownFood, ownPortion, refusal } from "./support";
+import {
+  detailOf,
+  fakeLogActions,
+  favouriteOf,
+  fineliFood,
+  fineliPortion,
+  listsInPlace,
+  ownFood,
+  ownPortion,
+  refusal,
+  SHEET_DATE,
+} from "./support";
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => "/" }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/foods", () => ({
   searchFoods: jest.fn(),
   getFavouriteFoods: jest.fn(),
@@ -71,12 +91,12 @@ afterEach(() => onlineManager.setOnline(true));
 
 function renderSheet() {
   const onClose = jest.fn();
-  render(<FoodSheet open onClose={onClose} returnFocusTo={null} />);
+  render(<FoodSheet open onClose={onClose} returnFocusTo={null} date={SHEET_DATE} actions={fakeLogActions()} />);
   return { onClose };
 }
 
 const dialog = () => screen.getByRole("dialog");
-const field = () => screen.getByLabelText("Search foods") as HTMLInputElement;
+const field = () => screen.getByLabelText("Search foods and meals") as HTMLInputElement;
 const type = (value: string) => fireEvent.change(field(), { target: { value } });
 const body = () => dialog().querySelector<HTMLElement>("[data-sheet-body]")!;
 const header = () => dialog().querySelector<HTMLElement>("[data-sheet-header]")!;
@@ -85,7 +105,9 @@ const rowButton = (name: string) => screen.getByRole("button", { name: new RegEx
 const settle = () => act(() => new Promise((r) => setTimeout(r, SEARCH_DEBOUNCE_MS + 100)));
 
 async function openDetail(name: string) {
-  fireEvent.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
+  const row = await screen.findByRole("button", { name: new RegExp(`^${name}`) });
+  await listsInPlace();
+  fireEvent.click(row);
   return screen.findByRole("button", { name: "Back" });
 }
 
@@ -143,7 +165,7 @@ describe("FoodSheet, searching", () => {
     renderSheet();
     expect(dialog()).toHaveAttribute("data-sheet-size", "tall");
     expect(dialog().className.split(" ")).toEqual(
-      expect.arrayContaining(["h-[calc(100dvh-var(--safe-top)-3rem)]", "md:h-[min(44rem,85dvh)]"]),
+      expect.arrayContaining(["h-[calc(100dvh-var(--safe-top)-3rem)]", "md:h-[min(48rem,calc(100dvh-2rem))]"]),
     );
   });
 
@@ -192,6 +214,44 @@ describe("FoodSheet, searching", () => {
   it("focuses the search field as it opens from md", () => {
     renderSheet();
     expect(field()).toHaveFocus();
+  });
+});
+
+describe("FoodSheet, where the body is scrolled", () => {
+  it("goes to the top when the results replace the lists, so the best match is in view", async () => {
+    const answer = deferred<{ foods: FoodSummary[] }>();
+    jest.mocked(searchFoods).mockReturnValueOnce(answer.promise);
+    renderSheet();
+    type("rahka");
+    await settle();
+    // The lists still show while the first answer is out: scrolled down in them, as a person may.
+    body().scrollTop = 300;
+    await act(async () => answer.resolve({ foods: quarks }));
+    await screen.findByText("Rahka, maustamaton");
+    expect(body().scrollTop).toBe(0);
+  });
+
+  it("goes to the top when the text changes while results show", async () => {
+    results.rahk = quarks;
+    renderSheet();
+    type("rahka");
+    await screen.findByText("Rahka, maustamaton");
+    body().scrollTop = 120;
+    type("rahk");
+    expect(body().scrollTop).toBe(0);
+  });
+
+  it("keeps where browsing was left on Back from a food, and goes to the top once text is typed", async () => {
+    own = [ownFood("Oma rahka")];
+    details[own[0].id] = detailOf(own[0]);
+    renderSheet();
+    await screen.findByText("Oma rahka");
+    body().scrollTop = 300;
+    fireEvent.click(await openDetail("Oma rahka"));
+    expect(body().scrollTop).toBe(300);
+    expect(rowButton("Oma rahka")).toHaveFocus();
+    type("rahka");
+    expect(body().scrollTop).toBe(0);
   });
 });
 
@@ -253,7 +313,8 @@ describe("FoodSheet, a food's detail", () => {
     type("rahka");
     await openDetail("Rahka, maustettu");
     fireEvent.click(screen.getByRole("button", { name: "Favourite" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
+    // The star's line in the body, not the log block's refusal line in the footer.
+    expect(await within(body()).findByRole("alert")).toHaveTextContent("Something went wrong. Try again.");
     expect(screen.getByRole("button", { name: "Favourite" })).toHaveAttribute("aria-pressed", "false");
   });
 

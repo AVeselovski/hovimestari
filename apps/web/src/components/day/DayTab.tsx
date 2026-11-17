@@ -1,7 +1,6 @@
 "use client";
 
 import { EntrySheet } from "@/components/entries/EntrySheet";
-import { FoodSearchLauncher } from "@/components/foods/FoodSearchLauncher";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { btnSecondary } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,19 +10,20 @@ import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
 import { addDays, isIsoDate } from "@/lib/localDate";
-import { dayQuery } from "@/lib/queryOptions";
+import { dayQuery, prefetchLogLists } from "@/lib/queryOptions";
 import type { Entry } from "@hovimestari/types";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
 import { DateBar } from "./DateBar";
+import { DayLauncher } from "./DayLauncher";
 import { DaySummary } from "./DaySummary";
 import { EntryList } from "./EntryList";
 
 // ---------------------------------------------------------------------------
-// DayTab: one day. The date bar, the food search, the summary and the
-// entries, top to bottom, at fixed places whatever state the day is in.
+// DayTab: one day. The date bar, the log sheet's launcher, the summary and
+// the entries, top to bottom, at fixed places whatever state the day is in.
 //
 // The date is `?date=` when it is a real date, else today from the server
 // (`useToday`). Never keyed by date: the entry sheet is mounted here, above
@@ -35,10 +35,10 @@ import { EntryList } from "./EntryList";
 // the state: loading, a failure and offline each show in the summary's frame.
 //
 // Layout: one column on a phone, the regions 12 px apart and
-// the date bar 8 px over the food search, so the first entry
+// the date bar 8 px over the launcher, so the first entry
 // shows on a phone's first screen. The shell shows no title on this tab: the
 // date bar is the header. From `lg` the tab widens to two columns: the date
-// bar over the summary and the food search over the entries, so the summary
+// bar over the summary and the launcher over the entries, so the summary
 // and the entries start at the same height. The end keeps a toast's room, so
 // a toast never covers the last row's mark.
 // ---------------------------------------------------------------------------
@@ -71,6 +71,14 @@ export function DayTab(): ReactElement {
     void client.prefetchQuery(dayQuery(addDays(date, -1)));
     void client.prefetchQuery(dayQuery(addDays(date, 1)));
   }, [client, date]);
+
+  // Every list the log sheet's browsing shows, read once the day is on
+  // screen, so the sheet opens with them and the day never waits on them.
+  const dayLoaded = day !== null;
+  useEffect(() => {
+    if (!dayLoaded) return;
+    prefetchLogLists(client);
+  }, [client, dayLoaded]);
 
   const actions = useEntryActions(date);
   const sheet = useSheetTarget<Entry>();
@@ -127,7 +135,7 @@ export function DayTab(): ReactElement {
       <div className="flex flex-col gap-2 lg:contents">
         <DateBar date={date} today={today} onChange={go} />
         <div ref={launcherRef}>
-          <FoodSearchLauncher />
+          <DayLauncher date={date} future={future} actions={actions} />
         </div>
       </div>
       <DaySummary date={date ?? ""} day={day} past={past} notice={notice} />

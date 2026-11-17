@@ -3,7 +3,7 @@
 import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
 import { DecimalField } from "@/components/ui/DecimalField";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
@@ -65,7 +65,7 @@ export function PortionSheet({
 
   const [values, setValues] = useState(() => (portion ? portionValuesOf(portion) : EMPTY_PORTION));
   const [fieldErrors, setFieldErrors] = useState<PortionErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify(values), true);
 
@@ -117,7 +117,7 @@ export function PortionSheet({
         setFieldErrors({ grams: code });
         focusField(fieldId("grams"));
       } else {
-        setFormError(errors.forError(err));
+        setFormError({ line: errors.forError(err), cause: err });
       }
       // Deleted on another device: it leaves the detail.
       if (code === "portion_not_found" && portion) void afterPortionDeleted(client, foodId, portion.id);

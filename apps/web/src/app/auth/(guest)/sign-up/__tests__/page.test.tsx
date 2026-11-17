@@ -67,7 +67,8 @@ describe("SignUpPage", () => {
     signUp.mockRejectedValue(new AuthRequestError(code === "signup_rate_limited" ? 429 : 409, code));
     render(<SignUpPage />);
     submit("ada@example.com", testPassword());
-    expect(await screen.findByRole("alert")).toHaveTextContent(text);
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(text));
     expect(screen.getByLabelText("Email")).toHaveFocus();
   });
 

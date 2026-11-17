@@ -154,7 +154,10 @@ describe("FirstRunTargets", () => {
     render(<FirstRunTargets today={TODAY} />);
     fillAll();
     fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("A number is too large or has more than one decimal.");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("A number is too large or has more than one decimal."),
+    );
     expect(screen.getByRole("button", { name: "Save targets" })).toBeEnabled();
   });
 

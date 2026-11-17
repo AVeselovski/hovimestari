@@ -1,5 +1,6 @@
 "use client";
 
+import { releaseHeldLists } from "@/components/log/heldList";
 import { setFavourite } from "@/lib/api/foods";
 import { favouriteRowOf, putFavourite } from "@/lib/foodCache";
 import { afterFavourite } from "@/lib/invalidation";
@@ -10,7 +11,8 @@ import { useEffect } from "react";
 
 // ---------------------------------------------------------------------------
 // Marking a favourite, optimistically. The star, the food's detail, every
-// cached row of the food and the favourites list flip at once, in place
+// cached row of the food (the recent items too) and the favourites list flip
+// at once, in place
 // (`putFavourite`). A failure puts back this food's own prior state and
 // nothing else, so a mark of another food, or a list read since, stands.
 //
@@ -24,6 +26,10 @@ import { useEffect } from "react";
 // two that failed, the server holds the first tap's state. The searches and
 // the own foods it writes into are marked stale, so the next time one shows
 // it reads the server's state again.
+//
+// The callbacks live on the mutation, not on one `mutate` call, so a mark
+// still settles, rolls back and reads again after the sheet that sent it has
+// closed and unmounted.
 //
 // A mark fails at once without a network (`networkMode: "always"`), as every
 // other write here does, so the star goes back and the line says why. Queued
@@ -77,7 +83,11 @@ export function useFavourite(foodId: string): FavouriteToggle {
       // The first mark of a run: the star shows what the server holds.
       const confirmed = confirmedOf(client);
       if (!confirmed.has(food.id)) confirmed.set(food.id, { on: !on, favouriteRow: favouriteRowOf(client, food.id) });
-      await client.cancelQueries({ queryKey: queryKeys.foods() });
+      // A read still out would land with the old star over the flip.
+      await Promise.all([
+        client.cancelQueries({ queryKey: queryKeys.foods() }),
+        client.cancelQueries({ queryKey: queryKeys.recents() }),
+      ]);
       putFavourite(client, food, on);
     },
     onSuccess: (_data, { food, on }) => {
@@ -87,10 +97,17 @@ export function useFavourite(foodId: string): FavouriteToggle {
       if (!isLast(food.id)) return;
       const confirmed = confirmedOf(client).get(food.id);
       if (!confirmed) return;
+      // The food goes back to the place it held in the favourites when the
+      // first mark of the run was made. Favourites marked or unmarked since
+      // may have moved that place, so the order is right only after the next
+      // read of the list, which `onSettled` starts.
       putFavourite(client, food, confirmed.on, confirmed.favouriteRow);
+      // The person's own mark taken back: an open list shows it gone, not a star the server refused.
+      releaseHeldLists(client);
       // The rows these lists hold may still show a state a later tap set.
       void client.invalidateQueries({ queryKey: queryKeys.foodSearches(), refetchType: "none" });
       void client.invalidateQueries({ queryKey: queryKeys.foodOwn(), refetchType: "none" });
+      void client.invalidateQueries({ queryKey: queryKeys.recents(), refetchType: "none" });
     },
     onSettled: (_data, _err, { food }) => {
       if (!isLast(food.id)) return undefined;

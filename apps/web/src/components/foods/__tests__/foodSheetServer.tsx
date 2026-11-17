@@ -16,7 +16,7 @@ import type { FoodDetail, FoodSummary } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, type RenderResult } from "@testing-library/react";
 import { FoodSheet, SEARCH_DEBOUNCE_MS } from "../FoodSheet";
-import { detailOf, favouriteOf, fineliFood, refusal } from "./support";
+import { detailOf, fakeLogActions, favouriteOf, fineliFood, listsInPlace, refusal, SHEET_DATE } from "./support";
 
 // A fake server behind the food sheet, for the suites that check what the
 // sheet shows right after the user's own write, while the reads that follow
@@ -118,13 +118,13 @@ export function addOwn(food: FoodDetail): void {
 
 export function renderSheet(client?: QueryClient): RenderResult {
   return render(
-    <FoodSheet open onClose={jest.fn()} returnFocusTo={null} />,
+    <FoodSheet open onClose={jest.fn()} returnFocusTo={null} date={SHEET_DATE} actions={fakeLogActions()} />,
     client ? { wrapper: queryWrapper(client) } : {},
   );
 }
 
 export const dialog = () => screen.getAllByRole("dialog")[0];
-export const field = () => screen.getByLabelText("Search foods") as HTMLInputElement;
+export const field = () => screen.getByLabelText("Search foods and meals") as HTMLInputElement;
 export const type = (value: string) => fireEvent.change(field(), { target: { value } });
 export const body = () => dialog().querySelector<HTMLElement>("[data-sheet-body]")!;
 
@@ -141,6 +141,8 @@ export const rowNames = () =>
 export const back = () => fireEvent.click(screen.getByRole("button", { name: "Back" }));
 
 export async function openDetail(name: string) {
-  fireEvent.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
+  const row = await screen.findByRole("button", { name: new RegExp(`^${name}`) });
+  await listsInPlace();
+  fireEvent.click(row);
   return screen.findByRole("button", { name: "Back" });
 }

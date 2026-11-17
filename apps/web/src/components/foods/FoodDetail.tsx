@@ -19,8 +19,8 @@ import { FoodSourceLine } from "./FoodSourceLine";
 import { Per100gFigures } from "./Per100gFigures";
 
 // ---------------------------------------------------------------------------
-// The food sheet's detail view. The header holds Back and the favourite
-// star. The body scrolls under it and holds the food's name, the other
+// The log sheet's food view, under its log block. The header holds Back, the
+// food's name on one line, and the favourite star. The body scrolls under it and holds the food's name, the other
 // language's name, where the figures come from, the figures per 100 g, the
 // portions, and for the user's own food Edit and Delete. The name scrolls
 // with the body, so a long one never squeezes the body under a fixed header.
@@ -32,32 +32,56 @@ import { Per100gFigures } from "./Per100gFigures";
 // ---------------------------------------------------------------------------
 
 export interface FoodDetailHeaderProps {
-  favourite: boolean;
+  /** The food's or the meal's name, on one line between Back and the star. */
+  name: string;
+  /** The food's star. A view with no star (a saved meal) leaves both out. */
+  favourite?: boolean;
+  onToggleFavourite?: () => void;
   onBack: () => void;
-  onToggleFavourite: () => void;
   backRef?: Ref<HTMLButtonElement>;
+  /** The name's language, for its hyphenation and its voice. */
+  lang?: string;
 }
 
+/**
+ * A view's header row: Back, the name cut to one line (the body shows it in
+ * full), and the favourite star. Always one 44 px row, so moving between
+ * views moves nothing under it.
+ */
 export function FoodDetailHeader({
+  name,
   favourite,
-  onBack,
   onToggleFavourite,
+  onBack,
   backRef,
+  lang,
 }: FoodDetailHeaderProps): ReactElement {
   const t = useTranslations("foods.detail");
   return (
     <div className="pb-1">
-      <div className="-mx-2 flex items-center justify-between">
+      <div className="-mx-2 flex items-center gap-1">
         <button
           ref={backRef}
           type="button"
           onClick={onBack}
-          className={`inline-flex min-h-11 items-center gap-1 rounded-control px-2 text-base font-semibold text-ink hover:bg-surface-raised active:bg-surface-raised ${focusRing}`}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1 rounded-control px-2 text-base font-semibold text-ink hover:bg-surface-raised active:bg-surface-raised ${focusRing}`}
         >
           <Icon name="chevronLeft" className="size-5" strokeWidth={2} />
           {t("back")}
         </button>
-        <FavouriteButton on={favourite} onToggle={onToggleFavourite} />
+        <p
+          lang={lang}
+          aria-hidden="true"
+          data-view-name=""
+          className="min-w-0 flex-1 truncate text-base text-ink-muted"
+        >
+          {name}
+        </p>
+        {favourite !== undefined && onToggleFavourite ? (
+          <FavouriteButton on={favourite} onToggle={onToggleFavourite} />
+        ) : (
+          <span aria-hidden="true" className="size-11 shrink-0" />
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
 import { DecimalField } from "@/components/ui/DecimalField";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { fieldHintClass, sectionTitle } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
@@ -102,7 +102,7 @@ export function OwnFoodSheet({
   const saved = useMemo(() => (food ? { values: ownFoodValuesOf(food), per100g: food.per100g } : undefined), [food]);
   const [values, setValues] = useState(() => saved?.values ?? emptyOwnFood(initialName));
   const [fieldErrors, setFieldErrors] = useState<OwnFoodErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify(values), true);
 
@@ -149,7 +149,7 @@ export function OwnFoodSheet({
         setFieldErrors({ [field]: code });
         focusField(fieldId(field));
       } else {
-        setFormError(errors.forError(err));
+        setFormError({ line: errors.forError(err), cause: err });
       }
       setSubmitting(false);
       return;

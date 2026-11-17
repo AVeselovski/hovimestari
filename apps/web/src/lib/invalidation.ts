@@ -1,6 +1,9 @@
-import type { Day, FoodDetail, Me, Portion } from "@hovimestari/types";
+import { releaseHeldLists } from "@/components/log/heldList";
+import type { Day, FoodDetail, Me, Portion, SavedMeal } from "@hovimestari/types";
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
+import { dropMeal, putMeal, putNewMeal, takeMealOutOf } from "./mealCache";
+import { forgetSeen } from "./pendingIds";
 import { queryKeys } from "./queryKeys";
 
 // ---------------------------------------------------------------------------
@@ -116,12 +119,16 @@ export async function afterOwnFoodSaved(client: QueryClient, food: FoodDetail, c
 /**
  * After a food is deleted, or turns out to be gone: its detail is dropped
  * and its row leaves every cached list at once, so no list can offer it
- * again. The rest is read again.
+ * again, an open list that holds its rows too (`releaseHeldLists`). The rest
+ * is read again.
  */
 export async function afterFoodGone(client: QueryClient, id: string): Promise<void> {
   await editFoods(
     client,
-    () => dropFood(client, id),
+    () => {
+      dropFood(client, id);
+      releaseHeldLists(client);
+    },
     () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.foods() }), afterFoodChangeOnDays(client)]),
   );
 }
@@ -198,6 +205,8 @@ export async function afterEntryWrite(
   const oldZone = sentInZone !== undefined && sentInZone !== zoneEpoch(client);
   await Promise.all(days.map((d) => client.cancelQueries({ queryKey: queryKeys.day(d.date), exact: true })));
   if (!oldZone) for (const day of days) client.setQueryData(queryKeys.day(day.date), day);
+  // An add whose answer was lost earlier is in one of these days: its id is let go.
+  for (const day of days) forgetSeen(client, day);
   const reread = shownDate !== undefined && !days.some((d) => d.date === shownDate) ? [queryKeys.day(shownDate)] : [];
   const stale = oldZone
     ? days.map((d) => queryKeys.day(d.date))
@@ -214,6 +223,26 @@ export async function afterEntryWrite(
     queryKeys.foodDetails(),
   ]);
   return { settled };
+}
+
+/**
+ * After an add that could not confirm: no answer came, it timed out or the
+ * server faulted, so it may have landed. Its day and the ranges are read
+ * again, so an entry that did land shows with both totals at once. The
+ * recent items, and with `meal`, for a "Save and log", the saved meals, are
+ * only marked stale: they are lists the open log sheet shows, and a read now
+ * could move a row under the finger that presses again. They are read once
+ * the sheet has closed (`prefetchLogLists`), so the next open shows them. One
+ * read: a read that fails is not tried again from here.
+ */
+export async function afterAddUnconfirmed(client: QueryClient, date: string, meal = false): Promise<void> {
+  const lists = [queryKeys.log(), ...(meal ? [queryKeys.savedMeals()] : [])];
+  // A list read already out answers the state before the add, and would clear the mark as it lands.
+  await Promise.all(lists.map((queryKey) => client.cancelQueries({ queryKey })));
+  await Promise.all([
+    refresh(client, [queryKeys.day(date), queryKeys.dayRanges()]),
+    ...lists.map((queryKey) => client.invalidateQueries({ queryKey, refetchType: "none" })),
+  ]);
 }
 
 /** How many times the account's time zone changed, per client. */
@@ -282,4 +311,62 @@ export async function afterDayChange(client: QueryClient): Promise<void> {
  */
 export async function afterFoodChangeOnDays(client: QueryClient): Promise<void> {
   await refresh(client, [queryKeys.days(), queryKeys.log()]);
+}
+
+// ---------------------------------------------------------------------------
+// Saved meals. A write's answer goes into the lists in place first, so a row
+// never moves under the thumb, then the lists are read again for what only
+// the server knows: a new meal's place in the Finnish order, last counts.
+// ---------------------------------------------------------------------------
+
+/** Cancels the saved meal and log reads on their way, makes the edit, and reads `keys` again. */
+async function editMeals(client: QueryClient, edit: () => void, keys: readonly QueryKey[]): Promise<void> {
+  await Promise.all([queryKeys.savedMeals(), queryKeys.log()].map((queryKey) => client.cancelQueries({ queryKey })));
+  edit();
+  await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
+}
+
+/**
+ * After a new meal is saved without logging: its answer goes into the active
+ * meals at its place by name, then the lists are read again. Resolves once
+ * the meal is in the cache, so the sheet that saved it can close after, and
+ * gives the read as `settled`. Also, with no answer, after a "Save meal" that
+ * could not confirm, which may have landed. A "Save and log" that could not
+ * confirm is an add (`afterAddUnconfirmed`).
+ */
+export async function afterSavedMealCreated(
+  client: QueryClient,
+  meal?: SavedMeal,
+): Promise<{ settled: Promise<void> }> {
+  await client.cancelQueries({ queryKey: queryKeys.savedMeals() });
+  if (meal) putNewMeal(client, meal);
+  return { settled: client.invalidateQueries({ queryKey: queryKeys.savedMeals() }) };
+}
+
+/**
+ * After a meal is edited: the answer replaces its row in place in both lists
+ * and the recent items. Its planned entries from today on took the new
+ * figures, so the days are read again, and the log for its rows.
+ */
+export async function afterSavedMealChange(client: QueryClient, meal: SavedMeal): Promise<void> {
+  await editMeals(client, () => putMeal(client, meal), [queryKeys.savedMeals(), queryKeys.days(), queryKeys.log()]);
+}
+
+/**
+ * After a meal is archived or restored: it leaves the list it was in, in
+ * place. The lists and the recent items are read again, which leave an
+ * archived meal out of recent items.
+ */
+export async function afterSavedMealArchived(client: QueryClient, id: string, archived: boolean): Promise<void> {
+  await editMeals(client, () => takeMealOutOf(client, id, !archived), [queryKeys.savedMeals(), queryKeys.log()]);
+}
+
+/** After a meal is deleted, or found gone: it leaves both lists and the recent items, in place. */
+export async function afterSavedMealGone(client: QueryClient, id: string): Promise<void> {
+  const drop = (): void => {
+    dropMeal(client, id);
+    // An open list that holds its rows lets the meal go too.
+    releaseHeldLists(client);
+  };
+  await editMeals(client, drop, [queryKeys.savedMeals(), queryKeys.days(), queryKeys.log()]);
 }

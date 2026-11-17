@@ -1,14 +1,37 @@
-import { deferred } from "@/__tests__/helpers/queryClient";
+import { createTestQueryClient, deferred, registerTestQueryClient } from "@/__tests__/helpers/queryClient";
 import { searchFoods, setFavourite } from "@/lib/api/foods";
+import { getRecents } from "@/lib/api/log";
+import { queryKeys } from "@/lib/queryKeys";
+import type { FavouriteFoodList, FoodList, RecentList } from "@hovimestari/types";
 import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { addOwn, back, installServer, openDetail, quarks, renderSheet, server, settle, type } from "./foodSheetServer";
+import {
+  addOwn,
+  back,
+  body,
+  installServer,
+  openDetail,
+  quarks,
+  renderSheet,
+  server,
+  settle,
+  type,
+} from "./foodSheetServer";
 import { detailOf, ownFood, refusal } from "./support";
 
 // Favourite marks in the food sheet: in place, one after another, and a
 // failure that puts back what the server holds (./foodSheetServer.tsx).
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => "/" }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/foods", () => ({
   searchFoods: jest.fn(),
   getFavouriteFoods: jest.fn(),
@@ -57,7 +80,8 @@ describe("FoodSheet, favourite marks", () => {
     const favourites = await screen.findByRole("region", { name: "Favourites" });
     expect(within(favourites).queryByText("Rahka, maustamaton")).toBeInTheDocument();
     expect(within(favourites).queryByText("Rahka, maustettu")).not.toBeInTheDocument();
-  });
+    // Four searches and two detail views: over 5 s on a loaded machine.
+  }, 20_000);
 
   it("runs the marks of one food in order: three quick taps arrive as on, off, on, one after another", async () => {
     const calls: Array<ReturnType<typeof deferred<void>>> = [];
@@ -125,7 +149,33 @@ describe("FoodSheet, favourite marks", () => {
     fireEvent.click(starOf());
     await waitFor(() => expect(setFavourite).toHaveBeenCalledWith(quarks[0].id, true));
     await waitFor(() => expect(starOf()).toHaveAttribute("aria-pressed", "false"));
-    expect(screen.getByRole("alert")).not.toBeEmptyDOMElement();
+    expect(within(body()).getByRole("alert")).not.toBeEmptyDOMElement();
+  });
+
+  it("still puts back a failed mark, in every list and the recent items, after the sheet has closed and unmounted", async () => {
+    const client = registerTestQueryClient(createTestQueryClient());
+    const calls = heldMarks();
+    const food = quarks[0];
+    const recents: RecentList = { items: [{ kind: "food", food, last: { grams: 250, portion: null } }] };
+    client.setQueryData(queryKeys.recents(), recents);
+    jest.mocked(getRecents).mockResolvedValue(recents);
+    const view = renderSheet(client);
+    type("rahka");
+    await settle();
+    await openDetail("Rahka, maustettu");
+    fireEvent.click(starOf());
+    await waitFor(() => expect(calls).toHaveLength(1));
+    const starred = client.getQueryData<RecentList>(queryKeys.recents())!.items[0];
+    expect(starred.kind === "food" && starred.food.isFavourite).toBe(true);
+    view.unmount();
+    await act(async () => calls[0].reject(refusal(500, "internal_error")));
+    await waitFor(() => {
+      const item = client.getQueryData<RecentList>(queryKeys.recents())!.items[0];
+      expect(item.kind === "food" && item.food.isFavourite).toBe(false);
+    });
+    expect(client.getQueryData<FavouriteFoodList>(queryKeys.foodFavourites())?.foods ?? []).toEqual([]);
+    const search = client.getQueryData<FoodList>(queryKeys.foodSearch("rahka"))!;
+    expect(search.foods.find((f) => f.id === food.id)?.isFavourite).toBe(false);
   });
 
   /** Every mark of a food held until the test answers it, the server's state following each one that works. */
