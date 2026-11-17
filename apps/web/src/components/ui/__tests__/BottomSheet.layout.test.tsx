@@ -38,7 +38,7 @@ describe("BottomSheet footer and minimum height", () => {
 });
 
 describe("BottomSheet size", () => {
-  const TALL = ["h-[calc(100dvh-var(--safe-top)-3rem)]", "md:h-[min(44rem,85dvh)]"];
+  const TALL = ["h-[calc(100dvh-var(--safe-top)-3rem)]", "md:h-[min(48rem,calc(100dvh-2rem))]"];
 
   it("follows its content by default", () => {
     render(

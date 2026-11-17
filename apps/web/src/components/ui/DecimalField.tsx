@@ -50,17 +50,37 @@ export interface DecimalFieldProps extends InputProps {
   line?: ReactNode;
   /** How many lines of room the field's own line keeps, so a longer error moves nothing below it. Default 1. */
   lineRows?: 1 | 2;
-  /** "stacked" (default): the label above the field. "beside": the label on the left, a 9rem field on the right. */
+  /**
+   * "stacked" (default): the label above the field. "beside": the label on
+   * the left and the field on the right, 9rem, or 11rem when its unit can be
+   * a word, so "1234,5" shows in full beside "portions".
+   */
   layout?: "stacked" | "beside";
+  /**
+   * The longest unit the field can show, when the unit changes, such as "g"
+   * and "portions". A beside field takes its width from it, so switching
+   * the unit never moves the field. Defaults to `unit`.
+   */
+  widestUnit?: string;
 }
 
 /**
  * The room the field keeps at its end for its unit, so a long typed value
- * stops short of the unit word: "g" and "kcal" fit 3.5rem, a word such as
- * "portions" or "meals" (about 62 px at 16 px) takes 5.5rem.
+ * stops short of it and keeps the rest of the field: a one-letter unit such
+ * as "g" takes 1.75rem, a short unit such as "kcal" 3rem, and a word such as
+ * "portions" or "meals" (about 62 px at 16 px) 5.5rem.
  */
 function unitRoom(unit: string): string {
-  return unit.length > 4 ? "pr-22" : "pr-14";
+  if (isWord(unit)) return "pr-22";
+  return unit.length > 1 ? "pr-12" : "pr-7";
+}
+
+/** A unit longer than "kcal" is a word. */
+const isWord = (unit: string): boolean => unit.length > 4;
+
+/** A beside field's width: 11rem when its unit can be a word, which leaves 4.5rem for the value, else 9rem. */
+export function besideWidth(widestUnit: string): string {
+  return isWord(widestUnit) ? "w-44" : "w-36";
 }
 
 export function DecimalField({
@@ -76,6 +96,7 @@ export function DecimalField({
   line,
   lineRows = 1,
   layout = "stacked",
+  widestUnit = unit,
   ...input
 }: DecimalFieldProps): ReactElement {
   const unitId = `${id}-unit`;
@@ -88,7 +109,7 @@ export function DecimalField({
         <label htmlFor={id} className={beside ? labelBesideClass : labelClass}>
           {label}
         </label>
-        <div className={beside ? "relative w-36 shrink-0" : "relative"}>
+        <div className={beside ? `relative ${besideWidth(widestUnit)} shrink-0` : "relative"}>
           <input
             {...input}
             id={id}

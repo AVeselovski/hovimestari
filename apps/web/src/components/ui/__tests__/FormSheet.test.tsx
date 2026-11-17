@@ -1,5 +1,7 @@
 import { stubPhone } from "@/__tests__/formSheet";
-import { FormSheet, type FormSheetProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetProps } from "@/components/ui/FormSheet";
+import { AuthRequestError } from "@/lib/errors";
+import { OfflineError } from "@/lib/failure";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import fs from "node:fs";
 import path from "node:path";
@@ -73,7 +75,7 @@ describe("FormSheet", () => {
   });
 
   it("shows the description above the form and the refusal in the pinned footer, above the buttons", () => {
-    renderSheet({ description: "What this does.", formError: "That did not work." });
+    renderSheet({ description: "What this does.", formError: { line: "That did not work.", cause: null } });
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAccessibleDescription("What this does.");
     const alert = screen.getByRole("alert");
@@ -102,6 +104,91 @@ describe("FormSheet", () => {
     expect(empty).toContain(
       "margin-bottom: clamp(0px, calc(0.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 0.5rem)",
     );
+  });
+
+  it("gives a yielding footer row's room to the keyboard, and keeps every other row", () => {
+    renderSheet({ footerStart: { label: "Remove", onPress: jest.fn(), yieldsToKeyboard: true } });
+    const remove = within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" });
+    const row = remove.closest("[data-footer-start]")!.parentElement!;
+    expect(row.className.split(" ")).toContain("keyboard-yields");
+    // jsdom computes no clamp(): the rule collapses the row to nothing at any inset
+    // above 0, and its margin takes back the footer's 8 px row gap.
+    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+    const rule = css.slice(css.indexOf("@utility keyboard-yields"));
+    const block = rule.slice(0, rule.indexOf("\n}\n"));
+    expect(block).toContain("max-height: clamp(0px, calc(8rem - var(--drawer-keyboard-inset, 0px) * 1000), 8rem)");
+    expect(block).toContain(
+      "margin-bottom: clamp(-0.75rem, calc(-0.25rem - var(--drawer-keyboard-inset, 0px) * 1000), -0.25rem)",
+    );
+  });
+
+  it("keeps a second submit in sight while typing: it does not yield to the keyboard", () => {
+    renderSheet({ footerStart: { label: "Save only", submit: "only", busy: "Saving…", tone: "neutral" } });
+    const button = within(screen.getByRole("dialog")).getByRole("button", { name: "Save only" });
+    expect(button.closest(".keyboard-yields")).toBeNull();
+  });
+
+  describe("a failure while offline", () => {
+    const setOnline = (value: boolean) => Object.defineProperty(navigator, "onLine", { value, configurable: true });
+    afterEach(() => setOnline(true));
+
+    const noAnswer = new TypeError("Failed to fetch");
+    const refused = new AuthRequestError(409, "email_taken");
+    const failure = (line: string, cause: unknown): FormFailure => ({ line, cause });
+
+    function Failing({ error }: { error: FormFailure | null }) {
+      return (
+        <FormSheet
+          open
+          onClose={jest.fn()}
+          title="Name it"
+          returnFocusTo={null}
+          dirty={false}
+          submitting={false}
+          onSubmit={jest.fn()}
+          formError={error}
+          idle="Save"
+          busy="Saving…"
+        >
+          {() => <input aria-label="Name" />}
+        </FormSheet>
+      );
+    }
+
+    it("says the device is offline for a write that got no answer, whatever line the sheet passed", () => {
+      setOnline(false);
+      const view = render(<Failing error={null} />);
+      view.rerender(<Failing error={failure("Something went wrong. Try again.", noAnswer)} />);
+      expect(screen.getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection.");
+    });
+
+    it("says the device is offline for a write that was not sent", () => {
+      setOnline(false);
+      const view = render(<Failing error={null} />);
+      view.rerender(<Failing error={failure("Not sent.", new OfflineError())} />);
+      expect(screen.getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection.");
+    });
+
+    it("shows a refusal the server answered as itself, also while the app thinks it is offline", () => {
+      setOnline(false);
+      const view = render(<Failing error={null} />);
+      view.rerender(<Failing error={failure("That address is taken.", refused)} />);
+      expect(screen.getByRole("alert")).toHaveTextContent("That address is taken.");
+    });
+
+    it("keeps that line when the connection returns, and shows the sheet's own line for a failure while online", () => {
+      setOnline(false);
+      const view = render(<Failing error={null} />);
+      view.rerender(<Failing error={failure("Something went wrong. Try again.", noAnswer)} />);
+      act(() => {
+        setOnline(true);
+        window.dispatchEvent(new Event("online"));
+      });
+      expect(screen.getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection.");
+      view.rerender(<Failing error={null} />);
+      view.rerender(<Failing error={failure("That did not work.", noAnswer)} />);
+      expect(screen.getByRole("alert")).toHaveTextContent("That did not work.");
+    });
   });
 
   it("carries the address for password managers only when given one", () => {
@@ -179,7 +266,7 @@ describe("FormSheet", () => {
     expect(screen.getByRole("dialog")).toHaveClass("md:max-w-sm");
   });
 
-  it("puts a secondary action in a row of its own above Cancel and Save", () => {
+  it("puts a secondary action in a row of its own above Cancel and Save on a phone, at the start of their row from md", () => {
     renderSheet({ footerStart: { label: "Delete entry", onPress: jest.fn() } });
     const footer = screen.getByRole("dialog").querySelector<HTMLElement>("[data-sheet-footer]")!;
     const names = within(footer)
@@ -187,9 +274,14 @@ describe("FormSheet", () => {
       .map((b) => b.textContent);
     expect(names).toEqual(["Delete entry", "Cancel", "SaveSaving…"]);
     const slot = footer.querySelector("[data-footer-start]")!;
-    // A row of its own: the full width below md, and the whole flex line from md.
-    expect(slot.className.split(" ")).toEqual(expect.arrayContaining(["col-span-2", "md:basis-full"]));
+    // A row of its own below md. From md it starts the row, and Cancel and Save
+    // end it as one group, which wraps under it when the three do not fit.
+    expect(slot.className.split(" ")).toEqual(expect.arrayContaining(["col-span-2", "md:mr-auto"]));
+    expect(slot.className.split(" ")).not.toContain("md:basis-full");
     expect(slot.parentElement!.className.split(" ")).toContain("md:flex-wrap");
+    const pair = within(footer).getByRole("button", { name: "Cancel" }).parentElement!;
+    expect(pair.className.split(" ")).toEqual(expect.arrayContaining(["contents", "md:flex", "md:ml-auto"]));
+    expect(pair).toContainElement(within(footer).getByRole("button", { name: /^Save/ }));
     // No group around it for a screen reader to announce without a name.
     expect(within(footer).queryByRole("group")).toBeNull();
   });
@@ -213,7 +305,7 @@ describe("FormSheet", () => {
           dirty
           submitting={submitting}
           onSubmit={jest.fn()}
-          formError={submitting ? null : "That did not work."}
+          formError={submitting ? null : { line: "That did not work.", cause: null }}
           idle="Save"
           busy="Saving…"
           footerStart={{ label: "Delete entry", onPress: (opener) => onDelete(opener) }}
