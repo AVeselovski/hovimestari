@@ -2,6 +2,7 @@ import { FINELI_PORTION_UNITS, MAX_PORTION_GRAMS, type FineliPortionUnit } from 
 import { parse } from "csv-parse/sync";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { sentenceCase, type NameLocale } from "./nameCase.js";
 
 // Reads an unzipped Fineli open data release into the foods the catalogue
 // keeps. Pure: no database. Files and columns are found by name, never by
@@ -14,8 +15,12 @@ export const KJ_PER_KCAL = 4.184;
 /** The highest energy and macro values a food may hold per 100 g, as the foods table's CHECK allows. */
 export const MAX_ENERGY_KCAL = 1000;
 export const MAX_MACRO_G = 100;
-/** Fineli marks some names with this prefix. The catalogue reads it as archived and imports such a food retired. */
-export const ARCHIVED_PREFIX = "(arc)";
+/**
+ * Fineli marks some names with "(arc)" at the start, in any case. The
+ * catalogue reads it as archived and imports such a food retired. The match
+ * takes the space after the mark, so it can be dropped from a name.
+ */
+export const ARCHIVED_MARK = /^\(arc\)\s*/i;
 
 /** The Fineli component codes the catalogue keeps, and the field each fills. */
 const COMPONENTS = { ENERC: "energyKj", PROT: "proteinG", CHOAVL: "carbsG", FAT: "fatG" } as const;
@@ -47,7 +52,7 @@ export interface FineliFood {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  /** The Finnish name starts with "(arc)". */
+  /** The Finnish name starts with "(arc)", in any case. */
   archived: boolean;
   portions: FineliPortion[];
 }
@@ -215,10 +220,11 @@ function byFood(rows: Row[]): Map<string, Row[]> {
   return map;
 }
 
-/** The first FOODNAME per FOODID. */
-function names(rows: Row[]): Map<string, string> {
+/** The first FOODNAME per FOODID, in sentence case when Fineli wrote it in capitals. */
+function names(rows: Row[], locale: NameLocale): Map<string, string> {
   const map = new Map<string, string>();
-  for (const row of rows) if (row.FOODNAME && !map.has(row.FOODID)) map.set(row.FOODID, row.FOODNAME);
+  for (const row of rows)
+    if (row.FOODNAME && !map.has(row.FOODID)) map.set(row.FOODID, sentenceCase(row.FOODNAME, locale));
   return map;
 }
 
@@ -269,8 +275,8 @@ export function readRelease(dir: string): Release {
     tables[file] = rows;
     encodings[file] = encoding;
   }
-  const finnish = names(tables["foodname_FI.csv"]);
-  const english = names(tables["foodname_EN.csv"]);
+  const finnish = names(tables["foodname_FI.csv"], "fi");
+  const english = names(tables["foodname_EN.csv"], "en");
   const values = byFood(tables["component_value.csv"]);
   const units = byFood(tables["foodaddunit.csv"]);
 
@@ -327,7 +333,7 @@ export function readRelease(dir: string): Release {
       proteinG: v.protein,
       carbsG: v.carbs,
       fatG: v.fat,
-      archived: name.startsWith(ARCHIVED_PREFIX),
+      archived: ARCHIVED_MARK.test(name),
       portions,
     });
   });

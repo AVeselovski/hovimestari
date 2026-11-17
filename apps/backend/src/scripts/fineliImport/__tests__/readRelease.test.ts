@@ -3,6 +3,7 @@ import { cpSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { decode, keepComponent, parseDecimal, readRelease, readTable, ReleaseError } from "../readRelease.js";
+import { capitalRelease, removeCapitalReleases } from "./support/capitalRelease.js";
 
 // The fixtures are rows of Fineli release 18 in its own format (see
 // fixtures/README.md). Each test that needs a broken release copies one into
@@ -23,6 +24,7 @@ function brokenCopy(edit: (dir: string) => void): string {
 
 afterAll(() => {
   for (const dir of temps) rmSync(dir, { recursive: true, force: true });
+  removeCapitalReleases();
 });
 
 describe("readRelease on release A", () => {
@@ -100,6 +102,55 @@ describe("readRelease on release A", () => {
   it("marks a food whose name starts with (arc) as archived", () => {
     expect(food(572)).toMatchObject({ archived: true });
     expect(release.foods.filter((f) => f.archived)).toHaveLength(1);
+  });
+});
+
+describe("readRelease on a release written in capitals", () => {
+  const plain = readRelease(releaseA);
+
+  it("reads release A in capitals to the very foods release A reads to", () => {
+    const caps = readRelease(capitalRelease(releaseA));
+    expect(caps.foods).toEqual(plain.foods);
+    expect(caps.skipped).toEqual(plain.skipped);
+  });
+
+  it("writes capital names in sentence case and keeps every other name as written", () => {
+    const release = readRelease(
+      capitalRelease(releaseA, {
+        1: { fi: "Sokeri, VL", en: "Sugar, VL" },
+        153: { fi: "1 % KAURAHIUTALE", en: "4-GRAIN FLAKES" },
+        600: { en: "MILK, 1 µG VITAMIN D" },
+        655: { en: "CHEESE, İSKENDER" },
+        661: { fi: "ÄIDINMAITO, RINTAMAITO" },
+        663: { fi: "JÄÄTELÖ, KERMAJÄÄTELÖ, ÅLAND" },
+        664: { fi: "KIISSELI, MUSTIKKA" },
+        752: { en: "TURKEY, WEIßWURST STYLE" },
+        858: { fi: "KANANMUNA, KEITETTY", en: "EGG, BOILED" },
+      }),
+    );
+    const names = Object.fromEntries(release.foods.map((f) => [f.fineliId, [f.name, f.nameEn]]));
+    expect(names).toMatchObject({
+      1: ["Sokeri, VL", "Sugar, VL"],
+      153: ["1 % kaurahiutale", "4-grain flakes"],
+      572: ["(arc) margariini 40%, lätta", "Margarine 40%, lätta"],
+      600: [expect.any(String), "Milk, 1 µg vitamin d"],
+      606: ["Maito, rasvaton, d-vitamiinia 1 ug", "Milk, 0% fat, i ug added vitamin d"],
+      655: ["Juusto, puolikova juusto, rasvaa 25-35 %, lappi/småland/billinge/rustholli", "Cheese, i\u0307skender"],
+      661: ["Äidinmaito, rintamaito", "Soft ice cream with wafer"],
+      663: ["Jäätelö, kermajäätelö, åland", "Ice cream, cream based"],
+      664: ["Kiisseli, mustikka", expect.any(String)],
+      752: ["Kalkkuna nahkoineen", "Turkey, weißwurst style"],
+      858: ["Kananmuna, keitetty", "Egg, boiled"],
+    });
+  });
+
+  it('retires a food whose name starts with "(ARC)" in capitals, in a name that is not all capitals too', () => {
+    const release = readRelease(capitalRelease(releaseA, { 604: { fi: "(ARC) Maito, kutunmaito, vuohenmaito" } }));
+    const archived = release.foods.filter((f) => f.archived).map((f) => [f.fineliId, f.name]);
+    expect(archived).toEqual([
+      [572, "(arc) margariini 40%, lätta"],
+      [604, "(ARC) Maito, kutunmaito, vuohenmaito"],
+    ]);
   });
 });
 

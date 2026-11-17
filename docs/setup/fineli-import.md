@@ -52,8 +52,11 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    - every food left out, with the reason, such as a food with no protein value,
    - the catalogue foods it retired: those no longer in the release, and, named one by one, those the release still lists but without usable values,
    - how many household measures were added, changed, unchanged and removed, and how many were left out for each reason,
-   - every food whose Finnish name changed under the same Fineli id, as "Renamed under the same id",
+   - how many foods had a name changed in case only, as "Names changed in case only",
+   - every food whose Finnish name changed in more than case under the same Fineli id, as "Renamed under the same id",
    - the credit to Fineli and THL that the licence asks for.
+
+   Some releases write every food name in capitals. The import stores those names in sentence case, so "KANANMUNA, KEITETTY" reads "Kananmuna, keitetty". An import over a catalogue that holds such names in capitals rewrites each of them once. That run counts them under "Names changed in case only", lists none of them as renamed, and counts each food under "Changed". A food whose name starts with "(ARC)" and was imported live is retired in the same run, and counted on the report's "(arc)" line.
 
    Check each renamed food is still the same food. Fineli's id is how the import recognises a food, so if THL ever gave an old id to a different food, the catalogue would change that food's name and figures under every entry that points at it.
 
@@ -115,7 +118,7 @@ docker compose exec db psql -U postgres -d hovimestari -c "SELECT name, energy_k
 docker compose exec db psql -U postgres -d hovimestari -c "SELECT p.fineli_unit, p.grams FROM food_portions p JOIN foods f ON f.id = p.food_id WHERE f.fineli_id = 858;"
 ```
 
-In release 18, Fineli id 858 is "Kananmuna, kuoreton", a hen's egg, with `134.17` kcal and `12.610` g protein per 100 g. Its measures include `KPL_M`, a medium egg, at `55.0` g. On Fly, open the database with `flyctl postgres connect -a hovimestari-db --database hovimestari_backend` and type the same two queries at the prompt.
+In release 18, Fineli id 858 is "Kananmuna, kuoreton", a hen's egg, with `134.17` kcal and `12.610` g protein per 100 g. Its measures include `KPL_M`, a medium egg, at `55.0` g. A release that writes its names in capitals gives every name in sentence case here too, never in capitals. On Fly, open the database with `flyctl postgres connect -a hovimestari-db --database hovimestari_backend` and type the same two queries at the prompt.
 
 ## Before production
 

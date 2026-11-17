@@ -119,6 +119,7 @@ await describeWithDb("fineliImport", (suite) => {
       expect(result.foods).toEqual({ inserted: 0, updated: 0, unchanged: 16, revived: 0, archived: 0 });
       expect(result.portions).toEqual({ inserted: 0, updated: 0, unchanged: 85, removed: 0 });
       expect(result.renamed).toEqual([]);
+      expect(result.namesChangedInCaseOnly).toBe(0);
       expect(await catalogue()).toEqual(before);
     });
 
