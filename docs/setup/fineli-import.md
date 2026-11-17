@@ -4,7 +4,9 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
 
 ## Steps
 
-1. Download the release in a browser. Fineli's site refuses scripts, so curl and similar tools get an error page. Open `https://fineli.fi/fineli/en/avoin-data`, the open data page, and download the open data package. It is a zip of about 1.5 MB. Note the release number or date the page shows.
+1. Download the release in a browser. Fineli's site refuses scripts, so curl and similar tools get an error page. Open `https://fineli.fi/fineli/en/avoin-data`, the open data page. Under "Download Fineli Open Data packages" it lists three zips. Take "Basic package 2", the one with 74 food components, a zip of about 1.9 MB. The import is built and tested on that package. Note the release number or date the page shows.
+
+   The other two zips hold fewer food components, and the import is not tested on them. "Basic package 1" has 55 and "Ingredients for food industry" has 40. The "Download CSV" button on the foods page, `https://fineli.fi/fineli/en/elintarvikkeet`, gives a different export, and the import cannot read it.
 
 2. Unzip it into `apps/backend/data/fineli/`, from the repository root. The folder is ignored by git. Empty it first, so no file from an earlier release stays behind. Replace the zip's path with where your browser saved it:
 
@@ -41,7 +43,7 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    pnpm --filter @hovimestari/backend fineli:import
    ```
 
-   The report ends with "Written to the database." and the credit. The command then runs `VACUUM ANALYZE foods`, so search uses its index straight away. Release 18 took about three seconds, and the command used at most 160 MB of memory.
+   The report ends with "Written to the database." and the credit. The command then runs `VACUUM ANALYZE foods`, so search uses its index straight away. On release 18, in a development container, the import took about three seconds and used at most 160 MB of memory.
 
 6. Read the report closely. It lists:
 
@@ -117,4 +119,4 @@ In release 18, Fineli id 858 is "Kananmuna, kuoreton", a hen's egg, with `134.17
 
 ## Before production
 
-- The importer is tested on release 18 (2015) only. Before the first real import of a current release, do the dry run and compare its report with release 18's: 4,058 foods read, 8 left out, 27 named "(arc)". A large difference is worth understanding before the real run.
+- The importer's tests run on release 18 (2015). Release 20 of Basic package 2 has been imported on a local machine. Before the first import of a release on Fly, do the dry run there and compare its report with the local one. A large difference is worth understanding before the real run. Release 18's report reads 4,058 foods read, 8 left out and 27 named "(arc)".

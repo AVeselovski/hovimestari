@@ -1,4 +1,5 @@
 import { TEST_USER } from "@/__tests__/helpers/auth";
+import { setTestLocale } from "@/__tests__/helpers/locale";
 import { createTestQueryClient, queryWrapper, registerTestQueryClient } from "@/__tests__/helpers/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
 import type { FoodNameLanguage, FoodSummary } from "@hovimestari/types";
@@ -57,6 +58,12 @@ describe("FoodRow", () => {
   it("shows the protein with one decimal always, joined to its unit", () => {
     renderRow(fineliFood("Rahka", { per100g: { energyKcal: 59.31, proteinG: 12, carbsG: 3.6, fatG: 0.2 } }));
     expect(screen.getByText(/kcal/).textContent).toBe("59 kcal · 12.0 g protein per 100 g");
+  });
+
+  it("writes the figures in the device's language, with a decimal comma on a Finnish device", () => {
+    setTestLocale("fi-FI");
+    renderRow(fineliFood("Rahka", { per100g: { energyKcal: 59.31, proteinG: 12, carbsG: 3.6, fatG: 0.2 } }));
+    expect(screen.getByText(/kcal/).textContent).toBe("59 kcal · 12,0 g protein per 100 g");
   });
 
   it("shows a meta line in place of the figures, and puts a trailing control beside the row's button, not inside it", () => {
