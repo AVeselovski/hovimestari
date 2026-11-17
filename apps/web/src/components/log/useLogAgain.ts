@@ -3,6 +3,7 @@
 import type { AddDone, AddRequest, EntryActions } from "@/hooks/useEntryActions";
 import { useFailureLine } from "@/hooks/useFailureLine";
 import { getErrorCode } from "@/lib/errors";
+import { newId } from "@/lib/newId";
 import { pendingIdFor, pendingKey, settlePending } from "@/lib/pendingIds";
 import type { AddEntryBody, EntryStatus } from "@hovimestari/types";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,7 +82,7 @@ export function useLogAgain({ date, statusAt, actions, onLogged, onGone, sayFail
         body: item.body(id, date, status),
         name: item.name,
         amount: item.amount,
-        again: () => requestFor(crypto.randomUUID()),
+        again: () => requestFor(newId()),
       });
       const request = requestFor(pendingIdFor(client, key));
       busyRef.current = true;

@@ -1,3 +1,4 @@
+import { newId } from "@/lib/newId";
 import type { Day } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 
@@ -66,7 +67,7 @@ export function pendingIdFor(client: QueryClient, key: string, now: number = Dat
   const held = map.get(key);
   const holding = held !== undefined && now < (held.heldUntil ?? 0);
   if (held && (holding || (!held.seen && now - held.mintedAt < PENDING_ID_LIFE_MS))) return held.id;
-  const id = crypto.randomUUID();
+  const id = newId();
   map.set(key, { id, mintedAt: now });
   return id;
 }

@@ -4,6 +4,7 @@ import { estimateEntry, foodEntry, mealEntry, portionEntry } from "@/components/
 import { detailOf, fineliFood, ownPortion } from "@/components/foods/__tests__/support";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { getFood } from "@/lib/api/foods";
+import { newId } from "@/lib/newId";
 import type { Entry, FoodDetail } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { EntrySheet } from "../EntrySheet";
@@ -148,9 +149,7 @@ describe("EntrySheet", () => {
   });
 
   it("shows a hidden food's note at once, offers grams only and reads no detail", () => {
-    renderSheet(
-      foodEntry("Quark", 250, { food: { id: crypto.randomUUID(), source: "user", retired: false, deleted: true } }),
-    );
+    renderSheet(foodEntry("Quark", 250, { food: { id: newId(), source: "user", retired: false, deleted: true } }));
     expect(within(dialog()).getByText("This food is no longer in your foods.")).toBeInTheDocument();
     expect(chips()).toEqual([["g", "true"]]);
     expect(getFood).not.toHaveBeenCalled();

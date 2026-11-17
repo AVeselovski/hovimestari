@@ -18,6 +18,7 @@ import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { formatCount } from "@/lib/entryFormat";
 import { getErrorCode } from "@/lib/errors";
 import { formatDecimalForField, formatGrams } from "@/lib/foodFormat";
+import { newId } from "@/lib/newId";
 import {
   entryFigures,
   type EntryStatus,
@@ -130,7 +131,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [goneChips, setGoneChips] = useState<ReadonlySet<string>>(new Set());
-  const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  const [entryId, setEntryId] = useState(() => newId());
   if (formKey !== key) {
     setFormKey(key);
     setFields(null);
@@ -139,7 +140,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
     setFormError(null);
     setSubmitting(false);
     setGoneChips(new Set());
-    setEntryId(crypto.randomUUID());
+    setEntryId(newId());
   }
 
   const prefill = useMemo<Fields | null>(() => {
@@ -223,7 +224,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
       body,
       name,
       amount: amountLabel(n),
-      again: () => requestFor(crypto.randomUUID(), n)!,
+      again: () => requestFor(newId(), n)!,
     };
   }
 
@@ -263,7 +264,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
         setFormError(errorCopy.forCode("portion_not_found"));
       } else {
         // An id another account holds can never succeed: the next Log sends a new one.
-        if (code === "entry_id_taken") setEntryId(crypto.randomUUID());
+        if (code === "entry_id_taken") setEntryId(newId());
         setFormError(failureLine(err));
       }
     }
