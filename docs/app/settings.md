@@ -78,7 +78,7 @@ On a launch with no server in reach and no session confirmed yet, the Sign-in me
 
 ### Food data
 
-The last panel credits the food data: "Food composition data comes from Fineli, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the Creative Commons Attribution 4.0 licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL." **Fineli** links to Fineli's site and **Creative Commons Attribution 4.0** to the licence, each in a new tab. Its terms come from [Fineli's licence](../features/foods.md#fineli). Every Fineli food's detail in [the food sheet](food-sheet.md#a-foods-detail) links here.
+The last panel credits the food data: "Food composition data comes from Fineli, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the Creative Commons Attribution 4.0 licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL." **Fineli** links to Fineli's site and **Creative Commons Attribution 4.0** to the licence, each in a new tab. Its terms come from [Fineli's licence](../features/foods.md#fineli). Every Fineli food's detail in [the log sheet](log-sheet.md#a-food) links here.
 
 ### On a phone
 

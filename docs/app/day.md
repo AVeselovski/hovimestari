@@ -10,9 +10,9 @@ At the top, the day shown between two arrows, **Previous day** and **Next day**.
 
 From the keyboard the date is one stop, a button named for the day shown, such as "Choose a date, Today". Enter or Space opens the browser's picker, and so does a click. A date chosen in the picker applies at once, however the picker was opened. Digits typed into the date after a click apply on Enter or when it loses focus, and only as a whole date, so typing a year never passes through an earlier one. A date left half typed goes back to the day shown.
 
-### Search foods
+### Log food
 
-Under the date bar, a full-width button drawn like a search field, with the search icon and "Search foods". It opens [the food sheet](food-sheet.md).
+Under the date bar, a full-width button drawn like a search field, with the search icon and "Log food", or "Add to plan" on a future day. It opens [the log sheet](log-sheet.md) on the day shown, which logs to that day. While the app checks the date with the server it waits, and so does a second tap of a double tap, which opens the sheet once. A food eaten before is logged again in two presses: **Log food**, then its **+**.
 
 ### The summary
 
@@ -53,15 +53,15 @@ A tap on the rest of a row opens the entry sheet.
 Titled with the entry's name, two lines at most. The fields come in this order, and Tab follows it:
 
 1. The choice between **Eaten** and **Planned**, for every kind of entry, so marking a planned entry eaten is in the first screen of a phone. On a date after today only Planned can be chosen, and the line under the choice says "Future days hold planned entries.". That line keeps its room on every date.
-2. The amount. For a food, chips over the field choose grams or one of the food's portions, and the field takes the grams or the count. For a saved meal, the number of meals. For an estimate, its name, its four figures and a note. The field names its unit at its end: "g", "portions" or "meals".
+2. The amount. For a food, chips over the field choose grams or one of the food's portions, and the field takes the grams or the count. For a saved meal, the number of meals. For an estimate, its name, its four figures two by two, **Calories** and **Protein** over **Carbohydrates** and **Fat**, and a note. Enter in the name moves to Calories. Each number field names its unit at its end: "g", "portions", "meals" or "kcal".
 3. The figures that amount comes to, with "For this amount" over them, or "Enter an amount to see its figures." while the field is empty. A changed count of the entry's own portion, before the food's portions have loaded, says "Figures update when you save.".
 4. The date. Changing it moves the entry to that day.
 
-**Save** stores every change in one go, the amount and Eaten included. **Remove entry** takes the entry off the day. A refusal under a field goes away as soon as the field changes. A save or a removal that fails says why in the line above the buttons, which stays in sight, and keeps what was typed. A food that was deleted since says "This food is no longer in your foods." and a deleted saved meal "This saved meal was deleted.". Both can still be changed. [Adding and changing an entry](../features/quick-logging.md#adding-and-changing-an-entry) has the rules a save follows.
+**Save** stores every change in one go, the amount and Eaten included. **Remove entry** takes the entry off the day. While the keyboard is open, the row of **Remove entry** makes way for it, so **Save** stays above the keyboard. A refusal under a field goes away as soon as the field changes, and a refused save scrolls to the field it refused, its line in sight. A save or a removal that fails says why in the line above the buttons, which stays in sight, and keeps what was typed. A food that was deleted since says "This food is no longer in your foods." and a deleted saved meal "This saved meal was deleted.". Both can still be changed. [Adding and changing an entry](../features/quick-logging.md#adding-and-changing-an-entry) has the rules a save follows.
 
 ### Undo
 
-Every mark, save and removal shows a line above the tab bar with **Undo** for six seconds: "Marked Rahka eaten.", "Marked 3 entries eaten.", "Marked Rahka planned.", "Moved Rahka to tomorrow.", "Saved Rahka." or "Removed Rahka.". Undo puts back exactly what changed, by [quick logging's undo](../features/quick-logging.md#undo). An undo that could not be confirmed says "Could not undo." with **Try again**. One the server refused says why, with no action.
+Every log, mark, save and removal shows a line above the tab bar with **Undo** for six seconds: "Logged Rahka, 250 g.", "Added Rahka to the plan.", "Marked Rahka eaten.", "Marked 3 entries eaten.", "Marked Rahka planned.", "Moved Rahka to tomorrow.", "Saved Rahka." or "Removed Rahka.". A log's line shows once the log sheet has slid out. Undo puts back exactly what changed, by [quick logging's undo](../features/quick-logging.md#undo). An undo that could not be confirmed says "Could not undo." with **Try again**. One the server refused says why, with no action.
 
 ### Without a connection
 
@@ -69,7 +69,7 @@ A day already read stays on screen offline. A mark sends nothing and says "You a
 
 ### Across midnight
 
-The tab follows the day the server names, in the person's time zone. Left open past midnight, it moves to the new day by itself once the server agrees, and an open entry sheet keeps what was typed in it. While the app checks the date with the server, the marks, Mark all eaten, Save and Remove entry wait, and Cancel stays free. [Today and the time zone](../features/targets.md#today-and-the-time-zone) says when the app asks.
+The tab follows the day the server names, in the person's time zone. Left open past midnight, it moves to the new day by itself once the server agrees, and an open entry sheet keeps what was typed in it. While the app checks the date with the server, the marks, Mark all eaten, Log food, Save and Remove entry wait, and Cancel stays free. [Today and the time zone](../features/targets.md#today-and-the-time-zone) says when the app asks.
 
 ## How it works
 
@@ -81,33 +81,35 @@ The tab follows the day the server names, in the person's time zone. Left open p
 
 ### Layout
 
-On a phone, one column, top to bottom: `DateBar`, `FoodSearchLauncher`, `DaySummary` and `EntryList`. The shell shows no title on this tab, so the date bar sits 8 pixels under the status bar. The date bar is one 44 pixel row, 8 pixels over the search button, which is 48 pixels tall. The summary and the entries follow 12 pixels apart. The page keeps the room of the tallest toast at its end (`PageContainer clearToast`), so a toast never covers the last row's mark.
+On a phone, one column, top to bottom: `DateBar`, `DayLauncher`, `DaySummary` and `EntryList`. The shell shows no title on this tab, so the date bar sits 8 pixels under the status bar. The date bar is one 44 pixel row, 8 pixels over the launcher, which is 48 pixels tall. The summary and the entries follow 12 pixels apart. The page keeps the room of the tallest toast at its end (`PageContainer clearToast`), so a toast never covers the last row's mark.
 
-From `lg` the tab is two columns in a 64rem column: the date bar over the summary on the left, the search button over the entries on the right. The summary and the entries start at the same height. At 1280 by 800 both start 104 pixels from the top, and nine or ten entries show, by the length of their names. `EntrySheet` from `apps/web/src/components/entries/` is a `FormSheet`, mounted by `DayTab` above the date's content, so a new date or a refresh never unmounts an open sheet. The undo line is the shell's toast, in [Toasts](shell.md#toasts).
+From `lg` the tab is two columns in a 64rem column: the date bar over the summary on the left, the launcher over the entries on the right. The summary and the entries start at the same height. At 1280 by 800 both start 104 pixels from the top, and nine or ten entries show, by the length of their names. `EntrySheet` from `apps/web/src/components/entries/` is a `FormSheet`, mounted by `DayTab` above the date's content, so a new date or a refresh never unmounts an open sheet. The undo line is the shell's toast, in [Toasts](shell.md#toasts).
 
 The summary is sized so the entries start on the first screen. The figures are the largest type on the tab. The distance lines, the ranges and the notes are small type on a phone and body size from `md`. Measured on a production build, the summary is 316 pixels tall on today and 332 on a past day at 390 by 844, 332 and 348 at 375 by 667, and 348 and 364 at 320 by 568. On today the first entry starts 493 pixels from the top at 390 by 844, with four entries above the tab bar, and 509 at 375 by 667, with one. At 320 by 568 the "Entries" heading shows above the tab bar.
 
 Nothing moves. Every line that can change keeps the room of its longest form at the width it is shown at. Each distance keeps the room of its macro's three forms at a distance of 8888.8, such as "8888.8 kcal to the upper bound", in both columns. That is one line at 390 pixels and wider, and two lines at 320. At 375 the calories line keeps two lines and the protein line one. The estimate line is kept on every day, and the unmarked line on every past day. The loading frame shows the labels and empty tracks. A failure and offline lay their line over the summary's frame, at the same height. A row's height depends on nothing but its name, so marking it moves no row.
 
+The entry sheet's estimate shows its state and all four figures on the first screen at 390 by 844: the figures are a two by two grid with one shared line under it, which keeps two lines of room for the longest refusal any figure can show on a phone and one from `md` (`FigureFields` in `apps/web/src/components/entries/`). The name and the note keep one line each. At 375 by 667 and 320 by 568 the state and the name show, and the figures follow on a short scroll.
+
 Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as a share of the track's width. `Gauge.tsx` draws it.
 
 ### Data and refresh
 
-`dayQuery(date)` reads `GET /days/:date`, one cache entry per date, fresh for 30 seconds and read again when the page is shown or the connection returns. The tab reads the days before and after ahead of time. `useEntryActions` in `apps/web/src/hooks/` holds every write and its undo. [Writes from the web app](../features/quick-logging.md#writes-from-the-web-app) says how each write reaches the cache. While `useToday()` reports `holding`, the marks and the sheet's Save and Remove entry send nothing. The entry sheet's figures are `entryFigures` on the entry's stored basis, the function the server runs, so the figures shown are the ones Save stores.
+`dayQuery(date)` reads `GET /days/:date`, one cache entry per date, fresh for 30 seconds and read again when the page is shown or the connection returns. The tab reads the days before and after ahead of time. Once its day is on screen it also reads the recent items, the favourites and your foods, so the log sheet opens with them. `useEntryActions` in `apps/web/src/hooks/` holds every write and its undo. [Writes from the web app](../features/quick-logging.md#writes-from-the-web-app) says how each write reaches the cache. While `useToday()` reports `holding`, the marks and the sheet's Save and Remove entry send nothing. The entry sheet's figures are `entryFigures` on the entry's stored basis, the function the server runs, so the figures shown are the ones Save stores.
 
 ### Focus
 
-A chevron keeps focus when the day changes, and so does the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Search foods. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
+A chevron keeps focus when the day changes, and so does the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Log food. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
 
 ### Known gaps
 
-- At 320 by 568 with the keyboard open, a refusal in the entry sheet's footer leaves Save 8 pixels under the keyboard.
 - From `md` the unit chips wrap, so a food whose portions load after the sheet opens can push the amount field down a row.
+- From `md` the entry sheet opened on an estimate holds more than its dialog shows, and scrolls on a laptop.
 - A distance of five digits takes one more line at 390 pixels and wider, which moves what is under the summary.
 
 ## Features on this page
 
 - [Days](../features/days.md): the day, its two readings and where each stands.
-- [Quick logging](../features/quick-logging.md): marking, editing, moving and removing entries, and their undo.
+- [Quick logging](../features/quick-logging.md): adding entries through the log sheet, marking, editing, moving and removing them, and their undo.
 - [Targets](../features/targets.md): the ranges the summary measures against, and today.
-- [Foods](../features/foods.md): the food sheet the search button opens.
+- [Foods](../features/foods.md): the foods the log sheet finds and logs.

@@ -1,10 +1,10 @@
 # Local development
 
-This runbook sets up the backend and the web app on your own machine: the tools, the local database, the env files with their generated secrets, the first migration, both servers and the tests. Run it once per clone.
+This runbook sets up the backend and the web app on your own machine: the tools, the local database, the env files with their generated secrets, the migrations, the Fineli catalogue, both servers and the tests. Run it once per clone. After a `git pull` on a clone you have set up, [the short version](#after-a-pull) is enough.
 
 ## Steps
 
-1. Install Node 22 and enable pnpm through Corepack. The pnpm version comes from `packageManager` in the root `package.json`.
+1. Install Node 22 and Docker, and enable pnpm through Corepack. The pnpm version comes from `packageManager` in the root `package.json`.
 
    ```bash
    corepack enable pnpm
@@ -36,27 +36,47 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    pnpm --filter @hovimestari/backend db:migrate
    ```
 
-6. Start the backend. It listens on port 3001 and restarts on every change.
+6. Load the Fineli food catalogue. Download the release in a browser and unzip it into `apps/backend/data/fineli/`, as steps 1 and 2 of [the Fineli import runbook](fineli-import.md) say. Then do the dry run and the import, and read each report as that runbook says. Without the catalogue the search finds only the foods you add yourself.
+
+   ```bash
+   pnpm --filter @hovimestari/backend fineli:import --dry-run
+   pnpm --filter @hovimestari/backend fineli:import
+   ```
+
+7. Start the backend. It listens on port 3001 and restarts on every change.
 
    ```bash
    pnpm --filter @hovimestari/backend dev
    ```
 
-7. Start the web app in a second terminal. It listens on port 3000 and talks to the backend on 3001.
+8. Start the web app in a second terminal. It listens on port 3000 and talks to the backend on 3001.
 
    ```bash
    pnpm --filter @hovimestari/web dev
    ```
 
-   Open `http://localhost:3000`, create an account and you land on the Day tab. The development server registers no service worker. To check installing or offline behaviour, run a production build as [the web app's README](../../apps/web/README.md#running-a-production-build-locally) says.
+   Open `http://localhost:3000` and create an account with an email address and a password. The account is signed in at once, with no mail to confirm. A new account asks for its calorie and protein targets on the first-run page, then lands on the Day tab, where **Log food** opens the log sheet. **Continue with Google** shows only once the backend has its Google settings, as [the Google sign-in runbook](google-sign-in.md) says. It is optional. The development server registers no service worker. To check installing or offline behaviour, run a production build as [the web app's README](../../apps/web/README.md#running-a-production-build-locally) says.
 
-8. Run every check CI runs.
+9. Run every check CI runs.
 
    ```bash
    pnpm build && pnpm typecheck && pnpm lint && pnpm test && pnpm docs:check
    ```
 
    The real-database test suites, named `*.db.test.ts`, create a throwaway database next to the one `TEST_DATABASE_URL` names, which defaults to the compose database. Without a database they are skipped with a warning. In CI they fail instead.
+
+### After a pull
+
+A pull can bring new dependencies, a changed shared types package and new migrations. From the repository root, with the database up:
+
+```bash
+pnpm install
+pnpm db:up
+pnpm --filter @hovimestari/types build
+pnpm --filter @hovimestari/backend db:migrate
+```
+
+Then start the backend and the web app as in steps 7 and 8. Your env files, your data and the Fineli catalogue stay as they were. Run the Fineli import again only for a new Fineli release.
 
 ### In an agent container
 
@@ -98,7 +118,7 @@ curl -s -X POST http://localhost:3000/api/auth/refresh -H 'Sec-Fetch-Site: same-
 # {"message":"The session has ended.","code":"session_expired"}
 ```
 
-Stop the database with `pnpm db:down`. Its volume keeps the data. If a migration fails on that data, recreate the database with `docker compose down -v`, then run steps 4 and 5 again. This deletes everything in it.
+Stop the database with `pnpm db:down`. Its volume keeps the data. If a migration fails on that data, recreate the database with `docker compose down -v`, then run steps 4, 5 and 6 again. This deletes everything in it, the Fineli catalogue included.
 
 ## Before production
 

@@ -2,7 +2,7 @@
 
 The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release.
 
-From the Day tab a person searches the catalogue in [the food sheet](../app/food-sheet.md), reads a food's figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own.
+In [the log sheet](../app/log-sheet.md), opened from the Day tab, a person searches the catalogue, logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own.
 
 ## In detail
 
@@ -131,5 +131,5 @@ Requirements: FR-FOOD-01 to FR-FOOD-08, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC
 
 ## Where it appears
 
-- [The food sheet](../app/food-sheet.md): the search, a food's detail and its figures, favourites, own foods and portions.
+- [The log sheet](../app/log-sheet.md): the search, a food's view and its figures, favourites, own foods and portions.
 - [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's data.

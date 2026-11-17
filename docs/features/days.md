@@ -93,3 +93,4 @@ Requirements: FR-DAY-01 to FR-DAY-04, FR-DAY-06 to FR-DAY-10, FR-DAY-13 to FR-DA
 ## Where it appears
 
 - [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries.
+- [The log sheet](../app/log-sheet.md): the estimates its estimate sheet adds to a day.
