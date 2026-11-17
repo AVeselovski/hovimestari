@@ -287,3 +287,5 @@
 [frontend-engineer DONE] (2026-11-17T03:02:35Z) PR 3c at b56b68b: browse shows its rows once every list has its first answer, and rows that came after a wait take presses only once at rest; web 1248 tests, gate green
 [frontend-engineer STARTED] (2026-11-17T20:45:40Z) tests that depend on the machine's locale, and the Fineli runbook naming Basic package 2 on release 20
 [frontend-engineer DONE] (2026-11-17T20:58:39Z) Web tests pinned to en-US in the setup with two guards, full web suite green under fi_FI, de_DE, en_US and no locale; Fineli runbook names Basic package 2
+[backend-engineer STARTED] (2026-11-17T21:40:00Z) Fineli names written in capitals stored in sentence case at import
+[backend-engineer DONE] (2026-11-17T23:26:21Z) the import stores an all-capitals name in sentence case, finds "(ARC)" in any case and counts case-only changes apart from renames; backend 622 tests, gate green
