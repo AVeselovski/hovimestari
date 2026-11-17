@@ -30,6 +30,9 @@ export const btnPrimary = `${btnShape} ${btnSize} bg-accent text-on-accent hover
 /** A secondary action: an outlined button on the page. */
 export const btnSecondary = `${btnShape} ${btnSize} border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface`;
 
+/** A secondary action across the full width whose label names typed text, such as "Add “rahka” as your own food". A long label wraps. */
+export const btnWide = `${btnSecondary} h-auto! min-h-12 w-full py-2.5 text-center break-words`;
+
 /**
  * A destructive action, such as Delete account. The accent, as every
  * destructive button and error line is: the identity has one chromatic
@@ -71,11 +74,16 @@ export const fieldHintClass = "mt-1.5 text-sm text-ink-muted";
 
 /**
  * The room a field's line keeps whether or not it holds anything, in lines
- * of text, so an error that wraps moves nothing below it.
+ * of text, so an error that wraps moves nothing below it. `fromMd` is the
+ * room from `md`, where a wider column takes the same line in fewer rows.
  */
-export function lineRoom(rows: 1 | 2): string {
-  return rows === 2 ? "min-h-10" : "min-h-5";
+export function lineRoom(rows: 1 | 2, fromMd: 1 | 2 = rows): string {
+  const base = rows === 2 ? "min-h-10" : "min-h-5";
+  return fromMd === rows ? base : `${base} md:min-h-5`;
 }
+
+/** Two fields stacked on a phone and side by side from `md`, so a dialog shows its whole form. */
+export const pairRow = "space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0";
 
 /** The text of a line that says what went wrong. Errors use the accent. */
 export const errorTextClass = "text-sm font-medium text-accent";
@@ -99,6 +107,25 @@ export const cardPadClass = "p-5 md:p-6";
 export const cardPadDenseClass = "p-4";
 export const panelHeadClass = "mb-4 flex items-center justify-between gap-3";
 export const sectionTitle = "section-label";
+
+/**
+ * A choice chip, such as a unit or a meal's source: a pill 44 pixels tall
+ * that never wraps its label. A label longer than its row is cut with an
+ * ellipsis at the row's width, so no chip pushes past its row or makes a
+ * sheet scroll sideways. Chips sit in one row that scrolls sideways
+ * (`chipRow`). The chosen one is in the accent, because chosen is not the
+ * same as on target.
+ */
+export const chip = `inline-block max-w-full shrink-0 truncate rounded-pill border px-4 text-base leading-10.5 font-semibold whitespace-nowrap transition-colors duration-150 ${focusRing}`;
+export const chipOn = "border-accent bg-accent text-on-accent";
+export const chipOff = "border-field-rule bg-surface-raised text-ink";
+/** A row of chips that scrolls sideways and never wraps, with room for the focus ring the scroll would clip. */
+export const chipRow = "no-scrollbar -mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 py-1";
+/**
+ * A row of chips that scrolls sideways on a phone and wraps from `md`, where
+ * a mouse has no way to scroll a row with no scrollbar.
+ */
+export const chipRowWrapping = `${chipRow} md:flex-wrap md:overflow-x-visible`;
 
 /**
  * The z-index ladder. Page content sits at the default. The header, the
@@ -192,10 +219,11 @@ export const sheetPopupStacked = `${sheetPopupShape} bg-surface-raised`;
  * A tall sheet (`BottomSheet size="tall"`): one fixed height that never
  * follows its content. On a phone it stands 3rem short of the top safe area,
  * so the page still shows above it. As the centred panel from `md` it is
- * `min(44rem, 85dvh)`. Its top edge therefore stays put however its content
- * changes.
+ * 48rem tall, or the viewport less 1rem above and below on a shorter
+ * screen, so a form dialog such as a new saved meal shows its whole form at
+ * 1366 by 768. Its top edge therefore stays put however its content changes.
  */
-export const sheetPopupTall = "h-[calc(100dvh-var(--safe-top)-3rem)] md:h-[min(44rem,85dvh)]";
+export const sheetPopupTall = "h-[calc(100dvh-var(--safe-top)-3rem)] md:h-[min(48rem,calc(100dvh-2rem))]";
 
 /** The drag handle: the one visible cue that a sheet can be swiped. A phone-only affordance. */
 export const sheetHandle = "mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-pill bg-field-rule md:hidden";
@@ -237,12 +265,16 @@ export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:just
 
 /**
  * A secondary action in a `sheetActions` row, such as "Delete entry": a row
- * of its own above the two buttons, the full width below `md` and at the
- * start from `md`. A `md:max-w-sm` dialog has no room for three in a row.
- * It is a `<fieldset>`, so the browser's own border, padding and minimum
- * width are reset.
+ * of its own above the two buttons below `md`, the full width. From `md` it
+ * sits at the start of the buttons' row, and takes a row of its own above
+ * them when the three do not fit, as in a `md:max-w-sm` dialog. It is a
+ * `<fieldset>`, so the browser's own border, padding and minimum width are
+ * reset.
  */
-export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:flex md:basis-full";
+export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:mr-auto md:flex md:items-center";
+
+/** Cancel and the submit button together: the two halves below `md`, one group at the end of the row from `md`. */
+export const sheetActionsPair = "contents md:ml-auto md:flex md:gap-3";
 
 // ---------------------------------------------------------------------------
 // Segmented controls: a few options in one tray, one chosen, such as the
@@ -261,3 +293,12 @@ export const segmentActive = "bg-accent text-on-accent";
 
 /** An option not chosen. */
 export const segmentInactive = "text-ink-muted hover:text-ink active:bg-surface";
+
+/**
+ * A tray that sits beside a field from `md`, such as Eaten or planned beside
+ * a name: 48 pixels tall there, as the field is, with 2 pixels of padding
+ * around options of 42. On a phone it keeps its 44 pixel options.
+ */
+export const segmentedTrayBesideField = "md:p-0.5";
+/** An option in a `segmentedTrayBesideField`. */
+export const segmentButtonBesideField = "md:min-h-10.5";

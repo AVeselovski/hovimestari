@@ -58,4 +58,21 @@ describe("FoodRow", () => {
     renderRow(fineliFood("Rahka", { per100g: { energyKcal: 59.31, proteinG: 12, carbsG: 3.6, fatG: 0.2 } }));
     expect(screen.getByText(/kcal/).textContent).toBe("59 kcal · 12.0 g protein per 100 g");
   });
+
+  it("shows a meta line in place of the figures, and puts a trailing control beside the row's button, not inside it", () => {
+    const client = registerTestQueryClient(createTestQueryClient());
+    const food = fineliFood("Rahka");
+    render(
+      <ul>
+        <FoodRow food={food} onOpen={jest.fn()} meta="Last 250 g" trailing={<button type="button">Log again</button>} />
+      </ul>,
+      { wrapper: queryWrapper(client) },
+    );
+    const row = screen.getByRole("button", { name: /^Rahka/ });
+    expect(row).toHaveTextContent("Last 250 g");
+    expect(row).not.toHaveTextContent("per 100");
+    const trailing = screen.getByRole("button", { name: "Log again" });
+    expect(row.contains(trailing)).toBe(false);
+    expect(trailing.parentElement).toBe(row.parentElement);
+  });
 });

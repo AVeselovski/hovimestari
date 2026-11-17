@@ -1,4 +1,5 @@
 import type { FavouriteFood, FoodDetail, FoodSummary, Portion } from "@hovimestari/types";
+import { waitFor } from "@testing-library/react";
 
 export { refusal } from "@/components/targets/__tests__/support";
 
@@ -52,4 +53,22 @@ export function fineliPortion(unit: NonNullable<Portion["unit"]>, grams: number)
 
 export function ownPortion(name: string, grams: number): Portion {
   return { id: uuid(), unit: null, name, grams, isOwn: true };
+}
+
+/** The log sheet's writes, for a suite about foods: nothing is held, and an add is a mock. */
+export function fakeLogActions(): { add: jest.Mock; saveAndLog: jest.Mock; withdrawAdd: jest.Mock; holding: boolean } {
+  return { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: false };
+}
+
+/** The date the food suites open the log sheet on. */
+export const SHEET_DATE = "2026-11-16";
+
+/**
+ * Waits until the log sheet's lists, where shown, take presses: every list
+ * has its first answer and the rows are in place (components/log/heldList.tsx).
+ * A press on a row in the render that first shows it is stopped, as a person's
+ * would be in the frame before it is painted.
+ */
+export async function listsInPlace(): Promise<void> {
+  await waitFor(() => expect(document.querySelector('[data-lists-guard]:not([data-lists-guard="armed"])')).toBeNull());
 }

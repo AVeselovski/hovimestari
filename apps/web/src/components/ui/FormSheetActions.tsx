@@ -8,11 +8,12 @@ import {
   btnText,
   btnTextDanger,
   sheetActions,
+  sheetActionsPair,
   sheetActionsStart,
   touchTarget,
 } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
-import type { ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 
 /**
  * A form sheet's secondary action, in a footer row of its own above Cancel
@@ -29,6 +30,13 @@ interface FooterActionBase {
   label: string;
   /** "danger" (default) in the accent, for a destructive action. "neutral" in ink. */
   tone?: "danger" | "neutral";
+  /**
+   * The row gives its room to the on-screen keyboard while it is open
+   * (`keyboard-yields` in globals.css), so Save stays above the keyboard.
+   * For an action nobody needs while typing, such as Remove entry. Never for
+   * a second way to finish the form, which must stay in sight.
+   */
+  yieldsToKeyboard?: boolean;
 }
 
 export interface FooterPress extends FooterActionBase {
@@ -75,7 +83,8 @@ export interface FormSheetActionsProps {
  * on a phone and a right-aligned row from `md`. The submit button sits
  * outside the form and reaches it by its `form` attribute, so Enter in a
  * field still submits. A secondary action (`start`) takes a row of its own
- * above the two: the full width on a phone, at the start from `md`.
+ * above the two on a phone, the full width. From `md` it sits at the start
+ * of their row, or above them when the three do not fit.
  *
  * While the save runs, all three are `aria-disabled` with the disabled look,
  * and a press on any of them does nothing. None is `disabled`: a disabled
@@ -98,53 +107,79 @@ export function FormSheetActions({
 }: FormSheetActionsProps): ReactElement {
   const tCommon = useTranslations("common");
   const startSubmit = start && "submit" in start ? start : null;
-  return (
-    <div className={`${sheetActions} md:gap-3`}>
-      {start && (
-        <div data-footer-start="" className={sheetActionsStart}>
-          <button
-            type="button"
-            aria-disabled={submitting || held || undefined}
-            onClick={(e) => {
-              if (submitting || held) return;
-              if ("submit" in start) onSubmitMode?.(start.submit);
-              else start.onPress(e.currentTarget);
-            }}
-            className={`justify-center ${start.tone === "neutral" ? btnText : btnTextDanger}`}
-          >
-            {startSubmit ? (
-              <StableLabel
-                active={submitting && runningMode === startSubmit.submit}
-                idle={startSubmit.label}
-                busy={startSubmit.busy}
-              />
-            ) : (
-              start.label
-            )}
-          </button>
-        </div>
-      )}
+  const startRow = start && (
+    <div data-footer-start="" className={sheetActionsStart}>
       <button
         type="button"
-        aria-disabled={submitting || undefined}
-        onClick={() => {
-          if (!submitting) onCancel();
-        }}
-        className={`${btnSecondary} ${touchTarget}`}
-      >
-        {tCommon("cancel")}
-      </button>
-      <button
-        type="submit"
-        form={formId}
-        // FormSheet refuses a second submit while one runs.
-        disabled={submitDisabled}
         aria-disabled={submitting || held || undefined}
-        {...submitGuard}
-        className={`${tone === "danger" ? btnDanger : btnPrimary} ${touchTarget}`}
+        onClick={(e) => {
+          if (submitting || held) return;
+          if ("submit" in start) onSubmitMode?.(start.submit);
+          else start.onPress(e.currentTarget);
+        }}
+        className={`justify-center ${start.tone === "neutral" ? btnText : btnTextDanger}`}
       >
-        <StableLabel active={submitting && runningMode === null} idle={idle} busy={busy} />
+        {startSubmit ? (
+          <StableLabel
+            active={submitting && runningMode === startSubmit.submit}
+            idle={startSubmit.label}
+            busy={startSubmit.busy}
+          />
+        ) : (
+          start.label
+        )}
       </button>
+    </div>
+  );
+  return (
+    <div className={`${sheetActions} md:gap-3`}>
+      {start && (start.yieldsToKeyboard ? <KeyboardYields>{startRow}</KeyboardYields> : startRow)}
+      <div className={sheetActionsPair}>
+        <button
+          type="button"
+          aria-disabled={submitting || undefined}
+          onClick={() => {
+            if (!submitting) onCancel();
+          }}
+          className={`${btnSecondary} ${touchTarget}`}
+        >
+          {tCommon("cancel")}
+        </button>
+        <button
+          type="submit"
+          form={formId}
+          // FormSheet refuses a second submit while one runs.
+          disabled={submitDisabled}
+          aria-disabled={submitting || held || undefined}
+          {...submitGuard}
+          className={`${tone === "danger" ? btnDanger : btnPrimary} ${touchTarget}`}
+        >
+          <StableLabel active={submitting && runningMode === null} idle={idle} busy={busy} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A footer row that gives its room to the on-screen keyboard
+ * (`keyboard-yields` in globals.css). While the clamp holds it at no height
+ * it is `inert`, so Tab skips what cannot be seen, and it is back in the Tab
+ * order as soon as the keyboard closes and the row has its height again.
+ */
+function KeyboardYields({ children }: { children: ReactNode }): ReactElement {
+  const ref = useRef<HTMLDivElement>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    const row = ref.current;
+    if (!row || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setCollapsed(entry.contentRect.height < 1));
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} inert={collapsed} data-keyboard-yields="" className="keyboard-yields col-span-2 md:mr-auto">
+      {children}
     </div>
   );
 }

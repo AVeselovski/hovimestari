@@ -2,7 +2,7 @@
 
 import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
@@ -36,7 +36,7 @@ export function DeleteAccountSheet({
 
   const [confirmation, setConfirmation] = useState("");
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(confirmation, true);
   const filled = confirmation.trim() !== "";
@@ -60,7 +60,7 @@ export function DeleteAccountSheet({
         setFieldError(errors.forCode(code));
         focusField(fieldId);
       } else {
-        setFormError(errors.forError(err));
+        setFormError({ line: errors.forError(err), cause: err });
       }
       setSubmitting(false);
       return;

@@ -39,6 +39,7 @@ src/
 │   ├── day/                    The Day tab:
 │   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry sheet's mount
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
+│   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
 │   │   ├── DaySummary.tsx      Both readings, the distances, carbohydrates and fat, and the two notes, each line in its reserved room
 │   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
 │   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
@@ -50,17 +51,20 @@ src/
 │   │   ├── AmountField.tsx     A food's amount: the unit chips and one number field
 │   │   ├── MealCount.tsx       A saved meal entry's count of meals
 │   │   ├── EstimateFields.tsx  An estimate's name, four figures and note
+│   │   ├── FigureFields.tsx    Four typed figures two by two, with one shared line under them
 │   │   ├── StateChoice.tsx     Eaten or Planned, with Eaten unavailable on a future date
 │   │   ├── portionLabel.ts     A portion's name for a reader
 │   │   ├── amount.ts           An amount as typed: grams or a count, its parsing, its grams and chip switches
 │   │   └── entryForm.ts        The sheet's fields, the PATCH of changed fields, its exact inverse and the preview
-│   ├── figures/                MacroFigures, the four figures in rows, and MacroDot, the dot in a macro's hue
-│   ├── foods/                  Foods on the web:
-│   │   ├── FoodSearchLauncher.tsx  "Search foods" on the Day tab, which owns the food sheet
-│   │   ├── FoodSheet.tsx       The tall food sheet: the search view, a food's detail, and the sheets stacked on it
-│   │   ├── FoodSearchView.tsx  Browse lists, results, no results, offline and failure, under the pinned field
-│   │   ├── FoodRow.tsx         One food in a list: names, energy and protein, the star and "Yours"
-│   │   ├── FoodDetail.tsx      A food's detail: the header with Back and the star, and the body with figures and portions
+│   ├── figures/                MacroFigures, the four figures in rows or in one row, and MacroDot, the dot in a macro's hue
+│   ├── foods/                  Foods on the web, and the log sheet that holds them:
+│   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's and a meal's view, the archived meals, Log, and the sheets stacked on it
+│   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
+│   │   ├── FoodSheetStack.tsx  The own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
+│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals"
+│   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure
+│   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours", and a trailing control
+│   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures and portions
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
 │   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the Fineli credit
@@ -68,6 +72,32 @@ src/
 │   │   ├── OwnFoodSheet.tsx    Add or edit an own food, with its delete
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
 │   │   └── ownFoodForm.ts      The two forms' fields, their parsing and the shared schemas
+│   ├── log/                    Logging in the log sheet:
+│   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
+│   │   ├── CreateActions.tsx   "New saved meal" and "Add an estimate", the first controls while browsing
+│   │   ├── RecentList.tsx      The recent items, each with its last amount and "+"
+│   │   ├── heldList.tsx        Open lists hold their order and rows while they can be pressed
+│   │   ├── SavedMealList.tsx   The saved meals while browsing: the source chips, each meal with "+", Archived meals
+│   │   ├── SourceChips.tsx     "All" and one chip per source, one row that scrolls sideways
+│   │   ├── mealFilter.ts       Meals whose name or source holds every typed word, folded, and the sources they name
+│   │   ├── SavedMealRow.tsx    One saved meal in a list, a button that opens its view, and a trailing control
+│   │   ├── LogAgainButton.tsx  The 44px "+", with its busy ring
+│   │   ├── AgainButton.tsx     A "+" named for what it adds, on the sheet's one-press add
+│   │   ├── againItems.ts       What "+" adds for a food or a meal: its last amount
+│   │   ├── amountLabel.ts      How an amount reads: "200 g", "2 × Medium piece · 110 g", "1 meal"
+│   │   ├── browseLogging.ts    What the browse lists need to log again and to open a food or a meal
+│   │   ├── useLogAgain.ts      The one-press add: its pending id, held while its failure shows, one at a time
+│   │   ├── useLogForm.ts       A food's or a meal's log: prefill, chips, figures, state, its id and its submit
+│   │   ├── LogBlock.tsx        The log form: chips and amount or meals, the figures, Eaten or planned
+│   │   ├── LogFooter.tsx       The pinned footer: the refusal line and Log or Add to plan
+│   │   ├── MealView.tsx        A saved meal: the log block, its figures per meal, Edit, Archive or Restore, Delete
+│   │   ├── ArchivedMealsView.tsx  The archived meals, read when the view opens, each with Restore
+│   │   ├── useMealActions.ts   Archiving and restoring a meal, one at a time, with the failure on the status line
+│   │   ├── SavedMealSheet.tsx  A new meal (Save and log, or Save meal) or an edit, stacked on the log sheet
+│   │   ├── EstimateSheet.tsx   Add an estimate, stacked on the log sheet
+│   │   ├── mealSends.ts        A new meal pressed again after a send that could not confirm: the latest press decides
+│   │   ├── useFormFields.ts    A form's values and refusals, a change clearing its field's refusal
+│   │   └── mealForm.ts         The two sheets' fields, read with the shared schemas
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
 │   ├── form/                   The form parts the guest pages and the sheets share:
 │   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
@@ -95,18 +125,24 @@ src/
 │       ├── NativeDateInput.tsx The platform's date field, uncontrolled so iOS's Reset can empty it
 │       ├── DecimalField.tsx    A number field with its unit inside: text with an inputMode, never type=number
 │       ├── BottomSheet.tsx     The one sheet and dialog primitive, on Base UI's Drawer
+│       ├── closingSheet.ts     A closing sheet swallows presses: every one until its exit ends, then one near the closing press for 500 ms
 │       ├── ConfirmDialog.tsx   A BottomSheet that asks before a consequential action
 │       ├── FormSheet.tsx       A BottomSheet that holds one form: every form sheet is one
 │       ├── Toast.tsx           ToastProvider, ToastRegion and useToast: one toast at a time, under the sheets
 │       ├── PromptSheetBody.tsx A form sheet's body, which takes focus on a phone so no keyboard rises mid-slide
-│       └── FormSheetActions.tsx  Cancel and the submit button in a form sheet's footer
+│       └── FormSheetActions.tsx  Cancel, the submit button and the secondary action's row in a form sheet's footer
 ├── contexts/
 │   ├── AuthContext.tsx         The session: status, user, signIn, signUp, signOut, renewal and its retries, all under one lock
 │   ├── ThemeContext.tsx        The theme choice, data-theme and the browser chrome colour
 │   └── ProvidersContext.tsx    Whether the guest pages show Google
 ├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, useDebouncedValue, useFoodNameLanguage, and:
 │   ├── useToday.ts             The app's today and the state of the check that keeps it current
-│   ├── useEntryActions.ts      Every write to an entry from the Day tab, its cache update, its toast and its undo
+│   ├── useEntryActions.ts      Every write to an entry from the Day tab and the log sheet, its cache update, its toast and its undo
+│   ├── entryActions.ts         The types and plain helpers useEntryActions shares
+│   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, their toasts and undo
+│   ├── useKnownOffline.ts      Whether the app knows it is offline: no network, or the server out of reach
+│   ├── useFailureLine.ts       The line for a failed write, in a form or on the log sheet's status line
+│   ├── useSubmitGuard.ts       A form's in-flight guard: a submit is refused while the last one's promise is pending
 │   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open, the control that opened it and what it opens on
 │   ├── useRetainedValue.ts     The last non-null value, so an overlay slides out with its content
 │   ├── useFormDirty.ts         Whether a form holds unsaved input
@@ -119,7 +155,9 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts
+│   ├── pendingIds.ts           A one-press add's id, kept until its answer, a day that holds it, or a minute, and held while its failure shows
+│   ├── failure.ts              What a failed write says: OfflineError, unconfirmed(), failureLine()
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
 │   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
@@ -135,6 +173,8 @@ src/
 │   ├── redirect.ts             Resolves a redirect target and keeps it only when it stays on this site
 │   ├── sessionMarker.ts        The non-secret flag that says this device has a known session, and its address
 │   ├── foodCache.ts            Edits to the cached food reads from a write's own answer
+│   ├── mealCache.ts            Edits to the cached saved meal lists and recent items from a meal write's own answer
+│   ├── revealRefused.ts        Brings a form sheet's first refused field, its label and line where they fit, into view in its body
 │   ├── invalidation.ts         What each write makes stale
 │   ├── forgetDevice.ts         Drops the cached signed-in pages after the account is deleted
 │   ├── googleLink.ts           The results a Google link comes back with
@@ -181,9 +221,9 @@ Style only through the tokens in `src/app/globals.css` and the recipes in `src/c
 
 Every overlay is `BottomSheet`, `ConfirmDialog` or `FormSheet` from `src/components/ui/`, never a hand-built one. Below `md` it is a bottom sheet with a drag handle, and from `md` a centred dialog. [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) state every convention they keep, and `docs/design/mobile-ui-lessons.md` says why.
 
-To add a form sheet, such as logging a food:
+To add a form sheet, such as the estimate sheet:
 
-1. Write it as a `FormSheet`. Pass `dirty` from `useFormDirty`, `submitting`, `onSubmit` and `formError`, and render the fields from its render prop, giving the first field the `autoFocus` it hands you. `FormSheet` does the rest: dismissal only while clean and idle, the keyboard, the body that takes focus on a phone, the footer and the in-flight guard.
+1. Write it as a `FormSheet`. Pass `dirty` from `useFormDirty`, `submitting`, `onSubmit` and `formError`, a `FormFailure` that holds the line and the error behind it, and render the fields from its render prop, giving the first field the `autoFocus` it hands you. `FormSheet` does the rest: dismissal only while clean and idle, the keyboard, the body that takes focus on a phone, the footer and the in-flight guard.
 2. Put other `BottomSheet` options in `sheet`, and a secondary action in `footerStart`, with `tone: "neutral"` to draw it in ink rather than the accent. It takes one of two forms:
    - `{ label, onPress }` for an action that opens something, such as a delete that asks first. `onPress` gets the button, for a confirmation to return focus to.
    - `{ label, busy, submit }` for a second submit of the same form, such as "Save meal" beside "Save and log". `onSubmit` receives `submit` as its mode. Save and Enter call it with no mode.
@@ -191,7 +231,7 @@ To add a form sheet, such as logging a food:
 4. Pass `held` while the sheet's writes must wait, such as while `useToday()` reports `holding`. Save and the secondary action then ignore a press, and Cancel and every dismissal stay free.
 5. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
 
-A refusal that belongs to no field goes in `formError`. `FormSheet` shows it in the pinned footer above the buttons, in two lines of room it keeps while the keyboard is closed.
+A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons, in two lines of room it keeps while the keyboard is closed. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
@@ -201,7 +241,7 @@ A short outcome on the page, such as "Removed Rahka." with Undo, is a toast from
 
 ## Numbers and dates
 
-A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels. The field keeps room at its end for its unit: 3.5rem for a short unit such as "g" or "kcal", and 5.5rem for a word such as "portions" or "meals".
+A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A number field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. A beside field whose unit can be a word is 11rem. A field whose unit changes, such as grams or portions, passes its longest unit as `widestUnit`, so its width holds as the unit changes. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels. The field keeps room at its end for its unit: 1.75rem for one letter such as "g", 3rem for a short unit such as "kcal", and 5.5rem for a word such as "portions" or "meals".
 
 Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid`, `group` or a `number`:
 
@@ -215,7 +255,7 @@ A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 
-After a write, refresh what it made stale through a function in `src/lib/invalidation.ts`. Each one cancels the reads still on their way before it reads again, so an answer from before the write never lands after it. A food write first puts its own answer into every cached food read, through `src/lib/foodCache.ts`, so a list not on screen comes back with the new state before its read lands.
+After a write, refresh what it made stale through a function in `src/lib/invalidation.ts`. Each one cancels the reads still on their way before it reads again, so an answer from before the write never lands after it. A food write first puts its own answer into every cached food read, through `src/lib/foodCache.ts`, and a saved meal write into the meal lists and the recent items, through `src/lib/mealCache.ts`, so a list not on screen comes back with the new state before its read lands.
 
 ## Commands
 

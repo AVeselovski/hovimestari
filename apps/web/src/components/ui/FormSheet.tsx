@@ -5,7 +5,12 @@ import { BottomSheet, SheetDescription, type BottomSheetProps } from "@/componen
 import { FormSheetActions, type FooterAction, type FormSheetActionsProps } from "@/components/ui/FormSheetActions";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useId, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
+import { useKnownOffline } from "@/hooks/useKnownOffline";
+import { useSubmitGuard } from "@/hooks/useSubmitGuard";
+import { OfflineError, unconfirmed } from "@/lib/failure";
+import { revealRefused } from "@/lib/revealRefused";
+import { useTranslations } from "next-intl";
+import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
 // FormSheet: a sheet that holds one form, with Cancel and the submit button in
@@ -37,6 +42,18 @@ import { useId, useRef, useState, type FormEvent, type ReactElement, type ReactN
 //   a save runs, it and Cancel ignore a press and keep the focus they hold.
 // - `held`: the submit and the secondary action wait, such as while the app
 //   asks the server for today. Cancel and every dismissal stay free.
+// - The refusal line says "You are offline. Changes need a connection."
+//   for a failure that came while the app knew it was offline and that the
+//   connection explains: a write not sent (`OfflineError`), or one with no
+//   answer or a server fault. One place says it for every form sheet. A
+//   refusal the server answered shows its own line, also while offline,
+//   since the session can be out of reach between renewals while requests
+//   still get through. It is decided when the failure arrives, so the line
+//   does not change when the connection comes back.
+// - A refused submit brings the first refused field into view inside the
+//   body, its line included, as the submit's refusals render and again when
+//   its promise settles (lib/revealRefused.ts). Nothing scrolls when the
+//   field is already in view.
 //
 // What a save does, and what happens after it (`onSaved`, then `onClose`),
 // stays with the sheet.
@@ -52,6 +69,18 @@ export interface FormSheetCallerProps {
   onClose: () => void;
   /** The save worked. Called just before `onClose`. Left out when the caller needs no word of it. */
   onSaved?: () => void;
+}
+
+/** A refusal that belongs to no field: its line, and the failure behind it. */
+export interface FormFailure {
+  line: string;
+  /** The error the write threw, or null for a line the sheet decided itself. */
+  cause: unknown;
+}
+
+/** A failure the connection explains: nothing was sent, or no answer came. */
+function connectionFailure(cause: unknown): boolean {
+  return cause instanceof OfflineError || (cause !== null && cause !== undefined && unconfirmed(cause));
 }
 
 /** What the fields learn from the sheet. */
@@ -81,7 +110,7 @@ export interface FormSheetProps extends Pick<
    */
   onSubmit: (mode?: string) => void | Promise<void>;
   /** The refusal that belongs to no field, in the footer above the buttons. */
-  formError: string | null;
+  formError: FormFailure | null;
   /** The submit and the secondary action wait. Cancel and dismissal stay free. */
   held?: boolean;
   /** The account's address, for password managers, in a hidden `username` field. */
@@ -124,28 +153,40 @@ export function FormSheet({
   children,
 }: FormSheetProps): ReactElement {
   const isMobile = useIsMobile();
+  const tCommon = useTranslations("common");
+  const offline = useKnownOffline();
   const formId = `${useId()}-form`;
-  // True from a submit until the promise it returned settles.
-  const inFlightRef = useRef(false);
+  // Whether the failure on screen came while offline, decided when it arrives.
+  const offlineNow = (f: FormFailure | null): boolean => f !== null && offline && connectionFailure(f.cause);
+  const [failure, setFailure] = useState({ error: formError, offline: offlineNow(formError) });
+  if (failure.error !== formError) setFailure({ error: formError, offline: offlineNow(formError) });
+  const shownError = formError === null ? null : failure.offline ? tCommon("offline") : formError.line;
+  // Closed from a submit until the promise it returned settles.
+  const guard = useSubmitGuard();
   const formRef = useRef<HTMLFormElement>(null);
   // The mode a footer action asked for, read by the submit it starts.
   const modeRef = useRef<string | null>(null);
   // The mode of the last submit, so the button that started it shows busy.
   const [runningMode, setRunningMode] = useState<string | null>(null);
+  // Bumped by a submit and by its end: each time, a refused field comes into view.
+  const [refusalCheck, setRefusalCheck] = useState(0);
+  useLayoutEffect(() => {
+    if (refusalCheck > 0) revealRefused(formRef.current);
+  }, [refusalCheck]);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>): void {
     e.preventDefault();
     const mode = modeRef.current;
     modeRef.current = null;
-    if (submitting || held || inFlightRef.current) return;
+    if (submitting || held || guard.inFlight()) return;
     setRunningMode(mode);
-    const result = mode === null ? onSubmit() : onSubmit(mode);
-    if (!result) return;
-    inFlightRef.current = true;
-    const settle = (): void => {
-      inFlightRef.current = false;
-    };
-    result.then(settle, settle);
+    setRefusalCheck((n) => n + 1);
+    guard.run(() => {
+      const result = mode === null ? onSubmit() : onSubmit(mode);
+      const check = (): void => setRefusalCheck((n) => n + 1);
+      result?.then(check, check);
+      return result;
+    });
   }
 
   return (
@@ -161,7 +202,7 @@ export function FormSheet({
       onOpened={onOpened}
       footer={
         <>
-          <FormError message={formError} inFooter />
+          <FormError message={shownError} inFooter />
           <FormSheetActions
             formId={formId}
             onCancel={onClose}

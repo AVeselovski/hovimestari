@@ -21,13 +21,22 @@ import {
   settle,
   type,
 } from "./foodSheetServer";
-import { detailOf, ownFood, refusal } from "./support";
+import { detailOf, listsInPlace, ownFood, refusal } from "./support";
 
 // What the food sheet shows right after the user's own write, while the
 // reads that follow it are still out (./foodSheetServer.tsx), and where
 // focus lands around a food that is gone.
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => "/" }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/foods", () => ({
   searchFoods: jest.fn(),
   getFavouriteFoods: jest.fn(),
@@ -222,6 +231,7 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
     renderSheet();
     const own = await screen.findByRole("region", { name: "Your foods" });
     await waitFor(() => expect(within(own).getAllByRole("button")).toHaveLength(2));
+    await listsInPlace();
     fireEvent.click(screen.getByRole("button", { name: "Add your own food" }));
     const sheet = await screen.findByRole("dialog", { name: "Add a food" });
     for (const [label, value] of [

@@ -1,6 +1,13 @@
 "use client";
 
-import { segmentActive, segmentButton, segmentInactive, segmentedTray } from "@/components/ui/styles";
+import {
+  segmentActive,
+  segmentButton,
+  segmentButtonBesideField,
+  segmentInactive,
+  segmentedTray,
+  segmentedTrayBesideField,
+} from "@/components/ui/styles";
 import { useRovingChoice } from "@/hooks/useRovingChoice";
 import type { EntryStatus } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
@@ -11,6 +18,8 @@ import type { ReactElement } from "react";
 // date after today Eaten is unavailable (`aria-disabled`, a press does
 // nothing), Planned shows as chosen, and the line under the group says why.
 // That line keeps its room on every date, so it moves nothing when it fills.
+// From md the tray is as tall as a field, 48 pixels, since it sits beside a
+// name in the estimate and saved meal sheets.
 // ---------------------------------------------------------------------------
 
 const STATES: readonly EntryStatus[] = ["eaten", "planned"];
@@ -39,7 +48,7 @@ export function StateChoice({ id, value, onChange, future }: StateChoiceProps): 
         role="radiogroup"
         aria-labelledby={`${id}-label`}
         aria-describedby={hintId}
-        className={`${segmentedTray} grid-cols-2`}
+        className={`${segmentedTray} ${segmentedTrayBesideField} grid-cols-2`}
       >
         {STATES.map((s) => (
           <button
@@ -52,7 +61,7 @@ export function StateChoice({ id, value, onChange, future }: StateChoiceProps): 
               if (!disabled(s)) onChange(s);
             }}
             {...roving.optionProps(s)}
-            className={`${segmentButton} ${shown === s ? segmentActive : segmentInactive} aria-disabled:cursor-not-allowed aria-disabled:opacity-60`}
+            className={`${segmentButton} ${segmentButtonBesideField} ${shown === s ? segmentActive : segmentInactive} aria-disabled:cursor-not-allowed aria-disabled:opacity-60`}
           >
             {s === "eaten" ? t("eaten") : t("planned")}
           </button>

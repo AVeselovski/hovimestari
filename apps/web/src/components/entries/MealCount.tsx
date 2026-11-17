@@ -13,12 +13,15 @@ export function MealCount({
   onChange,
   error,
   autoFocus,
+  layout,
 }: {
   id: string;
   value: string;
   onChange: (raw: string) => void;
   error: EntryFieldError | undefined;
   autoFocus: boolean;
+  /** "beside" puts the label on the field's left. */
+  layout?: "stacked" | "beside";
 }): ReactElement {
   const t = useTranslations("entries");
   const tCommon = useTranslations("common");
@@ -38,6 +41,7 @@ export function MealCount({
       invalid={error !== undefined}
       line={line}
       lineRows={2}
+      layout={layout}
     />
   );
 }

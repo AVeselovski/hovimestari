@@ -32,6 +32,16 @@ A food the user can no longer see, and an archived or deleted saved meal, is lef
 
 Logging a recent item again adds an entry with its last amount. It is an ordinary entry, and takes the food's or the meal's values as they are now. The request names the date and whether the entry is planned or eaten.
 
+### The log sheet
+
+The log sheet is where an entry is added on screen, to the day it opened on. Before anything is typed it offers what the user is most likely to log: a new saved meal and an estimate first, then the recent items, the favourites, the saved meals and the user's own foods. A recent item, a saved meal, and a favourite eaten before, logs again with its last amount in one action, so a food eaten before takes two presses from the day. A saved meal never eaten logs one meal.
+
+A meal the user has not saved yet is [saved and logged in one action](saved-meals.md#saving-and-logging-a-meal), as one request. A meal that cannot be weighed is logged as an estimate with its typed figures.
+
+A food or a saved meal opened in the sheet starts from its last amount, and shows the figures that amount comes to before it is logged. The figures are those the entry will store, computed by the same function the server runs. A food never eaten starts empty.
+
+An entry is logged eaten on today and past days. On a future day it is planned, and only planned. On today and past days the user may choose planned instead, for a meal planned for later. The sheet keeps logging to the day it opened on, also past midnight.
+
 ### A request sent twice
 
 Each add, copy, new saved meal and save-and-log carries an id the app chose for it. Sent twice, for example after a timeout on a weak signal, it adds one entry or one meal and answers the first one again, saying it was already logged. That holds also when the two arrive at the same moment. A copy sent twice adds each entry once and answers the second with the same entries.
@@ -57,7 +67,9 @@ Try again is offered only when the undo may not have landed: the device was offl
 
 ### Without a connection
 
-Nothing is queued. A write the app knows it cannot send, because the device is offline, is not sent, and the screen says "You are offline. Changes need a connection.". A write that got no answer may have landed or not, so the screen says it could not confirm and offers to try again. Trying again sends the same request: a mark sets a state, so a second one changes nothing more, and an add carries the id it was sent with, so it applies once.
+Nothing is queued. A write the app knows it cannot send, because the device is offline, is not sent, and the screen says "You are offline. Changes need a connection.". A write that got no answer may have landed or not, so the screen says it could not confirm. Sending it again, by **Try again**, by **Log** or by pressing **+** again, sends the same request: a mark sets a state, so a second one changes nothing more, and an add carries the id it was sent with, so it applies once and answers "Already logged" when the first one landed.
+
+An add that could not confirm reads its day and the recent items again at once, so an entry that landed shows on the Day tab with both totals, also when the user never presses again.
 
 ## How it works
 
@@ -90,6 +102,12 @@ The status batch and the planned rewrite lock the entries they change in id orde
 - **The time zone.** `counted` also takes `zoneEpoch` before it sends. An answer to a write sent before the account's time zone changed stays out of the cache, and its days are read again. [Today and the time zone](targets.md#today-and-the-time-zone) says why.
 - **Holding.** While `useToday()` reports `holding`, a mark sends nothing, and a sheet's write answers `held` without sending. An undo never waits, because it names its ids and dates.
 - **Marking many.** Mark all eaten sends 100 ids per request, one request after another. When a request fails, Try again sends that one and every one not yet sent, and its Undo covers the entries the earlier requests changed too.
+- **Adds.** `useEntryActions.add` sends `POST /entries` with an id the app chose, counted against its date like every other write: a food, a saved meal or an estimate. Its answer puts the day into the cache, so the new row and both totals show with no read of the day. It does not show its own line: it answers `announce`, which the log sheet calls once it has slid out. Undo removes the entry, and a 404 counts as undone. The adds live in `useAddActions`, which `useEntryActions` composes.
+- **An add that could not confirm.** No answer, a timeout or a server fault may hide an add that landed. The add first holds its pending id, then reads its day, the day ranges and the recent items again once (`afterAddUnconfirmed` in `apps/web/src/lib/invalidation.ts`), the saved meals too for a **Save and log**. An entry that landed shows on the Day tab with both totals at once. An add the app knew it could not send reads nothing, and a read that fails is not tried again.
+- **Save and log.** `useEntryActions.saveAndLog` sends `POST /saved-meals/log` with the meal's and the entry's ids, made when the sheet opened, counted against the date like an add. Its days go into the cache the same way. Its line says "Saved Chicken bowl and logged 1 meal." with **Remove from day**, or "Saved Chicken bowl and added it to the plan." with **Remove from plan**, which removes the entry and keeps the meal. A repeat answers as a replay.
+- **Pending ids.** A one-press add keeps its id in `apps/web/src/lib/pendingIds.ts` under the date, the kind and the food or meal. A second press after a timeout sends the same id, so the server adds one entry. The id is let go at the first of its answer, a read of a day that holds it, or a minute after it was made. After that a press makes a new id, so the same food logged again later is a second entry. For six seconds after an add could not confirm, as long as its line shows at most, the id is kept whatever happens. Pressing "+" again in that time answers "Already logged" for an add that landed, never a second entry. An `entry_id_taken` lets the id go at once, since that id can never succeed. A food's or a meal's log form makes its id as it opens and keeps it until a log is answered, or makes a new one after `entry_id_taken`.
+- **Taking back an add.** `useEntryActions.withdrawAdd` removes an entry an unconfirmed add may have made, with no line. It answers whether it removed one: a 404 means nothing is there yet. The saved meal sheet uses it when a "Save and log" is pressed again with other figures, so [the new figures are logged](saved-meals.md#a-save-that-could-not-confirm).
+- **Replays.** An add the server already had answers it as replayed, and the line says so plainly: "Already logged Rahka." or "Rahka is already in the plan.", with Log another or Plan another, which adds it once more with a new id. A replayed add whose entry was removed since says "This was removed. Log another?". Log another from the line is a one-press write on the day: a failure says so in the line with Try again, which sends the same id.
 
 ### API
 
@@ -118,11 +136,12 @@ A recent item is `{ kind: "food", food, last }` with a food summary and a last a
 ### Known gaps
 
 - The assistant's tools for logging arrive with the connected AI step. Until then only the API reaches these services.
-- Adding entries, copying them and recent items have no screen. Only the API reaches them.
+- Copying entries has no screen. Only the API reaches it.
 - A Mark all eaten that fails partway, with its failure toast dismissed, leaves the entries its earlier requests marked with no Undo.
 
-Requirements: FR-DAY-05, FR-DAY-11, FR-DAY-12, FR-LOG-02 (amounts only), FR-LOG-03 to FR-LOG-05 (requirements 3.3 and 3.4)
+Requirements: FR-DAY-05, FR-DAY-10, FR-DAY-11, FR-DAY-12, FR-LOG-01, FR-LOG-02, FR-LOG-03, FR-LOG-04, FR-LOG-05 (requirements 3.3 and 3.4)
 
 ## Where it appears
 
 - [The Day tab](../app/day.md): marking one entry or all of a day's planned entries eaten, editing, moving and removing an entry in the entry sheet, each with Undo.
+- [The log sheet](../app/log-sheet.md): adding a food, a saved meal or an estimate to a day, saving a new meal and logging it in one action, the recent items, and logging an item again in one press, each with Undo.

@@ -1,7 +1,7 @@
 "use client";
 
 import { DecimalField } from "@/components/ui/DecimalField";
-import { focusRing } from "@/components/ui/styles";
+import { chipOff, chipOn, chipRowWrapping, chip as chipStyle } from "@/components/ui/styles";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useRovingChoice } from "@/hooks/useRovingChoice";
 import { formatGrams } from "@/lib/foodFormat";
@@ -31,9 +31,9 @@ export interface AmountFieldProps {
   onAmount: (raw: string) => void;
   error: EntryFieldError | undefined;
   autoFocus: boolean;
+  /** "beside" puts the field's label on its left, one row, for a block that must fit a first screen. */
+  layout?: "stacked" | "beside";
 }
-
-const chipClass = `inline-flex min-h-11 shrink-0 items-center rounded-pill border px-4 text-base font-semibold whitespace-nowrap transition-colors duration-150 ${focusRing}`;
 
 export function AmountField({
   id,
@@ -44,6 +44,7 @@ export function AmountField({
   onAmount,
   error,
   autoFocus,
+  layout,
 }: AmountFieldProps): ReactElement {
   const t = useTranslations("entries.amount");
   const tSheet = useTranslations("entries.sheet");
@@ -66,7 +67,7 @@ export function AmountField({
         role="radiogroup"
         aria-label={tSheet("amount")}
         // Room for the focus ring, which the scroll would clip.
-        className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 py-1 md:flex-wrap md:overflow-x-visible"
+        className={chipRowWrapping}
       >
         {chips.map((chip) => (
           <button
@@ -77,7 +78,7 @@ export function AmountField({
             data-unit={chip.id}
             onClick={() => onUnit(chip)}
             {...roving.optionProps(chip.id)}
-            className={`${chipClass} ${chip.id === unit ? "border-accent bg-accent text-on-accent" : "border-field-rule bg-surface-raised text-ink"}`}
+            className={`${chipStyle} ${chip.id === unit ? chipOn : chipOff}`}
           >
             {labelOf(chip)}
           </button>
@@ -88,6 +89,7 @@ export function AmountField({
         name="amount"
         label={tSheet("amount")}
         unit={unit === GRAMS ? t("grams") : t("portions")}
+        widestUnit={t("portions")}
         inputMode="decimal"
         enterKeyHint="done"
         autoFocus={autoFocus}
@@ -96,6 +98,7 @@ export function AmountField({
         invalid={error !== undefined}
         line={line}
         lineRows={2}
+        layout={layout}
       />
     </div>
   );

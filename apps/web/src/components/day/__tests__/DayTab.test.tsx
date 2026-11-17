@@ -7,12 +7,33 @@ import { getTargets } from "@/lib/api/targets";
 import { afterFoodNameLanguageChange, afterTargetsChange } from "@/lib/invalidation";
 import { formatDayShort } from "@/lib/localDate";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { DayHarness, FakeDays, liveToast, renderDay, rowNames, rowOf, seededClient, serve, toasts } from "./harness";
+import {
+  DayHarness,
+  FakeDays,
+  liveToast,
+  recordToasts,
+  renderDay,
+  rowNames,
+  rowOf,
+  seededClient,
+  serve,
+  toasts,
+} from "./harness";
 import { TODAY, estimateEntry, foodEntry, mealEntry } from "./support";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/entries", () => ({
+  addEntry: jest.fn(),
   setEntriesStatus: jest.fn(),
   patchEntry: jest.fn(),
   removeEntry: jest.fn(),
@@ -89,14 +110,24 @@ describe("DayTab, marking", () => {
     serve(server);
     renderDay();
     await screen.findByText("Food 129");
-    fireEvent.click(screen.getByRole("button", { name: "Mark all eaten" }));
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Mark all eaten" })).toBeNull());
+    // Every toast that appears, recorded as it appears: under load, rendering
+    // 130 rows can take longer than a toast stays on screen.
+    const { shown, stop } = recordToasts();
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Mark all eaten" }));
+      await waitFor(() => expect(jest.mocked(setEntriesStatus)).toHaveBeenCalledTimes(2), { timeout: 10_000 });
+      await waitFor(() => expect(shown).toHaveLength(1), { timeout: 10_000 });
+      await waitFor(() => expect(screen.queryByRole("button", { name: "Mark all eaten" })).toBeNull(), {
+        timeout: 10_000,
+      });
+    } finally {
+      stop();
+    }
     const calls = jest.mocked(setEntriesStatus).mock.calls;
     expect(calls.map(([ids]) => ids.length)).toEqual([100, 30]);
     expect(calls.flatMap(([ids]) => ids)).toEqual(planned.map((e) => e.id));
     expect(calls.every(([, status]) => status === "eaten")).toBe(true);
-    await waitFor(() => expect(toasts()).toHaveLength(1));
-    expect(within(liveToast()).getByText("Marked 130 entries eaten.")).toBeInTheDocument();
+    expect(shown).toEqual([expect.stringContaining("Marked 130 entries eaten.")]);
   }, 30_000);
 
   it("reads the day again when a mark changed nothing and answered no days, with no toast", async () => {

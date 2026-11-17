@@ -3,16 +3,33 @@ import { change, overview } from "@/components/targets/__tests__/support";
 import { TodayProvider } from "@/components/targets/TodayProvider";
 import { ToastProvider, ToastRegion } from "@/components/ui/Toast";
 import { getDay } from "@/lib/api/days";
-import { patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
+import { addEntry, patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
+import { getFavouriteFoods, getOwnFoods } from "@/lib/api/foods";
+import { getRecents } from "@/lib/api/log";
+import {
+  createSavedMeal,
+  deleteSavedMeal,
+  getSavedMeals,
+  saveAndLog,
+  setSavedMealArchived,
+  updateSavedMeal,
+} from "@/lib/api/savedMeals";
 import { getTargets } from "@/lib/api/targets";
 import { queryKeys } from "@/lib/queryKeys";
 import {
   entryFigures,
   gramsForPortion,
+  type AddEntryBody,
   type Day,
   type Entry,
   type EntryPatchBody,
   type EntryStatus,
+  type FoodSummary,
+  type RecentItem,
+  type SaveAndLogBody,
+  type SavedMeal,
+  type SavedMealBody,
+  type SavedMealEditBody,
 } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
@@ -27,7 +44,22 @@ import { RANGES, TODAY, dayOf } from "./support";
 // answers created (a second restore answers replayed, one past its window
 // 404), a status change skips entries already in that state and answers the ids it
 // changed, a move of an eaten entry to a future date plans it, and every
-// write answers the days it changed. The test file mocks the API modules.
+// write answers the days it changed. An add follows `addEntry` in
+// apps/backend/src/services/writes/entries.ts: an id already added answers
+// that entry replayed (before any other check), an id added and removed
+// answers replayed with no entry, eaten on a future date is refused, and a
+// new entry takes the food's per-100 g values or the meal's figures as its
+// basis, at the end of its day. An estimate's basis is its typed figures.
+//
+// The saved meal routes follow apps/backend/src/services/writes/savedMeals.ts:
+// a create with an id of the user's answers that meal again unchanged, and an
+// id another account holds answers 409 `saved_meal_id_taken`. Save and log
+// runs the create, then the add, so a repeat replays both and one meal "Save
+// meal" made first is logged, not made twice. An edit rewrites the figures of
+// the meal's planned entries dated today or later. Archive and restore set a
+// flag, a delete takes the meal away, and a meal that is not there answers
+// 404 `saved_meal_not_found`. Lists are by name in Finnish order. The test
+// file mocks the API modules.
 // ---------------------------------------------------------------------------
 
 export class FakeDays {
@@ -38,6 +70,13 @@ export class FakeDays {
   expired = new Set<string>();
   /** Portion weights by id, for amounts sent as a portion count. */
   portionGrams = new Map<string, number>();
+  /** The foods and saved meals an add can name, by id. */
+  foods = new Map<string, FoodSummary>();
+  meals = new Map<string, SavedMeal>();
+  /** What `GET /log/recents` answers. */
+  recents: RecentItem[] = [];
+  /** Saved meal ids another account holds. */
+  foreignMealIds = new Set<string>();
 
   constructor(entries: Entry[] = []) {
     this.entries = entries.map((e) => ({ ...e }));
@@ -107,6 +146,146 @@ export class FakeDays {
     return { days: [this.day(e.date)] };
   }
 
+  add(body: AddEntryBody) {
+    const held = this.entries.find((x) => x.id === body.id);
+    if (held) return { entry: { ...held }, days: [this.day(held.date)], outcome: "replayed" as const };
+    if (this.removed.has(body.id)) return { entry: null, days: [this.day(body.date)], outcome: "replayed" as const };
+    if (body.status === "eaten" && body.date > this.today) throw refused(400, "entry_eaten_in_future");
+    const position = Math.max(0, ...this.entries.map((e) => e.position)) + 1;
+    const base = { id: body.id, date: body.date, position, status: body.status, note: null, isEstimate: false };
+    let entry: Entry;
+    if (body.kind === "food") {
+      const food = this.foods.get(body.foodId);
+      if (!food) throw refused(404, "food_not_found");
+      let grams: number;
+      let portion: Entry["portion"] = null;
+      if ("grams" in body.amount) grams = body.amount.grams;
+      else {
+        const each = this.portionGrams.get(body.amount.portionId);
+        if (each === undefined) throw refused(404, "portion_not_found");
+        grams = gramsForPortion(body.amount.count, each);
+        portion = { id: body.amount.portionId, unit: null, name: "Portion", count: body.amount.count };
+      }
+      const basis = food.per100g;
+      entry = {
+        ...base,
+        kind: "food",
+        name: food.name,
+        food: { id: food.id, source: food.source, retired: food.retired, deleted: false },
+        savedMeal: null,
+        grams,
+        portion,
+        count: null,
+        basis,
+        figures: entryFigures(basis, { per: "100g", grams }),
+      };
+    } else if (body.kind === "saved_meal") {
+      const meal = this.meals.get(body.savedMealId);
+      if (!meal) throw refused(404, "saved_meal_not_found");
+      entry = {
+        ...base,
+        kind: "saved_meal",
+        name: meal.name,
+        food: null,
+        savedMeal: { id: meal.id, source: meal.source, archived: meal.archived, deleted: false },
+        grams: null,
+        portion: null,
+        count: body.count,
+        basis: meal.figures,
+        figures: entryFigures(meal.figures, { per: "meal", count: body.count }),
+      };
+    } else {
+      entry = {
+        ...base,
+        kind: "estimate",
+        name: body.name,
+        food: null,
+        savedMeal: null,
+        grams: null,
+        portion: null,
+        count: null,
+        note: body.note ?? null,
+        basis: body.figures,
+        figures: entryFigures(body.figures, { per: "whole" }),
+        isEstimate: true,
+      };
+    }
+    this.entries.push(entry);
+    return { entry: { ...entry }, days: [this.day(entry.date)], outcome: "created" as const };
+  }
+
+  /** `GET /log/recents`: the recent items, a saved meal as it is now, an archived or deleted one left out. */
+  recentList(): { items: RecentItem[] } {
+    const items = this.recents.flatMap((item): RecentItem[] => {
+      if (item.kind !== "saved_meal") return [item];
+      const meal = this.meals.get(item.meal.id);
+      return meal && !meal.archived ? [{ ...item, meal: { ...meal } }] : [];
+    });
+    return { items };
+  }
+
+  mealList(archived: boolean): { meals: SavedMeal[] } {
+    const meals = [...this.meals.values()].filter((m) => m.archived === archived);
+    return { meals: meals.sort((a, b) => a.name.localeCompare(b.name, "fi")).map((m) => ({ ...m })) };
+  }
+
+  meal(id: string): SavedMeal {
+    const meal = this.meals.get(id);
+    if (!meal) throw refused(404, "saved_meal_not_found");
+    return meal;
+  }
+
+  createMeal(body: SavedMealBody): { meal: SavedMeal; outcome: "created" | "replayed" } {
+    if (this.foreignMealIds.has(body.id)) throw refused(409, "saved_meal_id_taken");
+    const held = this.meals.get(body.id);
+    if (held) return { meal: { ...held }, outcome: "replayed" };
+    const meal: SavedMeal = {
+      id: body.id,
+      name: body.name,
+      source: body.source,
+      figures: body.figures,
+      archived: false,
+      lastCount: null,
+    };
+    this.meals.set(meal.id, meal);
+    return { meal: { ...meal }, outcome: "created" };
+  }
+
+  saveAndLog(body: SaveAndLogBody) {
+    const created = this.createMeal(body.meal);
+    let logged;
+    try {
+      logged = this.add({ kind: "saved_meal", savedMealId: body.meal.id, ...body.entry });
+    } catch (err) {
+      // One transaction on the server: a refused add saves no meal either.
+      if (created.outcome === "created") this.meals.delete(body.meal.id);
+      throw err;
+    }
+    const meal = this.meal(body.meal.id);
+    if (logged.outcome === "created" && body.entry.status === "eaten") meal.lastCount = body.entry.count;
+    return { meal: { ...meal }, entry: logged.entry, days: logged.days, outcome: logged.outcome };
+  }
+
+  updateMeal(id: string, body: SavedMealEditBody): SavedMeal {
+    const meal = this.meal(id);
+    Object.assign(meal, { name: body.name, source: body.source, figures: body.figures });
+    for (const e of this.entries) {
+      if (e.savedMeal?.id !== id || e.status !== "planned" || e.date < this.today) continue;
+      e.basis = body.figures;
+      e.figures = entryFigures(body.figures, { per: "meal", count: e.count ?? 1 });
+    }
+    return { ...meal };
+  }
+
+  setMealArchived(id: string, archived: boolean): void {
+    this.meal(id).archived = archived;
+  }
+
+  deleteMeal(id: string): void {
+    this.meal(id);
+    this.meals.delete(id);
+  }
+
   /** A restore of an entry already back answers 200 replayed, as the server does. Past its window, 404. */
   restore(id: string) {
     const back = this.entries.find((x) => x.id === id);
@@ -121,9 +300,14 @@ export class FakeDays {
 
 /** A 404 as axios rejects it. */
 export function notFound(): Error {
-  return Object.assign(new Error("Request failed with status code 404"), {
+  return refused(404, "entry_not_found");
+}
+
+/** A refusal as axios rejects it. */
+export function refused(status: number, code: string): Error {
+  return Object.assign(new Error(`Request failed with status code ${status}`), {
     isAxiosError: true,
-    response: { status: 404, data: { code: "entry_not_found" } },
+    response: { status, data: { code } },
   });
 }
 
@@ -134,6 +318,23 @@ export function serve(server: FakeDays): void {
   jest.mocked(patchEntry).mockImplementation(async (id, patch) => server.patch(id, patch));
   jest.mocked(removeEntry).mockImplementation(async (id) => server.remove(id));
   jest.mocked(restoreEntry).mockImplementation(async (id) => server.restore(id));
+  // The log sheet's routes, where the suite mocks them.
+  if (jest.isMockFunction(addEntry)) jest.mocked(addEntry).mockImplementation(async (body) => server.add(body));
+  if (jest.isMockFunction(getRecents)) jest.mocked(getRecents).mockImplementation(async () => server.recentList());
+  if (jest.isMockFunction(getSavedMeals)) {
+    jest.mocked(getSavedMeals).mockImplementation(async (archived) => server.mealList(archived));
+    jest.mocked(createSavedMeal).mockImplementation(async (body) => server.createMeal(body).meal);
+    jest.mocked(saveAndLog).mockImplementation(async (body) => server.saveAndLog(body));
+    jest.mocked(updateSavedMeal).mockImplementation(async (id, body) => server.updateMeal(id, body));
+    jest.mocked(setSavedMealArchived).mockImplementation(async (id, archived) => server.setMealArchived(id, archived));
+    jest.mocked(deleteSavedMeal).mockImplementation(async (id) => server.deleteMeal(id));
+  }
+  if (jest.isMockFunction(getFavouriteFoods) && !jest.mocked(getFavouriteFoods).getMockImplementation()) {
+    jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
+  }
+  if (jest.isMockFunction(getOwnFoods) && !jest.mocked(getOwnFoods).getMockImplementation()) {
+    jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });
+  }
   jest
     .mocked(getTargets)
     .mockImplementation(async () =>
@@ -182,6 +383,30 @@ export function rowNames(): string[] {
   return [...document.querySelectorAll<HTMLElement>("li[data-entry-id]")].map(
     (li) => within(li).getByRole("button", { name: /kcal/ }).querySelector(".line-clamp-2")!.textContent ?? "",
   );
+}
+
+/**
+ * Records every toast as it appears, its text and its element, until `stop`.
+ * Under load, rendering many rows can take longer than a toast stays on
+ * screen, so a wait that reads the live toast can miss one that came and went.
+ */
+export function recordToasts(): { shown: string[]; elements: HTMLElement[]; stop: () => void } {
+  const shown: string[] = [];
+  const elements: HTMLElement[] = [];
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        const added = node.matches("[data-toast]") ? [node] : [...node.querySelectorAll<HTMLElement>("[data-toast]")];
+        for (const toast of added) {
+          shown.push(toast.textContent ?? "");
+          elements.push(toast);
+        }
+      }
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+  return { shown, elements, stop: () => observer.disconnect() };
 }
 
 /** The toasts in the DOM, closing ones included. */

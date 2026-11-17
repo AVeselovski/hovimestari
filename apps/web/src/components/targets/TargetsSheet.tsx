@@ -1,7 +1,7 @@
 "use client";
 
 import { focusField } from "@/components/form/focus";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
 import { labelClass } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
@@ -111,7 +111,7 @@ export function TargetsSheet({
   const [values, setValues] = useState(EMPTY_TARGET_FIELDS);
   const [fieldErrors, setFieldErrors] = useState<TargetFieldErrors>({});
   const [dateError, setDateError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify([date, values]), true);
 
@@ -185,7 +185,7 @@ export function TargetsSheet({
         setDateError(errors.forError(err));
         focusField(dateId);
       } else {
-        setFormError(errors.forError(err));
+        setFormError({ line: errors.forError(err), cause: err });
       }
       setSubmitting(false);
       return;

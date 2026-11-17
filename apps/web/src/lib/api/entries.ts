@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type {
+  AddEntryBody,
   EntryPatchBody,
   EntryRemoveResult,
   EntryStatus,
@@ -32,5 +33,15 @@ export async function removeEntry(id: string): Promise<EntryRemoveResult> {
 /** `POST /entries/:id/restore`: brings a removed entry back exactly as it was. Answers 200 when it is already back. */
 export async function restoreEntry(id: string): Promise<EntryWriteResult> {
   const res = await api.post<EntryWriteResult>(`/entries/${id}/restore`);
+  return res.data;
+}
+
+/**
+ * `POST /entries`: adds an entry with the id the app chose. Sent again with
+ * the same id, it adds nothing and answers the first entry with `outcome:
+ * "replayed"`, or no entry when that one was removed since.
+ */
+export async function addEntry(body: AddEntryBody): Promise<EntryWriteResult> {
+  const res = await api.post<EntryWriteResult>("/entries", body);
   return res.data;
 }

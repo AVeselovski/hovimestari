@@ -3,7 +3,7 @@
 import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
 import { firstIssues, passwordFieldError } from "@/components/form/issues";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
 import { addPassword } from "@/lib/api/auth";
@@ -29,7 +29,7 @@ export function AddPasswordSheet({
 
   const [password, setPassword] = useState("");
   const [fieldError, setFieldError] = useState<string | undefined>(undefined);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(password, true);
 
@@ -52,7 +52,7 @@ export function AddPasswordSheet({
         setFieldError(errors.forCode(onField));
         focusField(passwordId);
       } else {
-        setFormError(errors.forError(err));
+        setFormError({ line: errors.forError(err), cause: err });
       }
       setSubmitting(false);
       return;

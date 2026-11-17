@@ -16,14 +16,34 @@ import type { Entry } from "@hovimestari/types";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import { EntryList } from "../EntryList";
-import { DayHarness, FakeDays, liveToast, renderDay, rowNames, rowOf, seededClient, serve } from "./harness";
+import {
+  DayHarness,
+  FakeDays,
+  liveToast,
+  recordToasts,
+  renderDay,
+  rowNames,
+  rowOf,
+  seededClient,
+  serve,
+} from "./harness";
 import { TODAY, estimateEntry, foodEntry } from "./support";
 
 // The Day tab's writes and undos where they fail, overlap or are held.
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/entries", () => ({
+  addEntry: jest.fn(),
   setEntriesStatus: jest.fn(),
   patchEntry: jest.fn(),
   removeEntry: jest.fn(),
@@ -284,18 +304,26 @@ describe("DayTab, Mark all eaten that fails partway", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mark all eaten" }));
     await waitFor(() => expect(liveToast()).toHaveTextContent("Could not confirm."));
     const ids = planned.map((e) => e.id);
-    pressWithPointer(within(liveToast()).getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(liveToast()).toHaveTextContent("Marked 250 entries eaten."));
+    // Recorded as it appears: under load, rendering 250 rows can take longer than a toast stays on screen.
+    const toasts = recordToasts();
+    try {
+      pressWithPointer(within(liveToast()).getByRole("button", { name: "Try again" }));
+      await waitFor(() => expect(toasts.shown.at(-1)).toContain("Marked 250 entries eaten."), { timeout: 30_000 });
+    } finally {
+      toasts.stop();
+    }
+    const success = toasts.elements.at(-1)!;
     const sent = jest.mocked(setEntriesStatus).mock.calls.map(([chunk]) => chunk);
     expect(sent).toEqual([ids.slice(0, 100), ids.slice(100, 200), ids.slice(100, 200), ids.slice(200)]);
     // The success's Undo covers every changed id, the first chunk's included.
-    pressWithPointer(within(liveToast()).getByRole("button", { name: "Undo" }));
+    pressWithPointer(within(success).getByRole("button", { name: "Undo", hidden: true }));
     await waitFor(() => expect(document.querySelectorAll('[data-mark="button"]')).toHaveLength(250), {
       timeout: 10_000,
     });
     const back = jest.mocked(setEntriesStatus).mock.calls.filter(([, status]) => status === "planned");
     expect(back.flatMap(([chunk]) => chunk)).toEqual(ids);
-  }, 30_000);
+    // 250 rows render four times over: about 6.5 s alone, several times that on a loaded machine.
+  }, 90_000);
 });
 
 describe("DayTab while the app asks for today", () => {
@@ -336,6 +364,8 @@ describe("DayTab while the app asks for today", () => {
         </QueryClientProvider>
       ),
     });
+    // The first targets read answers before the ask starts: an ask that joined it would end with its answer.
+    await waitFor(() => expect(client.isFetching()).toBe(0));
     holdToday();
     await waitFor(() => expect(result.current.holding).toBe(true));
     const quark = server.entries[0];
@@ -409,6 +439,9 @@ describe("EntryList while the app asks for today", () => {
       focusDone: jest.fn(),
       markOne: jest.fn().mockResolvedValue(false),
       markAll: jest.fn().mockResolvedValue(false),
+      add: jest.fn(),
+      saveAndLog: jest.fn(),
+      withdrawAdd: jest.fn(),
       save: jest.fn(),
       remove: jest.fn(),
     };

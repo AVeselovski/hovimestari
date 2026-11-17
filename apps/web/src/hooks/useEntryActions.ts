@@ -11,10 +11,21 @@ import { getErrorCode, getErrorStatus } from "@/lib/errors";
 import { afterEntryWrite, beginEntryWrite, zoneEpoch } from "@/lib/invalidation";
 import { dayLabel, formatDayShort } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
-import { MAX_ENTRY_BATCH, type Day, type Entry, type EntryPatchBody, type EntryStatus } from "@hovimestari/types";
+import type { Day, Entry, EntryPatchBody, EntryStatus } from "@hovimestari/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  chunksOf,
+  focusRow,
+  OfflineError,
+  unconfirmed,
+  type EntryActions,
+  type FocusRequest,
+  type SheetOutcome,
+  type UndoOptions,
+} from "./entryActions";
+import { useAddActions } from "./useAddActions";
 
 // ---------------------------------------------------------------------------
 // useEntryActions: every write the Day tab makes to an entry, and each one's
@@ -22,6 +33,9 @@ import { useCallback, useMemo, useRef, useState } from "react";
 // puts the days it answered in the cache (`afterEntryWrite`) and shows the
 // toast with the exact inverse as Undo.
 //
+// - An add (the log sheet's "+", Log, an estimate, and Save and log) throws
+//   on a failure, so the sheet shows it in its own status or refusal line.
+//   It answers `announce` instead of showing its toast (`useAddActions`).
 // - One-tap writes on the page (mark one, mark all) report a failure in the
 //   toast: "Could not confirm…" with Try again, which resends the same
 //   request (a status change sets a state, so a repeat is harmless).
@@ -53,75 +67,17 @@ import { useCallback, useMemo, useRef, useState } from "react";
 //   stands.
 // ---------------------------------------------------------------------------
 
-/** Thrown by a sheet's write that was not sent, because the device is known to be offline. */
-export class OfflineError extends Error {
-  constructor() {
-    super("offline");
-    this.name = "OfflineError";
-  }
-}
-
-/**
- * How a sheet's write ended: done; the entry was no longer there and the
- * sheet closes; or held, sent nothing because the app is asking for today,
- * and the sheet stays as it is.
- */
-export type SheetOutcome = "done" | "gone" | "held";
-
-/** A row to focus, once it is on screen. `n` tells two requests for one row apart. */
-export interface FocusRequest {
-  id: string;
-  n: number;
-}
-
-/** Options for an undo. */
-export interface UndoOptions {
-  /** A 404 counts as undone, such as a DELETE undoing an add whose entry is already gone. */
-  goneIsDone?: boolean;
-  /** The row to focus once the undo is on screen, when it was pressed from the keyboard. */
-  focusId?: string;
-  fromKeyboard?: boolean;
-}
-
-export interface EntryActions {
-  /** Writes wait: the app is asking the server for today. */
-  holding: boolean;
-  /** The entries whose mark is being sent. */
-  busyIds: ReadonlySet<string>;
-  /** The row an Undo from the keyboard asks to focus. */
-  focusRequest: FocusRequest | null;
-  /** The row took the focus request `n`: it is not used again. */
-  focusDone: (n: number) => void;
-  /** Marks one entry eaten. Answers whether it was marked. */
-  markOne: (entry: Entry) => Promise<boolean>;
-  /** Marks every listed entry eaten, in chunks of 100 sent one after another, with one toast. */
-  markAll: (entries: readonly Entry[]) => Promise<boolean>;
-  /** Saves the sheet's changes. `onAnswered` runs once the server has answered, before the cache changes. */
-  save: (before: Entry, patch: EntryPatchBody, onAnswered?: () => void) => Promise<SheetOutcome>;
-  remove: (entry: Entry, onAnswered?: () => void) => Promise<SheetOutcome>;
-}
-
-/** `ids` in chunks of at most `MAX_ENTRY_BATCH`. */
-function chunksOf(ids: readonly string[]): string[][] {
-  const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += MAX_ENTRY_BATCH) chunks.push(ids.slice(i, i + MAX_ENTRY_BATCH));
-  return chunks;
-}
-
-/** Focuses the main button of the row for `id`, when it is on screen. Answers whether it did. */
-function focusRow(id: string): boolean {
-  const row = [...document.querySelectorAll<HTMLElement>("li[data-entry-id]")].find((li) => li.dataset.entryId === id);
-  const main = row?.querySelector<HTMLElement>('[data-row-action="open"]');
-  if (!main) return false;
-  main.focus();
-  return document.activeElement === main;
-}
-
-/** A failure the request may have survived: no answer, a timeout or a server fault. */
-function unconfirmed(err: unknown): boolean {
-  const status = getErrorStatus(err);
-  return getErrorCode(err) === "server_unreachable" || status === undefined || status >= 500;
-}
+export { OfflineError } from "./entryActions";
+export type {
+  AddDone,
+  AddRequest,
+  EntryActions,
+  FocusRequest,
+  SaveAndLogDone,
+  SaveAndLogRequest,
+  SheetOutcome,
+  UndoOptions,
+} from "./entryActions";
 
 export function useEntryActions(shownDate: string | null): EntryActions {
   const client = useQueryClient();
@@ -422,8 +378,20 @@ export function useEntryActions(shownDate: string | null): EntryActions {
     [apply, counted, gone, ready, t, toast, undo],
   );
 
+  const { add, saveAndLog, withdrawAdd } = useAddActions({
+    client,
+    toast,
+    t,
+    live,
+    ready,
+    counted,
+    apply,
+    undo,
+    oneTapFailed,
+  });
+
   return useMemo(
-    () => ({ holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove }),
-    [holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove],
+    () => ({ holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove, add, saveAndLog, withdrawAdd }),
+    [holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove, add, saveAndLog, withdrawAdd],
   );
 }

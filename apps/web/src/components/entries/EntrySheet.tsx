@@ -2,14 +2,15 @@
 
 import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
-import { FormSheet, type FormSheetCallerProps } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
 import { labelClass, noticeClass } from "@/components/ui/styles";
-import { OfflineError, type EntryActions } from "@/hooks/useEntryActions";
+import type { EntryActions } from "@/hooks/useEntryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
+import { useFailureLine } from "@/hooks/useFailureLine";
 import { useFormDirty } from "@/hooks/useFormDirty";
 import { useToday } from "@/hooks/useToday";
-import { getErrorCode, getErrorStatus } from "@/lib/errors";
+import { getErrorCode } from "@/lib/errors";
 import { isIsoDate } from "@/lib/localDate";
 import { foodDetailQuery } from "@/lib/queryOptions";
 import type { Entry, ErrorCode } from "@hovimestari/types";
@@ -53,16 +54,6 @@ export interface EntrySheetProps extends FormSheetCallerProps {
   focusAfterRemove: () => HTMLElement | null;
 }
 
-type T = ReturnType<typeof useTranslations<"entries.sheet">>;
-
-/** The line under the form for a failure no field owns. */
-function formErrorOf(t: T, errorCopy: ReturnType<typeof useErrorCopy>, err: unknown): string {
-  if (err instanceof OfflineError) return t("offline");
-  const status = getErrorStatus(err);
-  if (getErrorCode(err) === "server_unreachable" || status === undefined || status >= 500) return t("unconfirmed");
-  return errorCopy.forError(err);
-}
-
 /** Which field an answered error code belongs to, if any. */
 function fieldOfCode(code: ErrorCode | undefined): EntryField | null {
   switch (code) {
@@ -93,13 +84,14 @@ export function EntrySheet({
   const t = useTranslations("entries.sheet");
   const tAmount = useTranslations("entries.amount");
   const errorCopy = useErrorCopy();
+  const failureLine = useFailureLine("form");
   const { today } = useToday();
   const id = useId();
   const chipLabel = usePortionChipLabel();
 
   const [fields, setFields] = useState<EntryFields>(() => fieldsOf(entry));
   const [errors, setErrors] = useState<EntryFieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormFailure | null>(null);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify(fields), true);
@@ -196,7 +188,7 @@ export function EntrySheet({
         setErrors({ [field]: code });
         focusField(fieldId(field));
       } else {
-        setFormError(formErrorOf(t, errorCopy, err));
+        setFormError({ line: failureLine(err), cause: err });
       }
       setSaving(false);
       return;
@@ -222,7 +214,7 @@ export function EntrySheet({
       // The sheet closes as the answer arrives, before the row leaves the page.
       outcome = await actions.remove(entry, onClose);
     } catch (err) {
-      setFormError(formErrorOf(t, errorCopy, err));
+      setFormError({ line: failureLine(err), cause: err });
       setRemoving(false);
       return;
     }
@@ -245,7 +237,8 @@ export function EntrySheet({
       formError={formError}
       idle={t("save")}
       busy={saving ? t("saving") : t("save")}
-      footerStart={{ label: t("remove"), onPress: () => void handleRemove() }}
+      // Nobody removes an entry while typing: the row gives its room to the keyboard.
+      footerStart={{ label: t("remove"), onPress: () => void handleRemove(), yieldsToKeyboard: true }}
       // A long name keeps two lines, so the fields under the title stay in reach.
       sheet={{ panelClassName: "md:max-w-md", titleClassName: "line-clamp-2 break-words" }}
     >

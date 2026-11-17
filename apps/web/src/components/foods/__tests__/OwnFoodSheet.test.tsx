@@ -152,6 +152,24 @@ describe("OwnFoodSheet", () => {
     expect(input("Barcode (optional)")).toHaveFocus();
   });
 
+  it("says the device is offline when a save fails offline, as every form sheet does", async () => {
+    Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
+    try {
+      // What the browser gives a request with no network: no answer at all.
+      jest
+        .mocked(createFood)
+        .mockRejectedValue(Object.assign(new Error("Network Error"), { isAxiosError: true, code: "ERR_NETWORK" }));
+      renderSheet();
+      fillValid();
+      save();
+      await waitFor(() =>
+        expect(within(dialog()).getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection."),
+      );
+    } finally {
+      Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+    }
+  });
+
   it("opens an edit with what was saved, keeps an untouched three-decimal value as saved, and sends the change", async () => {
     renderSheet({ food: saved });
     expect(screen.getByRole("dialog", { name: "Edit food" })).toBeInTheDocument();

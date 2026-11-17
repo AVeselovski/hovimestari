@@ -130,7 +130,10 @@ describe("ChangePasswordSheet", () => {
     type("Current password", testPassword());
     type("New password", testPassword());
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Too many attempts. Try again in 15 minutes.");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("Too many attempts. Try again in 15 minutes."),
+    );
   });
 });
 

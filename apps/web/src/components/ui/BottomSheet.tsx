@@ -36,6 +36,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { closingBackdropHandlers, closingBackdropStyle, useClosingPresses } from "./closingSheet";
 
 // ---------------------------------------------------------------------------
 // BottomSheet: the app's one sheet primitive, on Base UI's Drawer. Lifted
@@ -49,7 +50,7 @@ import {
 // utilities in globals.css.
 //
 // Base UI owns the swipe, the focus trap, Escape and the outside press. This
-// component owns five things Base UI does not do the way this app needs:
+// component owns five things Base UI does not do the way this app needs (presses while closing: closingSheet.ts):
 //
 // 1. The entry animation. Base UI plays an entry only for a root that
 //    mounted closed and then opened; most callers mount this component
@@ -94,19 +95,15 @@ import {
 //    back navigates. Finanssi's owner kept that, and it is kept here.
 //
 // 5. A tap outside during the entry. Until the sheet has finished sliding in,
-//    an outside press is refused: a second tap on the control that opened it
-//    (a double tap on a settings button) lands on the empty area of the sheet's
-//    viewport already covering that control, and must not close a sheet the
-//    reader has not seen yet. Escape and a swipe are not affected. A refused
-//    outside press leaves focus in the sheet: on the field it was in after a
-//    mouse press, on the sheet itself after a touch (`useEntryPressGuard`).
+//    an outside press is refused: the second tap of a double tap on its opener
+//    must not close a sheet the reader has not seen yet. Escape and a swipe
+//    are not affected. A refused press leaves focus in the sheet
+//    (`useEntryPressGuard`).
 //
 // A sheet that is mostly typed into passes `keyboardAware`, and is then
-// wrapped in Base UI's `Drawer.VirtualKeyboardProvider`. When a software
-// keyboard opens over a field in the sheet, the provider scrolls the body so
-// the field stays in view and sets `--drawer-keyboard-inset` to the
-// keyboard's height; the footer's bottom padding takes the larger of that and
-// the home indicator, so the actions ride above the keyboard (`sheetFooter`).
+// wrapped in Base UI's `Drawer.VirtualKeyboardProvider`, which keeps the
+// focused field in view and sets `--drawer-keyboard-inset`, so the footer
+// rides above the keyboard (`sheetFooter`).
 // It also takes over every tap on a text field in the sheet and focuses the
 // field inside the tap itself, which is what lets iOS raise the keyboard,
 // with a trick that keeps WebKit from scrolling to the field as it focuses;
@@ -161,8 +158,7 @@ import {
 //   control that opened this one is gone.
 //
 // When both close in one update, React runs this sheet's cleanup before the
-// one underneath, so focus goes into the sheet underneath first and then on
-// to where that sheet returns it.
+// one underneath, so focus goes into the sheet underneath, then where it returns it.
 // ---------------------------------------------------------------------------
 
 interface SheetStack {
@@ -267,7 +263,7 @@ interface BottomSheetBaseProps {
   /**
    * `"auto"` (default): the sheet's height follows its content. `"tall"`: one
    * fixed height that never follows its content, nearly the whole screen on a
-   * phone and `min(44rem, 85dvh)` as the centred panel, so content that
+   * phone and `min(48rem, 100dvh - 1rem)` as the centred panel, so content that
    * changes under the thumb (a list of search results) never moves the
    * sheet's top edge or anything in its fixed header.
    */
@@ -389,8 +385,9 @@ export function BottomSheet({
   // Base UI's keyboard handling, only for a sheet that asks for it.
   const KeyboardScope = keyboardAware ? Drawer.VirtualKeyboardProvider : Fragment;
 
-  // The tap outside during the entry (point 5 above).
+  // The tap outside during the entry (point 5 above), and the presses after a close.
   const entryGuard = useEntryPressGuard(open, popupRef);
+  const closingPresses = useClosingPresses(open);
 
   function handleOpenChange(nextOpen: boolean, details: Drawer.Root.ChangeEventDetails): void {
     if (nextOpen) return;
@@ -425,6 +422,8 @@ export function BottomSheet({
               data-sheet-stacked={nested ? "" : undefined}
               aria-hidden="true"
               className={sheetBackdrop}
+              style={closingBackdropStyle}
+              {...closingBackdropHandlers}
             />
             <Drawer.Viewport className={anchored.pinned ? sheetViewportAnchored : sheetViewport}>
               <Drawer.Popup
@@ -438,6 +437,7 @@ export function BottomSheet({
                 initialFocus
                 finalFocus={false}
                 data-sheet-size={size}
+                {...closingPresses}
                 className={`${nested ? sheetPopupStacked : sheetPopup}${size === "tall" ? ` ${sheetPopupTall}` : ""} ${panelClassName}`}
                 style={anchored.style}
               >

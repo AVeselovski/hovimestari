@@ -3,7 +3,7 @@ import { SESSION_MARKER_KEY } from "@/lib/sessionMarker";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { TEST_USER, testPassword } from "../../__tests__/helpers/auth";
-import { AuthProvider, useAuth, type AuthContextValue, type AuthStatus } from "../AuthContext";
+import { AuthProvider, RETRY_DELAYS_MS, useAuth, type AuthContextValue, type AuthStatus } from "../AuthContext";
 
 // Changing the password ends every session on the server, and the sheet then
 // signs this device straight back in. A renewal sent with the old cookie may
@@ -284,6 +284,28 @@ describe.each([
   // Offline: the renewal that was out answers "unreachable", but the sign-in
   // discarded it, so nothing scheduled the next try. The failed sign-in renews.
   it("after a failed sign-in, renews again in place of the renewal it discarded", async () => {
+    // Each backoff timer that fires records how many renewals had gone out by then, so the
+    // third renewal is known to come before any backoff, however slow the machine is.
+    const firedAt: number[] = [];
+    const realSetTimeout = globalThis.setTimeout;
+    const timers = jest.spyOn(globalThis, "setTimeout").mockImplementation(((
+      callback: (...args: unknown[]) => void,
+      ms?: number,
+      ...args: unknown[]
+    ) =>
+      realSetTimeout(() => {
+        if ((ms ?? 0) >= RETRY_DELAYS_MS[0]) firedAt.push(refreshes());
+        callback(...args);
+      }, ms)) as typeof setTimeout);
+    try {
+      await failedSignInRenewsAgain();
+    } finally {
+      timers.mockRestore();
+    }
+    expect(firedAt.filter((n) => n < 3)).toEqual([]);
+  }, 30_000);
+
+  async function failedSignInRenewsAgain(): Promise<void> {
     const tab = await openTab();
     const old = await renewalHeldOpen(tab);
     overrides.set(
@@ -300,11 +322,11 @@ describe.each([
     await act(() => signingIn.catch(() => undefined));
     expect(await old.renewed).toBe(false);
 
-    // Well before the first backoff step (2 seconds).
-    await waitFor(() => expect(refreshes()).toBe(3), { timeout: 500 });
+    // Waits on the renewal itself. That no backoff step came first is checked by the caller.
+    await waitFor(() => expect(refreshes()).toBe(3), { timeout: 20_000 });
     await pause();
     expectStayedSignedIn(tab);
-  });
+  }
 });
 
 describe("another tab during the password change", () => {

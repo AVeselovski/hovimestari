@@ -10,6 +10,15 @@ import { detailOf, fineliPortion, ownFood, ownPortion } from "./support";
 // put it there.
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => "/" }));
+jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/savedMeals", () => ({
+  getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
+  createSavedMeal: jest.fn(),
+  saveAndLog: jest.fn(),
+  updateSavedMeal: jest.fn(),
+  setSavedMealArchived: jest.fn(),
+  deleteSavedMeal: jest.fn(),
+}));
 jest.mock("@/lib/api/foods", () => ({
   searchFoods: jest.fn(),
   getFavouriteFoods: jest.fn(),

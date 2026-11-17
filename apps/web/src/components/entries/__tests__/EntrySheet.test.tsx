@@ -5,7 +5,7 @@ import { detailOf, fineliFood, ownPortion } from "@/components/foods/__tests__/s
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { getFood } from "@/lib/api/foods";
 import type { Entry, FoodDetail } from "@hovimestari/types";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { EntrySheet } from "../EntrySheet";
 
 jest.mock("@/lib/api/foods", () => ({ getFood: jest.fn() }));
@@ -20,6 +20,9 @@ function fakeActions(overrides: Partial<EntryActions> = {}): EntryActions {
     markAll: jest.fn(),
     save: jest.fn().mockResolvedValue("done"),
     remove: jest.fn().mockResolvedValue("done"),
+    add: jest.fn(),
+    saveAndLog: jest.fn(),
+    withdrawAdd: jest.fn(),
     ...overrides,
   };
 }
@@ -85,6 +88,12 @@ describe("EntrySheet", () => {
     await act(async () => held.resolve("done"));
   });
 
+  it("gives Remove entry's row to the keyboard while it is open, so Save stays above it", () => {
+    renderSheet();
+    const remove = within(dialog()).getByRole("button", { name: "Remove entry" });
+    expect(remove.closest(".keyboard-yields")).not.toBeNull();
+  });
+
   it("opens on the entry's own portion chip and count, and the food's detail answering later moves neither", async () => {
     const food = fineliFood("Milk");
     const glass = ownPortion("Glass", 200);
@@ -121,9 +130,13 @@ describe("EntrySheet", () => {
       ["Glass · 200\u00a0g", "true"],
     ]);
     await act(async () => detail.resolve(detailOf(food, { portions: [cup, glass] })));
-    const after = within(sheet)
-      .getAllByRole("radio")
-      .filter((r) => r.hasAttribute("data-unit"));
+    const chips = (): HTMLElement[] =>
+      within(sheet)
+        .getAllByRole("radio")
+        .filter((r) => r.hasAttribute("data-unit"));
+    // TanStack tells the sheet on a timer, which a busy machine runs late.
+    await waitFor(() => expect(chips()).toHaveLength(3));
+    const after = chips();
     expect(after.map((r) => [r.textContent, r.getAttribute("aria-checked")])).toEqual([
       ["g", "false"],
       ["Glass · 200\u00a0g", "true"],

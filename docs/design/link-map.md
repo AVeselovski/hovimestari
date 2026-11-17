@@ -28,50 +28,58 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## The app
 
-| Concept                                          | Home                                                                    | Heading                                          |
-| ------------------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------ |
-| theme, light and dark, following the device      | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
-| the pre-paint theme script                       | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
-| the browser chrome colour, `theme-color`         | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
-| installing the app, home screen                  | `features/installable-app.md#installing`                                | `### Installing`                                 |
-| the web manifest                                 | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
-| offline, the offline line                        | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
-| the service worker, cached pages                 | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
-| safe areas, insets                               | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
-| the app shell, tabs, tab bar, side rail          | `app/shell.md`                                                          | Doc                                              |
-| server fault, Something went wrong, Try again    | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
-| the known-session flag, offline sign-in side     | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
-| the shell's layout, one scroll container         | `app/shell.md#layout`                                                   | `### Layout`                                     |
-| design tokens, colours                           | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
-| the accent, what it means                        | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
-| macro hues, energy, protein, carbohydrates, fat  | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
-| contrast                                         | `app/colors.md#contrast`                                                | `### Contrast`                                   |
-| type, typefaces, type scale                      | `app/colors.md#type`                                                    | `### Type`                                       |
-| motion tokens, sheet curve, reduced motion       | `app/colors.md#motion`                                                  | `### Motion`                                     |
-| z-index ladder, layers                           | `app/colors.md#layers`                                                  | `### Layers`                                     |
-| sheets and dialogs, swipe to close               | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
-| bottom sheet, confirm dialog, sheet conventions  | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
-| sign-in pages, guest pages                       | `app/auth.md`                                                           | Doc                                              |
-| settings, sign-in methods, account actions       | `app/settings.md`                                                       | Doc                                              |
-| first-run page                                   | `app/first-run.md`                                                      | Doc                                              |
-| number fields, date fields, parseDecimalInput    | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
-| targets sheet, change targets, remove a change   | `app/settings.md#targets`                                               | `### Targets`                                    |
-| food names setting, Finnish or English choice    | `app/settings.md#food-names`                                            | `### Food names`                                 |
-| food data credit in Settings, Fineli attribution | `app/settings.md#food-data`                                             | `### Food data`                                  |
-| Day tab, Search foods launcher, date bar         | `app/day.md`                                                            | Doc                                              |
-| the day summary, the gauge on screen             | `app/day.md#the-summary`                                                | `### The summary`                                |
-| the gauge's drawing, band, ticks, end-cap        | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
-| entry rows, mark eaten, Mark all eaten           | `app/day.md#the-entries`                                                | `### The entries`                                |
-| entry sheet                                      | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
-| toast, undo toast                                | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
-| the toast primitive, useToast                    | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
-| gauge colours, plan tints, target band           | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
-| food sheet, food search screen                   | `app/food-sheet.md`                                                     | Doc                                              |
-| food search results, browse lists, no results    | `app/food-sheet.md#the-search`                                          | `### The search`                                 |
-| food detail, per 100 g figures, favourite star   | `app/food-sheet.md#a-foods-detail`                                      | `### A food's detail`                            |
-| own-food sheet, add a food, edit food            | `app/food-sheet.md#adding-or-editing-your-own-food`                     | `### Adding or editing your own food`            |
-| portion sheet, add a portion                     | `app/food-sheet.md#portions-of-your-own`                                | `### Portions of your own`                       |
-| tall sheet, sheet with a fixed height            | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| Concept                                                 | Home                                                                    | Heading                                          |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
+| theme, light and dark, following the device             | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
+| the pre-paint theme script                              | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
+| the browser chrome colour, `theme-color`                | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
+| installing the app, home screen                         | `features/installable-app.md#installing`                                | `### Installing`                                 |
+| the web manifest                                        | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
+| offline, the offline line                               | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
+| the service worker, cached pages                        | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
+| safe areas, insets                                      | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
+| the app shell, tabs, tab bar, side rail                 | `app/shell.md`                                                          | Doc                                              |
+| server fault, Something went wrong, Try again           | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
+| the known-session flag, offline sign-in side            | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
+| the shell's layout, one scroll container                | `app/shell.md#layout`                                                   | `### Layout`                                     |
+| design tokens, colours                                  | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
+| the accent, what it means                               | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
+| macro hues, energy, protein, carbohydrates, fat         | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
+| contrast                                                | `app/colors.md#contrast`                                                | `### Contrast`                                   |
+| type, typefaces, type scale                             | `app/colors.md#type`                                                    | `### Type`                                       |
+| motion tokens, sheet curve, reduced motion              | `app/colors.md#motion`                                                  | `### Motion`                                     |
+| z-index ladder, layers                                  | `app/colors.md#layers`                                                  | `### Layers`                                     |
+| sheets and dialogs, swipe to close                      | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
+| bottom sheet, confirm dialog, sheet conventions         | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| sign-in pages, guest pages                              | `app/auth.md`                                                           | Doc                                              |
+| settings, sign-in methods, account actions              | `app/settings.md`                                                       | Doc                                              |
+| first-run page                                          | `app/first-run.md`                                                      | Doc                                              |
+| number fields, date fields, parseDecimalInput           | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
+| targets sheet, change targets, remove a change          | `app/settings.md#targets`                                               | `### Targets`                                    |
+| food names setting, Finnish or English choice           | `app/settings.md#food-names`                                            | `### Food names`                                 |
+| food data credit in Settings, Fineli attribution        | `app/settings.md#food-data`                                             | `### Food data`                                  |
+| Day tab, Log food launcher, date bar                    | `app/day.md`                                                            | Doc                                              |
+| the day summary, the gauge on screen                    | `app/day.md#the-summary`                                                | `### The summary`                                |
+| the gauge's drawing, band, ticks, end-cap               | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
+| entry rows, mark eaten, Mark all eaten                  | `app/day.md#the-entries`                                                | `### The entries`                                |
+| entry sheet                                             | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
+| toast, undo toast                                       | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
+| the toast primitive, useToast                           | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
+| gauge colours, plan tints, target band                  | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
+| log sheet page, food search screen                      | `app/log-sheet.md`                                                      | Doc                                              |
+| food search results, browse lists, no results           | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
+| food view, per 100 g figures, favourite star            | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
+| own-food sheet, add a food, edit food                   | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
+| portion sheet, add a portion                            | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
+| the log sheet's status line                             | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
+| "+", logging again on screen                            | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |
+| the log block, a food's log                             | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
+| meal view, edit meal, archive meal, delete meal         | `app/log-sheet.md#a-saved-meal`                                         | `### A saved meal`                               |
+| archived meals view, restore                            | `app/log-sheet.md#archived-meals`                                       | `### Archived meals`                             |
+| saved meal sheet, save and log, save meal               | `app/log-sheet.md#a-new-saved-meal`                                     | `### A new saved meal`                           |
+| estimate sheet, add an estimate                         | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |
+| closing sheet swallows presses, refused field into view | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| tall sheet, sheet with a fixed height                   | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 
 ## Targets
 
@@ -101,28 +109,34 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Days and logging
 
-| Concept                                    | Home                                                         | Heading                                |
-| ------------------------------------------ | ------------------------------------------------------------ | -------------------------------------- |
-| day, entry, food entry, saved meal entry   | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
-| planned and eaten, unmarked                | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
-| the two totals, eaten, with plan, rounding | `features/days.md#the-two-totals`                            | `### The two totals`                   |
-| position, distance, where a day stands     | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
-| figures that stay, basis, hidden source    | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
-| the week, a range of days                  | `features/days.md#the-week`                                  | `### The week`                         |
-| estimate                                   | `features/days.md#estimates`                                 | `### Estimates`                        |
-| the figure computation                     | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
-| adding, editing and moving an entry        | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
-| marking eaten, marking planned             | `features/quick-logging.md#marking-eaten`                    | `### Marking eaten`                    |
-| copying entries                            | `features/quick-logging.md#copying-entries`                  | `### Copying entries`                  |
-| recent items, the last amount              | `features/quick-logging.md#recent-items-and-the-last-amount` | `### Recent items and the last amount` |
-| logging again                              | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
-| client-chosen ids, replays                 | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
-| undo, removing and restoring an entry      | `features/quick-logging.md#undo`                             | `### Undo`                             |
-| without a connection, refused writes       | `features/quick-logging.md#without-a-connection`             | `### Without a connection`             |
-| web entry writes, counted writes, held     | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
-| user row lock, write races                 | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
-| saved meal, meal source                    | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
-| archiving and deleting a saved meal        | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |
+| Concept                                         | Home                                                         | Heading                                |
+| ----------------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| day, entry, food entry, saved meal entry        | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
+| planned and eaten, unmarked                     | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
+| the two totals, eaten, with plan, rounding      | `features/days.md#the-two-totals`                            | `### The two totals`                   |
+| position, distance, where a day stands          | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
+| figures that stay, basis, hidden source         | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
+| the week, a range of days                       | `features/days.md#the-week`                                  | `### The week`                         |
+| estimate                                        | `features/days.md#estimates`                                 | `### Estimates`                        |
+| the figure computation                          | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
+| adding, editing and moving an entry             | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
+| marking eaten, marking planned                  | `features/quick-logging.md#marking-eaten`                    | `### Marking eaten`                    |
+| copying entries                                 | `features/quick-logging.md#copying-entries`                  | `### Copying entries`                  |
+| recent items, the last amount                   | `features/quick-logging.md#recent-items-and-the-last-amount` | `### Recent items and the last amount` |
+| logging again                                   | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
+| client-chosen ids, replays                      | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
+| undo, removing and restoring an entry           | `features/quick-logging.md#undo`                             | `### Undo`                             |
+| without a connection, refused writes            | `features/quick-logging.md#without-a-connection`             | `### Without a connection`             |
+| web entry writes, counted writes, held          | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
+| the log sheet                                   | `features/quick-logging.md#the-log-sheet`                    | `### The log sheet`                    |
+| pending ids, one-tap adds                       | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
+| user row lock, write races                      | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
+| saved meal, meal source                         | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
+| a save that could not confirm, saved meal retry | `features/saved-meals.md#a-save-that-could-not-confirm`      | `### A save that could not confirm`    |
+| archiving and deleting a saved meal             | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |
+| source filter, finding a meal by its source     | `features/saved-meals.md#finding-a-meal-by-its-source`       | `### Finding a meal by its source`     |
+| saving and logging a meal, editing a meal       | `features/saved-meals.md#saving-and-logging-a-meal`          | `### Saving and logging a meal`        |
+| saved meal writes from the web, the meal cache  | `features/saved-meals.md#writes-from-the-web-app`            | `### Writes from the web app`          |
 
 ## Example area
 

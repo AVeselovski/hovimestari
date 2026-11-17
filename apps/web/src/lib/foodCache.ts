@@ -1,4 +1,4 @@
-import type { FavouriteFoodList, FoodDetail, FoodList, FoodSummary, Portion } from "@hovimestari/types";
+import type { FavouriteFoodList, FoodDetail, FoodList, FoodSummary, Portion, RecentList } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { foodSearchKey, queryKeys } from "./queryKeys";
 
@@ -32,12 +32,36 @@ function mapRows<L extends { foods: FoodSummary[] }>(
   return changed ? { ...list, foods } : list;
 }
 
-/** Edits the row of food `id` in every cached search, the own foods and the favourites. `null` drops it. */
+/** The recent items with each food item's food edited, in place. `null` drops the item. */
+function mapRecentFoods(
+  list: RecentList | undefined,
+  edit: (food: FoodSummary) => FoodSummary | null,
+): RecentList | undefined {
+  if (!list) return list;
+  const items: RecentList["items"] = [];
+  let changed = false;
+  for (const item of list.items) {
+    if (item.kind !== "food") {
+      items.push(item);
+      continue;
+    }
+    const food = edit(item.food);
+    if (food !== item.food) changed = true;
+    if (food !== null) items.push(food === item.food ? item : { ...item, food });
+  }
+  return changed ? { ...list, items } : list;
+}
+
+/**
+ * Edits the row of food `id` in every cached search, the own foods, the
+ * favourites and the recent items. `null` drops it.
+ */
 export function editRows(client: QueryClient, id: string, edit: <R extends FoodSummary>(row: R) => R | null): void {
   const at = <R extends FoodSummary>(row: R): R | null => (row.id === id ? edit(row) : row);
   client.setQueriesData<FoodList>({ queryKey: queryKeys.foodSearches() }, (l) => mapRows(l, at));
   client.setQueryData<FoodList>(queryKeys.foodOwn(), (l) => mapRows(l, at));
   client.setQueryData<FavouriteFoodList>(queryKeys.foodFavourites(), (l) => mapRows(l, at));
+  client.setQueryData<RecentList>(queryKeys.recents(), (l) => mapRecentFoods(l, at));
 }
 
 /** The user's own food as saved: its detail, and its row wherever a list holds it. */
@@ -79,8 +103,8 @@ function byName(a: { name: string | null; id: string }, b: { name: string | null
   return finnish.compare(x, y) || (x < y ? -1 : x > y ? 1 : 0) || (a.id < b.id ? -1 : 1);
 }
 
-/** `rows` with `row` put in, before the first row from `from` on that sorts after it. */
-function insertSorted<R extends { name: string | null; id: string }>(rows: R[], row: R, from = 0): R[] {
+/** `rows` with `row` put in, before the first row from `from` on that sorts after it, in the server's Finnish order. */
+export function insertSorted<R extends { name: string | null; id: string }>(rows: R[], row: R, from = 0): R[] {
   const after = rows.findIndex((r, i) => i >= from && byName(row, r) < 0);
   const next = [...rows];
   next.splice(after === -1 ? rows.length : after, 0, row);
@@ -125,7 +149,7 @@ export function dropFood(client: QueryClient, id: string): void {
 
 /**
  * A favourite mark, in place. The star flips in the detail and in every row
- * that shows the food, and no list is put in a new order, so the list under
+ * that shows the food, the recent items included, and no list is put in a new order, so the list under
  * the thumb never moves. The favourites list gains the food at its top,
  * newest first, or loses it. `previous` puts back a row at the place it held.
  */
@@ -142,6 +166,9 @@ export function putFavourite(
   );
   client.setQueryData<FoodList>(queryKeys.foodOwn(), (l) =>
     mapRows(l, (row) => (row.id === id && row.isFavourite !== on ? { ...row, isFavourite: on } : row)),
+  );
+  client.setQueryData<RecentList>(queryKeys.recents(), (l) =>
+    mapRecentFoods(l, (row) => (row.id === id && row.isFavourite !== on ? { ...row, isFavourite: on } : row)),
   );
   client.setQueryData<FavouriteFoodList>(queryKeys.foodFavourites(), (l) => {
     if (!l) return l;

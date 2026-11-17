@@ -121,7 +121,16 @@ export function describeFormSheetContract(c: FormSheetContract): void {
       expect(body).toContainElement(save.form);
       expect(save).toHaveAttribute("form", save.form!.id);
       // Two equal halves below `md`, the dialog's right-aligned row at `md`+.
-      expect(save.parentElement).toHaveClass("grid", "grid-cols-2", "md:flex", "md:justify-end", "md:gap-3");
+      // Cancel and Save are one group (`contents` below md, so they stay the row's two cells).
+      expect(save.parentElement).toHaveClass("contents", "md:flex");
+      expect(save.parentElement).toContainElement(cancel);
+      expect(save.parentElement!.parentElement).toHaveClass(
+        "grid",
+        "grid-cols-2",
+        "md:flex",
+        "md:justify-end",
+        "md:gap-3",
+      );
       expect(save).toHaveClass("max-md:min-h-11");
       expect(cancel).toHaveClass("max-md:min-h-11");
     });

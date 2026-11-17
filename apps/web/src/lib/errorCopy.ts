@@ -14,13 +14,6 @@ export const CODES_WITHOUT_COPY = [
   // Only the app itself sends a time zone, from the device, on an app start
   // nobody asked to see. A refusal is dropped quietly (lib/deviceTimeZone.ts).
   "invalid_time_zone",
-  // Adding entries and saved meals: these get their copy with the log sheet,
-  // the first screen to send these requests. Until then no screen can
-  // receive them.
-  "entry_id_taken",
-  "saved_meal_not_found",
-  "saved_meal_id_taken",
-  "meal_source_too_long",
 ] as const satisfies readonly ErrorCode[];
 
 type CodeWithoutCopy = (typeof CODES_WITHOUT_COPY)[number];

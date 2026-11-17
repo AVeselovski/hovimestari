@@ -70,7 +70,8 @@ describe("ResetPasswordPage", () => {
     const password = testPassword();
     render(<ResetPasswordPage />);
     submit(password, password);
-    expect(await screen.findByRole("alert")).toHaveTextContent("invalid or has expired");
+    // The alert line is on the page before its text: wait for the text itself.
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("invalid or has expired"));
   });
 
   // The reset page sits outside the guest guard, so a link opened in a
