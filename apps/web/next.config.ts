@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   // `next dev` would otherwise write an AGENTS.md into apps/web on every
   // start. The repository's own guidance lives in CLAUDE.md and the skills.
   agentRules: false,
+  // No development badge in the corner. On a phone it sits over the tab bar,
+  // and the error overlay shows without it.
+  devIndicators: false,
   // `next dev` serves its own resources (hot reload, dev chunks) only to
   // localhost. A phone on the same network loads the page from this
   // machine's address, so that address must be listed, or the page never

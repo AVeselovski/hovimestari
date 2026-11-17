@@ -64,7 +64,7 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    hostname -I
    ```
 
-   In `apps/web/.env.local`, set `NEXT_PUBLIC_API_URL` to `http://<address>:3001/api/v1` and `NEXT_DEV_ORIGINS` to `<address>`. In `apps/backend/.env`, add `http://<address>:3000` to `CORS_ORIGIN`, comma separated after the localhost origin. Open `http://<address>:3000` on the phone. The laptop keeps working at both addresses. Without `NEXT_DEV_ORIGINS`, the development server refuses the phone its own resources and the page stays on its loading screen.
+   In `apps/web/.env.local`, set `NEXT_PUBLIC_API_URL` to `http://<address>:3001/api/v1` and `NEXT_DEV_ORIGINS` to `<address>`. In `apps/backend/.env`, add `http://<address>:3000` to `CORS_ORIGIN`, comma separated after the localhost origin. Open `http://<address>:3000` on the phone. The laptop keeps working at both addresses. The query devtools' button shows on the laptop only, from the `md` breakpoint, so nothing covers the tab bar on the phone. Without `NEXT_DEV_ORIGINS`, the development server refuses the phone its own resources and the page stays on its loading screen.
 
 10. Run every check CI runs.
 
