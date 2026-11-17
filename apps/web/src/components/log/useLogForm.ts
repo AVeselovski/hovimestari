@@ -191,7 +191,11 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
     setError(undefined);
   }
 
-  /** How the amount reads in the toast. */
+  /**
+   * How the amount reads in the toast. It reads the unit and the shown amount as they are when it
+   * is called, so a caller that needs the label later (the toast's "Log another") keeps the string
+   * it got at the press and never calls this again.
+   */
   function amountLabel(n: number): string {
     if (target?.kind === "meal") return tRow("meals", { count: n });
     if (unit === GRAMS) return tRow("grams", { grams: formatGrams(n) });
