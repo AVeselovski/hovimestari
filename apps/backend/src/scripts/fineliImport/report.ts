@@ -42,6 +42,7 @@ export function formatReport(dir: string, release: Release, result: ImportResult
     `Portions: ${p.inserted} added, ${p.updated} changed, ${p.unchanged} unchanged, ${p.removed} removed`,
     ...Object.entries(release.skippedPortions).map(([reason, count]) => `  Left out, ${reason}: ${count}`),
     "",
+    `Names changed in case only: ${result.namesChangedInCaseOnly}`,
     result.renamed.length === 0
       ? "Renamed under the same id: none"
       : `Renamed under the same id: ${result.renamed.length}. Check that each is still the same food.`,
