@@ -28,9 +28,9 @@ A change can be removed, except the last one. A user who has targets always keep
 
 The targets sheet sets new targets or edits a change the user already has.
 
-New targets start empty. "Change targets" and the first run open with their four fields empty. On "Change targets" they stay empty whatever date is picked, a date that already has a change of its own included. The title then names that change, so the user knows a save replaces it. Save on an empty field shows "Enter a number." under its pair.
+New targets start empty. "Change targets" and the first run open with their four fields empty. On "Change targets" they stay empty whatever date is picked, a date that already has a change of its own included. The line under the fields then says first that a save replaces that change. Save on an empty field shows "Enter a number." under its pair.
 
-An edited change starts with its own targets. A change opened from the list shows its four numbers as stored, in the form the fields read back, such as "142,5" on a Finnish phone. Its date is fixed. The numbers are read once, as the sheet opens, so a save from another device while it is open moves nothing on screen. An edited change opened and left as it was is not a change. It closes without asking, and Save closes it without sending anything.
+An edited change starts with its own targets. A change opened from the list is titled "Edit targets", with "Starting on 17 November 2026" under the title. It shows its four numbers as stored, in the form the fields read back, such as "142,5" on a Finnish phone. Its date is fixed. The numbers are read once, as the sheet opens, so a save from another device while it is open moves nothing on screen. An edited change opened and left as it was is not a change. It closes without asking, and Save closes it without sending anything.
 
 Under the fields, a line names the days the numbers apply to, from the rule in [Changing your targets](#changing-your-targets):
 
@@ -42,9 +42,11 @@ Under the fields, a line names the days the numbers apply to, from the rule in [
 
 The line says which other days keep their targets only where such days have targets of their own. Dates show in the device's language.
 
+On "Change targets", a picked date that already has a change of its own puts two sentences before the line: "This date already has targets. Saving replaces them." The line itself names that date in the first three forms. On the first of several changes, or on the only one, the first sentence names the date instead: "17 November 2026 already has targets. Saving replaces them." An edited change keeps its own date, so its line has no such sentences.
+
 ### Which targets a day uses
 
-A day uses the change with the latest start on or before that day. A day before the first change uses the first change. So once a user has targets, every day has targets. [Where a day stands](days.md#where-a-day-stands) is measured against them.
+A day uses the change with the latest start on or before that day. A day before the first change uses the first change. Settings then heads those targets "Current" alone, with no start date, since that date has not come yet. So once a user has targets, every day has targets. [Where a day stands](days.md#where-a-day-stands) is measured against them.
 
 "Today" is the calendar date in the user's time zone. The time zone is an account setting, and a new account starts with Helsinki time. A day starts at local midnight in that zone. The web app stores its device's time zone on the account at each start, when the two differ, so "today" follows the device the app last ran on. A refused zone or a failed write is dropped without a word, the stored zone stays, and the next start tries again.
 

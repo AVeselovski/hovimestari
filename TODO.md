@@ -6,7 +6,6 @@ Each item says what it is, why it is open, and who decides. Delete an item when 
 
 ## Needs a decision from Artur
 
-- **The targets sheet's title on a phone, while a date can be picked.** It reads "Change targets", and "Targets from {date}" when the picked date already has a change. The second takes two lines on every phone, so the sheet keeps two lines of room for the title and shows an empty line under "Change targets". The alternative keeps the title "Change targets" and says it in the line under the fields instead, in a form such as "{date} has its own targets. Saving replaces them." ahead of the days they apply to. That changes the reviewed design, so it waits for Artur. Who decides: Artur, on the screenshots.
 - **The earlier app's own data.** Artur's recipes from the earlier app live in his local Docker volume `hovimestari_pgdata`, in one JSON row, and the recipe images in `hovimestari_imagedata`. Deleting the code left both volumes alone, and the new compose file uses a new volume, so nothing reads or touches them. Export them whenever you like, on your own machine. `POSTGRES_USER` is the value from the old root `.env`. The first command starts a throwaway container on the old volume, the second writes the state row to a file, the third copies the images, the last stops the container:
 
   ```bash
