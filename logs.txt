@@ -341,3 +341,7 @@
 [ui-validator DONE] (2026-11-18T14:40:05Z) PASS against a master baseline: no sheet's padding moved, chips, footer and Day rest measure as stated; one medium finding that master shares (an arrow key focuses a chip the sheet's edge cuts) (220k tokens)
 [frontend-engineer STARTED] (2026-11-18T14:40:05Z) one fix batch from the review and the browser validation of the follow-ups
 [frontend-engineer DONE] (2026-11-18T14:48:14Z) the fix batch: stale comments, sheetChipRow renamed, StateChoice takes one reason prop, an arrow key brings a half-cut chip into view, a focused row stops 4px clear of the tab bar; 1371 web tests pass
+[backend-engineer STARTED] (2026-11-18T15:23:59Z) refuse an own food whose protein, carbohydrates and fat add up to more than its weight
+[backend-engineer DONE] (2026-11-18T15:37:18Z) an own food is refused above 101.5 g of protein, carbohydrates and fat per 100 g (food_macro_sum_too_high, on per100g.fatG), compared in thousandths; existing rows still read and log; 625 backend tests pass
+[frontend-engineer STARTED] (2026-11-18T15:37:18Z) the own-food form shows the macro sum refusal under Fat, with its copy
+[frontend-engineer DONE] (2026-11-18T15:55:47Z) the own-food form shows the macro sum refusal under Fat with all three fields marked, from the form's check and from the server alike; 1390 web tests pass
