@@ -158,7 +158,6 @@ export function PortionSheet({
             value={values.name}
             onChange={(e) => setValues((prev) => ({ ...prev, name: e.target.value }))}
             error={lineOf(fieldErrors.name)}
-            lineRows={2}
             autoFocus={autoFocus}
           />
           <DecimalField
@@ -172,7 +171,6 @@ export function PortionSheet({
             onValueChange={(raw) => setValues((prev) => ({ ...prev, grams: raw }))}
             invalid={fieldErrors.grams !== undefined}
             line={lineOf(fieldErrors.grams)}
-            lineRows={2}
           />
         </>
       )}

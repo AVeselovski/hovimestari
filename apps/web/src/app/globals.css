@@ -370,37 +370,16 @@ body {
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
-/* The refusal line in a form sheet's pinned footer                    */
-/* (components/form/FormError.tsx). Two lines of room and their gap,   */
-/* kept while it is empty, so nothing moves when a refusal shows.      */
-/* While the on-screen keyboard is open (--drawer-keyboard-inset is    */
-/* above 0, set by Base UI for a keyboard-aware sheet) an empty line   */
-/* gives its room back to the body: the clamp is the full room at an   */
-/* inset of 0 and nothing from an inset of a hundredth of a pixel. A   */
-/* refusal then takes its room and the footer grows upward, its        */
-/* buttons where they were. Outside such a sheet the inset is unset,   */
-/* so the room is always kept.                                         */
-/* ------------------------------------------------------------------ */
-
-@utility footer-error-room {
-  min-height: 2.5rem;
-  margin-bottom: 0.5rem;
-
-  &:empty {
-    min-height: clamp(0px, calc(2.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 2.5rem);
-    margin-bottom: clamp(0px, calc(0.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 0.5rem);
-  }
-}
-
-/* ------------------------------------------------------------------ */
 /* A footer row that gives its room to the keyboard, such as the entry */
 /* sheet's Remove entry (FormSheetActions, `yieldsToKeyboard`). With   */
 /* the keyboard closed it is its content's height, and its 4px of      */
 /* padding, taken back by its margins, leaves room for the focus ring, */
 /* which `overflow: hidden` would clip. While --drawer-keyboard-inset  */
-/* is above 0 its height clamps to nothing, and its bottom margin also */
-/* takes back the footer's 8px row gap, so Save keeps its place above  */
-/* the keyboard with a refusal shown. The same clamp as above.         */
+/* is above 0 (Base UI sets it for a keyboard-aware sheet) its height  */
+/* clamps to nothing: the clamp is the full height at an inset of 0    */
+/* and nothing from an inset of a hundredth of a pixel. Its bottom     */
+/* margin also takes back the footer's 8px row gap, so Save keeps its  */
+/* place above the keyboard with a refusal shown.                      */
 /* ------------------------------------------------------------------ */
 
 @utility keyboard-yields {

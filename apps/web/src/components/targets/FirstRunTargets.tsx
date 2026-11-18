@@ -92,7 +92,7 @@ export function FirstRunTargets({ today }: { today: string }): ReactElement {
           autoFocus={!isMobile}
           disabled={saving}
         />
-        <NotAdviceNote className="mt-2" />
+        <NotAdviceNote className="mt-4" />
         <FormError message={formError} />
         <button type="submit" disabled={saving} className={`mt-4 w-full ${btnPrimary}`}>
           <StableLabel active={saving} idle={t("save")} busy={t("saving")} />

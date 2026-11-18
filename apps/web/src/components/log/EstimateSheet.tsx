@@ -140,7 +140,7 @@ export function EstimateSheet({
       formError={formError}
       idle={t("save")}
       busy={t("saving")}
-      sheet={{ size: "tall", panelClassName: "md:max-w-lg" }}
+      sheet={{ panelClassName: "md:max-w-lg" }}
     >
       {({ autoFocus }) => (
         <>

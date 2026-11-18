@@ -48,8 +48,6 @@ export interface DecimalFieldProps extends InputProps {
   describedBy?: string;
   /** The field's own line: its hint, or its error with `invalid`. Left out, the field has no line of its own. */
   line?: ReactNode;
-  /** How many lines of room the field's own line keeps, so a longer error moves nothing below it. Default 1. */
-  lineRows?: 1 | 2;
   /**
    * "stacked" (default): the label above the field. "beside": the label on
    * the left and the field on the right, 9rem, or 11rem when its unit can be
@@ -94,7 +92,6 @@ export function DecimalField({
   invalid = false,
   describedBy,
   line,
-  lineRows = 1,
   layout = "stacked",
   widestUnit = unit,
   ...input
@@ -132,7 +129,7 @@ export function DecimalField({
         </div>
       </div>
       {line !== undefined && (
-        <p id={lineId} className={`${invalid ? fieldErrorClass : fieldHintClass} ${lineRoom(lineRows)}`}>
+        <p id={lineId} className={`${invalid ? fieldErrorClass : fieldHintClass} ${lineRoom}`}>
           {line}
         </p>
       )}

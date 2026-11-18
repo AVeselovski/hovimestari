@@ -12,10 +12,12 @@ import {
   chipRowWrapping,
   fieldErrorClass,
   fieldHintClass,
+  formStack,
   inputClass,
   labelClass,
   lineRoom,
   pairRow,
+  sectionStart,
   sectionTitle,
 } from "@/components/ui/styles";
 import type { AddRequest, EntryActions, SaveAndLogDone } from "@/hooks/entryActions";
@@ -232,7 +234,7 @@ export function SavedMealSheet({
     onClose();
   }
 
-  // The chips say what the field is for once there are sources. Until then the hint does, in two lines of room.
+  // The chips say what the field is for once there are sources. Until then the hint does.
   const sourceLine = errors.source ? errorCopy.forCode(errors.source) : sources.length > 0 ? null : t("sourceHint");
   const matching = (s: string) => s.toLocaleLowerCase("fi") === fields.source.trim().toLocaleLowerCase("fi");
   return (
@@ -251,7 +253,7 @@ export function SavedMealSheet({
       footerStart={
         editing ? undefined : { label: t("saveMeal"), submit: SAVE_ONLY, busy: t("saving"), tone: "neutral" }
       }
-      sheet={{ size: "tall", panelClassName: "md:max-w-lg" }}
+      sheet={{ panelClassName: "md:max-w-lg" }}
     >
       {({ autoFocus }) => (
         <>
@@ -260,7 +262,7 @@ export function SavedMealSheet({
               Eaten or planned and Name share a row for a new meal. From and its chips take the
               full width under them, and an edit's Name takes the full width too, so a long
               source chip has the whole row. */}
-          <div className={editing ? "space-y-3" : pairRow}>
+          <div className={editing ? formStack : pairRow}>
             {!editing && <StateChoice id={`${id}-state`} value={status} onChange={setChosen} future={future} />}
             <Field
               id={fieldId("name")}
@@ -316,13 +318,13 @@ export function SavedMealSheet({
               )}
               <p
                 id={`${fieldId("source")}-line`}
-                className={`${errors.source ? fieldErrorClass : fieldHintClass} ${lineRoom(sources.length > 0 ? 1 : 2)}`}
+                className={`${errors.source ? fieldErrorClass : fieldHintClass} ${lineRoom}`}
               >
                 {sourceLine}
               </p>
             </div>
           </div>
-          <div>
+          <div className={sectionStart}>
             <h3 className={`${sectionTitle} mb-2`}>{t("perMeal")}</h3>
             <FigureFields idPrefix={id} values={fields} errors={errors} onChange={change} hint={t("perMealHint")} />
           </div>

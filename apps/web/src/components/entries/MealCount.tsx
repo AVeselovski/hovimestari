@@ -40,7 +40,6 @@ export function MealCount({
       onValueChange={onChange}
       invalid={error !== undefined}
       line={line}
-      lineRows={2}
       layout={layout}
     />
   );

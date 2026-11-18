@@ -4,11 +4,12 @@ import { FormError } from "@/components/form/FormError";
 import { BottomSheet, SheetDescription, type BottomSheetProps } from "@/components/ui/BottomSheet";
 import { FormSheetActions, type FooterAction, type FormSheetActionsProps } from "@/components/ui/FormSheetActions";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
+import { formStack } from "@/components/ui/styles";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useKnownOffline } from "@/hooks/useKnownOffline";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { OfflineError, unconfirmed } from "@/lib/failure";
-import { revealRefused } from "@/lib/revealRefused";
+import { revealFocused, revealRefused } from "@/lib/revealRefused";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
 
@@ -28,7 +29,11 @@ import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactEle
 //   reaches by its `form` attribute, so Enter in a field still submits.
 // - The line for a refusal that belongs to no field, in the pinned footer
 //   above the buttons, so it is in sight however far the body is scrolled.
-//   Its two lines of room are always kept, so nothing moves when it appears.
+//   On a phone it keeps no room: it grows the footer upward, the buttons
+//   where they were, and the focused field comes back into view if the
+//   taller footer covers it. From `md` it keeps two lines of room, because
+//   the dialog grows downward and would move the buttons.
+// - The form's stack: 8px between fields (`formStack`).
 // - The account's address in a hidden `username` field, for password
 //   managers, which pair it with the password fields.
 // - The in-flight guard: a submit is ignored while `submitting` is set, and
@@ -52,8 +57,9 @@ import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactEle
 //   does not change when the connection comes back.
 // - A refused submit brings the first refused field into view inside the
 //   body, its line included, as the submit's refusals render and again when
-//   its promise settles (lib/revealRefused.ts). Nothing scrolls when the
-//   field is already in view.
+//   its promise settles (lib/revealRefused.ts). A refusal in the footer does
+//   the same for the field that holds focus. Nothing scrolls when the field
+//   is already in view.
 //
 // What a save does, and what happens after it (`onSaved`, then `onClose`),
 // stays with the sheet.
@@ -170,6 +176,12 @@ export function FormSheet({
   const [runningMode, setRunningMode] = useState<string | null>(null);
   // Bumped by a submit and by its end: each time, a refused field comes into view.
   const [refusalCheck, setRefusalCheck] = useState(0);
+  // A refusal in the footer takes the body's room on a phone: the focused
+  // field comes back into view if it is covered. Before the refused-field
+  // check below, so a refused field wins when both run in one commit.
+  useLayoutEffect(() => {
+    if (shownError !== null) revealFocused(formRef.current);
+  }, [shownError]);
   useLayoutEffect(() => {
     if (refusalCheck > 0) revealRefused(formRef.current);
   }, [refusalCheck]);
@@ -228,7 +240,7 @@ export function FormSheet({
         {description !== undefined && (
           <SheetDescription className="mb-4 text-base text-ink">{description}</SheetDescription>
         )}
-        <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className="space-y-3">
+        <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className={formStack}>
           {username !== undefined && (
             <input type="email" name="username" autoComplete="username" value={username} readOnly hidden />
           )}

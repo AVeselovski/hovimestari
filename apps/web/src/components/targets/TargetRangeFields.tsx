@@ -1,7 +1,7 @@
 "use client";
 
 import { DecimalField } from "@/components/ui/DecimalField";
-import { fieldErrorClass, fieldHintClass, sectionTitle } from "@/components/ui/styles";
+import { fieldErrorClass, fieldHintClass, lineRoom, sectionStack, sectionTitle } from "@/components/ui/styles";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
@@ -13,13 +13,12 @@ import type { TargetField, TargetFieldErrors, TargetFieldValues } from "./target
 // and To. Every field starts empty and has no placeholder: the app offers no
 // number, not even as an example.
 //
-// Each group keeps two lines under its pair for the first error of either
+// Each group keeps one line under its pair for the first error of either
 // field, or for Protein its hint, so an error appearing moves nothing below.
-// Two is what the longest of them takes at 320 wide. A number the group
-// cannot take is said in the group's own words, with its own limit, so the
-// line stays short.
-// A field's own line would be a third of a phone's width, where the copy
-// wraps to three lines.
+// Every line here fits one line at 320 wide. A number the group cannot take
+// is said in the group's own words, with its own limit, so the line stays
+// short. A field's own line would be half a phone's width, where the copy
+// wraps.
 // ---------------------------------------------------------------------------
 
 /** The id of a field's input, for focusing the first one with an error. */
@@ -48,7 +47,7 @@ export function TargetRangeFields({
 }: TargetRangeFieldsProps): ReactElement {
   const t = useTranslations("targets.fields");
   return (
-    <div className="space-y-4">
+    <div className={sectionStack}>
       <RangeGroup
         idPrefix={idPrefix}
         legend={t("calories")}
@@ -155,8 +154,7 @@ function RangeGroup({
           enterKeyHint={last ? "done" : "next"}
         />
       </div>
-      {/* Two lines of room on a phone and one from md, the most any line here takes, so an error moves nothing. */}
-      <p id={lineId} className={`${code ? fieldErrorClass : fieldHintClass} min-h-10 md:min-h-5`}>
+      <p id={lineId} className={`${code ? fieldErrorClass : fieldHintClass} ${lineRoom}`}>
         {line}
       </p>
     </fieldset>
