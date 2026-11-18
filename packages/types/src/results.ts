@@ -31,6 +31,9 @@ export const CopyEntriesResultSchema = z.object({
 /** What `DELETE /entries/:id` answers. */
 export const EntryRemoveResultSchema = z.object({ days: z.array(DaySchema) });
 
+/** What `POST /entries/remove` answers: the entries it removed, in day and position order, and their days. */
+export const EntryRemoveManyResultSchema = z.object({ removedIds: z.array(z.uuid()), days: z.array(DaySchema) });
+
 /** What `POST /saved-meals/log` answers. */
 export const SaveAndLogResultSchema = z.object({
   meal: SavedMealSchema,
@@ -43,4 +46,5 @@ export type EntryWriteResult = z.infer<typeof EntryWriteResultSchema>;
 export type EntryStatusResult = z.infer<typeof EntryStatusResultSchema>;
 export type CopyEntriesResult = z.infer<typeof CopyEntriesResultSchema>;
 export type EntryRemoveResult = z.infer<typeof EntryRemoveResultSchema>;
+export type EntryRemoveManyResult = z.infer<typeof EntryRemoveManyResultSchema>;
 export type SaveAndLogResult = z.infer<typeof SaveAndLogResultSchema>;

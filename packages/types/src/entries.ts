@@ -127,6 +127,11 @@ export const EntryStatusBodySchema = z.object({
   status: z.enum(ENTRY_STATUSES),
 });
 
+/** `POST /entries/remove`: the entries to remove, such as the copies an Undo takes back. */
+export const EntryRemoveManyBodySchema = z.object({
+  entryIds: z.array(z.uuid()).min(1).max(MAX_ENTRY_BATCH).refine(uniqueIds, { error: "invalid_request" }),
+});
+
 /** `POST /entries/copy`: each source entry with the id its copy takes. */
 export const CopyEntriesBodySchema = z.object({
   toDate: IsoDateSchema,
@@ -186,4 +191,5 @@ export type AddEntryBody = z.infer<typeof AddEntryBodySchema>;
 export type EntryPatchBody = z.infer<typeof EntryPatchBodySchema>;
 export type EntryStatusBody = z.infer<typeof EntryStatusBodySchema>;
 export type CopyEntriesBody = z.infer<typeof CopyEntriesBodySchema>;
+export type EntryRemoveManyBody = z.infer<typeof EntryRemoveManyBodySchema>;
 export type Entry = z.infer<typeof EntrySchema>;

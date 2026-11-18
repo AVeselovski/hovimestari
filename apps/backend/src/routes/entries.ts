@@ -2,6 +2,7 @@ import {
   AddEntryBodySchema,
   CopyEntriesBodySchema,
   EntryPatchBodySchema,
+  EntryRemoveManyBodySchema,
   EntryStatusBodySchema,
 } from "@hovimestari/types";
 import { Router, type Router as IRouter } from "express";
@@ -12,6 +13,7 @@ import { authenticate } from "../middleware/authenticate.js";
 import {
   addEntry,
   copyEntries,
+  removeEntries,
   removeEntry,
   restoreEntry,
   setEntriesStatus,
@@ -40,6 +42,12 @@ entriesRouter.post("/copy", async (req, res) => {
   const body = parseBody(CopyEntriesBodySchema, req.body);
   const { value, outcome } = await copyEntries(await contextFor(req), body);
   res.status(statusOf(outcome)).json(value);
+});
+
+entriesRouter.post("/remove", async (req, res) => {
+  const { entryIds } = parseBody(EntryRemoveManyBodySchema, req.body);
+  const { value } = await removeEntries(await contextFor(req), entryIds);
+  res.status(200).json(value);
 });
 
 entriesRouter.patch("/:id", async (req, res) => {
