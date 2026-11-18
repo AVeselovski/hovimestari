@@ -130,13 +130,20 @@ export function revealFocused(form: HTMLFormElement | null): void {
 /**
  * Scrolls the page so the refusal `line` and its form's submit button are in
  * the visible viewport, the part above a phone's keyboard, wherever it is
- * panned to. Nothing, when they are in view already, or when the line sits
+ * panned to. When another button of the form holds focus, the one that was
+ * pressed and refused (the first run's Continue without targets), it is
+ * shown too. Nothing, when they are in view already, or when the line sits
  * in a sheet, whose footer keeps it in sight.
  */
 export function revealPageRefusal(line: HTMLElement | null): void {
   const page = document.scrollingElement ?? document.documentElement;
   if (!line || line.closest("[data-sheet-body], [data-sheet-footer]")) return;
-  const button = line.closest("form")?.querySelector<HTMLElement>('button[type="submit"]');
+  const form = line.closest("form");
+  const submit = form?.querySelector<HTMLElement>('button[type="submit"]');
+  const focused = document.activeElement;
+  const pressed =
+    focused instanceof HTMLButtonElement && focused !== submit && form?.contains(focused) ? focused : null;
+  const buttons = [submit, pressed].filter((el): el is HTMLElement => el != null);
   // Boxes are measured against the layout viewport. With a keyboard up, the
   // visual viewport is the part the user sees, and it can be panned down
   // inside the layout viewport by its offsetTop.
@@ -144,7 +151,7 @@ export function revealPageRefusal(line: HTMLElement | null): void {
   const view = viewport
     ? { top: viewport.offsetTop, bottom: viewport.offsetTop + viewport.height }
     : { top: 0, bottom: window.innerHeight };
-  const span = spanOf(button ? [line, button] : [line]);
+  const span = spanOf([line, ...buttons]);
   if (span.bottom - span.top > view.bottom - view.top) return scrollToNearest(page, spanOf([line]), view);
   scrollToNearest(page, span, view);
 }

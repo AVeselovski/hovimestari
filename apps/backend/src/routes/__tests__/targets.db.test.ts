@@ -7,7 +7,7 @@ import { sessionApi } from "../../__tests__/support/sessionApi.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
 
 // Targets on a real, migrated Postgres: the in-force rule, the overwrite on a
-// repeated date, the last-change guard under concurrency, and "today" in the
+// repeated date, removals under concurrency, and "today" in the
 // user's stored time zone.
 
 const ranges = (energy: [number, number], protein: [number, number] = [100, 150]) => ({
@@ -86,7 +86,7 @@ await describeWithDb("targets", (suite) => {
     const user = await signUp(suite.client);
     const res = await get(user, "2026-11-15");
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ date: "2026-11-15", inForce: null, changes: [] });
+    expect(res.body).toMatchObject({ date: "2026-11-15", inForce: null, changes: [], firstRunDue: true });
     // Every field but the two dates: no number may appear in it.
     const rest = { ...(res.body as Record<string, unknown>), date: undefined, today: undefined };
     expect(JSON.stringify(rest)).not.toMatch(/[0-9]/);
@@ -198,13 +198,15 @@ await describeWithDb("targets", (suite) => {
       expect((await get(user, "2026-11-25")).body.inForce.effectiveFrom).toBe("2026-11-10");
     });
 
-    it("refuses to remove the only change with 409", async () => {
+    it("removes the only change, and every day goes without targets", async () => {
       const user = await signUp(suite.client);
       await put(user, "2026-11-10", ranges([1800, 2000]));
       const res = await remove(user, "2026-11-10");
-      expect(res.status).toBe(409);
-      expect(res.body.code).toBe("targets_last_change");
-      expect(await rowCount(user.id)).toBe(1);
+      expect(res.status).toBe(204);
+      expect(res.body).toEqual({});
+      expect(await rowCount(user.id)).toBe(0);
+      const after = await get(user, "2026-11-10");
+      expect(after.body).toMatchObject({ inForce: null, changes: [], firstRunDue: false });
     });
 
     it("answers 404 for a date with no change, and for another user's date", async () => {
@@ -222,21 +224,22 @@ await describeWithDb("targets", (suite) => {
       expect(await rowCount(owner.id)).toBe(2);
     });
 
-    it("lets two concurrent removals leave one change: one 204 and one 409", async () => {
+    it("lets two concurrent removals of a user's two changes answer 204 and 204 and leave none", async () => {
       const user = await signUp(suite.client);
       await put(user, "2026-11-10", ranges([1800, 2000]));
       await put(user, "2026-11-20", ranges([1500, 1700]));
 
-      // Both removals queue on the user row before either reads, so the second one counts after the first commits.
+      // Both removals queue on the user row, so each runs whole after the other.
       const lock = await sessions.holdUserLock(user.id);
       const pending = [remove(user, "2026-11-10"), remove(user, "2026-11-20")].map((r) => r.then((res) => res));
       const waited = await sessions.queuedOnLock(2);
       await lock.release();
       const results = await Promise.all(pending);
 
-      expect(waited).toBe(2); // without the lock: 0, and the race ends [204, 204] in some interleavings
-      expect(results.map((r) => r.status).sort()).toEqual([204, 409]);
-      expect(await rowCount(user.id)).toBe(1);
+      expect(waited).toBe(2);
+      expect(results.map((r) => r.status)).toEqual([204, 204]);
+      expect(await rowCount(user.id)).toBe(0);
+      expect((await get(user)).body).toMatchObject({ inForce: null, changes: [], firstRunDue: false });
     });
 
     it("does not wait behind a write that only references the user, such as logging a food", async () => {

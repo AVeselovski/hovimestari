@@ -8,7 +8,7 @@ import { formStack } from "@/components/ui/styles";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useKnownOffline } from "@/hooks/useKnownOffline";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
-import { OfflineError, unconfirmed } from "@/lib/failure";
+import { connectionFailure } from "@/lib/failure";
 import { revealFocused, revealRefused } from "@/lib/revealRefused";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from "react";
@@ -83,11 +83,6 @@ export interface FormFailure {
   line: string;
   /** The error the write threw, or null for a line the sheet decided itself. */
   cause: unknown;
-}
-
-/** A failure the connection explains: nothing was sent, or no answer came. */
-function connectionFailure(cause: unknown): boolean {
-  return cause instanceof OfflineError || (cause !== null && cause !== undefined && unconfirmed(cause));
 }
 
 /** What the fields learn from the sheet. */

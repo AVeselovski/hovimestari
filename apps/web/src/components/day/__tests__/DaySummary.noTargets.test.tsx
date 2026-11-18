@@ -1,5 +1,5 @@
 import { formatDay } from "@/lib/localDate";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { DaySummary } from "../DaySummary";
 import { dayOf, estimateEntry, foodEntry, TODAY } from "./support";
 
@@ -153,5 +153,79 @@ describe("DaySummary, a day without targets", () => {
     expect(document.querySelector("[data-targets-row]")).toBeNull();
     expect(document.querySelectorAll('[data-gauge="energy"], [data-gauge="protein"]')).toHaveLength(2);
     expect(document.querySelectorAll("[data-distance]")).toHaveLength(4);
+  });
+
+  describe("for a user with no targets at all", () => {
+    const none = { kind: "none" } as const;
+    const row = () => document.querySelector<HTMLElement>("[data-targets-row]")!;
+
+    it("holds one plain Set targets button where the gauges were, and pressing it asks for the first-run page", () => {
+      const onSetTargets = jest.fn();
+      render(
+        <DaySummary
+          date={TODAY}
+          day={dayOf([foodEntry("Quark", 250)], TODAY, TODAY, null)}
+          past={false}
+          noTargets={none}
+          onSetTargets={onSetTargets}
+        />,
+      );
+      expect(row()).toHaveAttribute("data-targets-row", "none");
+      const protein = document.querySelector('[data-summary-macro="protein"]')!;
+      expect(protein.parentElement!.nextElementSibling).toBe(row());
+      const button = screen.getByRole("button", { name: "Set targets" });
+      expect(row()).toContainElement(button);
+      expect(row().textContent).toBe("Set targets");
+      // A button, not a link: it changes what the app shows, not the address.
+      expect(button.tagName).toBe("BUTTON");
+      expect(button).toHaveAttribute("type", "button");
+      expect(row().querySelector("a, svg, img")).toBeNull();
+      expect(document.querySelector("[data-gauge]")).toBeNull();
+      expect(document.querySelector("[data-distance]")).toBeNull();
+      fireEvent.click(button);
+      expect(onSetTargets).toHaveBeenCalledTimes(1);
+    });
+
+    it("is ink and underlined with a 44 pixel target: no accent, no fill, no warning colour", () => {
+      render(<DaySummary date={TODAY} day={dayOf([], TODAY, TODAY, null)} past={false} noTargets={none} />);
+      const tokens = screen.getByRole("button", { name: "Set targets" }).className.split(/\s+/);
+      expect(tokens).toEqual(expect.arrayContaining(["text-ink", "underline", "min-h-11"]));
+      expect(tokens.filter((c) => /accent|warning|^bg-|^border-/.test(c) && !c.startsWith("decoration-"))).toEqual([]);
+      expect(row().className.split(/\s+/)).toContain("mt-3");
+    });
+
+    it("is the same row on every day and whatever the entries: 0, 1 and 8, today, past and future", () => {
+      const markups: string[] = [];
+      const entries = (n: number, date: string) =>
+        Array.from({ length: n }, (_, i) => foodEntry(`Food ${i}`, 100 + i, { date }));
+      for (const date of ["2026-11-02", "2026-11-15", TODAY, "2026-11-17", "2026-12-24"]) {
+        for (const n of [0, 1, 8]) {
+          const { unmount } = render(
+            <DaySummary
+              date={date}
+              day={dayOf(entries(n, date), date, TODAY, null)}
+              past={date < TODAY}
+              noTargets={none}
+            />,
+          );
+          markups.push(row().outerHTML);
+          expect(row().textContent).toBe("Set targets");
+          unmount();
+        }
+      }
+      expect(new Set(markups).size).toBe(1);
+    });
+
+    it("lays out the frame with the same rows and the same button as the loaded day", () => {
+      const { rerender } = render(<DaySummary date={TODAY} day={null} past noTargets={none} />);
+      const frame = rows();
+      const button = screen.getByRole("button", { name: "Set targets" });
+      expect(document.querySelector('[data-gauge="frame"]')).toBeNull();
+      rerender(
+        <DaySummary date={TODAY} day={dayOf([foodEntry("Quark", 250)], TODAY, TODAY, null)} past noTargets={none} />,
+      );
+      expect(rows()).toEqual(frame);
+      expect(screen.getByRole("button", { name: "Set targets" })).toBe(button);
+    });
   });
 });

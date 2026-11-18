@@ -39,15 +39,19 @@ export const TargetChangeSchema = z.object({
 });
 
 /**
- * The targets in force on `date`, every change, and the user's `today`.
- * `inForce` is null on a date before the first change, so it can be null
- * while `changes` is not empty, and always for a user with no changes.
+ * The targets in force on `date`, every change, the user's `today`, and
+ * whether the first run is still due. `inForce` is null on a date before the
+ * first change, so it can be null while `changes` is not empty, and always
+ * for a user with no changes. `firstRunDue` is true only for a user with no
+ * changes who has never passed the first run. A removal passes it, so it is
+ * never true again once a user has had a change.
  */
 export const TargetsOverviewSchema = z.object({
   date: IsoDateSchema,
   today: IsoDateSchema,
   inForce: TargetChangeSchema.nullable(),
   changes: z.array(TargetChangeSchema),
+  firstRunDue: z.boolean(),
 });
 
 /** The query of `GET /targets`. Without `date`, the user's today. */

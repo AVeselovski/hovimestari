@@ -75,6 +75,8 @@
       "fromDate": "From {date}",
       "earlier": "Earlier targets",
       "change": "Change targets",
+      "set": "Set targets",
+      "none": "Days show their figures without ranges.",
       "unavailable": "Your targets show here once Hovimestari can reach the server."
     },
     "foodData": {
@@ -187,11 +189,14 @@
       "title": "Your daily targets",
       "lead": "Enter the ranges you aim for each day. They apply from today, and you can change them in Settings at any time.",
       "save": "Save targets",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "continue": "Continue without targets",
+      "continuing": "Continuing…"
     },
     "sheet": {
       "title": "Change targets",
       "titleEdit": "Edit targets",
+      "titleSet": "Set targets",
       "startingOn": "Starting on {date}",
       "startsOn": "Starts on",
       "replacesThisDate": "This date already has targets. Saving replaces them.",
@@ -253,7 +258,6 @@
     "target_not_positive": "Enter a number above zero.",
     "target_lower_above_upper": "To cannot be lower than From.",
     "target_change_not_found": "These targets no longer exist.",
-    "targets_last_change": "You need at least one set of targets.",
     "food_not_found": "This food is no longer available.",
     "food_read_only": "Only your own foods can be changed.",
     "food_name_required": "Give the food a name.",
@@ -324,7 +328,8 @@
       "estimateBoth": "These totals include an estimate.",
       "estimateWithPlan": "Planned entries include an estimate.",
       "unmarked": "{count, plural, one {# planned entry was} other {# planned entries were}} never marked eaten.",
-      "targetsFrom": "Targets apply from {date}."
+      "targetsFrom": "Targets apply from {date}.",
+      "setTargets": "Set targets"
     },
     "list": {
       "title": "Entries",

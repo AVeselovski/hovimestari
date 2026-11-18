@@ -11,7 +11,7 @@ import { endAllSessions, meOf } from "../lib/sessions.js";
 import { findUser } from "../lib/users.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { changePasswordRateLimit, deleteAccountRateLimit } from "../middleware/authRateLimits.js";
-import { updateSettings } from "../services/writes/settings.js";
+import { finishFirstRun, updateSettings } from "../services/writes/settings.js";
 
 export const usersRouter: IRouter = Router();
 
@@ -27,6 +27,12 @@ usersRouter.patch("/me/settings", authenticate, async (req, res) => {
   const body = parseBody(SettingsBodySchema, req.body);
   const { value } = await updateSettings(await contextFor(req), body);
   res.status(200).json(meOf(value));
+});
+
+// PUT /me/first-run. No body. The user goes on without targets: the first run is not shown again by itself.
+usersRouter.put("/me/first-run", authenticate, async (req, res) => {
+  await finishFirstRun(await contextFor(req));
+  res.status(204).send();
 });
 
 // PUT /me/password. Ends every session: the web app signs this device back in with the new password.

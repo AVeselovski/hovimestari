@@ -1,4 +1,5 @@
 import { confirmArmed } from "@/__tests__/sheet";
+import { TargetsGate } from "@/components/targets/TargetsGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateSettings } from "@/lib/api/settings";
 import { deleteTargets, getTargets } from "@/lib/api/targets";
@@ -7,6 +8,7 @@ import { formatDay } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import type { TargetChange } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import * as React from "react";
 import { TEST_USER, fakeAuth } from "../../../../__tests__/helpers/auth";
 import { createTestQueryClient, deferred, queryWrapper } from "../../../../__tests__/helpers/queryClient";
 import { TODAY, change, overview, refusal } from "../../../../components/targets/__tests__/support";
@@ -267,6 +269,72 @@ describe("Settings, Targets", () => {
     expect(within(region()).queryByRole("button", { name: /^Current/ })).toBeNull();
     expect(document.activeElement).toBe(button);
     expect(button).toBeInTheDocument();
+  });
+
+  describe("with no targets", () => {
+    it("says what days show, and offers Set targets, with no rows and no Earlier targets", async () => {
+      changes = [];
+      render(<TargetsSection />);
+      expect(await within(region()).findByText("Days show their figures without ranges.")).toBeInTheDocument();
+      expect(within(region()).getByRole("button", { name: "Set targets" })).toBeInTheDocument();
+      expect(within(region()).queryByRole("button", { name: "Change targets" })).toBeNull();
+      expect(within(region()).queryByRole("listitem")).toBeNull();
+      expect(within(region()).queryByText("Earlier targets")).toBeNull();
+      // Neutral: nothing about what is missing, and the note on advice stays.
+      expect(region()).not.toHaveTextContent(/not set|yet|need|finish|missing/i);
+      expect(region()).toHaveTextContent("Hovimestari is not a source of nutrition or medical advice.");
+    });
+
+    it("opens the sheet titled Set targets on today, with its fields empty", async () => {
+      changes = [];
+      render(<TargetsSection />);
+      fireEvent.click(await within(region()).findByRole("button", { name: "Set targets" }));
+      const sheet = await screen.findByRole("dialog", { name: "Set targets" });
+      expect(within(sheet).getByLabelText("Starts on")).toHaveValue(TODAY);
+      expect(fieldValues(sheet)).toEqual(["", "", "", ""]);
+      expect(sheet).toHaveTextContent(`These apply from ${formatDay(TODAY)} on. Earlier days have no targets.`);
+    });
+
+    it("removing the only change keeps the panel and the shell, and focus on the same button, which reads Set targets", async () => {
+      changes = [change("2026-11-01")];
+      const client = createTestQueryClient();
+      jest.mocked(updateSettings).mockResolvedValue(TEST_USER);
+      const shellMounts = jest.fn();
+      function Shell(): React.ReactElement {
+        React.useEffect(() => shellMounts(), []);
+        return <TargetsSection />;
+      }
+      render(
+        <TargetsGate>
+          <Shell />
+        </TargetsGate>,
+        { wrapper: queryWrapper(client) },
+      );
+      await screen.findByRole("region", { name: "Targets" });
+      fireEvent.click(await within(region()).findByRole("button", { name: /^Current \(from / }));
+      const sheet = await screen.findByRole("dialog");
+      fireEvent.click(within(sheet).getByRole("button", { name: "Remove these targets" }));
+      const confirm = await screen.findByRole("dialog", { name: /Remove the targets/ });
+      expect(confirm).toHaveTextContent(`Days from ${formatDay("2026-11-01")} on will have no targets.`);
+      await confirmArmed();
+      const answer = deferred<ReturnType<typeof overview>>();
+      changes = [];
+      jest.mocked(getTargets).mockImplementationOnce(() => answer.promise);
+      fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
+      await waitFor(() => expect(deleteTargets).toHaveBeenCalledWith("2026-11-01"));
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      const button = within(region()).getByRole("button", { name: "Change targets" });
+      expect(button).toHaveFocus();
+
+      // The refetch answers no change, with the first run behind the user.
+      await act(async () => answer.resolve(overview([])));
+      await within(region()).findByText("Days show their figures without ranges.");
+      expect(document.activeElement).toBe(button);
+      expect(button).toHaveTextContent("Set targets");
+      expect(shellMounts).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("heading", { name: "Your daily targets" })).toBeNull();
+      expect(screen.queryByRole("status")).toBeNull();
+    });
   });
 
   it("says when the targets cannot be read", async () => {

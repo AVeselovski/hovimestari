@@ -14,6 +14,9 @@ export const users = pgTable(
     foodNameLanguage: text("food_name_language").notNull().default("fi"),
     // An IANA zone name, the one "today" is read in. Checked with Intl before every write, so no CHECK.
     timeZone: text("time_zone").notNull().default(DEFAULT_TIME_ZONE),
+    // Set once the first run is behind the user: they went on without targets,
+    // or removed a change. Null on a new account. Never cleared.
+    firstRunDoneAt: timestamp("first_run_done_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

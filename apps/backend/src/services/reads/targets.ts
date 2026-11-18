@@ -1,6 +1,6 @@
 import type { TargetChange, TargetsOverview } from "@hovimestari/types";
-import { and, asc, desc, eq, lte } from "drizzle-orm";
-import { targetChanges } from "../../db/schema/index.js";
+import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
+import { targetChanges, users } from "../../db/schema/index.js";
 import type { ReadContext } from "./context.js";
 
 type TargetChangeRow = typeof targetChanges.$inferSelect;
@@ -57,9 +57,29 @@ export async function listTargetChanges(ctx: ReadContext): Promise<TargetChange[
 
 /**
  * The targets in force on `date` (the user's today when absent), every
- * change, and today. `inForce` is null on a date before the first change.
+ * change, today, and whether the first run is due. `inForce` is null on a
+ * date before the first change. The first run is due only while the user has
+ * no change and has never passed it. The flag is read by primary key here,
+ * since the context carries no user row and the MCP path builds its own.
  */
 export async function targetsOverview(ctx: ReadContext, date: string = ctx.today): Promise<TargetsOverview> {
-  const [inForce, changes] = await Promise.all([targetsOn(ctx, date), listTargetChanges(ctx)]);
-  return { date, today: ctx.today, inForce, changes };
+  // "No change and the flag unset" is one statement, so one snapshot. A
+  // removal deletes the change and sets the flag in one transaction. Read in
+  // two statements, one could see the flag before that commit and the other
+  // the changes after it, and answer due to a user who has just passed.
+  const [inForce, changes, [user]] = await Promise.all([
+    targetsOn(ctx, date),
+    listTargetChanges(ctx),
+    ctx.db
+      .select({
+        due: sql<boolean>`${users.firstRunDoneAt} IS NULL AND NOT EXISTS (SELECT 1 FROM ${targetChanges} WHERE ${targetChanges.userId} = ${users.id})`,
+      })
+      .from(users)
+      .where(eq(users.id, ctx.userId)),
+  ]);
+  // A deleted account reads as passed: no first run is offered to it. The
+  // empty list stays in the rule, so a change added between the statements
+  // never answers due next to that change.
+  const firstRunDue = changes.length === 0 && user !== undefined && user.due;
+  return { date, today: ctx.today, inForce, changes, firstRunDue };
 }

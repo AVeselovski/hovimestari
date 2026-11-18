@@ -4,8 +4,8 @@ import { users } from "./users.js";
 
 /**
  * One row is one dated change: the complete set of targets in force from
- * `effective_from` until the next change. Before the first change, the first
- * change applies. The unique index also serves the in-force lookup.
+ * `effective_from` until the next change. A day before the first change has
+ * no targets. The unique index also serves the in-force lookup.
  */
 export const targetChanges = pgTable(
   "target_changes",

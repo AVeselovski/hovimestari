@@ -28,7 +28,7 @@ targetsRouter.put("/:effectiveFrom", async (req, res) => {
   res.status(200).json(value);
 });
 
-// DELETE /targets/:effectiveFrom. Never the last change.
+// DELETE /targets/:effectiveFrom. Any change, the only one included. Marks the first run passed.
 targetsRouter.delete("/:effectiveFrom", async (req, res) => {
   const effectiveFrom = parseBody(IsoDateSchema, req.params.effectiveFrom);
   const ctx = await contextFor(req);

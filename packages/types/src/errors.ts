@@ -42,7 +42,6 @@ export const ERROR_CODES = [
   "target_not_positive",
   "target_lower_above_upper",
   "target_change_not_found",
-  "targets_last_change",
   "food_not_found",
   "food_read_only",
   "food_name_required",

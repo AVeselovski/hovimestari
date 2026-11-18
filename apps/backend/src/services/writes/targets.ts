@@ -1,10 +1,11 @@
 import type { TargetChange, TargetRanges } from "@hovimestari/types";
-import { and, count, eq, getTableColumns, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, sql } from "drizzle-orm";
 import { targetChanges, users } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { targetChangeOf } from "../reads/targets.js";
 import { lockUserForWrite } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
+import { markFirstRunDone } from "./settings.js";
 
 /**
  * Saves the targets in force from `effectiveFrom`. A second save on the same
@@ -53,22 +54,23 @@ export async function setTargets(
 }
 
 /**
- * Removes the change that starts on `effectiveFrom`. The last remaining
- * change cannot be removed. The user's row is locked first, so two removals
- * at once cannot both find another change left.
+ * Removes the change that starts on `effectiveFrom`, the only one included.
+ * Its days fall to the change before it, or go without targets. Any removal
+ * also marks the first run as passed, in the same transaction, so a user who
+ * removes every change is never sent back to it. The user's row is locked
+ * FOR NO KEY UPDATE first: the lock the flag's update needs, and one that
+ * logging a food, which holds FOR KEY SHARE, does not wait behind.
  */
 export async function removeTargetChange(ctx: WriteContext, effectiveFrom: string): Promise<WriteOutcome<null>> {
   await ctx.db.transaction(async (tx) => {
     await tx.select({ id: users.id }).from(users).where(eq(users.id, ctx.userId)).for("no key update");
-    const mine = eq(targetChanges.userId, ctx.userId);
     const [target] = await tx
       .select({ id: targetChanges.id })
       .from(targetChanges)
-      .where(and(mine, eq(targetChanges.effectiveFrom, effectiveFrom)));
+      .where(and(eq(targetChanges.userId, ctx.userId), eq(targetChanges.effectiveFrom, effectiveFrom)));
     if (!target) throw appError("target_change_not_found", 404);
-    const [{ n }] = await tx.select({ n: count() }).from(targetChanges).where(mine);
-    if (n <= 1) throw appError("targets_last_change", 409);
     await tx.delete(targetChanges).where(eq(targetChanges.id, target.id));
+    await markFirstRunDone(tx, ctx);
   });
   return { value: null, outcome: "deleted" };
 }

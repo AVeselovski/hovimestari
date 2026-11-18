@@ -315,10 +315,47 @@ describe("TargetsSheet", () => {
     });
   });
 
-  it("offers no Remove with one change, nor for a new change", () => {
-    renderSheet({ editing: "2026-11-01" });
-    expect(within(dialog()).queryByRole("button", { name: "Remove these targets" })).toBeNull();
-    screen.getByRole("dialog");
+  it("offers Remove on the only change, and its confirmation says its days will have no targets", async () => {
+    const { onClose } = renderSheet({ editing: "2026-11-01" });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Remove these targets" }));
+    const confirm = await screen.findByRole("dialog", { name: `Remove the targets from ${formatDay("2026-11-01")}?` });
+    expect(confirm).toHaveTextContent(`Days from ${formatDay("2026-11-01")} on will have no targets.`);
+    expect(confirm).not.toHaveTextContent(/measured against|at least one/);
+    await confirmArmed();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(deleteTargets).toHaveBeenCalledWith("2026-11-01"));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  describe("the title for new targets", () => {
+    it("reads Set targets when the user has no change", () => {
+      changes = [];
+      renderSheet();
+      expect(screen.getByRole("dialog", { name: "Set targets" })).toBeInTheDocument();
+    });
+
+    it("reads Change targets when the user has a change", () => {
+      renderSheet();
+      expect(screen.getByRole("dialog", { name: "Change targets" })).toBeInTheDocument();
+    });
+
+    describe("while it slides out after the first save", () => {
+      let restore: () => void;
+      beforeEach(() => {
+        restore = holdSheetExits();
+      });
+      afterEach(() => restore());
+
+      it("keeps Set targets while the refetch with the new change lands", async () => {
+        const props = { returnFocusTo: null, onClose: jest.fn(), onSaved: jest.fn(), today: TODAY };
+        const { rerender } = render(<TargetsSheet open changes={[]} {...props} />);
+        expect(screen.getByRole("dialog", { name: "Set targets" })).toBeInTheDocument();
+        rerender(<TargetsSheet open={false} changes={[]} {...props} />);
+        rerender(<TargetsSheet open={false} changes={[change(TODAY)]} {...props} />);
+        await act(async () => {});
+        expect(screen.getByRole("dialog", { hidden: true })).toHaveAccessibleName("Set targets");
+      });
+    });
   });
 
   it("offers no Remove for a new change, even with several", () => {
@@ -412,15 +449,16 @@ describe("TargetsSheet", () => {
     expect(confirm).toHaveTextContent(`${formatDay("2026-11-15")} will have no targets.`);
   });
 
-  it("keeps the confirmation open with the reason when the server refuses the removal", async () => {
-    changes = [change("2026-11-01"), change("2026-12-01")];
-    jest.mocked(deleteTargets).mockRejectedValue(refusal(409, "targets_last_change"));
-    const { onClose } = renderSheet({ editing: "2026-12-01" });
+  it("keeps the confirmation open with the reason when the removal fails", async () => {
+    jest.mocked(deleteTargets).mockRejectedValue(refusal(503, "server_unreachable"));
+    const { onClose } = renderSheet({ editing: "2026-11-01" });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Remove these targets" }));
     const confirm = await screen.findByRole("dialog", { name: /Remove the targets/ });
     await confirmArmed();
     fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
-    expect(await within(confirm).findByRole("alert")).toHaveTextContent("You need at least one set of targets.");
+    expect(await within(confirm).findByRole("alert")).toHaveTextContent(
+      "Hovimestari cannot be reached right now. Try again in a moment.",
+    );
     expect(onClose).not.toHaveBeenCalled();
   });
 });

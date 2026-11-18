@@ -364,3 +364,20 @@
 [orchestrator DONE] (2026-11-18T16:34:08Z) FR-TGT-07 reworded in docs/requirements.md with the wording Artur approved; build progress brought up to date
 [backend-engineer STARTED] (2026-11-18T17:12:24Z) copying, server part: remove several entries in one request, so a copy can be undone
 [backend-engineer DONE] (2026-11-18T17:21:38Z) POST /entries/remove removes up to 100 entries in one request, each restorable for ten minutes as a single removal is, rows locked in id order; 645 backend tests pass
+[backend-engineer STARTED] (2026-11-18T16:34:57Z) slice 2 backend: a user may have no targets (the first-run fact, removing any change)
+[backend-engineer DONE] (2026-11-18T16:45:09Z) slice 2 backend: users.first_run_done_at (migration 0005), PUT /users/me/first-run, firstRunDue on the targets read, any change can be removed; 645 backend tests pass
+[frontend-engineer STARTED] (2026-11-18T16:45:09Z) slice 2 web: the first run's way out, Set targets on the Day tab, Settings without targets, removing the only change
+[frontend-engineer DONE] (2026-11-18T17:19:19Z) slice 2 web: Continue without targets, Set targets on the Day tab and in Settings, the first-run page reopened from a day and back, removing the only change; 1443 web tests pass
+[ui-validator STARTED] (2026-11-18T17:19:19Z) browser validation of slice 2 at the pinned tip
+[reviewer STARTED] (2026-11-18T17:19:19Z) review of slice 2 against the design and the requirements
+[reviewer DONE] (2026-11-18T19:56:27Z) slice 2: approve after fixes; one major (Set targets while offline waits, then opens the page by itself when the connection returns), a read that can answer firstRunDue true once across devices, a stale history mark, an unbounded wait, doc slips
+[backend-engineer STARTED] (2026-11-18T19:56:27Z) slice 2 fix: firstRunDue computed in one statement
+[backend-engineer DONE] (2026-11-18T20:01:21Z) firstRunDue read in one statement, so a removal on another device cannot make it true once; a deterministic race test that fails on the old read; 648 backend tests pass
+[frontend-engineer STARTED] (2026-11-18T20:01:21Z) slice 2 fix batch from the review: Set targets offline, a stale history mark, a bounded wait after Save
+[ui-validator DONE] (2026-11-18T20:27:32Z) slice 2: one medium fail (Set targets showed nothing while its read ran), everything else on the checklist passes against a master baseline (290k tokens)
+[frontend-engineer DONE] (2026-11-18T20:27:32Z) slice 2 fix batch: Set targets opens at the press and checks behind it, offline from the cache; a stale history mark is cleared; the wait after Save ends at 2 s; focus goes to the page title and back to the date button; 1458 web tests pass (305k tokens)
+[orchestrator DONE] (2026-11-18T20:27:32Z) FR-TGT-03 reworded in docs/requirements.md with the wording Artur approved; build progress brought up to date
+[reviewer STARTED] (2026-11-18T20:27:32Z) delta review of slice 2's fix batch
+[backend-engineer DONE] (2026-11-18T20:40:48Z) the firstRunDue race test no longer leans on an event-loop turn: it counts the overview's statements and waits for the commit; five full backend runs pass, 662 tests each
+[reviewer DONE] (2026-11-18T20:57:31Z) delta review of slice 2's fixes: approve after fixes; one major (the reopened Save went Back a second time after the person had), a test that never reached its guard, the day's entries dropped offline (299k tokens)
+[frontend-engineer DONE] (2026-11-18T20:57:31Z) one guarded Back for the first-run page, the gate's unmount guard tested for real, the day keeps its entries offline; 1460 web tests pass

@@ -25,11 +25,21 @@ export function change(
  * latest start on or before the date, else none. A date before the first
  * change has no targets, while every change is still listed. The rule is the
  * server's, written out here only so the screen has an answer to show.
+ *
+ * `firstRunDue` is the test's to say, false unless it says otherwise. It is
+ * never read from "no changes": a user with no changes who has passed the
+ * first run is a normal user, and a fixture that derived it would show every
+ * suite the first-run page where the app shows the tabs.
  */
-export function overview(changes: TargetChange[], date: string = TODAY, today: string = TODAY): TargetsOverview {
+export function overview(
+  changes: TargetChange[],
+  date: string = TODAY,
+  today: string = TODAY,
+  { firstRunDue = false }: { firstRunDue?: boolean } = {},
+): TargetsOverview {
   const sorted = [...changes].sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
   const onOrBefore = sorted.filter((c) => c.effectiveFrom <= date);
-  return { date, today, inForce: onOrBefore.at(-1) ?? null, changes: sorted };
+  return { date, today, inForce: onOrBefore.at(-1) ?? null, changes: sorted, firstRunDue };
 }
 
 /** A refusal from the API with an error code, as axios rejects. */

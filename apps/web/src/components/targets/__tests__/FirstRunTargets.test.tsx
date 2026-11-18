@@ -1,17 +1,17 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTargets, putTargets } from "@/lib/api/targets";
-import { deleteAccount } from "@/lib/api/users";
+import { finishFirstRun } from "@/lib/api/users";
 import { queryKeys } from "@/lib/queryKeys";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { TEST_USER, fakeAuth, testPassword } from "../../../__tests__/helpers/auth";
-import { createTestQueryClient, queryWrapper } from "../../../__tests__/helpers/queryClient";
+import { fakeAuth } from "../../../__tests__/helpers/auth";
+import { createTestQueryClient, deferred, queryWrapper } from "../../../__tests__/helpers/queryClient";
 import { FirstRunTargets } from "../FirstRunTargets";
 import { TODAY, change, overview, refusal } from "./support";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/targets", () => ({ getTargets: jest.fn(), putTargets: jest.fn(), deleteTargets: jest.fn() }));
-jest.mock("@/lib/api/users", () => ({ getMe: jest.fn(), deleteAccount: jest.fn() }));
+jest.mock("@/lib/api/users", () => ({ getMe: jest.fn(), deleteAccount: jest.fn(), finishFirstRun: jest.fn() }));
 jest.mock("@/lib/forgetDevice", () => ({ forgetSignedInPages: jest.fn().mockResolvedValue(undefined) }));
 
 const signOut = jest.fn();
@@ -19,7 +19,7 @@ beforeEach(() => {
   signOut.mockReset().mockResolvedValue(undefined);
   jest.mocked(useAuth).mockReturnValue(fakeAuth("authenticated", { signOut }));
   jest.mocked(putTargets).mockReset().mockResolvedValue(change(TODAY));
-  jest.mocked(deleteAccount).mockReset().mockResolvedValue(undefined);
+  jest.mocked(finishFirstRun).mockReset().mockResolvedValue(undefined);
 });
 
 const group = (name: "Calories" | "Protein") => screen.getByRole("group", { name });
@@ -188,11 +188,12 @@ describe("FirstRunTargets", () => {
     expect(field("Calories", "From")).toBeEnabled();
   });
 
-  it("on a phone focuses no field on load; from md the first field takes focus", () => {
+  it("on a phone focuses the page's title on load, never a field; from md the first field takes focus", () => {
     const restore = stubPhone();
     try {
       const { unmount } = render(<FirstRunTargets today={TODAY} />);
-      expect(document.activeElement).toBe(document.body);
+      expect(screen.getByRole("heading", { name: "Your daily targets" })).toHaveFocus();
+      expect(document.activeElement?.tagName).not.toBe("INPUT");
       unmount();
     } finally {
       restore();
@@ -201,23 +202,114 @@ describe("FirstRunTargets", () => {
     expect(field("Calories", "From")).toHaveFocus();
   });
 
-  it("says who is signed in, and signs out", async () => {
+  it("offers no account controls: Sign out and Delete account are in Settings", () => {
     render(<FirstRunTargets today={TODAY} />);
-    expect(screen.getByText(TEST_USER.email).closest("p")).toHaveTextContent(
-      new RegExp(`^Signed in as ${TEST_USER.email}$`),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
-    await waitFor(() => expect(signOut).toHaveBeenCalledWith());
+    expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete account" })).toBeNull();
+    expect(screen.queryByText(/Signed in as/)).toBeNull();
   });
 
-  it("offers Delete account, which opens the delete sheet and deletes without any targets", async () => {
-    render(<FirstRunTargets today={TODAY} />);
-    fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
-    const sheet = await screen.findByRole("dialog", { name: "Delete your account?" });
-    fireEvent.change(within(sheet).getByLabelText("Password"), { target: { value: testPassword() } });
-    fireEvent.click(within(sheet).getByRole("button", { name: "Delete account" }));
-    await waitFor(() => expect(deleteAccount).toHaveBeenCalled());
-    await waitFor(() => expect(signOut).toHaveBeenCalledWith({ to: "/auth/sign-in?deleted=1" }));
-    expect(putTargets).not.toHaveBeenCalled();
+  describe("Continue without targets", () => {
+    const go = () => screen.getByRole("button", { name: /^Continu/ });
+
+    it("sits under Save, full width, as a plain ink text button that does not compete with Save", () => {
+      render(<FirstRunTargets today={TODAY} />);
+      const save = screen.getByRole("button", { name: "Save targets" });
+      expect(save.nextElementSibling).toBe(go());
+      expect(go()).toHaveAttribute("type", "button");
+      const tokens = go().className.split(/\s+/);
+      expect(tokens).toEqual(expect.arrayContaining(["w-full", "justify-center", "mt-4", "min-h-11", "text-ink"]));
+      // No fill, no accent, no icon: not a second primary action, not a warning.
+      expect(tokens.filter((c) => /^(bg-|text-accent|border-accent)/.test(c))).toEqual([]);
+      expect(go().querySelector("svg")).toBeNull();
+    });
+
+    it("on the self-shown page records the first run, and stays busy until the tabs replace it", async () => {
+      const answer = deferred<void>();
+      jest.mocked(finishFirstRun).mockReturnValue(answer.promise);
+      const client = createTestQueryClient();
+      const invalidate = jest.spyOn(client, "invalidateQueries");
+      render(<FirstRunTargets today={TODAY} />, { wrapper: queryWrapper(client) });
+      fireEvent.click(go());
+      expect(finishFirstRun).toHaveBeenCalledTimes(1);
+      // Both actions and every field are locked, and the pressed one says it works.
+      expect(go()).toBeDisabled();
+      expect(go()).toHaveAccessibleName("Continuing…");
+      expect(screen.getByRole("button", { name: "Save targets" })).toBeDisabled();
+      for (const input of screen.getAllByRole("textbox")) expect(input).toBeDisabled();
+      await act(async () => answer.resolve());
+      await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.targets() }));
+      expect(putTargets).not.toHaveBeenCalled();
+    });
+
+    it("opened again, leaves at once and records nothing", () => {
+      const onLeave = jest.fn();
+      render(<FirstRunTargets today={TODAY} onLeave={onLeave} />);
+      fireEvent.click(go());
+      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(finishFirstRun).not.toHaveBeenCalled();
+    });
+
+    it("is locked while Save works", async () => {
+      const answer = deferred<ReturnType<typeof change>>();
+      jest.mocked(putTargets).mockReturnValue(answer.promise);
+      render(<FirstRunTargets today={TODAY} />);
+      fillAll();
+      fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
+      expect(go()).toBeDisabled();
+      expect(go()).toHaveAccessibleName("Continue without targets");
+      await act(async () => answer.resolve(change(TODAY)));
+    });
+  });
+
+  it("opened again, a successful Save leaves once the save is stored", async () => {
+    const onLeave = jest.fn();
+    render(<FirstRunTargets today={TODAY} onLeave={onLeave} />);
+    fillAll();
+    fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
+    await waitFor(() => expect(onLeave).toHaveBeenCalledTimes(1));
+    expect(putTargets).toHaveBeenCalledWith(TODAY, expect.anything());
+  });
+
+  describe("while the device is offline", () => {
+    /** What axios rejects with when no answer came. */
+    const noAnswer = () => Object.assign(new Error("Network Error"), { isAxiosError: true, code: "ERR_NETWORK" });
+    const setOnline = (value: boolean) => Object.defineProperty(navigator, "onLine", { value, configurable: true });
+    beforeEach(() => setOnline(false));
+    afterEach(() => setOnline(true));
+
+    it("Save says the device is offline, as every form does, and the page stays with Save working", async () => {
+      jest.mocked(putTargets).mockRejectedValueOnce(noAnswer());
+      render(<FirstRunTargets today={TODAY} />);
+      fillAll();
+      fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection."),
+      );
+      expect(screen.getByRole("button", { name: "Save targets" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Continue without targets" })).toBeEnabled();
+    });
+
+    it("self-shown, Continue says the device is offline and the page stays, ready to try again", async () => {
+      jest.mocked(finishFirstRun).mockRejectedValueOnce(noAnswer());
+      render(<FirstRunTargets today={TODAY} />);
+      const go = screen.getByRole("button", { name: "Continue without targets" });
+      fireEvent.click(go);
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent("You are offline. Changes need a connection."),
+      );
+      expect(go).toBeEnabled();
+      expect(go).toHaveFocus();
+      fireEvent.click(go);
+      await waitFor(() => expect(finishFirstRun).toHaveBeenCalledTimes(2));
+    });
+
+    it("opened again, Continue leaves at once, since it sends nothing", () => {
+      const onLeave = jest.fn();
+      render(<FirstRunTargets today={TODAY} onLeave={onLeave} />);
+      fireEvent.click(screen.getByRole("button", { name: "Continue without targets" }));
+      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(finishFirstRun).not.toHaveBeenCalled();
+    });
   });
 });

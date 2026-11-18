@@ -70,7 +70,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   target_not_positive: "Enter a number above zero.",
   target_lower_above_upper: "The second number cannot be below the first.",
   target_change_not_found: "These targets no longer exist.",
-  targets_last_change: "You need at least one set of targets.",
   food_not_found: "This food is no longer available.",
   food_read_only: "Only your own foods can be changed.",
   food_name_required: "Give the food a name.",

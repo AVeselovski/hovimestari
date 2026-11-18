@@ -4,7 +4,7 @@ import { Icon } from "@/components/Icon";
 import { focusRing } from "@/components/ui/styles";
 import { addDays, dayLabel, formatDayShort, isIsoDate } from "@/lib/localDate";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, type ReactElement, type Ref } from "react";
 
 // ---------------------------------------------------------------------------
 // DateBar: the day shown, with a 44 px chevron on each side. The label reads
@@ -37,6 +37,8 @@ export interface DateBarProps {
   date: string | null;
   today: string | null;
   onChange: (date: string) => void;
+  /** The date button, for a caller that puts focus on it, as on the way back from the first-run page. */
+  labelRef?: Ref<HTMLButtonElement>;
 }
 
 /** Opens the platform's picker where the browser offers one by script. Some refuse a second call while open. */
@@ -60,7 +62,7 @@ const TYPING_KEYS = /^(?:\d|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Backspace|Del
 
 const chevron = `flex size-11 shrink-0 items-center justify-center rounded-pill text-ink hover:bg-surface active:bg-surface disabled:cursor-not-allowed disabled:opacity-40 ${focusRing}`;
 
-export function DateBar({ date, today, onChange }: DateBarProps): ReactElement {
+export function DateBar({ date, today, onChange, labelRef }: DateBarProps): ReactElement {
   const t = useTranslations("day.dateBar");
   const inputRef = useRef<HTMLInputElement>(null);
   const word = date && today ? dayLabel(date, today) : null;
@@ -107,6 +109,7 @@ export function DateBar({ date, today, onChange }: DateBarProps): ReactElement {
       </button>
       <div className="relative flex h-11 min-w-0 flex-1">
         <button
+          ref={labelRef}
           type="button"
           data-date-label=""
           aria-label={t("choose", { label })}
