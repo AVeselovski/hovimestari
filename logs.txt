@@ -362,3 +362,5 @@
 [frontend-engineer STARTED] (2026-11-18T16:14:58Z) slice 1 fix batch from the review and the browser validation
 [frontend-engineer DONE] (2026-11-18T16:34:08Z) slice 1 fix batch: the removal wording, a targets change now reads every held day again (the Day tab opened with the old targets), empty range lines hidden from assistive technology, the rewritten test; 1409 web and 631 backend tests pass (228k tokens)
 [orchestrator DONE] (2026-11-18T16:34:08Z) FR-TGT-07 reworded in docs/requirements.md with the wording Artur approved; build progress brought up to date
+[backend-engineer STARTED] (2026-11-18T17:12:24Z) copying, server part: remove several entries in one request, so a copy can be undone
+[backend-engineer DONE] (2026-11-18T17:21:38Z) POST /entries/remove removes up to 100 entries in one request, each restorable for ten minutes as a single removal is, rows locked in id order; 645 backend tests pass

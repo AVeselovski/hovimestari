@@ -25,7 +25,7 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
 dates.ts       IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
 days.ts        A day, its readings and summary, and the day and range queries
-entries.ts     Entry kinds and statuses, the limits, the add, patch, status and copy bodies, and an entry
+entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry
 errors.ts      ERROR_CODES, ErrorCode, ApiError and isErrorCode
 figures.ts     Figures, positions, and the one figure computation: entryFigures, totalOf, positionOf, gramsForPortion
 foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, and hasSearchableWord

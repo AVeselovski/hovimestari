@@ -56,7 +56,7 @@ src/
 │   ├── targets.ts              Targets: the overview for a date, set a dated change, remove one
 │   ├── foods.ts                Food search, favourites, own foods, one food, own food writes, portions, favourite toggles
 │   ├── days.ts                 One day, or a range of days without their entries
-│   ├── entries.ts              Add, change, mark, copy, remove and restore entries
+│   ├── entries.ts              Add, change, mark, copy, remove one or several, and restore entries
 │   ├── savedMeals.ts           Saved meals: list, read, create, save and log, edit, archive, delete
 │   ├── log.ts                  Recent items
 │   ├── auth.ts                 Sign-up, sign-in, refresh, sign-out, password reset, password link, unlink
@@ -72,7 +72,7 @@ src/
 │   ├── writes/context.ts       WriteContext and WriteOutcome
 │   ├── writes/targets.ts       setTargets and removeTargetChange
 │   ├── writes/foods.ts         Own foods, portions and favourites
-│   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, restoreEntry, copyEntries
+│   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, removeEntries, restoreEntry, copyEntries
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/settings.ts      updateSettings: the food-name language and the time zone
 │   ├── entryRows.ts            The selection every entry read answers with, and an entry's figures
