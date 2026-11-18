@@ -16,7 +16,7 @@ export async function putTargets(effectiveFrom: IsoDate, body: SetTargetsBody): 
   return res.data;
 }
 
-/** `DELETE /targets/:effectiveFrom`. The last change cannot be removed (409 `targets_last_change`). */
+/** `DELETE /targets/:effectiveFrom`. Any change can be removed, the only one included. */
 export async function deleteTargets(effectiveFrom: IsoDate): Promise<void> {
   await api.delete(`/targets/${effectiveFrom}`);
 }

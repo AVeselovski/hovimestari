@@ -25,6 +25,11 @@ export function unconfirmed(err: unknown): boolean {
   return getErrorCode(err) === "server_unreachable" || status === undefined || status >= 500;
 }
 
+/** A failure the connection explains: nothing was sent, or no answer came. */
+export function connectionFailure(cause: unknown): boolean {
+  return cause instanceof OfflineError || (cause !== null && cause !== undefined && unconfirmed(cause));
+}
+
 /** The two lines a place shows for a write that was not sent, or not confirmed. */
 export interface FailureLines {
   offline: string;

@@ -2,7 +2,7 @@
 
 import { MacroDot } from "@/components/figures/MacroDot";
 import { rangeFigure } from "@/components/figures/rangeParts";
-import { dayHeadLine } from "@/components/ui/styles";
+import { btnText, dayHeadLine } from "@/components/ui/styles";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
 import { formatDay } from "@/lib/localDate";
 import { formatTarget } from "@/lib/targetFormat";
@@ -35,13 +35,15 @@ import type { NoTargets } from "./noTargets";
 // distance, the figures stay in ink, and the gauge colours nothing past a
 // bound.
 //
-// A day without targets (`noTargets`, a day before the user's first change)
-// is a second layout: each macro's label, then its two figures, with no
-// gauge, no range and no distance. Where the gauges were, one row says from
-// when the targets apply. The row is there on every such day and never on a
-// day with targets, so within a day nothing moves. The frame takes the same
-// layout when the caller predicts it, so the day does not open with tracks
-// and then shrink.
+// A day without targets (`noTargets`) is a second layout: each macro's
+// label, then its two figures, with no gauge, no range and no distance.
+// Where the gauges were, one row. For a user with no targets at all it
+// holds one plain Set targets button, the same on every day, which opens
+// the first-run page. For a user whose first change starts after the day it
+// says from when the targets apply. The row is there on every such day and
+// never on a day with targets, so within a day nothing moves. The frame
+// takes the same layout when the caller predicts it, so the day does not
+// open with tracks and then shrink.
 // ---------------------------------------------------------------------------
 
 type T = ReturnType<typeof useTranslations<"day.summary">>;
@@ -218,14 +220,26 @@ function GaugeFrame(): ReactElement {
 }
 
 /**
- * Where the gauges would be on a day without targets: the date the user's
- * first change starts, as a plain line with no control. While that date is
- * not known yet (`pending`), the line's room, empty and hidden from assistive
- * technology. One element in both, so the room never changes as the date
- * arrives.
+ * Where the gauges would be on a day without targets. For a user with no
+ * targets at all: Set targets, a plain ink text button with nothing else,
+ * the same on every day, so a person who logs without targets reads it as
+ * an option and never as a reminder. For a user whose first change starts
+ * later: that date, as a plain line with no control. While that date is not
+ * known yet (`pending`), the line's room, empty and hidden from assistive
+ * technology. One element for the line in both, so the room never changes
+ * as the date arrives.
  */
-function TargetsRow({ noTargets }: { noTargets: NoTargets }): ReactElement {
+function TargetsRow({ noTargets, onSetTargets }: { noTargets: NoTargets; onSetTargets?: () => void }): ReactElement {
   const t = useTranslations("day.summary");
+  if (noTargets.kind === "none") {
+    return (
+      <div data-targets-row="none" className="mt-3">
+        <button type="button" onClick={onSetTargets} className={btnText}>
+          {t("setTargets")}
+        </button>
+      </div>
+    );
+  }
   return (
     <p
       data-targets-row={noTargets.kind}
@@ -302,9 +316,11 @@ export interface DaySummaryProps {
    * and the row that says why. Null for a day with targets.
    */
   noTargets?: NoTargets | null;
+  /** Set targets, on a day of a user with no targets at all: opens the first-run page. */
+  onSetTargets?: () => void;
 }
 
-export function DaySummary({ date, day, past, notice, noTargets = null }: DaySummaryProps): ReactElement {
+export function DaySummary({ date, day, past, notice, noTargets = null, onSetTargets }: DaySummaryProps): ReactElement {
   const t = useTranslations("day.summary");
   const estimate = day?.eaten.includesEstimate
     ? t("estimateBoth")
@@ -320,7 +336,7 @@ export function DaySummary({ date, day, past, notice, noTargets = null }: DaySum
         <div className="mt-3">
           <MacroBlock macro="protein" date={date} day={day} figuresOnly={noTargets !== null} />
         </div>
-        {noTargets && <TargetsRow noTargets={noTargets} />}
+        {noTargets && <TargetsRow noTargets={noTargets} onSetTargets={onSetTargets} />}
         <div className="mt-3">
           <SmallMacros day={day} />
         </div>

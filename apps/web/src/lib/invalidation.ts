@@ -1,10 +1,11 @@
 import { releaseHeldLists } from "@/components/log/heldList";
-import type { Day, FoodDetail, Me, Portion, SavedMeal } from "@hovimestari/types";
-import type { QueryClient, QueryKey } from "@tanstack/react-query";
+import type { Day, FoodDetail, Me, Portion, SavedMeal, TargetChange } from "@hovimestari/types";
+import { matchQuery, onlineManager, type Query, type QueryClient, type QueryKey } from "@tanstack/react-query";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
 import { dropMeal, putMeal, putNewMeal, takeMealOutOf } from "./mealCache";
 import { forgetSeen } from "./pendingIds";
 import { queryKeys } from "./queryKeys";
+import { putSavedChange } from "./targetsCache";
 
 // ---------------------------------------------------------------------------
 // What each write makes stale, in one place, so a screen never guesses which
@@ -23,11 +24,37 @@ import { queryKeys } from "./queryKeys";
  * Cancels every read under `keys`, puts the account a write answered in the
  * cache, and reads every key again. The account goes in after the cancel,
  * because a cancel puts back what the cache held before the read started.
+ * `edit` makes any other edit at the same moment, for the same reason.
  */
-async function refresh(client: QueryClient, keys: readonly QueryKey[], me?: Me): Promise<void> {
+async function refresh(client: QueryClient, keys: readonly QueryKey[], me?: Me, edit?: () => void): Promise<void> {
   await Promise.all(keys.map((queryKey) => client.cancelQueries({ queryKey })));
   if (me) client.setQueryData(queryKeys.me(), me);
+  edit?.();
   await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
+}
+
+/**
+ * True when `work` settles within `ms`. False after `ms`, and at once while
+ * or as soon as the device is offline, where a read waits for the connection.
+ */
+function settledWithin(work: Promise<unknown>, ms: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    let unsubscribe = (): void => {};
+    const end = (settled: boolean): void => {
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(settled);
+    };
+    const timer = setTimeout(() => end(false), ms);
+    unsubscribe = onlineManager.subscribe((online) => {
+      if (!online) end(false);
+    });
+    if (!onlineManager.isOnline()) end(false);
+    work.then(
+      () => end(true),
+      () => end(true),
+    );
+  });
 }
 
 /**
@@ -39,19 +66,56 @@ export async function afterAccountChange(client: QueryClient, me?: Me): Promise<
   await refresh(client, [queryKeys.me()], me);
 }
 
+/** How long a page that returns to a day waits for that day's new answer, at most. */
+export const RETURN_WAIT_MS = 2000;
+
 /**
  * After a targets change is saved or removed: the targets read and every day, which answers the targets in force and the
  * positions against them. The days are read even off screen. Targets change in Settings or the first run, where no day
  * is shown, and a day only marked stale would open with the old targets and change height as its read lands. A day
  * that only an entry write put in the cache has no read of its own, and stays marked stale.
+ *
+ * `returnTo` is the day a page is about to show, the first-run page opened again from that day, and `saved` the change
+ * it stored. The saved change goes into the cached targets at once. The promise then waits for the targets and that one
+ * day only, so the page leaves as soon as the day can open with its new answer. It waits `RETURN_WAIT_MS` at most, and
+ * not at all while the device is offline. Online, when the day has no new answer by then, its old one is dropped, so it
+ * opens on its loading frame, laid out from the new targets, and never shows the old targets as current. Offline it
+ * keeps its held answer, entries and all, whose row the saved change already sets, until the connection returns. The other days are
+ * read all the same, without waiting for them, since a person may hold many.
  */
-export async function afterTargetsChange(client: QueryClient): Promise<void> {
-  await refresh(client, [queryKeys.targets(), queryKeys.days()]);
-  await client.refetchQueries({
-    queryKey: queryKeys.days(),
-    type: "inactive",
-    predicate: (query) => typeof query.options.queryFn === "function",
-  });
+export async function afterTargetsChange(
+  client: QueryClient,
+  { returnTo, saved }: { returnTo?: string; saved?: TargetChange } = {},
+): Promise<void> {
+  const edit = saved ? () => putSavedChange(client, saved) : undefined;
+  const withRead = (query: Query) => typeof query.options.queryFn === "function";
+  if (returnTo === undefined) {
+    await refresh(client, [queryKeys.targets(), queryKeys.days()], undefined, edit);
+    await client.refetchQueries({ queryKey: queryKeys.days(), type: "inactive", predicate: withRead });
+    return;
+  }
+  const shown = queryKeys.day(returnTo);
+  const answersBefore = client.getQueryState(shown)?.dataUpdateCount;
+  const isShown = (query: Query) => matchQuery({ queryKey: shown, exact: true }, query);
+  const reads = (async () => {
+    await refresh(client, [queryKeys.targets(), queryKeys.days()], undefined, edit);
+    // The shown day's read leaves first, so it never queues behind the others for a connection.
+    const read = client.refetchQueries({ queryKey: shown, exact: true, type: "inactive", predicate: withRead });
+    void client.refetchQueries({
+      queryKey: queryKeys.days(),
+      type: "inactive",
+      predicate: (query) => withRead(query) && !isShown(query),
+    });
+    await read;
+  })();
+  await settledWithin(reads, RETURN_WAIT_MS);
+  const state = client.getQueryState(shown);
+  const answered = state !== undefined && state.status === "success" && state.dataUpdateCount !== answersBefore;
+  // Offline the held answer stays, entries and all: the read waiting for the
+  // connection replaces it, and the cached targets already hold the change.
+  if (state !== undefined && !answered && onlineManager.isOnline()) {
+    await client.resetQueries({ queryKey: shown, exact: true });
+  }
 }
 
 /**

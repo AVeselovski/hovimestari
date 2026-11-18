@@ -38,16 +38,18 @@ import { spanOf, type Span } from "./targetLines";
 // targets", with "Starting on {date}" under the title as the dialog's
 // description: the date is fixed. The fields open with that change's own
 // targets, taken once as the sheet mounts: a refetch that lands while it is
-// open moves nothing. Saved untouched, it sends nothing. The change can be
-// removed while it is not the last one. Its confirmation says what its days
-// then have: an earlier change's targets, or none.
+// open moves nothing. Saved untouched, it sends nothing. Any change can be
+// removed, the only one included. Its confirmation says what its days then
+// have: an earlier change's targets, or none.
 //
-// Opened from "Change targets", the sheet sets new targets from a date it
-// lets the reader pick, today by default. The fields open empty and stay
-// empty whatever date is picked. The app offers no number, not even the
-// user's own. The title never changes: a date that already has a change of
-// its own is named in the line under the fields, which says that saving
-// replaces it, so nothing is replaced without the sheet saying so.
+// Opened from "Change targets", or "Set targets" while the user has no
+// change, the sheet sets new targets from a date it lets the reader pick,
+// today by default, and its title says which of the two opened it. The
+// fields open empty and stay empty whatever date is picked. The app offers
+// no number, not even the user's own. The title never changes while it is
+// open or sliding out: a date that already has a change of its own is named
+// in the line under the fields, which says that saving replaces it, so
+// nothing is replaced without the sheet saying so.
 // ---------------------------------------------------------------------------
 
 export interface TargetsSheetProps extends FormSheetCallerProps {
@@ -165,9 +167,8 @@ export function TargetsSheet({
       onClose();
     },
     onError: (err) => {
-      // The list was out of date: another device removed a change.
-      const code = getErrorCode(err);
-      if (code === "target_change_not_found" || code === "targets_last_change") void afterTargetsChange(client);
+      // The list was out of date: another device removed the change.
+      if (getErrorCode(err) === "target_change_not_found") void afterTargetsChange(client);
     },
     focusAfter: () => focusAfterRemove?.() ?? null,
   });
@@ -217,13 +218,15 @@ export function TargetsSheet({
     onClose();
   }
 
-  const canRemove = editing !== undefined && changes.length > 1;
+  const canRemove = editing !== undefined;
+  // From the retained changes, so the title stays while the sheet slides out after its first save.
+  const title = editing !== undefined ? t("titleEdit") : changes.length === 0 ? t("titleSet") : t("title");
 
   return (
     <FormSheet
       open={open}
       onClose={onClose}
-      title={editing === undefined ? t("title") : t("titleEdit")}
+      title={title}
       returnFocusTo={returnFocusTo}
       dirty={dirty}
       submitting={submitting}

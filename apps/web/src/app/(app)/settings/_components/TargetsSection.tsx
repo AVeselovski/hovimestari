@@ -20,14 +20,16 @@ import { useRef, useState, type ReactElement, type ReactNode } from "react";
 /**
  * The targets in force today, the changes still to come and, behind a
  * disclosure, the earlier ones. A user whose changes all start later has no
- * Current row, only those changes. Every change opens the targets sheet on
- * itself, with its own targets in the fields. Change targets opens it on
- * today, with the fields empty.
+ * Current row, only those changes. A user with no change at all reads what
+ * days show then, and the button reads Set targets. Every change opens the
+ * targets sheet on itself, with its own targets in the fields. The button
+ * opens it on today, with the fields empty.
  *
  * The button is one element outside the state's content, rendered whenever
- * there is an answer: a refetch that changes the panel's state, such as a
- * removal that leaves no change in force, never unmounts it, so focus put on
- * it after a removal stays there.
+ * there is an answer, and only its label follows the state: a refetch that
+ * changes the panel's state, such as a removal that leaves no change in
+ * force or no change at all, never unmounts it, so focus put on it after a
+ * removal stays there.
  */
 export function TargetsSection(): ReactElement {
   const t = useTranslations("settings.targets");
@@ -58,6 +60,7 @@ export function TargetsSection(): ReactElement {
       <Card.Header id="settings-targets" title={t("title")} />
       {data ? (
         <>
+          {changes.length === 0 && <p className="text-base text-ink">{t("none")}</p>}
           {(inForce || later.length > 0) && (
             <ul className="-mx-2 divide-y divide-rule">
               {inForce && (
@@ -111,7 +114,7 @@ export function TargetsSection(): ReactElement {
           onClick={(e) => openOn(undefined, e.currentTarget)}
           className={`mt-5 w-full md:w-auto ${btnSecondary}`}
         >
-          {t("change")}
+          {changes.length === 0 ? t("set") : t("change")}
         </button>
       )}
       <NotAdviceNote className="mt-5" />

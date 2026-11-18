@@ -1,6 +1,7 @@
 "use client";
 
 import { EntrySheet } from "@/components/entries/EntrySheet";
+import { useFirstRun } from "@/components/targets/TargetsGate";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { btnSecondary } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +10,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
+import { restoreFocus } from "@/lib/lastInputModality";
 import { addDays, isIsoDate } from "@/lib/localDate";
 import { dayQuery, prefetchLogLists, targetsQuery } from "@/lib/queryOptions";
 import { rememberShownDay } from "@/lib/shownDay";
@@ -36,9 +38,13 @@ import { loadedNoTargets, predictedNoTargets } from "./noTargets";
 //
 // The summary and the list sit in one frame whose heights do not depend on
 // the state: loading, a failure and offline each show in the summary's frame.
-// A day without targets (a day before the first change) is a day like any
-// other, with a shorter summary. Its frame comes from the changes the gate
-// holds (`noTargets.ts`), so the summary opens at the height it keeps.
+// A day without targets (every day of a user with no targets, or a day
+// before the first change) is a day like any other, with a shorter summary.
+// Its frame comes from the changes the gate holds (`noTargets.ts`), so the
+// summary opens at the height it keeps. For a user with no targets, the
+// summary's Set targets opens the first-run page (`useFirstRun`). Back from
+// it, the tab mounts again on the same address and puts focus on the date
+// button, so focus never lands on the page's body.
 //
 // Layout: the date bar and the launcher are `DayHeader`, which stays at the
 // top while the day scrolls under it: 16 px between them on a phone and
@@ -127,6 +133,20 @@ export function DayTab(): ReactElement {
     prefetchLogLists(client);
   }, [client, dayLoaded]);
 
+  // Arrived from the first-run page, by leaving it or passing it: focus on
+  // the date button, with no ring after a tap, once it can take it (it is disabled while today is not known).
+  const firstRun = useFirstRun();
+  const dateLabelRef = useRef<HTMLButtonElement>(null);
+  const focusDateOnReturn = useRef(false);
+  useEffect(() => {
+    if (firstRun.takeReturned()) focusDateOnReturn.current = true;
+  }, [firstRun]);
+  useEffect(() => {
+    if (!focusDateOnReturn.current || date === null) return;
+    focusDateOnReturn.current = false;
+    restoreFocus(dateLabelRef.current);
+  }, [date]);
+
   const actions = useEntryActions(date);
   const sheet = useSheetTarget<Entry>();
   const launcherRef = useRef<HTMLDivElement>(null);
@@ -173,14 +193,21 @@ export function DayTab(): ReactElement {
   return (
     <PageContainer wide clearToast untitled>
       <DayHeader>
-        <DateBar date={date} today={today} onChange={go} />
+        <DateBar date={date} today={today} onChange={go} labelRef={dateLabelRef} />
         <div ref={launcherRef}>
           <DayLauncher date={date} future={future} actions={actions} />
         </div>
       </DayHeader>
       <div data-day-content="" className={DAY_CONTENT_CLASS}>
         <div data-day-summary-column="" className={SUMMARY_COLUMN_CLASS}>
-          <DaySummary date={date ?? ""} day={day} past={past} notice={notice} noTargets={noTargets} />
+          <DaySummary
+            date={date ?? ""}
+            day={day}
+            past={past}
+            notice={notice}
+            noTargets={noTargets}
+            onSetTargets={() => void firstRun.open()}
+          />
         </div>
         <EntryList
           entries={day?.entries ?? null}
