@@ -289,3 +289,8 @@
 [frontend-engineer DONE] (2026-11-17T20:58:39Z) Web tests pinned to en-US in the setup with two guards, full web suite green under fi_FI, de_DE, en_US and no locale; Fineli runbook names Basic package 2
 [backend-engineer STARTED] (2026-11-17T21:40:00Z) Fineli names written in capitals stored in sentence case at import
 [backend-engineer DONE] (2026-11-17T23:26:21Z) the import stores an all-capitals name in sentence case, finds "(ARC)" in any case and counts case-only changes apart from renames; backend 622 tests, gate green
+[frontend-engineer STARTED] (2026-11-17T21:40:00Z) the Day tab's header stays in view and the tab remembers its day
+[frontend-engineer DONE] (2026-11-17T23:47:16Z) the date bar and the launcher in a header that stays, wider gaps, a hairline only while content is under it, the Day link leads to the last shown day; web 1281 tests, gate green
+[ui-validator STARTED] (2026-11-17T23:47:16Z) the Day tab's header and remembered day in a real browser
+[ui-validator DONE] (2026-11-18T00:05:00Z) the Day tab's header at 84d66c4: PASS; the header's rect identical across every state at five widths, no press-through, the remembered day through tabs, reload, midnight and sign-out; two follow-ups (clearance under the launcher, the summary from lg)
+[frontend-engineer DONE] (2026-11-18T00:19:39Z) the Day tab's header: 24px under the launcher at every width, and from lg on a viewport at least 680px tall the summary stays under the header; web 1283 tests, gate green

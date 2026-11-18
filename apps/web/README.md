@@ -38,6 +38,7 @@ src/
 │   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, shared by Settings and the first-run page
 │   ├── day/                    The Day tab:
 │   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry sheet's mount
+│   │   ├── DayHeader.tsx       The date bar and the launcher, kept at the top while the day scrolls under them, with the hairline
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
 │   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
 │   │   ├── DaySummary.tsx      Both readings, the distances, carbohydrates and fat, and the two notes, each line in its reserved room
@@ -152,11 +153,13 @@ src/
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
 │   ├── useStillUnderFinger.ts  No scroll by code while a finger is on the screen
 │   ├── useAnchoredPanel.ts     Holds a centred panel's top where it opened
+│   ├── useScrolledUnder.ts     Whether <main> is scrolled from its top, so content sits under a header that stays
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
 │   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts
 │   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
+│   ├── shownDay.ts             The day the Day tab last showed by its address, where the Day link leads back to
 │   ├── pendingIds.ts           A one-press add's id, kept until its answer, a day that holds it, or a minute, and held while its failure shows
 │   ├── failure.ts              What a failed write says: OfflineError, unconfirmed(), failureLine()
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError

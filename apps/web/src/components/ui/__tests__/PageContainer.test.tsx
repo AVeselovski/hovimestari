@@ -42,6 +42,8 @@ describe("PageContainer", () => {
     expect(classes(shared)).toEqual(expect.arrayContaining(["md:max-w-page", "lg:max-w-page-wide"]));
     expect(classes(shared.parentElement!)).toContain("pb-toast-clearance");
     expect(classes(shared.parentElement!)).not.toContain("pb-12");
-    expect(classes(shared.parentElement!)).toEqual(expect.arrayContaining(["pt-2", "md:pt-8"]));
+    // The untitled page starts flush: its own sticky header keeps the room above it.
+    expect(classes(shared.parentElement!)).toContain("pt-0");
+    expect(classes(shared.parentElement!).filter((c) => /^(md:)?pt-/.test(c))).toEqual(["pt-0"]);
   });
 });

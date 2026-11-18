@@ -4,6 +4,7 @@ import { injectAuthHandlers } from "@/lib/api";
 import { endAllSessions } from "@/lib/api/auth";
 import { AuthRequestError } from "@/lib/errors";
 import { markSession } from "@/lib/sessionMarker";
+import { forgetShownDay } from "@/lib/shownDay";
 import {
   BrowserSessionSchema,
   type BrowserSession,
@@ -256,6 +257,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const endLocalSession = useCallback(() => {
     clearTimers();
     accessTokenRef.current = null;
+    // The next account starts on today.
+    forgetShownDay();
     markSession(false);
     setUser(null);
     setStatus("unauthenticated");

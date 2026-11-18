@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* From lg on a viewport tall enough for the Day tab's header, its tallest
+   summary, the toast's room at the page's end and the offline line, the
+   summary stays in view beside the entries (DayTab). Below that height it
+   scrolls with the page, so its end is never out of reach. A media query
+   cannot read a custom property, so the height is written here:
+   6.5rem header + 26rem tallest summary (a past day with both notes and
+   five-digit figures, 412px at 1024 wide, the narrowest lg column) + 7.25rem toast room + the
+   2.3125rem offline line, rounded up. */
+@custom-variant summary-stays (@media (width >= 64rem) and (height >= 42.5rem));
+
 /* ------------------------------------------------------------------ */
 /* Design tokens. docs/app/colors.md says what each one is for.        */
 /*                                                                     */
@@ -143,6 +153,30 @@
   --sheet-stack-peek: 0.75rem;
   /* The stacked sheet's own dim, as a share of the scrim's. */
   --sheet-stack-dim: 0.5;
+
+  /* The Day tab's header, which stays at the top of <main> while the day
+     scrolls under it: the date bar (2.75rem) over the launcher (3rem).
+     Its room above the date bar, the gap between the two, and the
+     clearance under the launcher. The clearance counts the header's
+     one-pixel bottom edge, the hairline drawn while rows are under it.
+     The height is what a focused row keeps clear of above it
+     (`under-day-header`). From lg the two sit side by side in one row. */
+  --day-header-top: 0.5rem;
+  --day-header-gap: 1rem;
+  --day-header-clear: 1.5rem;
+  --day-header-height: calc(var(--day-header-top) + 2.75rem + var(--day-header-gap) + 3rem + var(--day-header-clear));
+}
+
+@media (width >= 48rem) {
+  :root {
+    --day-header-top: 2rem;
+  }
+}
+
+@media (width >= 64rem) {
+  :root {
+    --day-header-height: calc(var(--day-header-top) + 3rem + var(--day-header-clear));
+  }
 }
 
 :root[data-theme="dark"] {
@@ -376,6 +410,15 @@ body {
   margin-inline: -0.25rem;
   max-height: clamp(0px, calc(8rem - var(--drawer-keyboard-inset, 0px) * 1000), 8rem);
   margin-bottom: clamp(-0.75rem, calc(-0.25rem - var(--drawer-keyboard-inset, 0px) * 1000), -0.25rem);
+}
+
+/* Content that scrolls under the Day tab's header: anything focused and
+   scrolled into view, by the keyboard or by script, stops below the header
+   rather than behind it. */
+@utility under-day-header {
+  & * {
+    scroll-margin-top: var(--day-header-height);
+  }
 }
 
 @utility toast-motion {

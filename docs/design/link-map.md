@@ -59,6 +59,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | food names setting, Finnish or English choice           | `app/settings.md#food-names`                                            | `### Food names`                                 |
 | food data credit in Settings, Fineli attribution        | `app/settings.md#food-data`                                             | `### Food data`                                  |
 | Day tab, Log food launcher, date bar                    | `app/day.md`                                                            | Doc                                              |
+| the Day tab's header that stays in view, its hairline   | `app/day.md#the-header`                                                 | `### The header`                                 |
+| the remembered day, the Day link, back to today         | `app/day.md#coming-back-to-the-tab`                                     | `### Coming back to the tab`                     |
 | the day summary, the gauge on screen                    | `app/day.md#the-summary`                                                | `### The summary`                                |
 | the gauge's drawing, band, ticks, end-cap               | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
 | entry rows, mark eaten, Mark all eaten                  | `app/day.md#the-entries`                                                | `### The entries`                                |

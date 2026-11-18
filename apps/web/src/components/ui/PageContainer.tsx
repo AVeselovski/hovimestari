@@ -18,8 +18,12 @@ export const PAGE_VERTICAL_PADDING_CLASS = "pt-6 pb-12";
 /** The end room of a page whose last rows a toast can cover: the tallest toast and its gap. */
 export const PAGE_TOAST_END_CLASS = "pb-toast-clearance";
 
-/** The top of a page the shell shows no title over (the Day tab): its own first row is the header. */
-export const PAGE_UNTITLED_TOP_CLASS = "pt-2 md:pt-8";
+/**
+ * The top of a page the shell shows no title over (the Day tab): none. Its
+ * own first row is a header that stays at the top while the page scrolls,
+ * and it keeps the room above itself, so it never moves when it starts to stay.
+ */
+export const PAGE_UNTITLED_TOP_CLASS = "pt-0";
 
 export interface PageContainerProps {
   children: ReactNode;
@@ -29,7 +33,7 @@ export interface PageContainerProps {
   wide?: boolean;
   /** The page's last rows hold actions a toast could cover: it keeps the tallest toast's room at its end. */
   clearToast?: boolean;
-  /** The shell shows no title over this page, so it starts close under the status bar. */
+  /** The shell shows no title over this page: it starts flush, and its own header keeps the room above it. */
   untitled?: boolean;
 }
 

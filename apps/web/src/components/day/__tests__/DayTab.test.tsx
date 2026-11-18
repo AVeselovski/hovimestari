@@ -7,6 +7,8 @@ import { getTargets } from "@/lib/api/targets";
 import { afterFoodNameLanguageChange, afterTargetsChange } from "@/lib/invalidation";
 import { formatDayShort } from "@/lib/localDate";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import fs from "node:fs";
+import path from "node:path";
 import {
   DayHarness,
   FakeDays,
@@ -394,5 +396,50 @@ describe("DayTab, today", () => {
       afterFoodNameLanguageChange(view.client, { ...fakeAuth("authenticated").user!, foodNameLanguage: "fi" }),
     );
     expect(await screen.findByText("Rahka")).toBeInTheDocument();
+  });
+});
+
+describe("DayTab, the header", () => {
+  it("keeps the date bar and the launcher in the header that stays at the top, and the summary and the entries under it", async () => {
+    serve(new FakeDays([foodEntry("Quark", 250, { status: "planned" })]));
+    renderDay();
+    await screen.findByText("Quark");
+    const header = document.querySelector("[data-day-header]")!;
+    expect(header.className.split(/\s+/)).toEqual(expect.arrayContaining(["sticky", "top-0"]));
+    expect(header.querySelector("[data-date-bar]")).not.toBeNull();
+    expect(header.querySelector("[data-day-launcher]")).not.toBeNull();
+    expect(header.querySelector("[data-day-summary]")).toBeNull();
+    expect(header.contains(rowOf("Quark"))).toBe(false);
+    // What scrolls under the header keeps clear of it when focus scrolls it into view.
+    const content = document.querySelector("[data-day-summary-column]")!.parentElement!;
+    expect(content.className.split(/\s+/)).toContain("under-day-header");
+    expect(content.contains(rowOf("Quark"))).toBe(true);
+  });
+
+  it("from lg on a tall enough viewport keeps the summary right under the header, and below that lets it scroll", async () => {
+    serve(new FakeDays([foodEntry("Quark", 250, { status: "planned" })]));
+    renderDay();
+    await screen.findByText("Quark");
+    const column = document.querySelector("[data-day-summary-column]")!;
+    const tokens = column.className.split(/\s+/);
+    expect(column.querySelector("[data-day-summary]")).not.toBeNull();
+    expect(column.contains(rowOf("Quark"))).toBe(false);
+    expect(tokens).toEqual(
+      expect.arrayContaining(["lg:self-start", "summary-stays:sticky", "summary-stays:top-(--day-header-height)"]),
+    );
+    // Sticking applies only through the variant: never on a phone, never on a short viewport.
+    expect(tokens.filter((c) => /(^|:)(sticky|fixed|top-)/.test(c) && !c.startsWith("summary-stays:"))).toEqual([]);
+  });
+
+  it("lets the summary stay only from lg and only on a viewport at least 42.5rem tall", () => {
+    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+    expect(css).toContain("@custom-variant summary-stays (@media (width >= 64rem) and (height >= 42.5rem));");
+  });
+
+  it("keeps one h1 on the page: the header adds no heading", async () => {
+    serve(new FakeDays([foodEntry("Quark", 250, { status: "planned" })]));
+    renderDay();
+    await screen.findByText("Quark");
+    expect(document.querySelector("[data-day-header]")!.querySelectorAll("h1, h2, h3")).toHaveLength(0);
   });
 });
