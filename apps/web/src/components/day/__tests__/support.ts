@@ -1,4 +1,12 @@
-import { entryFigures, positionOf, totalOf, type Day, type Entry, type Figures } from "@hovimestari/types";
+import {
+  entryFigures,
+  positionOf,
+  totalOf,
+  type Day,
+  type Entry,
+  type Figures,
+  type TargetRanges,
+} from "@hovimestari/types";
 
 // Days and entries as the API answers them, built with the shared figure
 // functions the server runs, so a fixture's totals and positions are the
@@ -85,15 +93,19 @@ export function estimateEntry(name: string, figures: Figures, overrides: Partial
   };
 }
 
-/** A day of `entries` on `date`, its readings and positions computed as the server computes them. */
-export function dayOf(entries: Entry[], date = TODAY, today = TODAY): Day {
+/**
+ * A day of `entries` on `date`, its readings and positions computed as the
+ * server computes them. `targets` null is a day without targets: no ranges
+ * and no position in either reading, the figures as always.
+ */
+export function dayOf(entries: Entry[], date = TODAY, today = TODAY, targets: TargetRanges | null = RANGES): Day {
   const eaten = entries.filter((e) => e.status === "eaten");
   const reading = (rows: Entry[]) => {
     const figures = totalOf(rows.map((r) => r.figures));
     return {
       figures,
-      energy: positionOf(figures.energyKcal, RANGES.energyKcal),
-      protein: positionOf(figures.proteinG, RANGES.proteinG),
+      energy: targets ? positionOf(figures.energyKcal, targets.energyKcal) : null,
+      protein: targets ? positionOf(figures.proteinG, targets.proteinG) : null,
       includesEstimate: rows.some((r) => r.isEstimate),
     };
   };
@@ -103,7 +115,7 @@ export function dayOf(entries: Entry[], date = TODAY, today = TODAY): Day {
     date,
     today,
     relation,
-    targets: RANGES,
+    targets,
     eaten: reading(eaten),
     withPlan: reading(entries),
     entryCount: entries.length,

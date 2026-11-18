@@ -153,7 +153,13 @@ await describeWithDb("days", (suite) => {
         expect(summary).toEqual(day);
         expect(entries).toBeDefined();
       }
-      expect(res.body.days[0].targets.energyKcal.lower).toBe(1800);
+      // 1 and 2 November come before the first change, so they have no targets and no positions.
+      for (const day of res.body.days.slice(0, 2)) {
+        expect(day.targets).toBeNull();
+        expect([day.eaten.energy, day.withPlan.energy, day.withPlan.protein]).toEqual([null, null, null]);
+      }
+      expect(res.body.days[1].withPlan.figures.energyKcal).toBe(1100); // the figures stay
+      expect(res.body.days[2].targets.energyKcal.lower).toBe(1800);
       expect(res.body.days[11].targets.energyKcal.lower).toBe(2000);
     });
 
@@ -169,6 +175,8 @@ await describeWithDb("days", (suite) => {
         const date = addDays("2026-11-01", i);
         expect(inForceOn(changes, date)).toEqual(await targetsOn(ctx, date));
       }
+      expect(await targetsOn(ctx, "2026-11-02")).toBeNull();
+      expect(inForceOn(changes, "2026-11-02")).toBeNull();
       expect(inForceOn([], "2026-11-01")).toBeNull();
     });
 

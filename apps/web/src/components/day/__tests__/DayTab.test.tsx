@@ -375,14 +375,16 @@ describe("DayTab, today", () => {
     const server = new FakeDays([foodEntry("Quark", 250)]);
     serve(server);
     const view = renderDay();
-    await screen.findByText("1900 to 2200 kcal");
+    // The range label is split into its mono figures and "to": match the label's whole text.
+    const range = (text: string) => (_: string, el: Element | null) => el?.tagName === "P" && el.textContent === text;
+    await screen.findByText(range("1900 to 2200\u00a0kcal"));
     jest.mocked(getDay).mockImplementation(async (date) => {
       const day = server.day(date);
       const ranges = { energyKcal: { lower: 1500, upper: 1700 }, proteinG: day.targets!.proteinG };
       return { ...day, targets: ranges, eaten: { ...day.eaten, energy: { position: "below", distance: 1352 } } };
     });
     await act(() => afterTargetsChange(view.client));
-    expect(await screen.findByText("1500 to 1700 kcal")).toBeInTheDocument();
+    expect(await screen.findByText(range("1500 to 1700\u00a0kcal"))).toBeInTheDocument();
     expect(screen.getAllByText("1352 kcal below the range")[0]).toBeInTheDocument();
   });
 

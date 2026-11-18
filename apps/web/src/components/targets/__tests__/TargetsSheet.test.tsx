@@ -244,159 +244,6 @@ describe("TargetsSheet", () => {
     expect(dateField()).toHaveValue(TODAY);
   });
 
-  describe("the line naming the days the numbers apply to", () => {
-    const span = () => dialog().querySelector<HTMLElement>("[data-span]")!;
-
-    // Below every field, it is as tall as what it says: a date picked above it moves only what is below it.
-    it("is one announced element through every date, and keeps no room", () => {
-      changes = [change("2026-11-01")];
-      renderSheet();
-      const line = span();
-      expect(line).toHaveAttribute("aria-live", "polite");
-      expect(line.className.split(/\s+/).filter((c) => /min-h/.test(c))).toEqual([]);
-      // A section of its own, 16 px under the fields, that takes no gap while empty.
-      expect(line.className.split(/\s+/)).toEqual(expect.arrayContaining(["mt-2", "empty:-mt-2"]));
-      fireEvent.change(dateField(), { target: { value: "2026-11-20" } });
-      expect(span()).toBe(line);
-      expect(line).toHaveTextContent(`These apply from ${formatDay("2026-11-20")} on.`);
-      // Empty only while the date is not a date.
-      fireEvent.change(dateField(), { target: { value: "" } });
-      expect(span()).toBe(line);
-      expect(line).toBeEmptyDOMElement();
-      fireEvent.change(dateField(), { target: { value: "2026-10-01" } });
-      expect(span()).toBe(line);
-      expect(line).not.toBeEmptyDOMElement();
-    });
-
-    it("from a date with no later change: from that date on, and earlier days keep theirs", () => {
-      renderSheet();
-      expect(span()).toHaveTextContent(`These apply from ${formatDay(TODAY)} on. Earlier days keep their targets.`);
-    });
-
-    it("for a later date with no change on it, too", () => {
-      renderSheet();
-      fireEvent.change(dateField(), { target: { value: "2026-12-24" } });
-      expect(span()).toHaveTextContent(
-        `These apply from ${formatDay("2026-12-24")} on. Earlier days keep their targets.`,
-      );
-    });
-
-    it("between two changes: to the day before the next, and other days keep theirs", () => {
-      changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
-      renderSheet();
-      fireEvent.change(dateField(), { target: { value: "2026-10-20" } });
-      expect(span()).toHaveTextContent(
-        `These apply from ${formatDay("2026-10-20")} to ${formatDay("2026-10-31")}. Other days keep their targets.`,
-      );
-    });
-
-    it("names the one day, not a stretch from a day to itself, when the next change starts the day after", () => {
-      changes = [change("2026-11-01"), change("2026-11-16")];
-      renderSheet();
-      fireEvent.change(dateField(), { target: { value: "2026-11-15" } });
-      expect(span()).toHaveTextContent(
-        `These apply to ${formatDay("2026-11-15")} only. Other days keep their targets.`,
-      );
-    });
-
-    it("for an edit of a change, ends the day before the next change", () => {
-      changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
-      renderSheet({ editing: "2026-11-01" });
-      expect(span()).toHaveTextContent(
-        `These apply from ${formatDay("2026-11-01")} to ${formatDay("2026-11-30")}. Other days keep their targets.`,
-      );
-    });
-
-    it("before the earliest change: every day before the next, later days keep theirs, and nothing said of earlier days", () => {
-      changes = [change("2026-11-01"), change("2026-12-01")];
-      renderSheet();
-      fireEvent.change(dateField(), { target: { value: "2026-10-15" } });
-      expect(span()).toHaveTextContent(
-        `These apply to every day before ${formatDay("2026-11-01")}. Later days keep their targets.`,
-      );
-      expect(span()).not.toHaveTextContent(/Earlier days|Other days/);
-    });
-
-    it("for an edit of the first change, every day before the next", () => {
-      changes = [change("2026-11-01"), change("2026-12-01")];
-      renderSheet({ editing: "2026-11-01" });
-      expect(span()).toHaveTextContent(
-        `These apply to every day before ${formatDay("2026-12-01")}. Later days keep their targets.`,
-      );
-    });
-
-    it("with no other change: these are the only targets, and no other days are said to keep any", () => {
-      renderSheet({ editing: "2026-11-01" });
-      expect(span()).toHaveTextContent("These are your only targets, so they apply to every day.");
-      expect(span()).not.toHaveTextContent(/keep their targets/);
-    });
-
-    describe("on a picked date that already has targets", () => {
-      // The whole line, so a notice in the wrong place or said twice fails.
-      const line = () => span().textContent;
-
-      it("between two changes: says it replaces this date's targets, then the days, naming the date once", () => {
-        changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
-        renderSheet();
-        fireEvent.change(dateField(), { target: { value: "2026-11-01" } });
-        expect(line()).toBe(
-          "This date already has targets. Saving replaces them. These apply from November 1, 2026 to November 30, 2026. Other days keep their targets.",
-        );
-      });
-
-      it("for one day: says it replaces this date's targets, then the day", () => {
-        changes = [change("2026-11-01"), change("2026-11-15"), change("2026-11-16")];
-        renderSheet();
-        fireEvent.change(dateField(), { target: { value: "2026-11-15" } });
-        expect(line()).toBe(
-          "This date already has targets. Saving replaces them. These apply to November 15, 2026 only. Other days keep their targets.",
-        );
-      });
-
-      it("on the last change: says it replaces this date's targets, then from it on", () => {
-        changes = [change("2026-11-01"), change("2026-12-01")];
-        renderSheet();
-        fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
-        expect(line()).toBe(
-          "This date already has targets. Saving replaces them. These apply from December 1, 2026 on. Earlier days keep their targets.",
-        );
-      });
-
-      it("on the first change: names the date, since the days are named by the next change", () => {
-        changes = [change("2026-11-01"), change("2026-12-01")];
-        renderSheet();
-        fireEvent.change(dateField(), { target: { value: "2026-11-01" } });
-        expect(line()).toBe(
-          "November 1, 2026 already has targets. Saving replaces them. These apply to every day before December 1, 2026. Later days keep their targets.",
-        );
-      });
-
-      it("on the only change: names the date, then says these are the only targets", () => {
-        changes = [change(TODAY)];
-        renderSheet();
-        expect(line()).toBe(
-          "November 16, 2026 already has targets. Saving replaces them. These are your only targets, so they apply to every day.",
-        );
-      });
-
-      // Across states: one announced line, the notice comes and goes with the date.
-      it("comes and goes in the same announced line as the date moves onto a change and off it", () => {
-        changes = [change("2026-11-01"), change("2026-12-01")];
-        renderSheet();
-        const el = span();
-        expect(el).not.toHaveTextContent(/already has targets/);
-        fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
-        expect(span()).toBe(el);
-        expect(el).toHaveAttribute("aria-live", "polite");
-        expect(el).toHaveTextContent(/^This date already has targets\. Saving replaces them\. /);
-        fireEvent.change(dateField(), { target: { value: "2026-12-02" } });
-        expect(span()).toBe(el);
-        expect(el).not.toHaveTextContent(/already has targets|replaces/);
-        expect(el).toHaveTextContent(`These apply from ${formatDay("2026-12-02")} on.`);
-      });
-    });
-  });
-
   it("saves on the picked date and closes", async () => {
     const { onSaved, onClose } = renderSheet();
     fireEvent.change(dateField(), { target: { value: "2026-12-24" } });
@@ -546,14 +393,23 @@ describe("TargetsSheet", () => {
     expect(confirm).not.toHaveTextContent(/Days from/);
   });
 
-  it("removing the first change says its days go to the next change", async () => {
+  it("removing the first change says its days will have no targets, never that the next change takes them", async () => {
     changes = [change("2026-11-01"), change("2026-12-01")];
     renderSheet({ editing: "2026-11-01" });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Remove these targets" }));
     const confirm = await screen.findByRole("dialog", { name: `Remove the targets from ${formatDay("2026-11-01")}?` });
     expect(confirm).toHaveTextContent(
-      `Days before ${formatDay("2026-12-01")} are then measured against the targets from ${formatDay("2026-12-01")}.`,
+      `Days from ${formatDay("2026-11-01")} to ${formatDay("2026-11-30")} will have no targets.`,
     );
+    expect(confirm).not.toHaveTextContent(/measured against|against the targets/);
+  });
+
+  it("removing a first change that covers one day says that day will have no targets", async () => {
+    changes = [change("2026-11-15"), change("2026-11-16")];
+    renderSheet({ editing: "2026-11-15" });
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Remove these targets" }));
+    const confirm = await screen.findByRole("dialog", { name: `Remove the targets from ${formatDay("2026-11-15")}?` });
+    expect(confirm).toHaveTextContent(`${formatDay("2026-11-15")} will have no targets.`);
   });
 
   it("keeps the confirmation open with the reason when the server refuses the removal", async () => {

@@ -22,13 +22,14 @@ export function change(
 
 /**
  * What `GET /targets` answers for `date` over `changes`: the change with the
- * latest start on or before the date, else the first. The rule is the
+ * latest start on or before the date, else none. A date before the first
+ * change has no targets, while every change is still listed. The rule is the
  * server's, written out here only so the screen has an answer to show.
  */
 export function overview(changes: TargetChange[], date: string = TODAY, today: string = TODAY): TargetsOverview {
   const sorted = [...changes].sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
   const onOrBefore = sorted.filter((c) => c.effectiveFrom <= date);
-  return { date, today, inForce: onOrBefore.at(-1) ?? sorted[0] ?? null, changes: sorted };
+  return { date, today, inForce: onOrBefore.at(-1) ?? null, changes: sorted };
 }
 
 /** A refusal from the API with an error code, as axios rejects. */

@@ -1,5 +1,5 @@
 import type { TargetChange } from "@hovimestari/types";
-import { removalOf, spanOf } from "../targetLines";
+import { spanOf } from "../targetLines";
 
 const change = (effectiveFrom: string): TargetChange => ({
   effectiveFrom,
@@ -11,59 +11,71 @@ const today = "2026-11-16";
 describe("spanOf", () => {
   it("names the days from the date to the day before the next change", () => {
     const changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
-    expect(spanOf(changes, "2026-11-01")).toEqual({ kind: "between", date: "2026-11-01", end: "2026-11-30" });
-    expect(spanOf(changes, "2026-11-10")).toEqual({ kind: "between", date: "2026-11-10", end: "2026-11-30" });
+    expect(spanOf(changes, "2026-11-01")).toEqual({
+      kind: "between",
+      date: "2026-11-01",
+      end: "2026-11-30",
+      earlier: true,
+    });
+    expect(spanOf(changes, "2026-11-10")).toEqual({
+      kind: "between",
+      date: "2026-11-10",
+      end: "2026-11-30",
+      earlier: true,
+    });
   });
 
   it("names the one day when the next change starts the day after", () => {
     const changes = [change("2026-11-01"), change("2026-11-16")];
-    expect(spanOf(changes, "2026-11-15")).toEqual({ kind: "day", date: "2026-11-15" });
+    expect(spanOf(changes, "2026-11-15")).toEqual({ kind: "day", date: "2026-11-15", earlier: true });
     // An edit of a change that covers one day.
-    expect(spanOf([...changes, change("2026-11-15")], "2026-11-15")).toEqual({ kind: "day", date: "2026-11-15" });
+    expect(spanOf([...changes, change("2026-11-15")], "2026-11-15")).toEqual({
+      kind: "day",
+      date: "2026-11-15",
+      earlier: true,
+    });
   });
 
   it("names every day from the date on when no change follows", () => {
-    expect(spanOf([change("2026-11-01")], today)).toEqual({ kind: "from", date: today });
+    expect(spanOf([change("2026-11-01")], today)).toEqual({ kind: "from", date: today, earlier: true });
   });
 
-  it("covers every earlier day when the change is the first", () => {
+  it("covers only its own days when the change is the first: the days before it have no targets", () => {
+    // The first change, edited or removed: to the day before the next, with nothing earlier.
     expect(spanOf([change("2026-11-01"), change("2026-12-01")], "2026-11-01")).toEqual({
-      kind: "before",
-      next: "2026-12-01",
+      kind: "between",
+      date: "2026-11-01",
+      end: "2026-11-30",
+      earlier: false,
     });
-    expect(spanOf([change("2026-11-01")], "2026-11-01")).toEqual({ kind: "all" });
-    // A new date before every change becomes the first, and takes the days before it too.
-    expect(spanOf([change("2026-12-01")], "2026-11-20")).toEqual({ kind: "before", next: "2026-12-01" });
+    // The only change: from its date on, with nothing earlier.
+    expect(spanOf([change("2026-11-01")], "2026-11-01")).toEqual({ kind: "from", date: "2026-11-01", earlier: false });
+    // A new date before every change: up to the day before the first one, never every earlier day.
+    expect(spanOf([change("2026-12-01")], "2026-11-20")).toEqual({
+      kind: "between",
+      date: "2026-11-20",
+      end: "2026-11-30",
+      earlier: false,
+    });
+    expect(spanOf([change("2026-11-21")], "2026-11-20")).toEqual({ kind: "day", date: "2026-11-20", earlier: false });
+  });
+
+  it("ignores the change on the date itself, in both directions", () => {
+    expect(spanOf([change("2026-11-01"), change("2026-12-01")], "2026-12-01")).toEqual({
+      kind: "from",
+      date: "2026-12-01",
+      earlier: true,
+    });
+    expect(spanOf([change("2026-12-01")], "2026-12-01")).toEqual({ kind: "from", date: "2026-12-01", earlier: false });
   });
 
   it("names the days for a later date with no change on it too, after the first change", () => {
-    expect(spanOf([change("2026-11-01")], "2026-11-17")).toEqual({ kind: "from", date: "2026-11-17" });
+    expect(spanOf([change("2026-11-01")], "2026-11-17")).toEqual({ kind: "from", date: "2026-11-17", earlier: true });
     expect(spanOf([change("2026-11-01"), change("2026-12-15")], "2026-12-01")).toEqual({
       kind: "between",
       date: "2026-12-01",
       end: "2026-12-14",
+      earlier: true,
     });
-  });
-
-  it("speaks for an edit of a later change too", () => {
-    expect(spanOf([change("2026-11-01"), change("2026-12-01")], "2026-12-01")).toEqual({
-      kind: "from",
-      date: "2026-12-01",
-    });
-  });
-});
-
-describe("removalOf", () => {
-  it("hands the removed days to the earlier targets, or the first change's days to the next", () => {
-    const changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
-    expect(removalOf(changes, "2026-11-01")).toEqual({ kind: "between", date: "2026-11-01", end: "2026-11-30" });
-    expect(removalOf(changes, "2026-12-01")).toEqual({ kind: "from", date: "2026-12-01" });
-    expect(removalOf(changes, "2026-10-01")).toEqual({ kind: "first", next: "2026-11-01" });
-    expect(removalOf([change("2026-10-01")], "2026-10-01")).toBeNull();
-  });
-
-  it("names the one day when the removed change covered only one", () => {
-    const changes = [change("2026-11-01"), change("2026-11-15"), change("2026-11-16")];
-    expect(removalOf(changes, "2026-11-15")).toEqual({ kind: "day", date: "2026-11-15" });
   });
 });
