@@ -754,6 +754,8 @@ Base UI `Toast`, mounted once in `AppShell`, above the tab bar on a phone and at
 | Day states       | "This day did not load.", "Try again", "This day needs a connection."                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Busy             | "Saving…", "Copying…" through `StableLabel`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
+> **Later change (spacing round two, Artur's request):** the visible heads and their squares are gone (the names stay visually hidden on each figure), and "With plan includes an estimate." reads "Planned entries include an estimate." Open for Artur in `TODO.md`.
+
 Error copy (`errors.<code>`):
 
 | Code                    | Copy                                                                 |
@@ -1178,6 +1180,8 @@ Checked against the copy rules: plain words, no semicolons, no dashes, no judgem
 | Estimate fields | "Name", "Calories", "Protein", "Carbohydrates", "Fat", "Note (optional)"                                                                                                                                                                                                                                                                                                                                                                                                |
 | Toasts          | "Marked {name} eaten." "Marked {count, plural, one {# entry} other {# entries}} eaten." "Marked {name} planned." "Moved {name} to {day}." "Saved {name}." "Removed {name}." "Undo", "Try again". "Could not confirm. Check your connection and try again." "You are offline. Changes need a connection." "Could not undo." The region's name: "Notifications". "This entry is no longer there." is the catalog's `errors.entry_not_found`, shown through `useErrorCopy` |
 
+> **Later change (spacing round two, Artur's request):** the visible heads and their squares are gone (the names stay visually hidden on each figure), and "With plan includes an estimate." reads "Planned entries include an estimate." Open for Artur in `TODO.md`.
+
 `{day}` is "today", "yesterday", "tomorrow" or the short date. The group-refusal line is 2d's.
 
 **Error codes leaving `CODES_WITHOUT_COPY` in 3b**, with section f's copy: `entry_not_found`, `entry_kind_mismatch`, `entry_eaten_in_future`, `entry_grams_invalid`, `entry_count_invalid`, `figure_required`, `figure_invalid`, `name_required`, `name_too_long`, `note_too_long`. The comment above the remaining entries says they wait for the log sheet.
@@ -1207,6 +1211,8 @@ Sized for the first screen of a phone (revised in PR 3b, see Deviations 16): the
    - Two equal columns, Eaten and With plan: the figure (JetBrains Mono, 1.5rem on a 28 px line, 1.75rem from `md`, ink) with its unit in body text, `text-sm`, muted, and "≈" before the figure when the reading includes an estimate. Under it the distance, `text-xs` (`text-sm` from `md`), ink, in its reserved room.
 3. Carbohydrates and Fat: a two-row table in the same two columns. `MacroDot` and the label ("Carbs", "Fat") at the start of the Eaten column, each reading's figure (mono, `text-base`) at the end of its own column. No gauge.
 4. The notes: the estimate line, then the unmarked line, each in its reserved room, `text-xs`, `text-sm` from `md`.
+
+> **Later change (spacing round two, Artur's request):** the visible heads and their squares are gone (the names stay visually hidden on each figure), and "With plan includes an estimate." reads "Planned entries include an estimate." Open for Artur in `TODO.md`.
 
 A failure or offline lays its line, and Try again, over the whole summary's frame, whose content is then invisible and `aria-hidden`. The figure columns alone are too short for a 48 px button.
 

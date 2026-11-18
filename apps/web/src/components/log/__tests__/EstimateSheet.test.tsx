@@ -45,6 +45,7 @@ const timeout = () => Object.assign(new Error("timeout"), { isAxiosError: true, 
 
 describe("EstimateSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /^add an estimate$/i,
     panelClass: "md:max-w-lg",
     renderSheet: (p) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { fieldErrorClass, inputClass } from "@/components/ui/styles";
+import { fieldErrorClass, fieldHintClass, inputClass, lineRoom } from "@/components/ui/styles";
 import { useLayoutEffect, useRef, type InputHTMLAttributes, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
@@ -18,7 +18,10 @@ import { useLayoutEffect, useRef, type InputHTMLAttributes, type ReactElement } 
 //
 // The form checks the date itself. Every form here is `noValidate`, so the
 // browser's own bubble never shows. The caller passes the line to show in
-// `error`, and the field keeps that line's room whether or not it is empty.
+// `error`, or a note about the date in `hint`, and the field keeps that
+// line's room whether or not it is empty. An error wins over a hint. The hint
+// sits in a live span of its own (`dateHintId`), which another control can
+// name as its description.
 // ---------------------------------------------------------------------------
 
 type NativeInputProps = Omit<
@@ -34,6 +37,17 @@ export interface NativeDateInputProps extends NativeInputProps {
   onValueChange: (value: string) => void;
   /** The form's line under the field, or null. */
   error?: string | null;
+  /** A note about the date chosen, in the same line while there is no error. */
+  hint?: string | null;
+}
+
+/**
+ * The id of the span that holds a date field's hint, for a control the hint
+ * explains (the Eaten or planned group's `reasonId`). Empty while the line
+ * shows an error, so an error is never read as that control's reason.
+ */
+export function dateHintId(id: string): string {
+  return `${id}-line-hint`;
 }
 
 export function NativeDateInput({
@@ -41,6 +55,7 @@ export function NativeDateInput({
   value,
   onValueChange,
   error = null,
+  hint = null,
   "aria-describedby": describedBy,
   ...rest
 }: NativeDateInputProps): ReactElement {
@@ -53,6 +68,7 @@ export function NativeDateInput({
   });
 
   const lineId = `${id}-line`;
+  const line = error ?? hint;
   return (
     <>
       {/* The caller's attributes first, so none overrides what the field owns. */}
@@ -63,12 +79,17 @@ export function NativeDateInput({
         type="date"
         onChange={(e) => onValueChange(e.target.value)}
         aria-invalid={error ? true : undefined}
-        aria-describedby={[describedBy, error ? lineId : null].filter(Boolean).join(" ") || undefined}
+        aria-describedby={[describedBy, line ? lineId : null].filter(Boolean).join(" ") || undefined}
         className={inputClass}
       />
-      {/* Always there, so an error appearing moves nothing below it. */}
-      <p id={lineId} className={`${fieldErrorClass} min-h-5`}>
+      {/* Always there, so a line appearing moves nothing below it. Only the
+          hint is announced as it changes, from its own span: an error is
+          read as the field's description, as every field's error is. */}
+      <p id={lineId} className={`${error ? fieldErrorClass : fieldHintClass} ${lineRoom}`}>
         {error}
+        <span id={dateHintId(id)} aria-live="polite">
+          {error ? null : hint}
+        </span>
       </p>
     </>
   );

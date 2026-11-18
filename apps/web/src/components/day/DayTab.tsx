@@ -54,10 +54,15 @@ import { EntryList } from "./EntryList";
 /**
  * The summary's column. From `lg`, on a viewport tall enough for the header
  * and the tallest summary (the `summary-stays` variant in globals.css), it
- * stays right under the header while the entries scroll. It starts there at
- * rest, so it never moves when it starts to stay. Below that it scrolls.
+ * stays where it starts at rest (`--day-content-top`, 16 px under the
+ * launcher) while the entries scroll, so it never moves when it starts to
+ * stay. Below that it scrolls.
  */
-export const SUMMARY_COLUMN_CLASS = "lg:self-start summary-stays:sticky summary-stays:top-(--day-header-height)";
+export const SUMMARY_COLUMN_CLASS = "lg:self-start summary-stays:sticky summary-stays:top-(--day-content-top)";
+
+/** The content under the header: 16 px under the launcher at rest, and a focused row stops there too. */
+export const DAY_CONTENT_CLASS =
+  "under-day-header flex flex-col gap-3 pt-(--day-header-rest) lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10";
 
 export function DayTab(): ReactElement {
   const t = useTranslations("day.states");
@@ -155,7 +160,7 @@ export function DayTab(): ReactElement {
           <DayLauncher date={date} future={future} actions={actions} />
         </div>
       </DayHeader>
-      <div className="under-day-header flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+      <div data-day-content="" className={DAY_CONTENT_CLASS}>
         <div data-day-summary-column="" className={SUMMARY_COLUMN_CLASS}>
           <DaySummary date={date ?? ""} day={day} past={past} notice={notice} />
         </div>

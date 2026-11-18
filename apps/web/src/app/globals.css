@@ -5,10 +5,14 @@
    summary stays in view beside the entries (DayTab). Below that height it
    scrolls with the page, so its end is never out of reach. A media query
    cannot read a custom property, so the height is written here:
-   6.5rem header + 26rem tallest summary (a past day with both notes and
-   five-digit figures, 412px at 1024 wide, the narrowest lg column) + 7.25rem toast room + the
-   2.3125rem offline line, rounded up. */
-@custom-variant summary-stays (@media (width >= 64rem) and (height >= 42.5rem));
+   6rem from the top to the summary (`--day-content-top` from lg: 2rem
+   above, the 3rem row, 0.75rem clearance, 0.25rem room at rest) + 23.75rem
+   tallest summary (a past day with both notes and five-digit figures,
+   380px at 1024 wide, the narrowest lg column) + 7.25rem toast room
+   (`--spacing-toast-clearance`) + the 2.3125rem offline line = 39.3125rem,
+   rounded up. DayTab.test.tsx adds the tokens up and fails when this falls
+   behind them. */
+@custom-variant summary-stays (@media (width >= 64rem) and (height >= 39.5rem));
 
 /* ------------------------------------------------------------------ */
 /* Design tokens. docs/app/colors.md says what each one is for.        */
@@ -157,14 +161,27 @@
   /* The Day tab's header, which stays at the top of <main> while the day
      scrolls under it: the date bar (2.75rem) over the launcher (3rem).
      Its room above the date bar, the gap between the two, and the
-     clearance under the launcher. The clearance counts the header's
-     one-pixel bottom edge, the hairline drawn while rows are under it.
-     The height is what a focused row keeps clear of above it
-     (`under-day-header`). From lg the two sit side by side in one row. */
+     clearance under the launcher, where the hairline sits while rows are
+     under it. The clearance counts the header's one-pixel bottom edge.
+     The height is the header's own box. The content under it starts a
+     little lower at rest (`--day-header-rest`, which scrolls away), so it
+     sits 1rem under the launcher. `--day-content-top` is where that
+     content starts at rest, which is also where a focused row stops
+     (`under-day-header`) and where the summary stays from lg, so neither
+     moves when it starts to stay. From lg the two sit side by side in one
+     row. */
   --day-header-top: 0.5rem;
   --day-header-gap: 1rem;
-  --day-header-clear: 1.5rem;
+  --day-header-clear: 0.75rem;
+  --day-header-rest: 0.25rem;
   --day-header-height: calc(var(--day-header-top) + 2.75rem + var(--day-header-gap) + 3rem + var(--day-header-clear));
+  --day-content-top: calc(var(--day-header-height) + var(--day-header-rest));
+
+  /* How far a secondary action's 44px target in a sheet's footer reaches
+     above its line of text on a phone (`sheetActionsStartButton`). The
+     footer row that yields to the keyboard keeps this room, and 4px more
+     for the focus ring, from its own clip (`keyboard-yields`). */
+  --footer-start-reach: 0.625rem;
 }
 
 @media (width >= 48rem) {
@@ -372,31 +389,62 @@ body {
 /* ------------------------------------------------------------------ */
 /* A footer row that gives its room to the keyboard, such as the entry */
 /* sheet's Remove entry (FormSheetActions, `yieldsToKeyboard`). With   */
-/* the keyboard closed it is its content's height, and its 4px of      */
-/* padding, taken back by its margins, leaves room for the focus ring, */
-/* which `overflow: hidden` would clip. While --drawer-keyboard-inset  */
-/* is above 0 (Base UI sets it for a keyboard-aware sheet) its height  */
-/* clamps to nothing: the clamp is the full height at an inset of 0    */
-/* and nothing from an inset of a hundredth of a pixel. Its bottom     */
-/* margin also takes back the footer's 8px row gap, so Save keeps its  */
-/* place above the keyboard with a refusal shown.                      */
+/* the keyboard closed it is its content's height. Its padding, taken  */
+/* back by its margins, is room `overflow: hidden` must not clip: the  */
+/* text button's 44px target reaches 10px above its line of text       */
+/* (`sheetActionsStartButton`), and its focus ring 4px further. While  */
+/* --drawer-keyboard-inset is above 0 (Base UI sets it for a           */
+/* keyboard-aware sheet) the row clamps to nothing, its padding and    */
+/* margins included: each clamp is its full value at an inset of 0 and */
+/* its other end from an inset of a hundredth of a pixel. The room     */
+/* under the button is the button's own margin, so it goes too, and    */
+/* Save keeps its place above the keyboard with a refusal shown.       */
 /* ------------------------------------------------------------------ */
 
 @utility keyboard-yields {
+  --footer-ring-reach: calc(var(--footer-start-reach) + 0.25rem);
   overflow: hidden;
-  padding: 0.25rem;
-  margin-top: -0.25rem;
+  padding-block: clamp(
+    0px,
+    calc(var(--footer-ring-reach) - var(--drawer-keyboard-inset, 0px) * 1000),
+    var(--footer-ring-reach)
+  );
+  padding-inline: 0.25rem;
+  margin-top: clamp(
+    calc(var(--footer-ring-reach) * -1),
+    calc(var(--footer-ring-reach) * -1 + var(--drawer-keyboard-inset, 0px) * 1000),
+    0px
+  );
   margin-inline: -0.25rem;
-  max-height: clamp(0px, calc(8rem - var(--drawer-keyboard-inset, 0px) * 1000), 8rem);
-  margin-bottom: clamp(-0.75rem, calc(-0.25rem - var(--drawer-keyboard-inset, 0px) * 1000), -0.25rem);
+  margin-bottom: clamp(
+    calc(var(--footer-ring-reach) * -1),
+    calc(var(--footer-ring-reach) * -1 + var(--drawer-keyboard-inset, 0px) * 1000),
+    0px
+  );
+  max-height: clamp(0px, calc(10rem - var(--drawer-keyboard-inset, 0px) * 1000), 10rem);
+}
+
+/* A form sheet's form (FormSheet). When its last block ends in a field's
+   reserved line (`field-line`, from `lineRoom`), that line is the room above
+   the footer's rule: the block takes back 12px of the body's 16px bottom
+   padding, so the line ends 4px over the rule, room enough that a refusal's
+   text never touches it. A form that ends in anything else, such as a note,
+   keeps the body's 16px. The line may sit up to three levels down, as a
+   field's line inside a field inside a section. */
+@utility form-ends-in-line {
+  & > :last-child:has(> .field-line:last-child),
+  & > :last-child:has(> :last-child > .field-line:last-child),
+  & > :last-child:has(> :last-child > :last-child > .field-line:last-child) {
+    margin-bottom: -0.75rem;
+  }
 }
 
 /* Content that scrolls under the Day tab's header: anything focused and
-   scrolled into view, by the keyboard or by script, stops below the header
-   rather than behind it. */
+   scrolled into view, by the keyboard or by script, stops where the content
+   starts at rest, 1rem under the launcher, rather than behind the header. */
 @utility under-day-header {
   & * {
-    scroll-margin-top: var(--day-header-height);
+    scroll-margin-top: var(--day-content-top);
   }
 }
 

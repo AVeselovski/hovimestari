@@ -1,6 +1,8 @@
 import type { FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { MOBILE_QUERY } from "@/hooks/useIsMobile";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import fs from "node:fs";
+import path from "node:path";
 import { useRef, useState, type ReactElement } from "react";
 import { holdSheetExits, pressOutsideSheet, swipeSheetDown, trackFocus } from "./sheet";
 
@@ -52,6 +54,26 @@ export interface FormSheetContract {
    * mutation, and only closes, passes false.
    */
   reportsSave?: boolean;
+  /**
+   * Whether the form's last block ends in a field's reserved line, which is
+   * then the room above the footer (`form-ends-in-line`). Every sheet states
+   * it, so a sheet whose last line sits deeper than the rule reaches fails.
+   */
+  endsInLine: boolean;
+}
+
+/**
+ * The selectors of the `form-ends-in-line` rule in globals.css, read from the
+ * file, each anchored at the form. jsdom matches `:has()` in a selector,
+ * though it lays nothing out.
+ */
+function formEndsInLineSelector(): string {
+  const css = fs.readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf8");
+  const rule = css.slice(css.indexOf("@utility form-ends-in-line"));
+  const block = rule.slice(0, rule.indexOf("\n}\n"));
+  const selectors = [...block.matchAll(/^\s*& (>[^,{]+)[,{]/gm)].map((m) => `:scope ${m[1].trim()}`);
+  if (selectors.length === 0) throw new Error("no form-ends-in-line selectors in globals.css");
+  return selectors.join(", ");
 }
 
 /**
@@ -100,6 +122,18 @@ export function describeFormSheetContract(c: FormSheetContract): void {
       onClose.mockClear();
       onSaved.mockClear();
     });
+
+    it(
+      c.endsInLine
+        ? "lets its last field's reserved line be the room above the footer"
+        : "keeps the body's padding above the footer: its form ends in no field's line",
+      () => {
+        renderOpen();
+        const form = screen.getByRole("dialog").querySelector<HTMLFormElement>("[data-sheet-body] form")!;
+        expect(form.className.split(/\s+/)).toContain("form-ends-in-line");
+        expect(form.querySelector(formEndsInLineSelector()) !== null).toBe(c.endsInLine);
+      },
+    );
 
     it(`is a modal dialog named by its title, the centred ${panelClass} panel at md+`, () => {
       renderOpen();

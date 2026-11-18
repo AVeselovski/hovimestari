@@ -10,6 +10,7 @@ import {
   sheetActions,
   sheetActionsPair,
   sheetActionsStart,
+  sheetActionsStartButton,
   touchTarget,
 } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
@@ -117,7 +118,7 @@ export function FormSheetActions({
           if ("submit" in start) onSubmitMode?.(start.submit);
           else start.onPress(e.currentTarget);
         }}
-        className={`justify-center ${start.tone === "neutral" ? btnText : btnTextDanger}`}
+        className={`justify-center ${start.tone === "neutral" ? btnText : btnTextDanger} ${sheetActionsStartButton}`}
       >
         {startSubmit ? (
           <StableLabel

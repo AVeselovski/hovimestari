@@ -82,7 +82,7 @@ describe("DaySummary", () => {
       "8888.8\u00a0g above the range",
     ];
     expect(forms.slice(0, 4)).toEqual([energy, energy, protein, protein]);
-    expect(forms[4]).toEqual(["These totals include an estimate.", "With plan includes an estimate."]);
+    expect(forms[4]).toEqual(["These totals include an estimate.", "Planned entries include an estimate."]);
     const note = () => document.querySelector('[data-note="estimate"]')!.textContent;
     expect(note()).toBe("");
 
@@ -91,7 +91,7 @@ describe("DaySummary", () => {
     expect(reservedForms()).toEqual(forms);
 
     rerender(<DaySummary date={TODAY} day={dayOf([quark, { ...dinner, status: "planned" }])} past />);
-    expect(note()).toBe("With plan includes an estimate.");
+    expect(note()).toBe("Planned entries include an estimate.");
     expect(reservedForms()).toEqual(forms);
 
     rerender(<DaySummary date={TODAY} day={dayOf([quark])} past />);
@@ -259,5 +259,28 @@ describe("DaySummary", () => {
     expect(eaten.className.split(" ")).toEqual(expect.arrayContaining(["col-start-1", "ml-16", "justify-self-start"]));
     expect(withPlan.className.split(" ")).toEqual(expect.arrayContaining(["col-start-2", "justify-self-start"]));
     expect(withPlan.className.split(" ")).not.toContain("justify-self-end");
+  });
+
+  it("shows no column heads, and still names each reading for a screen reader", () => {
+    const quark = foodEntry("Quark", 250);
+    const later = foodEntry("Rahka", 200, { status: "planned" });
+    const { container } = render(<DaySummary date={TODAY} day={dayOf([quark, later])} past={false} />);
+    const summary = container.querySelector<HTMLElement>("[data-day-summary]")!;
+    // Every "Eaten" and "With plan" on the summary is screen reader text: nothing visible says them.
+    const visible = [...summary.querySelectorAll<HTMLElement>("*")].filter(
+      (el) => el.children.length === 0 && /^(Eaten|With plan)$/.test(el.textContent!.trim()),
+    );
+    expect(visible.length).toBeGreaterThan(0);
+    for (const el of visible) expect(el.closest(".sr-only")).not.toBeNull();
+    // The calories block is the summary's first block: no row above it.
+    const content = summary.firstElementChild!;
+    expect(content.firstElementChild).toBe(summary.querySelector('[data-summary-macro="energy"]'));
+    // Both readings are still there, side by side, and named.
+    const energy = summary.querySelector('[data-summary-macro="energy"]')!;
+    expect([...energy.querySelectorAll("[data-reading]")].map((r) => r.getAttribute("data-reading"))).toEqual([
+      "eaten",
+      "withPlan",
+    ]);
+    expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual(["Eaten", "With plan"]);
   });
 });

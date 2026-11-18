@@ -54,6 +54,7 @@ function renderSheet(props: Partial<TargetsSheetProps> = {}) {
 
 describe("TargetsSheet", () => {
   describeFormSheetContract({
+    endsInLine: false,
     name: /change targets/i,
     renderSheet: (p) => <TargetsSheet {...p} today={TODAY} changes={changes} />,
     type: () => type("Calories", "From", "1900"),

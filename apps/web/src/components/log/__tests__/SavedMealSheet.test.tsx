@@ -73,6 +73,7 @@ describe("SavedMealSheet, new", () => {
     contractSaveAndLog = jest.fn();
   });
   describeFormSheetContract({
+    endsInLine: true,
     name: /^new saved meal$/i,
     panelClass: "md:max-w-lg",
     renderSheet: (p) => (

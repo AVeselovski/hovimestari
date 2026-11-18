@@ -3,7 +3,7 @@
 import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
-import { NativeDateInput } from "@/components/ui/NativeDateInput";
+import { NativeDateInput, dateHintId } from "@/components/ui/NativeDateInput";
 import { labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
@@ -254,6 +254,7 @@ export function EntrySheet({
             value={fields.status}
             onChange={(status) => change({ status })}
             future={future}
+            reasonId={dateHintId(fieldId("date"))}
           />
           {entry.kind === "food" && (
             <AmountField
@@ -304,6 +305,8 @@ export function EntrySheet({
               value={fields.date}
               onValueChange={(date) => change({ date })}
               error={dateLine}
+              // Why Eaten is unavailable, under the date that makes it so.
+              hint={future ? t("futureHint") : null}
             />
           </div>
         </>

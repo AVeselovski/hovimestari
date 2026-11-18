@@ -313,3 +313,15 @@
 [reviewer STARTED] (2026-11-18T10:10:42Z) review of fix/targets-new-change-opens-empty against the owner's round 2 words and the diff
 [reviewer DONE] (2026-11-18T10:16:58Z) approve after fixes: six minors and nits, no change to the component's logic (94k tokens)
 [frontend-engineer DONE] (2026-11-18T10:16:58Z) the six review fixes, with a Settings test that pins the sheet's per-open key; 1325 web tests pass
+[frontend-engineer STARTED] (2026-11-18T10:00:13Z) spacing round two: Day header's bottom padding, entry sheet gaps, auth and first-run pages on the sheets' rhythm (feedback round 2)
+[frontend-engineer DONE] (2026-11-18T10:37:30Z) Day header band 24 to 12px with content resting 16px under the launcher; entry sheet gap under Eaten or planned 34 to 16px and footer 133 to 117px; page forms on the shared recipes; Day summary's column heads no longer shown; 1336 web tests pass (348k tokens)
+[frontend-engineer DONE] (2026-11-18T10:49:47Z) a sheet body ending in a field's line gives 12px of its bottom padding back (date field to footer rule 42 to 30px); page forms keep refusal room from md only (sign-in password to button 82 to 42px); 1337 web tests pass
+[ui-validator STARTED] (2026-11-18T10:49:47Z) browser validation of fix/spacing-round-two at the pinned tip
+[reviewer STARTED] (2026-11-18T10:49:47Z) review of fix/spacing-round-two at the pinned tip
+[reviewer DONE] (2026-11-18T11:16:02Z) approve after fixes: three majors (page reveal ignores the visual viewport's offset, a stale log sheet doc line, the unnamed columns not filed for Artur), seven minors, five nits (149k tokens)
+[ui-validator DONE] (2026-11-18T11:16:02Z) PASS at d5ac370, read-only: every gap measures as stated at 320 to 1280 in both themes; four low or medium findings, none a regression in the spacing
+[frontend-engineer STARTED] (2026-11-18T11:16:02Z) one fix batch from the review and the browser validation of fix/spacing-round-two
+[frontend-engineer DONE] (2026-11-18T11:44:59Z) the fix batch: page reveal reads the visual viewport's offset, headings share one line from lg, a refused last line clears the footer rule, the date's hint in its own span, first-run keeps focus after a refusal, the reauth test's race, the empty Favourites line says where the star is; 1357 web tests pass (318k tokens)
+[reviewer STARTED] (2026-11-18T11:44:59Z) delta review of the fix batch, b2b1512 to the pinned tip
+[reviewer DONE] (2026-11-18T11:51:44Z) delta review: approve, four small follow-ups (197k tokens)
+[frontend-engineer DONE] (2026-11-18T11:51:44Z) the four follow-ups: styles tests that pin the phone layout, one sentence in the Day page doc; 1360 web tests pass

@@ -33,7 +33,8 @@ import { useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactEle
 //   where they were, and the focused field comes back into view if the
 //   taller footer covers it. From `md` it keeps two lines of room, because
 //   the dialog grows downward and would move the buttons.
-// - The form's stack: 8px between fields (`formStack`).
+// - The form's stack: 8px between fields (`formStack`). A last field's
+//   reserved line is the room above the footer (`form-ends-in-line`).
 // - The account's address in a hidden `username` field, for password
 //   managers, which pair it with the password fields.
 // - The in-flight guard: a submit is ignored while `submitting` is set, and
@@ -240,7 +241,7 @@ export function FormSheet({
         {description !== undefined && (
           <SheetDescription className="mb-4 text-base text-ink">{description}</SheetDescription>
         )}
-        <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className={formStack}>
+        <form ref={formRef} id={formId} onSubmit={handleSubmit} noValidate className={`${formStack} form-ends-in-line`}>
           {username !== undefined && (
             <input type="email" name="username" autoComplete="username" value={username} readOnly hidden />
           )}

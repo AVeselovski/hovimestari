@@ -277,6 +277,12 @@ describe("FoodSheet, a food's detail", () => {
     expect(searchFoods).toHaveBeenCalledTimes(1);
   });
 
+  it("with no favourites, says where the star is that keeps a food there", async () => {
+    renderSheet();
+    const favouritesList = await screen.findByRole("region", { name: "Favourites" });
+    await waitFor(() => expect(favouritesList).toHaveTextContent("Tap any food here or in search, then tap its star."));
+  });
+
   it("flips the favourite at once, in the detail and the favourites list, and rolls both back on a 500", async () => {
     const mine = ownFood("Oma rahka");
     own = [mine];

@@ -102,7 +102,7 @@ src/
 │   ├── auth/                   AuthPage, the guest frame, and the offline and server-fault pages
 │   ├── form/                   The form parts the guest pages and the sheets share:
 │   │   ├── Field.tsx           A labelled input with one line under it for its hint or its error
-│   │   ├── FormError.tsx       The announced line for a refusal that belongs to no field, under a page's form or in a sheet's footer
+│   │   ├── FormError.tsx       The announced line for a refusal that belongs to no field, above a page form's button or in a sheet's footer
 │   │   ├── focus.ts            focusField(): puts focus in a field by its id
 │   │   └── issues.ts           firstIssues() and passwordFieldError(): a schema's or the server's error, per field
 │   ├── ErrorFrame.tsx          The body of the error pages
@@ -240,7 +240,7 @@ To add a form sheet, such as the estimate sheet:
 
 A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons. On a phone the footer keeps no room for it: it grows upward when a refusal shows, with the buttons where they were, and the field that holds focus comes back into view if the taller footer covers it. From `md` the footer keeps two lines of room for it, because the dialog grows downward and would move the buttons. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
 
-Lay a form's fields out with the recipes in `styles.ts`: the form is a `formStack`, 8 pixels between fields, and a section's heading or a closing note takes `sectionStart`, 16 pixels from what is above it. Every field keeps one line of room under it (`lineRoom`). Write each line under a field to fit one line at 320 pixels wide, about 40 characters. A form sheet is as tall as its form and holds that height once open, so do not pass `size="tall"` for a form.
+Lay a form's fields out with the recipes in `styles.ts`: the form is a `formStack`, 8 pixels between fields, and a section's heading or a closing note takes `sectionStart`, 16 pixels from what is above it. Every field that can be refused keeps one line of room under it (`lineRoom`). A control that cannot be refused, such as a segmented control, keeps none and takes `linelessBlock`, 16 pixels to the block under it. A page's form uses the same recipes, with `FormError` between the last field and the submit button: no room on a phone, two lines from `md`, as in a sheet's footer (`refusalLine`). A form sheet's last field's line is the room above the footer: the body adds only 4 pixels under it (`form-ends-in-line` in `globals.css`). Write each line under a field to fit one line at 320 pixels wide, about 40 characters. A form sheet is as tall as its form and holds that height once open, so do not pass `size="tall"` for a form.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
@@ -260,7 +260,7 @@ Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib
 
 Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
-A date is a `NativeDateInput`, the platform's own picker. It keeps one line under it for the form's error, passed in `error`. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
+A date is a `NativeDateInput`, the platform's own picker. It keeps one line under it for the form's error, passed in `error`, or a note about the date chosen, passed in `hint`. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 

@@ -6,7 +6,7 @@ import { FormError } from "@/components/form/FormError";
 import { focusField } from "@/components/form/focus";
 import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
-import { btnPrimary, noticeClass, standaloneLinkClass } from "@/components/ui/styles";
+import { btnPrimary, formStack, noticeClass, standaloneLinkClass } from "@/components/ui/styles";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { requestPasswordReset } from "@/lib/api/auth";
 import { getErrorStatus } from "@/lib/errors";
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage(): ReactElement {
           {t("sent")}
         </p>
       ) : (
-        <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-3">
+        <form onSubmit={(e) => void handleSubmit(e)} noValidate className={formStack}>
           <Field
             id="email"
             name="email"
