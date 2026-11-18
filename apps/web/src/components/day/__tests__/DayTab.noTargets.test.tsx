@@ -198,4 +198,35 @@ describe("DayTab, a day without targets", () => {
     );
     expect(screen.queryByText("This day did not load.")).toBeNull();
   });
+
+  describe("a user with no targets at all", () => {
+    it("shows Set targets where the gauges would be, in the frame and on the loaded day, and never the start line", async () => {
+      const server = serverWith([]);
+      const answer = deferred<Day>();
+      jest.mocked(getDay).mockImplementationOnce(() => answer.promise);
+      renderDay(seededClient(TODAY, []));
+      await waitFor(() => expect(getDay).toHaveBeenCalled());
+      expect(document.querySelector('[data-gauge="frame"]')).toBeNull();
+      const row = document.querySelector("[data-targets-row]")!;
+      expect(row).toHaveAttribute("data-targets-row", "none");
+      const button = within(row as HTMLElement).getByRole("button", { name: "Set targets" });
+      const frame = rows();
+
+      answer.resolve(server.day(TODAY));
+      await screen.findByText("Quark");
+      expect(rows()).toEqual(frame);
+      expect(within(document.querySelector("[data-targets-row]") as HTMLElement).getByRole("button")).toBe(button);
+      expect(screen.queryByText(/Targets apply from/)).toBeNull();
+      expect(screen.queryByText("This day did not load.")).toBeNull();
+      // No second read of the targets: the cache and the day agree.
+      expect(getTargets).toHaveBeenCalledTimes(1);
+    });
+
+    it("never shows Set targets to a user with a change, on a day before it or on a day it covers", async () => {
+      serverWith();
+      renderDay(seededClient(TODAY, LATER));
+      await screen.findByText("Quark");
+      expect(screen.queryByRole("button", { name: "Set targets" })).toBeNull();
+    });
+  });
 });

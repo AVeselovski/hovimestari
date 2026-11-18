@@ -180,6 +180,21 @@ describe("revealPageRefusal", () => {
     expect(line.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
   });
 
+  it("also shows the button pressed when it holds focus under the submit button, as Continue without targets does", () => {
+    const line = buildPage();
+    const form = line.closest("form")!;
+    form.insertAdjacentHTML("beforeend", '<button type="button" data-el="other">Continue without targets</button>');
+    const other = form.querySelector<HTMLElement>('[data-el="other"]')!;
+    const page = pageEl();
+    other.getBoundingClientRect = () => ({ top: 477 - page.scrollTop, bottom: 521 - page.scrollTop }) as DOMRect;
+    other.focus();
+    viewport(308);
+    revealPageRefusal(line);
+    // The pressed button's bottom lands on the keyboard's top edge, the refusal and Save above it.
+    expect(page.scrollTop).toBe(521 - 308);
+    expect(line.getBoundingClientRect().top).toBeGreaterThanOrEqual(0);
+  });
+
   it("moves nothing when both are in view", () => {
     const line = buildPage();
     viewport(584);

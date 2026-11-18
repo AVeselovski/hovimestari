@@ -52,8 +52,8 @@ describe("TargetsGate", () => {
     expect(shell()).toBeNull();
   });
 
-  it("shows the first run for an account with no change", async () => {
-    jest.mocked(getTargets).mockResolvedValue(overview([]));
+  it("shows the first run while it is due", async () => {
+    jest.mocked(getTargets).mockResolvedValue(overview([], TODAY, TODAY, { firstRunDue: true }));
     renderGate();
     expect(await screen.findByRole("heading", { name: "Your daily targets" })).toBeInTheDocument();
     expect(shell()).toBeNull();
@@ -71,7 +71,7 @@ describe("TargetsGate", () => {
 
     it("shows the tabs, not the first run and not the spinner, while the read is paused", async () => {
       onlineManager.setOnline(false);
-      jest.mocked(getTargets).mockResolvedValue(overview([]));
+      jest.mocked(getTargets).mockResolvedValue(overview([], TODAY, TODAY, { firstRunDue: true }));
       const client = renderGate();
       await waitFor(() => expect(client.getQueryState(queryKeys.targets())?.fetchStatus).toBe("paused"));
       expect(shell()).toBeInTheDocument();
@@ -82,7 +82,6 @@ describe("TargetsGate", () => {
 
     it("meets the first run at the first answer once the device is back online", async () => {
       onlineManager.setOnline(false);
-      jest.mocked(getTargets).mockResolvedValue(overview([]));
       const answer = deferred<ReturnType<typeof overview>>();
       jest.mocked(getTargets).mockReturnValue(answer.promise);
       const client = renderGate();
@@ -93,7 +92,7 @@ describe("TargetsGate", () => {
       expect(client.getQueryState(queryKeys.targets())?.fetchStatus).toBe("fetching");
       expect(spinner()).toBeNull();
       expect(shell()).toBeInTheDocument();
-      await act(async () => answer.resolve(overview([])));
+      await act(async () => answer.resolve(overview([], TODAY, TODAY, { firstRunDue: true })));
       expect(await screen.findByRole("heading", { name: "Your daily targets" })).toBeInTheDocument();
       expect(spinner()).toBeNull();
     });
@@ -207,7 +206,7 @@ describe("TargetsGate", () => {
       jest
         .mocked(getTargets)
         .mockReturnValueOnce(first.promise)
-        .mockResolvedValue(overview([], "2026-11-17", "2026-11-17"));
+        .mockResolvedValue(overview([], "2026-11-17", "2026-11-17", { firstRunDue: true }));
       jest.mocked(updateSettings).mockResolvedValue({ ...TEST_USER, timeZone: "Mars/Olympus" });
       jest.mocked(putTargets).mockReset().mockResolvedValue(change("2026-11-17"));
       const client = renderGate();
@@ -216,7 +215,7 @@ describe("TargetsGate", () => {
       await waitFor(() => expect(updateSettings).toHaveBeenCalledTimes(1));
       await act(async () => {});
       // Then the read that left before it.
-      await act(async () => first.resolve(overview([], TODAY, TODAY)));
+      await act(async () => first.resolve(overview([], TODAY, TODAY, { firstRunDue: true })));
 
       await waitFor(() => expect(getTargets).toHaveBeenCalledTimes(2), { timeout: 2000 });
       await waitFor(() => expect(client.getQueryData(queryKeys.targets())).toMatchObject({ today: "2026-11-17" }));

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
-import { IsoDateSchema, SetTargetsBodySchema, TargetsQuerySchema, TimeZoneSchema } from "../index.js";
+import {
+  ERROR_CODES,
+  IsoDateSchema,
+  SetTargetsBodySchema,
+  TargetsOverviewSchema,
+  TargetsQuerySchema,
+  TimeZoneSchema,
+} from "../index.js";
 
 /** The first issue's message, which the backend turns into the response's code. */
 function firstMessage(result: { success: boolean; error?: { issues: { message: string }[] } }): string | undefined {
@@ -68,5 +75,22 @@ describe("TimeZoneSchema", () => {
 
   it.each(["Mars/Olympus", "", "x".repeat(65), "+02:00", "-0500"])("refuses %p with invalid_time_zone", (zone) => {
     expect(firstMessage(TimeZoneSchema.safeParse(zone))).toBe("invalid_time_zone");
+  });
+});
+
+describe("TargetsOverviewSchema", () => {
+  const overview = { date: "2026-11-18", today: "2026-11-18", inForce: null, changes: [] };
+
+  it("needs firstRunDue as a boolean", () => {
+    expect(TargetsOverviewSchema.safeParse({ ...overview, firstRunDue: true }).success).toBe(true);
+    expect(TargetsOverviewSchema.safeParse({ ...overview, firstRunDue: false }).success).toBe(true);
+    expect(TargetsOverviewSchema.safeParse(overview).success).toBe(false);
+    expect(TargetsOverviewSchema.safeParse({ ...overview, firstRunDue: null }).success).toBe(false);
+  });
+});
+
+describe("the targets error codes", () => {
+  it("have no refusal for removing the last change", () => {
+    expect(ERROR_CODES).not.toContain("targets_last_change");
   });
 });
