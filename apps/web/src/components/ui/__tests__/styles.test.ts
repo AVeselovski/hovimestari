@@ -1,6 +1,10 @@
 import {
   btnText,
   btnTextDanger,
+  dayEntriesHead,
+  dayEntriesHeadButton,
+  dayEntriesHeading,
+  dayHeadLine,
   formStack,
   lineRoom,
   pairRow,
@@ -8,6 +12,8 @@ import {
   sectionStartWhenFilled,
   segmentedTray,
 } from "@/components/ui/styles";
+import fs from "node:fs";
+import path from "node:path";
 
 const tokens = (recipe: string) => recipe.split(/\s+/);
 
@@ -44,7 +50,8 @@ describe("segmented tray", () => {
 
 describe("a form's density", () => {
   it("keeps one line of room under a field", () => {
-    expect(lineRoom).toBe("min-h-5");
+    // One line of room, and the hook that lets a last line be the room above a sheet's footer.
+    expect(lineRoom).toBe("min-h-5 field-line");
   });
 
   // The reserved line already sets a field apart: 8 px to the next field, 16 before a section.
@@ -55,5 +62,41 @@ describe("a form's density", () => {
     expect(tokens(sectionStartWhenFilled)).toEqual(["mt-2", "empty:-mt-2"]);
     expect(tokens(pairRow)).toEqual(expect.arrayContaining(["flex-col", "gap-2", "md:gap-y-2"]));
     expect(tokens(pairRow)).not.toContain("space-y-3");
+  });
+});
+
+describe("the Day tab's head lines", () => {
+  const belowLg = (recipe: string) => tokens(recipe).filter((t) => !t.startsWith("lg:"));
+
+  it("keeps the phone's Entries row as it was: everything the lg line adds is lg only", () => {
+    expect(belowLg(dayEntriesHead)).toEqual(tokens("flex min-h-11 items-center justify-between gap-3"));
+    // The heading's base is the section label, the button's is btnText, set beside it.
+    expect(
+      tokens(dayEntriesHeading)
+        .filter((t) => t !== "section-label")
+        .every((t) => t.startsWith("lg:")),
+    ).toBe(true);
+    expect(tokens(dayEntriesHeadButton).every((t) => t.startsWith("lg:"))).toBe(true);
+  });
+
+  it("puts the Entries heading on the same line as the summary's heads from lg", () => {
+    // Tailwind reads whole class strings, so the line is written in both recipes.
+    // From md the summary's head line is this height, and from lg the Entries heading's.
+    const md = tokens(dayHeadLine)
+      .filter((t) => t.startsWith("md:"))
+      .map((t) => t.slice(3));
+    const lg = tokens(dayEntriesHeading)
+      .filter((t) => t.startsWith("lg:"))
+      .map((t) => t.slice(3));
+    const lineOf = (list: string[]) => list.filter((t) => t.startsWith("min-h-"));
+    expect(lineOf(lg)).toEqual(lineOf(md));
+    expect(lineOf(lg)).toHaveLength(1);
+    expect(lg).toEqual(expect.arrayContaining(["flex", "items-center"]));
+    expect(tokens(dayHeadLine)).toEqual(expect.arrayContaining(["flex", "items-center"]));
+  });
+
+  it("is the line the summary's macro heads sit on", () => {
+    const source = fs.readFileSync(path.resolve(__dirname, "../../day/DaySummary.tsx"), "utf8");
+    expect(source).toContain("className={`${dayHeadLine} justify-between gap-3`}");
   });
 });

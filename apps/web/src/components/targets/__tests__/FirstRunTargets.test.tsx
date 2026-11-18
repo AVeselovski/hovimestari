@@ -166,6 +166,19 @@ describe("FirstRunTargets", () => {
     expect(screen.getByRole("button", { name: "Save targets" })).toBeEnabled();
   });
 
+  it("puts focus back in the first field after a refusal from the server, as sign-in does", async () => {
+    jest.mocked(putTargets).mockRejectedValueOnce(refusal(503, "server_unreachable"));
+    render(<FirstRunTargets today={TODAY} />);
+    fillAll();
+    // Enter in the last field: every field and the button are disabled while it saves,
+    // so the browser drops focus to the page.
+    field("Protein", "To").focus();
+    fireEvent.submit(screen.getByRole("form", { name: "Your daily targets" }));
+    await waitFor(() => expect(screen.getByRole("alert")).not.toBeEmptyDOMElement());
+    expect(field("Calories", "From")).toHaveFocus();
+    expect(field("Calories", "From")).toBeEnabled();
+  });
+
   it("on a phone focuses no field on load; from md the first field takes focus", () => {
     const restore = stubPhone();
     try {

@@ -55,6 +55,7 @@ const type = (label: string, value: string): void => {
 
 describe("ChangePasswordSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /change password/i,
     renderSheet: (p) => <ChangePasswordSheet email={TEST_USER.email} {...p} />,
     type: () => type("Current password", "something"),
@@ -139,6 +140,7 @@ describe("ChangePasswordSheet", () => {
 
 describe("AddPasswordSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /add a password/i,
     renderSheet: (p) => <AddPasswordSheet email={TEST_USER.email} {...p} />,
     type: () => type("New password", "something"),
@@ -182,6 +184,7 @@ describe("AddPasswordSheet", () => {
 
 describe("DeleteAccountSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /delete your account/i,
     renderSheet: (p) => <DeleteAccountSheet me={{ hasPassword: true }} {...p} />,
     type: () => type("Password", "something"),

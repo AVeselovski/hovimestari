@@ -41,6 +41,7 @@ const save = () => fireEvent.click(within(dialog()).getByRole("button", { name: 
 
 describe("OwnFoodSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /add a food/i,
     renderSheet: (p) => <OwnFoodSheet {...p} />,
     type: () => type("Name", "Pulla"),

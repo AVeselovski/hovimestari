@@ -30,6 +30,7 @@ function renderSheet(props: Partial<PortionSheetProps> = {}) {
 
 describe("PortionSheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /add a portion/i,
     renderSheet: (p) => <PortionSheet {...p} foodId={FOOD} />,
     type: () => type("Name", "Purkki"),

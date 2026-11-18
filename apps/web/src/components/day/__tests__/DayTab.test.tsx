@@ -425,15 +425,57 @@ describe("DayTab, the header", () => {
     expect(column.querySelector("[data-day-summary]")).not.toBeNull();
     expect(column.contains(rowOf("Quark"))).toBe(false);
     expect(tokens).toEqual(
-      expect.arrayContaining(["lg:self-start", "summary-stays:sticky", "summary-stays:top-(--day-header-height)"]),
+      expect.arrayContaining(["lg:self-start", "summary-stays:sticky", "summary-stays:top-(--day-content-top)"]),
     );
     // Sticking applies only through the variant: never on a phone, never on a short viewport.
     expect(tokens.filter((c) => /(^|:)(sticky|fixed|top-)/.test(c) && !c.startsWith("summary-stays:"))).toEqual([]);
   });
 
-  it("lets the summary stay only from lg and only on a viewport at least 42.5rem tall", () => {
+  it("lets the summary stay only from lg, on a viewport tall enough for what the tokens add up to", () => {
     const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
-    expect(css).toContain("@custom-variant summary-stays (@media (width >= 64rem) and (height >= 42.5rem));");
+    const variant = css.match(
+      /@custom-variant summary-stays \(@media \(width >= 64rem\) and \(height >= ([\d.]+)rem\)\);/,
+    );
+    expect(variant).not.toBeNull();
+    const threshold = Number(variant![1]);
+    const rem = (name: string): number => {
+      const m = css.match(new RegExp(`${name}: ([\\d.]+)rem;`));
+      if (!m) throw new Error(`no ${name}`);
+      return Number(m[1]);
+    };
+    // From lg the header is one row: the room above it (the md value), the
+    // 3rem launcher, its clearance, and the content's room at rest.
+    // The md block read is the one whose :root sets --day-header-top, not
+    // whichever md block comes first in the file.
+    const md = css.match(/@media \(width >= 48rem\) \{\s*:root \{[^}]*--day-header-top: ([\d.]+)rem/);
+    expect(md).not.toBeNull();
+    expect(css).toContain("--day-header-height: calc(var(--day-header-top) + 3rem + var(--day-header-clear));");
+    const contentTop = Number(md![1]) + 3 + rem("--day-header-clear") + rem("--day-header-rest");
+    // Measured on a production build: the tallest summary at 1024 wide
+    // (a past day with both notes and five-digit figures, 380px), and the
+    // offline line that pushes <main> down (37px).
+    const tallestSummary = 23.75;
+    const offlineLine = 2.3125;
+    const sum = contentTop + tallestSummary + rem("--spacing-toast-clearance") + offlineLine;
+    expect(threshold).toBeGreaterThanOrEqual(sum);
+    // Rounded up, never padded far past it, or a laptop screen loses the staying summary.
+    expect(threshold - sum).toBeLessThan(0.5);
+  });
+
+  it("starts the content 4px lower than the header's edge at rest, and stops a focused row and the staying summary at that same place", async () => {
+    serve(new FakeDays([foodEntry("Quark", 250, { status: "planned" })]));
+    renderDay();
+    await screen.findByText("Quark");
+    const content = document.querySelector("[data-day-content]")!;
+    const tokens = content.className.split(/\s+/);
+    expect(tokens).toEqual(expect.arrayContaining(["under-day-header", "pt-(--day-header-rest)"]));
+    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+    // 12px under the launcher for the header, 4px more at rest: 16px.
+    expect(css).toContain("--day-header-clear: 0.75rem;");
+    expect(css).toContain("--day-header-rest: 0.25rem;");
+    expect(css).toContain("--day-content-top: calc(var(--day-header-height) + var(--day-header-rest));");
+    const rule = css.slice(css.indexOf("@utility under-day-header"));
+    expect(rule.slice(0, rule.indexOf("\n}\n"))).toContain("scroll-margin-top: var(--day-content-top);");
   });
 
   it("keeps one h1 on the page: the header adds no heading", async () => {

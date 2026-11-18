@@ -1,4 +1,5 @@
 import type { AuthHandlers } from "@/lib/api";
+import { AuthRequestError } from "@/lib/errors";
 import { SESSION_MARKER_KEY } from "@/lib/sessionMarker";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
@@ -316,10 +317,20 @@ describe.each([
       "/api/auth/sign-in",
       () => new Response(JSON.stringify({ code: "invalid_credentials" }), { status: 401 }),
     );
-    const signingIn = start(() => signInAs(tab));
+    // The handler is attached where the sign-in starts. Attached after the awaits
+    // below, a rejection that settles in between is reported as unhandled.
+    const signingIn = start(() => signInAs(tab)).then(
+      () => "signed in",
+      (error: unknown) => error,
+    );
     await pause();
     await old.release();
-    await act(() => signingIn.catch(() => undefined));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await signingIn;
+    });
+    expect(outcome).toBeInstanceOf(AuthRequestError);
+    expect(outcome).toMatchObject({ code: "invalid_credentials" });
     expect(await old.renewed).toBe(false);
 
     // Waits on the renewal itself. That no backoff step came first is checked by the caller.

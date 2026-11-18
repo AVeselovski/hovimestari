@@ -59,7 +59,7 @@ describe("SignInPage", () => {
     expect(signIn).not.toHaveBeenCalled();
   });
 
-  it("keeps a line of room under every field and above the button before any error", () => {
+  it("keeps a line of room under every field, and room above the button for a refusal from md only", () => {
     renderPage();
     for (const label of ["Email", "Password"]) {
       const line = document.getElementById(screen.getByLabelText(label).id + "-line");
@@ -67,8 +67,16 @@ describe("SignInPage", () => {
     }
     const alert = screen.getByRole("alert");
     expect(alert).toBeEmptyDOMElement();
-    expect(alert.className.split(/\s+/)).toContain("min-h-10");
-    expect(alert.className.split(/\s+/)).not.toContain("empty:hidden");
+    const tokens = alert.className.split(/\s+/);
+    // Two lines of room from md, where the page would move the button under the pointer.
+    expect(tokens).toContain("md:min-h-10");
+    // None on a phone: no unprefixed or phone-width height, and no margin of its own,
+    // so the empty line costs only the form's two stack gaps.
+    expect(tokens.filter((c) => /^(max-md:)?(min-h|h)-/.test(c))).toEqual([]);
+    expect(tokens.filter((c) => /^(max-md:)?m[tby]?-/.test(c))).toEqual([]);
+    // Still in the layout, so the live region announces what it comes to say.
+    expect(tokens).not.toContain("empty:hidden");
+    expect(alert.parentElement!.className.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-col", "gap-2"]));
   });
 
   it("moves focus to the first invalid field on an invalid submit", async () => {

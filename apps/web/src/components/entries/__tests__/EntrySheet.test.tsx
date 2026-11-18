@@ -3,6 +3,7 @@ import { deferred } from "@/__tests__/helpers/queryClient";
 import { estimateEntry, foodEntry, mealEntry, portionEntry } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood, ownPortion } from "@/components/foods/__tests__/support";
 import type { EntryActions } from "@/hooks/useEntryActions";
+import { TodayContext, type TodayState } from "@/hooks/useToday";
 import { getFood } from "@/lib/api/foods";
 import { newId } from "@/lib/newId";
 import type { Entry, FoodDetail } from "@hovimestari/types";
@@ -62,6 +63,7 @@ function renderSheet(entry: Entry = quark, onClose = jest.fn()) {
 
 describe("EntrySheet", () => {
   describeFormSheetContract({
+    endsInLine: true,
     name: /^quark$/i,
     panelClass: "md:max-w-md",
     renderSheet: (p) => <EntrySheet {...p} entry={quark} actions={actions} focusAfterRemove={() => null} />,
@@ -195,11 +197,72 @@ describe("EntrySheet", () => {
     expect(within(sheet).getByLabelText("Amount", { selector: "input" })).toHaveValue("1");
   });
 
-  it("keeps the room of the line that says why Eaten is unavailable, also while it is empty", () => {
-    renderSheet();
-    const hint = dialog().querySelector('[role="radiogroup"] + p')!;
-    expect(hint.textContent).toBe("");
-    expect(hint.className.split(" ")).toContain("min-h-5");
+  describe("why Eaten is unavailable", () => {
+    const TODAY_STATE: TodayState = {
+      today: "2026-11-16",
+      holding: false,
+      confirm: "fresh",
+      unconfirmed: false,
+      retry: () => {},
+    };
+    function renderOn(entry: Entry) {
+      return render(
+        <TodayContext.Provider value={TODAY_STATE}>
+          <EntrySheet
+            open
+            returnFocusTo={null}
+            onClose={jest.fn()}
+            entry={entry}
+            actions={actions}
+            focusAfterRemove={() => null}
+          />
+        </TodayContext.Provider>,
+      );
+    }
+    const group = () => within(dialog()).getByRole("radiogroup", { name: "Eaten or planned" });
+    const dateLine = () => document.getElementById(`${within(dialog()).getByLabelText("Date").id}-line`)!;
+
+    it("keeps no line under Eaten or planned: the block under it starts one section gap below", () => {
+      renderOn(quark);
+      const block = dialog().querySelector<HTMLElement>("[data-state-choice]")!;
+      expect(block).toContainElement(group());
+      // Nothing after the tray inside its block, so no room is reserved under it.
+      expect(group().nextElementSibling).toBeNull();
+      expect(block.className.split(/\s+/)).toContain("not-last:mb-2");
+    });
+
+    it("says it in the date's own line on a future date, and the group points there", () => {
+      renderOn({ ...quark, date: "2026-11-17" });
+      expect(within(dialog()).getByRole("radio", { name: "Eaten" })).toHaveAttribute("aria-disabled", "true");
+      expect(dateLine()).toHaveTextContent("Future days hold planned entries.");
+      expect(group()).toHaveAccessibleDescription("Future days hold planned entries.");
+      expect(dateLine()).toContainElement(document.getElementById(group().getAttribute("aria-describedby")!));
+      expect(within(dialog()).getByLabelText("Date")).toHaveAccessibleDescription("Future days hold planned entries.");
+      expect(within(dialog()).getByLabelText("Date")).not.toHaveAttribute("aria-invalid");
+      expect(group().nextElementSibling).toBeNull();
+    });
+
+    it("never gives a date's error as the reason for Eaten or planned", () => {
+      renderOn(quark);
+      fireEvent.change(within(dialog()).getByLabelText("Date"), { target: { value: "" } });
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+      expect(dateLine()).toHaveTextContent("Enter a valid date.");
+      expect(within(dialog()).getByLabelText("Date")).toHaveAccessibleDescription("Enter a valid date.");
+      expect(group()).toHaveAccessibleDescription("");
+      // Read as the field's description, not announced a second time from a live region.
+      expect(dateLine().closest("[aria-live]")).toBeNull();
+    });
+
+    it("fills the date's line when the date moves to a future day, and empties it when it moves back", () => {
+      renderOn(quark);
+      const date = within(dialog()).getByLabelText("Date");
+      expect(dateLine()).toHaveTextContent("");
+      fireEvent.change(date, { target: { value: "2026-11-20" } });
+      expect(dateLine()).toHaveTextContent("Future days hold planned entries.");
+      expect(within(dialog()).getByRole("radio", { name: "Planned" })).toHaveAttribute("aria-checked", "true");
+      fireEvent.change(date, { target: { value: "2026-11-15" } });
+      expect(dateLine()).toHaveTextContent("");
+    });
   });
 
   it("while the app asks for today, Save and Remove entry wait, and Cancel and dismissal stay free", () => {

@@ -1,5 +1,6 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { FormSheet, type FormFailure, type FormSheetProps } from "@/components/ui/FormSheet";
+import { lineRoom } from "@/components/ui/styles";
 import { AuthRequestError } from "@/lib/errors";
 import { OfflineError } from "@/lib/failure";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
@@ -122,20 +123,45 @@ describe("FormSheet", () => {
     });
   });
 
+  it("lets a last field's reserved line be the room above the footer, and keeps the body's padding under anything else", () => {
+    renderSheet();
+    const form = screen.getByRole("dialog").querySelector("form")!;
+    expect(form.className.split(/\s+/)).toContain("form-ends-in-line");
+    // jsdom lays nothing out: the rule takes 12 of the body's 16 px back. Which
+    // sheets its selectors match is checked on each sheet, in its own contract
+    // (`endsInLine` in describeFormSheetContract).
+    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+    const rule = css.slice(css.indexOf("@utility form-ends-in-line"));
+    const block = rule.slice(0, rule.indexOf("\n}\n"));
+    expect(block).toContain("margin-bottom: -0.75rem;");
+    // The hook the rule reads comes with every reserved line.
+    expect(lineRoom.split(" ")).toEqual(["min-h-5", "field-line"]);
+  });
+
   it("gives a yielding footer row's room to the keyboard, and keeps every other row", () => {
     renderSheet({ footerStart: { label: "Remove", onPress: jest.fn(), yieldsToKeyboard: true } });
     const remove = within(screen.getByRole("dialog")).getByRole("button", { name: "Remove" });
     const row = remove.closest("[data-footer-start]")!.parentElement!;
     expect(row.className.split(" ")).toContain("keyboard-yields");
-    // jsdom computes no clamp(): the rule collapses the row to nothing at any inset
-    // above 0, and its margin takes back the footer's 8 px row gap.
+    // jsdom computes no clamp(): the rule collapses the row to nothing, padding
+    // and margins included, at any inset above 0. With no keyboard its padding
+    // is the 10 px the text button's target reaches past its words, and 4 px
+    // for the focus ring, taken back by its margins.
     const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
     const rule = css.slice(css.indexOf("@utility keyboard-yields"));
-    const block = rule.slice(0, rule.indexOf("\n}\n"));
-    expect(block).toContain("max-height: clamp(0px, calc(8rem - var(--drawer-keyboard-inset, 0px) * 1000), 8rem)");
-    expect(block).toContain(
-      "margin-bottom: clamp(-0.75rem, calc(-0.25rem - var(--drawer-keyboard-inset, 0px) * 1000), -0.25rem)",
+    // Compared without whitespace, so the formatter's line breaks do not matter.
+    const block = rule.slice(0, rule.indexOf("\n}\n")).replace(/\s+/g, "");
+    const has = (text: string) => expect(block).toContain(text.replace(/\s+/g, ""));
+    expect(css).toMatch(/:root \{[^}]*--footer-start-reach: 0\.625rem;/);
+    has("--footer-ring-reach: calc(var(--footer-start-reach) + 0.25rem)");
+    has("max-height: clamp(0px, calc(10rem - var(--drawer-keyboard-inset, 0px) * 1000), 10rem)");
+    has(
+      "padding-block: clamp(0px, calc(var(--footer-ring-reach) - var(--drawer-keyboard-inset, 0px) * 1000), var(--footer-ring-reach))",
     );
+    for (const side of ["margin-top", "margin-bottom"])
+      has(
+        `${side}: clamp(calc(var(--footer-ring-reach) * -1), calc(var(--footer-ring-reach) * -1 + var(--drawer-keyboard-inset, 0px) * 1000), 0px)`,
+      );
   });
 
   it("keeps a second submit in sight while typing: it does not yield to the keyboard", () => {
@@ -300,6 +326,28 @@ describe("FormSheet", () => {
     expect(pair).toContainElement(within(footer).getByRole("button", { name: /^Save/ }));
     // No group around it for a screen reader to announce without a name.
     expect(within(footer).queryByRole("group")).toBeNull();
+  });
+
+  it("sets the secondary action's words 16 px under the footer's rule and 12 px over the buttons on a phone, with its 44 px target kept", () => {
+    renderSheet({ footerStart: { label: "Delete entry", onPress: jest.fn() } });
+    const footer = screen.getByRole("dialog").querySelector<HTMLElement>("[data-sheet-footer]")!;
+    const button = within(footer).getByRole("button", { name: "Delete entry" });
+    const tokens = button.className.split(/\s+/);
+    // The target stays 44 px tall at every width ...
+    expect(tokens).toContain("min-h-11");
+    // ... and below md reaches 10 px above the words into the footer's padding,
+    // and keeps 2 px of its own under its target: words 12 px over the buttons.
+    // The reach is the one value the yielding row keeps clear of its clip
+    // (`keyboard-yields`), so the two cannot drift.
+    expect(tokens).toEqual(expect.arrayContaining(["max-md:-mt-(--footer-start-reach)", "max-md:mb-0.5"]));
+    expect(tokens.filter((c) => /^-?m[tby]-/.test(c))).toEqual([]);
+    // No row gap in the phone's grid, which would stay when the row gives way
+    // to the keyboard: the room under the row is the button's own. The two
+    // buttons stand 8 px apart.
+    const grid = button.closest("[data-footer-start]")!.parentElement!;
+    const gridTokens = grid.className.split(/\s+/);
+    expect(gridTokens).toContain("gap-x-2");
+    expect(gridTokens.filter((c) => /^gap-(y-)?[0-9]/.test(c))).toEqual([]);
   });
 
   describe("while a save runs", () => {
