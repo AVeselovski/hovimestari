@@ -12,15 +12,9 @@ Targets are two ranges. Calories run from a lower to an upper number of kcal. Pr
 
 A change holds both ranges and starts on a date the user picks, in the past, today or in the future. It stays in force until the next change starts. Saving a change on a date that already has one replaces that change, so a date holds one change at most.
 
-A change covers every day from its date to the day before the next change, or every day from its date on when no change follows. The first change also covers every day before it.
+A change covers every day from its date to the day before the next change, or every day from its date on when no change follows. A day before the first change has no targets.
 
-Saving or removing a change rewrites the days it covers, and only those:
-
-- A new change on a future date, after an earlier change, rewrites no day that has passed. Every day before its date keeps its targets.
-- A new change on today or a past date rewrites every day it covers, from its date on.
-- A new change before every other change becomes the first one. It covers every day before the next change, so it rewrites those days, today and the past included, even when its own date is in the future.
-- Editing a change rewrites every day it covers.
-- Removing a change hands its days to the change before it, or, for the first change, to the next one.
+Saving, editing or removing a change rewrites the days it covers, and only those. Every day before its date stays as it was. Removing a change hands its days to the change before it. Removing the first change leaves its days with no targets.
 
 A change can be removed, except the last one. A user who has targets always keeps a set.
 
@@ -32,21 +26,23 @@ New targets start empty. "Change targets" and the first run open with their four
 
 An edited change starts with its own targets. A change opened from the list is titled "Edit targets", with "Starting on 17 November 2026" under the title. It shows its four numbers as stored, in the form the fields read back, such as "142,5" on a Finnish phone. Its date is fixed. The numbers are read once, as the sheet opens, so a save from another device while it is open moves nothing on screen. An edited change opened and left as it was is not a change. It closes without asking, and Save closes it without sending anything.
 
-Under the fields, a line names the days the numbers apply to, from the rule in [Changing your targets](#changing-your-targets):
+Under the fields, a line names the days the numbers apply to, from the rule in [Changing your targets](#changing-your-targets). It has one sentence for the days the numbers cover:
 
-- From a date with no later change: "These apply from 18 November 2026 on. Earlier days keep their targets."
-- From a date with a later change: "These apply from 18 November 2026 to 30 November 2026. Other days keep their targets."
-- When the next change starts the day after: "These apply to 30 November 2026 only. Other days keep their targets."
-- Before every other change: "These apply to every day before 1 November 2026. Later days keep their targets."
-- With no other change: "These are your only targets, so they apply to every day."
+- From a date with no later change: "These apply from 18 November 2026 on."
+- From a date with a later change: "These apply from 18 November 2026 to 30 November 2026."
+- When the next change starts the day after: "These apply to 30 November 2026 only."
 
-The line says which other days keep their targets only where such days have targets of their own. Dates show in the device's language.
+A second sentence says what the days before that date have. "Earlier days keep their targets." follows when a change starts before the date. "Earlier days have no targets." follows when none does, such as for the first change or a date before every change. Dates show in the device's language.
 
-On "Change targets", a picked date that already has a change of its own puts two sentences before the line: "This date already has targets. Saving replaces them." The line itself names that date in the first three forms. On the first of several changes, or on the only one, the first sentence names the date instead: "17 November 2026 already has targets. Saving replaces them." An edited change keeps its own date, so its line has no such sentences.
+On "Change targets", a picked date that already has a change of its own puts two sentences before the line: "This date already has targets. Saving replaces them." An edited change keeps its own date, so its line has no such sentences.
+
+Removing a change asks first. The confirmation names the days the change covered, by the same rule, and says what they then have. With an earlier change they go back to it, as in "Days from 1 December 2026 to 31 December 2026 are then measured against your earlier targets." With none, they have no targets, as in "Days from 1 December 2026 to 31 December 2026 will have no targets." or "15 November 2026 will have no targets." for a change that covers one day.
+
+Once a change is saved or removed, the web app reads again every day it holds, also those not on screen. A day opened once that read has answered shows the new targets at once.
 
 ### Which targets a day uses
 
-A day uses the change with the latest start on or before that day. A day before the first change uses the first change. Settings then heads those targets "Current" alone, with no start date, since that date has not come yet. So once a user has targets, every day has targets. [Where a day stands](days.md#where-a-day-stands) is measured against them.
+A day uses the change with the latest start on or before that day. A day before the first change has no targets, and neither has any day of a user with no change. Asked for such a day, the app answers that there are none, with no number at all. [Where a day stands](days.md#where-a-day-stands) is measured against the targets a day has.
 
 "Today" is the calendar date in the user's time zone. The time zone is an account setting, and a new account starts with Helsinki time. A day starts at local midnight in that zone. The web app stores its device's time zone on the account at each start, when the two differ, so "today" follows the device the app last ran on. A refused zone or a failed write is dropped without a word, the stored zone stays, and the next start tries again.
 
@@ -75,7 +71,7 @@ Hovimestari never suggests or computes a target. It holds no default value, offe
 
 ### The dated change
 
-`target_changes` holds one row per change: the user, `effective_from` and the four bounds. `targetsOn(ctx, date)` in `apps/backend/src/services/reads/targets.ts` reads the row with the latest `effective_from` on or before `date`, and falls back to the user's earliest row. It answers null only for a user with no rows. `targetsOverview` answers that change, every change oldest first, the date asked for and the user's today. The targets sheet edits a change with the numbers of that change in this list. `spanOf` in `apps/web/src/components/targets/targetLines.ts` names the days a save applies to.
+`target_changes` holds one row per change: the user, `effective_from` and the four bounds. `targetsOn(ctx, date)` in `apps/backend/src/services/reads/targets.ts` reads the row with the latest `effective_from` on or before `date`. It answers null when there is none: on a date before the user's first change, and on every date for a user with no rows. `targetsOverview` answers that change, every change oldest first, the date asked for and the user's today. The targets sheet edits a change with the numbers of that change in this list. `spanOf` in `apps/web/src/components/targets/targetLines.ts` names the days a save on a date applies to, and whether a change starts before it. The same span names the days a removal of the change on that date gives back or leaves without targets.
 
 `setTargets` in `apps/backend/src/services/writes/targets.ts` inserts the row, or overwrites the one on the same date. An identical save writes nothing. It first takes the user's row `FOR KEY SHARE` through `lockUserForWrite`, so a save never waits behind a session renewal, and one that races an account deletion answers 404 `user_not_found`. `removeTargetChange` runs in a transaction that first locks the user's row in `users`, then refuses a date with no change (404) and the last change (409). The lock makes two removals at once wait for each other, so they cannot both find another change left.
 
@@ -97,11 +93,11 @@ The zone is written through `PATCH /users/me/settings`. `TimeZoneSchema` in `pac
 
 All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`.
 
-| Method | Path                      | Answers                                                                                                                               |
-| ------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/targets?date=`          | 200 `{ date, today, inForce, changes }`. Without `date`, the user's today. `inForce` is null only with no targets. 400 `invalid_date` |
-| PUT    | `/targets/:effectiveFrom` | 200 with the change, created or overwritten. Takes `{ ranges: { energyKcal: { lower, upper }, proteinG: { lower, upper } } }`         |
-| DELETE | `/targets/:effectiveFrom` | 204. 404 `target_change_not_found`. 409 `targets_last_change`                                                                         |
+| Method | Path                      | Answers                                                                                                                                            |
+| ------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/targets?date=`          | 200 `{ date, today, inForce, changes }`. Without `date`, the user's today. `inForce` is null on a date before the first change. 400 `invalid_date` |
+| PUT    | `/targets/:effectiveFrom` | 200 with the change, created or overwritten. Takes `{ ranges: { energyKcal: { lower, upper }, proteinG: { lower, upper } } }`                      |
+| DELETE | `/targets/:effectiveFrom` | 204. 404 `target_change_not_found`. 409 `targets_last_change`                                                                                      |
 
 A date in a path or a query is a `YYYY-MM-DD` that exists, or 400 `invalid_date`. A refused range answers `target_required`, `target_value_invalid`, `target_not_positive` or `target_lower_above_upper`. The shapes are in `packages/types/src/targets.ts`.
 

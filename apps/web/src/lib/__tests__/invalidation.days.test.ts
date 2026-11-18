@@ -146,6 +146,25 @@ describe("the writes elsewhere that change what a day shows", () => {
     day.unsubscribe();
   });
 
+  it("a targets change reads again the days held off screen, so a day opened after it never shows the old targets", async () => {
+    // Targets change in Settings or the first run, where no day is on screen:
+    // today and its prefetched neighbours sit in the cache with no observer.
+    const client = registerTestQueryClient(new QueryClient());
+    const days = ["2026-11-15", "2026-11-16", "2026-11-17"].map((date) => {
+      const fn = jest.fn().mockResolvedValue(dayOf([], date));
+      return { date, fn };
+    });
+    await Promise.all(days.map(({ date, fn }) => client.prefetchQuery({ queryKey: queryKeys.day(date), queryFn: fn })));
+    // A day only an entry write's answer put in the cache: it has no read to run.
+    const answered = queryKeys.day("2026-11-25");
+    client.setQueryData(answered, dayOf([], "2026-11-25"));
+    await afterTargetsChange(client);
+    await tick();
+    for (const { fn } of days) expect(fn).toHaveBeenCalledTimes(2);
+    const state = client.getQueryState(answered)!;
+    expect([state.status, state.isInvalidated]).toEqual(["success", true]);
+  });
+
   it("a favourite tap reads no day again", async () => {
     const client = registerTestQueryClient(new QueryClient());
     const day = observed(client, queryKeys.day("2026-11-16"));

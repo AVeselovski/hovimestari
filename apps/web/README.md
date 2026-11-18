@@ -42,6 +42,7 @@ src/
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
 │   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
 │   │   ├── DaySummary.tsx      Both readings, the distances, carbohydrates and fat, and the two notes, each line in its reserved room
+│   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, and from which date
 │   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
 │   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
 │   │   ├── EntryList.tsx       "Entries", Mark all eaten, the rows and the empty line

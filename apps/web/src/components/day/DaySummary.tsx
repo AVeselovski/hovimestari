@@ -1,13 +1,16 @@
 "use client";
 
 import { MacroDot } from "@/components/figures/MacroDot";
+import { rangeFigure } from "@/components/figures/rangeParts";
 import { dayHeadLine } from "@/components/ui/styles";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
+import { formatDay } from "@/lib/localDate";
 import { formatTarget } from "@/lib/targetFormat";
 import type { Day, DayReading, RangePosition } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import type { ReactElement, ReactNode } from "react";
 import { Gauge, type GaugeMacro } from "./Gauge";
+import type { NoTargets } from "./noTargets";
 
 // ---------------------------------------------------------------------------
 // DaySummary: a day's two readings, Eaten and With plan, side by side: Eaten
@@ -31,6 +34,14 @@ import { Gauge, type GaugeMacro } from "./Gauge";
 // It states positions and distances, never a verdict: the copy is a
 // distance, the figures stay in ink, and the gauge colours nothing past a
 // bound.
+//
+// A day without targets (`noTargets`, a day before the user's first change)
+// is a second layout: each macro's label, then its two figures, with no
+// gauge, no range and no distance. Where the gauges were, one row says from
+// when the targets apply. The row is there on every such day and never on a
+// day with targets, so within a day nothing moves. The frame takes the same
+// layout when the caller predicts it, so the day does not open with tracks
+// and then shrink.
 // ---------------------------------------------------------------------------
 
 type T = ReturnType<typeof useTranslations<"day.summary">>;
@@ -123,9 +134,11 @@ interface MacroBlockProps {
   macro: GaugeMacro;
   date: string;
   day: Day | null;
+  /** A day without targets: the label and the two figures only. */
+  figuresOnly: boolean;
 }
 
-function MacroBlock({ macro, date, day }: MacroBlockProps): ReactElement {
+function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactElement {
   const t = useTranslations("day.summary");
   const labelId = `summary-${macro}`;
   const range = day?.targets ? (macro === "energy" ? day.targets.energyKcal : day.targets.proteinG) : null;
@@ -148,12 +161,14 @@ function MacroBlock({ macro, date, day }: MacroBlockProps): ReactElement {
             unit={unit}
             estimate={reading?.includesEstimate ?? false}
           />
-          <Reserved longest={longest} className="mt-0.5 text-xs text-ink md:text-sm">
-            <span data-distance="" aria-hidden="true">
-              {copy?.shown}
-            </span>
-            {copy && <span className="sr-only">{copy.spoken}</span>}
-          </Reserved>
+          {!figuresOnly && (
+            <Reserved longest={longest} className="mt-0.5 text-xs text-ink md:text-sm">
+              <span data-distance="" aria-hidden="true">
+                {copy?.shown}
+              </span>
+              {copy && <span className="sr-only">{copy.spoken}</span>}
+            </Reserved>
+          )}
         </dd>
       </div>
     );
@@ -165,20 +180,26 @@ function MacroBlock({ macro, date, day }: MacroBlockProps): ReactElement {
         <h2 id={labelId} className="section-label">
           {macro === "energy" ? t("energy") : t("protein")}
         </h2>
-        <p className="font-mono text-xs text-ink tabular-nums md:text-sm">
+        {/* The figures and the unit in the monospaced face, "to" in the body face, as in Settings.
+            Kept while empty, for the line's height, and hidden from assistive technology then. */}
+        <p className="text-xs text-ink md:text-sm" aria-hidden={range ? undefined : true}>
           {range &&
-            (macro === "energy"
-              ? t("kcalRange", { lower: formatTarget(range.lower), upper: formatTarget(range.upper) })
-              : t("gramsRange", { lower: formatTarget(range.lower), upper: formatTarget(range.upper) }))}
+            t.rich(macro === "energy" ? "kcalRange" : "gramsRange", {
+              lower: formatTarget(range.lower),
+              upper: formatTarget(range.upper),
+              num: rangeFigure,
+            })}
         </p>
       </div>
-      <div className="mt-1.5">
-        {day && range ? (
-          <Gauge key={date} macro={macro} range={range} eaten={value(day.eaten)} withPlan={value(day.withPlan)} />
-        ) : (
-          <GaugeFrame />
-        )}
-      </div>
+      {!figuresOnly && (
+        <div className="mt-1.5">
+          {day && range ? (
+            <Gauge key={date} macro={macro} range={range} eaten={value(day.eaten)} withPlan={value(day.withPlan)} />
+          ) : (
+            <GaugeFrame />
+          )}
+        </div>
+      )}
       <dl className="mt-1.5 grid grid-cols-2 gap-x-3">
         {cell("eaten")}
         {cell("withPlan")}
@@ -193,6 +214,26 @@ function GaugeFrame(): ReactElement {
     <div aria-hidden="true" data-gauge="frame" className="py-1">
       <div className="h-3.5 rounded-pill bg-gauge-track md:h-4" />
     </div>
+  );
+}
+
+/**
+ * Where the gauges would be on a day without targets: the date the user's
+ * first change starts, as a plain line with no control. While that date is
+ * not known yet (`pending`), the line's room, empty and hidden from assistive
+ * technology. One element in both, so the room never changes as the date
+ * arrives.
+ */
+function TargetsRow({ noTargets }: { noTargets: NoTargets }): ReactElement {
+  const t = useTranslations("day.summary");
+  return (
+    <p
+      data-targets-row={noTargets.kind}
+      aria-hidden={noTargets.kind === "from" ? undefined : true}
+      className="mt-3 min-h-4 text-xs leading-4 text-ink-muted md:min-h-5 md:text-sm md:leading-5"
+    >
+      {noTargets.kind === "from" && t("targetsFrom", { date: formatDay(noTargets.date) })}
+    </p>
   );
 }
 
@@ -256,9 +297,14 @@ export interface DaySummaryProps {
   past: boolean;
   /** A state line in the summary's frame while there is no day, such as "This day did not load." */
   notice?: ReactNode;
+  /**
+   * The day has no targets, loaded or predicted for the frame: figures only,
+   * and the row that says why. Null for a day with targets.
+   */
+  noTargets?: NoTargets | null;
 }
 
-export function DaySummary({ date, day, past, notice }: DaySummaryProps): ReactElement {
+export function DaySummary({ date, day, past, notice, noTargets = null }: DaySummaryProps): ReactElement {
   const t = useTranslations("day.summary");
   const estimate = day?.eaten.includesEstimate
     ? t("estimateBoth")
@@ -270,10 +316,11 @@ export function DaySummary({ date, day, past, notice }: DaySummaryProps): ReactE
     // Busy while it loads: the labels read with nothing after them until the day arrives.
     <div data-day-summary="" aria-busy={day === null && !notice ? true : undefined} className="relative">
       <div className={notice ? "invisible" : undefined} aria-hidden={notice ? true : undefined}>
-        <MacroBlock macro="energy" date={date} day={day} />
+        <MacroBlock macro="energy" date={date} day={day} figuresOnly={noTargets !== null} />
         <div className="mt-3">
-          <MacroBlock macro="protein" date={date} day={day} />
+          <MacroBlock macro="protein" date={date} day={day} figuresOnly={noTargets !== null} />
         </div>
+        {noTargets && <TargetsRow noTargets={noTargets} />}
         <div className="mt-3">
           <SmallMacros day={day} />
         </div>

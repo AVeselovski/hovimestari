@@ -174,6 +174,20 @@ describe("DaySummary", () => {
     expect(document.querySelector('[data-gauge="energy"]')).toHaveAttribute("aria-hidden", "true");
   });
 
+  it('sets each range\'s figures and unit in the monospaced face, and "to" in the body face, as Settings does', () => {
+    render(<DaySummary date={TODAY} day={dayOf([foodEntry("Quark", 250)])} past={false} />);
+    for (const [macro, mono] of [
+      ["energy", ["1900", "2200\u00a0kcal"]],
+      ["protein", ["140", "180\u00a0g"]],
+    ] as const) {
+      const label = document.querySelector(`[data-summary-macro="${macro}"] p`)!;
+      expect(label.className.split(/\s+/)).not.toContain("font-mono");
+      expect([...label.querySelectorAll(".font-mono")].map((m) => m.textContent)).toEqual(mono);
+      const to = [...label.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim() === "to");
+      expect(to).toBeDefined();
+    }
+  });
+
   it("says how many planned entries a past day never had marked eaten, in a line whose room is kept", () => {
     const yesterday = "2026-11-15";
     const planned = [foodEntry("A", 100, { status: "planned" }), foodEntry("B", 100, { status: "planned" })];

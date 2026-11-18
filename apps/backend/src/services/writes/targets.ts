@@ -9,7 +9,7 @@ import type { WriteContext, WriteOutcome } from "./context.js";
 /**
  * Saves the targets in force from `effectiveFrom`. A second save on the same
  * date overwrites that change, so a date holds one change at most. Days
- * before `effectiveFrom` keep the change that covered them.
+ * before `effectiveFrom` keep what they had: an earlier change, or none.
  */
 export async function setTargets(
   ctx: WriteContext,

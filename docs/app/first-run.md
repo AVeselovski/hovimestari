@@ -6,7 +6,7 @@ The page a new account sees instead of the tabs, until it has targets. It asks f
 
 ### The form
 
-The wordmark, then the title "Your daily targets" and the lead "Enter the ranges you aim for each day. You can change them at any time."
+The wordmark, then the title "Your daily targets" and the lead "Enter the ranges you aim for each day. They apply from today, and you can change them in Settings at any time."
 
 Two groups follow, **Calories** and **Protein**, each a pair of fields side by side, **From** and **To**, with the unit inside each field: kcal or g. Under Protein sits the line "The lower number is your floor." Every field starts empty and has no example in it, because the person has no targets yet. Under the fields sits the note "Hovimestari is not a source of nutrition or medical advice. It measures your days against the numbers you enter."
 

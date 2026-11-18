@@ -93,13 +93,14 @@ await describeWithDb("targets", (suite) => {
   });
 
   describe("the targets in force on a date", () => {
-    it("is the latest change on or before the date, and the first change before any", async () => {
+    it("is the latest change on or before the date, and none before the first change", async () => {
       const user = await signUp(suite.client);
       await put(user, "2026-11-10", ranges([1800, 2000]));
       await put(user, "2026-11-20", ranges([1500, 1700]));
 
-      const on = async (date: string) => (await get(user, date)).body.inForce.effectiveFrom as string;
-      expect(await on("2026-11-01")).toBe("2026-11-10");
+      const on = async (date: string) => (await get(user, date)).body.inForce?.effectiveFrom ?? null;
+      expect(await on("2026-11-01")).toBeNull();
+      expect(await on("2026-11-09")).toBeNull();
       expect(await on("2026-11-10")).toBe("2026-11-10");
       expect(await on("2026-11-19")).toBe("2026-11-10");
       expect(await on("2026-11-20")).toBe("2026-11-20");
@@ -110,6 +111,15 @@ await describeWithDb("targets", (suite) => {
       expect(all.inForce.ranges.energyKcal).toEqual({ lower: 1800, upper: 2000 });
     });
 
+    it("answers no targets before the first change while listing every change", async () => {
+      const user = await signUp(suite.client);
+      await put(user, "2026-11-10", ranges([1800, 2000]));
+      const res = await get(user, "2026-11-09");
+      expect(res.status).toBe(200);
+      expect(res.body.inForce).toBeNull();
+      expect(res.body.changes.map((c: { effectiveFrom: string }) => c.effectiveFrom)).toEqual(["2026-11-10"]);
+    });
+
     it("never changes for a day before a new change's date", async () => {
       const user = await signUp(suite.client);
       await put(user, "2026-11-10", ranges([1800, 2000]));
@@ -117,9 +127,69 @@ await describeWithDb("targets", (suite) => {
       await put(user, "2026-11-15", ranges([1500, 1700]));
       expect((await get(user, "2026-11-14")).body.inForce).toEqual(before);
     });
+
+    // The owner's worked example: A from 18 November, then B from 8 November,
+    // then B removed. Each date is read through GET /targets and GET /days.
+    describe("a change applies from its own date and never to the days before it", () => {
+      const A = ranges([1800, 2000], [120, 160]);
+      const B = ranges([2200, 2400], [140, 180]);
+      const dayOf = (user: ApiUser, date: string) => api().get(`/api/v1/days/${date}`).set(user.auth);
+      /** Which change covers `date`, by its start, on both reads, after checking they agree. */
+      async function startOn(user: ApiUser, date: string): Promise<string | null> {
+        const [targets, day] = await Promise.all([get(user, date), dayOf(user, date)]);
+        expect([targets.status, day.status]).toEqual([200, 200]);
+        const inForce = targets.body.inForce as { effectiveFrom: string; ranges: object } | null;
+        expect(day.body.targets).toEqual(inForce?.ranges ?? null);
+        if (!inForce) {
+          expect([day.body.eaten.energy, day.body.eaten.protein]).toEqual([null, null]);
+          expect([day.body.withPlan.energy, day.body.withPlan.protein]).toEqual([null, null]);
+        }
+        return inForce?.effectiveFrom ?? null;
+      }
+
+      it("leaves 17 November without targets once A is saved on the 18th", async () => {
+        const user = await signUp(suite.client);
+        await put(user, "2026-11-18", A);
+        expect(await startOn(user, "2026-11-18")).toBe("2026-11-18");
+        expect(await startOn(user, "2026-11-17")).toBeNull(); // never A
+        expect(await startOn(user, "2026-01-01")).toBeNull();
+      });
+
+      it("covers 8 to 17 November with B saved on the 8th, and leaves the 7th without targets", async () => {
+        const user = await signUp(suite.client);
+        await put(user, "2026-11-18", A);
+        await put(user, "2026-11-08", B);
+        expect(await startOn(user, "2026-11-08")).toBe("2026-11-08");
+        expect(await startOn(user, "2026-11-17")).toBe("2026-11-08");
+        expect(await startOn(user, "2026-11-18")).toBe("2026-11-18");
+        expect(await startOn(user, "2026-11-07")).toBeNull(); // never B, never A
+      });
+
+      it("empties 8 to 17 November when B is removed, never handing them to A", async () => {
+        const user = await signUp(suite.client);
+        await put(user, "2026-11-18", A);
+        await put(user, "2026-11-08", B);
+        expect((await remove(user, "2026-11-08")).status).toBe(204);
+        expect(await startOn(user, "2026-11-08")).toBeNull();
+        expect(await startOn(user, "2026-11-17")).toBeNull();
+        expect(await startOn(user, "2026-11-18")).toBe("2026-11-18");
+      });
+    });
   });
 
   describe("removing a change", () => {
+    it("removes the first change while a later one remains, and its days go without targets", async () => {
+      const user = await signUp(suite.client);
+      await put(user, "2026-11-10", ranges([1800, 2000]));
+      await put(user, "2026-11-20", ranges([1500, 1700]));
+      const res = await remove(user, "2026-11-10");
+      expect(res.status).toBe(204);
+      expect(res.body).toEqual({});
+      expect((await get(user, "2026-11-10")).body.inForce).toBeNull(); // never the change from the 20th
+      expect((await get(user, "2026-11-19")).body.inForce).toBeNull();
+      expect((await get(user, "2026-11-20")).body.inForce.effectiveFrom).toBe("2026-11-20");
+    });
+
     it("removes a change, and the days it covered fall to the earlier one", async () => {
       const user = await signUp(suite.client);
       await put(user, "2026-11-10", ranges([1800, 2000]));
@@ -233,6 +303,29 @@ await describeWithDb("targets", (suite) => {
       const ctx = await contextAt(user.id, "2026-11-14T22:30:00Z");
       warn.mockRestore();
       expect(ctx).toMatchObject({ timeZone: "Europe/Helsinki", today: "2026-11-15" });
+    });
+
+    it("answers no targets today for a user whose only change starts later", async () => {
+      const user = await signUp(suite.client);
+      await put(user, "2026-12-01", ranges([1800, 2000]));
+      const { contextForUser } = await import("../../lib/requestContext.js");
+      const { targetsOverview } = await import("../../services/reads/targets.js");
+      const { getDay } = await import("../../services/reads/days.js");
+      // Noon in Helsinki on 18 November 2026, pinned rather than read from the clock.
+      const ctx = contextForUser({ id: user.id, timeZone: "Europe/Helsinki" }, new Date("2026-11-18T10:00:00Z"));
+      expect(ctx.today).toBe("2026-11-18");
+
+      const overview = await targetsOverview(ctx);
+      expect(overview).toMatchObject({ date: "2026-11-18", today: "2026-11-18", inForce: null });
+      expect(overview.changes.map((c) => c.effectiveFrom)).toEqual(["2026-12-01"]);
+      const day = await getDay(ctx, ctx.today);
+      expect(day.targets).toBeNull();
+      expect([day.eaten.energy, day.eaten.protein, day.withPlan.energy, day.withPlan.protein]).toEqual([
+        null,
+        null,
+        null,
+        null,
+      ]);
     });
 
     it("answers today and the targets in force on it in the user's stored zone when no date is given", async () => {

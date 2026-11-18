@@ -35,6 +35,15 @@ function fillAll(): void {
 }
 
 describe("FirstRunTargets", () => {
+  it("says in its lead that the targets apply from today", () => {
+    render(<FirstRunTargets today={TODAY} />);
+    expect(
+      screen.getByText(
+        "Enter the ranges you aim for each day. They apply from today, and you can change them in Settings at any time.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("opens with every field empty, no placeholder, and no number anywhere in the form", () => {
     render(<FirstRunTargets today={TODAY} />);
     const form = screen.getByRole("button", { name: "Save targets" }).closest("form")!;

@@ -41,10 +41,17 @@ export async function afterAccountChange(client: QueryClient, me?: Me): Promise<
 
 /**
  * After a targets change is saved or removed: the targets read and every day, which answers the targets in force and the
- * positions against them.
+ * positions against them. The days are read even off screen. Targets change in Settings or the first run, where no day
+ * is shown, and a day only marked stale would open with the old targets and change height as its read lands. A day
+ * that only an entry write put in the cache has no read of its own, and stays marked stale.
  */
 export async function afterTargetsChange(client: QueryClient): Promise<void> {
   await refresh(client, [queryKeys.targets(), queryKeys.days()]);
+  await client.refetchQueries({
+    queryKey: queryKeys.days(),
+    type: "inactive",
+    predicate: (query) => typeof query.options.queryFn === "function",
+  });
 }
 
 /**

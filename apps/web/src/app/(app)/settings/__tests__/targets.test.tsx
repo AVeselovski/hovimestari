@@ -64,7 +64,7 @@ describe("Settings, Targets", () => {
     changes = [change("2026-11-01", [99999.9, 99999.9], [9999.9, 9999.9])];
     render(<TargetsSection />);
     const row = await within(region()).findByRole("button", { name: /^Current \(from / });
-    const figures = [...row.querySelectorAll<HTMLElement>(".font-mono")];
+    const figures = [...row.querySelectorAll<HTMLElement>(".text-right")];
     expect(figures.map((f) => f.textContent)).toEqual(["99999.9 to 99999.9 kcal", "9999.9 to 9999.9 g"]);
     for (const figure of figures) {
       expect(figure.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-right", "ml-auto"]));
@@ -73,6 +73,28 @@ describe("Settings, Targets", () => {
       const halves = [...figure.children];
       expect(halves.map((h) => h.textContent)).toEqual([expect.stringMatching(/ to$/), expect.stringMatching(/^9999/)]);
       for (const half of halves) expect(half.className.split(/\s+/)).toContain("whitespace-nowrap");
+    }
+  });
+
+  it('sets the figures and the unit in the monospaced face, and "to" in the body face', async () => {
+    changes = [change("2026-11-01", [1800, 2200], [120, 160])];
+    render(<TargetsSection />);
+    const row = await within(region()).findByRole("button", { name: /^Current \(from / });
+    const [calories, protein] = [...row.querySelectorAll<HTMLElement>(".text-right")];
+    for (const [line, mono] of [
+      [calories, ["1800", "2200 kcal"]],
+      [protein, ["120", "160 g"]],
+    ] as const) {
+      const tokens = line.className.split(/\s+/);
+      expect(tokens).toContain("font-body");
+      expect(tokens).not.toContain("font-mono");
+      expect([...line.querySelectorAll(".font-mono")].map((m) => m.textContent)).toEqual(mono);
+      // "to" is a text node of its own, outside every mono part.
+      const to = [...line.querySelectorAll("*")]
+        .flatMap((el) => [...el.childNodes])
+        .find((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim() === "to");
+      expect(to).toBeDefined();
+      expect(to!.parentElement!.closest(".font-mono")).toBeNull();
     }
   });
 
@@ -97,18 +119,26 @@ describe("Settings, Targets", () => {
     expect(within(region()).queryByText(/In force/)).toBeNull();
   });
 
-  it('heads the first change "Current" alone, with no date, on a day before it starts', async () => {
-    // The first change also covers every day before it. TODAY is 2026-11-16.
+  it("shows no Current row for a user whose only change starts later, only that change and Change targets", async () => {
+    // TODAY is 2026-11-16: no change has started, so today has no targets.
+    changes = [change("2026-11-20")];
+    render(<TargetsSection />);
+    const row = await within(region()).findByRole("button", { name: new RegExp(`^From ${formatDay("2026-11-20")}`) });
+    expect(row).toHaveTextContent("1800 to 2200 kcal");
+    expect(within(region()).queryByRole("button", { name: /^Current/ })).toBeNull();
+    expect(within(region()).queryByText(/cannot|reach the server/)).toBeNull();
+    expect(within(region()).queryByText("Earlier targets")).toBeNull();
+    expect(within(region()).getByRole("button", { name: "Change targets" })).toBeInTheDocument();
+  });
+
+  it("shows every later change as a From row while none has started", async () => {
     changes = [change("2026-11-20"), change("2026-12-01")];
     render(<TargetsSection />);
-    const row = await within(region()).findByRole("button", { name: /^Current/ });
-    const heading = row.querySelector<HTMLElement>(".text-ink-muted")!;
-    expect(heading.textContent).toBe("Current");
-    expect(row).not.toHaveTextContent(/\(from|2026-11-20/);
-    expect(row).not.toHaveTextContent(formatDay("2026-11-20"));
-    expect(
-      within(region()).getByRole("button", { name: new RegExp(`^From ${formatDay("2026-12-01")}`) }),
-    ).toBeInTheDocument();
+    await within(region()).findByRole("button", { name: new RegExp(`^From ${formatDay("2026-11-20")}`) });
+    const headings = [...within(region()).getAllByRole("listitem")].map(
+      (li) => li.querySelector(".text-ink-muted")?.textContent,
+    );
+    expect(headings).toEqual([`From ${formatDay("2026-11-20")}`, `From ${formatDay("2026-12-01")}`]);
   });
 
   const fieldValues = (sheet: HTMLElement) =>
@@ -209,6 +239,34 @@ describe("Settings, Targets", () => {
       ).toBeNull(),
     );
     expect(within(region()).getByRole("button", { name: "Change targets" })).toHaveFocus();
+  });
+
+  it("keeps focus on the same Change targets button when removing the current change leaves only a later one", async () => {
+    // The current change is the first: once it goes, today has no targets,
+    // and the panel switches from a Current row to a From row.
+    changes = [change("2026-11-01"), change("2026-12-01")];
+    const answer = deferred<ReturnType<typeof overview>>();
+    render(<TargetsSection />);
+    fireEvent.click(await within(region()).findByRole("button", { name: /^Current \(from / }));
+    const sheet = await screen.findByRole("dialog");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Remove these targets" }));
+    const confirm = await screen.findByRole("dialog", { name: /Remove the targets/ });
+    expect(confirm).toHaveTextContent(
+      `Days from ${formatDay("2026-11-01")} to ${formatDay("2026-11-30")} will have no targets.`,
+    );
+    await confirmArmed();
+    changes = [change("2026-12-01")];
+    jest.mocked(getTargets).mockImplementationOnce(() => answer.promise);
+    fireEvent.click(within(confirm).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    const button = within(region()).getByRole("button", { name: "Change targets" });
+    expect(button).toHaveFocus();
+    // The refetch lands: the panel changes its state, and the focused node stays.
+    await act(async () => answer.resolve(overview(changes)));
+    await within(region()).findByRole("button", { name: new RegExp(`^From ${formatDay("2026-12-01")}`) });
+    expect(within(region()).queryByRole("button", { name: /^Current/ })).toBeNull();
+    expect(document.activeElement).toBe(button);
+    expect(button).toBeInTheDocument();
   });
 
   it("says when the targets cannot be read", async () => {

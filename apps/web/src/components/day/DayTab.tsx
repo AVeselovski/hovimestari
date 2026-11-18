@@ -10,7 +10,7 @@ import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
 import { addDays, isIsoDate } from "@/lib/localDate";
-import { dayQuery, prefetchLogLists } from "@/lib/queryOptions";
+import { dayQuery, prefetchLogLists, targetsQuery } from "@/lib/queryOptions";
 import { rememberShownDay } from "@/lib/shownDay";
 import type { Entry } from "@hovimestari/types";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { DayHeader } from "./DayHeader";
 import { DayLauncher } from "./DayLauncher";
 import { DaySummary } from "./DaySummary";
 import { EntryList } from "./EntryList";
+import { loadedNoTargets, predictedNoTargets } from "./noTargets";
 
 // ---------------------------------------------------------------------------
 // DayTab: one day. The date bar, the log sheet's launcher, the summary and
@@ -35,6 +36,9 @@ import { EntryList } from "./EntryList";
 //
 // The summary and the list sit in one frame whose heights do not depend on
 // the state: loading, a failure and offline each show in the summary's frame.
+// A day without targets (a day before the first change) is a day like any
+// other, with a shorter summary. Its frame comes from the changes the gate
+// holds (`noTargets.ts`), so the summary opens at the height it keeps.
 //
 // Layout: the date bar and the launcher are `DayHeader`, which stays at the
 // top while the day scrolls under it: 16 px between them on a phone and
@@ -85,7 +89,22 @@ export function DayTab(): ReactElement {
   const query = useQuery(
     date !== null && !waitForToday ? dayQuery(date) : { ...dayQuery(date ?? "none"), queryFn: skipToken },
   );
-  const day = waitForToday || query.data?.targets == null ? null : (query.data ?? null);
+  const day = waitForToday ? null : (query.data ?? null);
+
+  // The gate's targets answer, read from the cache: which changes the user
+  // has, for a day without targets. This observer never fetches by itself.
+  const { data: targets } = useQuery({ ...targetsQuery(), enabled: false });
+  const noTargets = day ? loadedNoTargets(day, targets) : predictedNoTargets(date, targets);
+  // A day without targets that the cached changes say has some: the changes
+  // are out of date. Read them once for that date. The row keeps its room,
+  // empty, until they answer, and stays empty if they still disagree.
+  const pending = noTargets?.kind === "pending" ? day?.date : undefined;
+  const refetchedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (pending === undefined || refetchedFor.current === pending) return;
+    refetchedFor.current = pending;
+    client.fetchQuery({ ...targetsQuery(), staleTime: 0 }).catch(() => {});
+  }, [client, pending]);
 
   // The day shown by its address is the one the tab bar's Day link leads
   // back to. Today by the plain address is remembered as today (null), so
@@ -147,8 +166,7 @@ export function DayTab(): ReactElement {
     if (confirm === "paused") notice = offlineNotice;
     else if (confirm === "failed") notice = failedNotice(retry);
   } else if (day === null) {
-    if (query.data && query.data.targets === null) notice = failedNotice(() => void query.refetch());
-    else if (query.isError) notice = failedNotice(() => void query.refetch());
+    if (query.isError) notice = failedNotice(() => void query.refetch());
     else if (query.fetchStatus === "paused") notice = offlineNotice;
   }
 
@@ -162,7 +180,7 @@ export function DayTab(): ReactElement {
       </DayHeader>
       <div data-day-content="" className={DAY_CONTENT_CLASS}>
         <div data-day-summary-column="" className={SUMMARY_COLUMN_CLASS}>
-          <DaySummary date={date ?? ""} day={day} past={past} notice={notice} />
+          <DaySummary date={date ?? ""} day={day} past={past} notice={notice} noTargets={noTargets} />
         </div>
         <EntryList
           entries={day?.entries ?? null}

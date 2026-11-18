@@ -79,7 +79,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   food_value_required: "Enter a value from the label.",
   food_energy_invalid: "Enter a number from 0 to 1000.",
   food_macro_invalid: "Enter a number from 0 to 100.",
-  food_macro_sum_too_high: "Protein, carbohydrates and fat add up to more than 100 g in 100 g.",
+  food_macro_sum_too_high: "Protein, carbohydrates and fat add up to more than 100 g per 100 g.",
   barcode_invalid: "A barcode has 8 to 14 digits.",
   barcode_taken: "One of your foods already has this barcode.",
   portion_not_found: "This portion is no longer available.",

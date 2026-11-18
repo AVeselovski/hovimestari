@@ -10,7 +10,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Targets
 
-- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, asked for on a first-run page before anything else and changed in Settings from a date the user picks. Each day is measured against the change in force on it, and the app offers no default and no suggestion.
+- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, asked for on a first-run page before anything else and changed in Settings from a date the user picks. A change applies from its date, a day before the first change has none, and the app offers no default and no suggestion.
 
 ## Foods
 
@@ -18,7 +18,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Days and logging
 
-- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance. The Day tab shows one day at a time, and the log sheet adds estimates to it. The week is in the API only.
+- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance on days that have them. The Day tab shows one day at a time, and the log sheet adds estimates to it. The week is in the API only.
 - **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Marking eaten, editing, moving and removing, each with Undo, are on the Day tab. Adding a food, a saved meal or an estimate, saving a new meal and logging it in one action, and logging a recent item again in one press are in the log sheet. Copying is in the API only.
 - **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. The log sheet lists them with a filter by source, logs them, saves new ones alone or with their first log, and edits, archives, restores and deletes them.
 

@@ -30,6 +30,7 @@ import {
   type SavedMeal,
   type SavedMealBody,
   type SavedMealEditBody,
+  type TargetChange,
 } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
@@ -62,8 +63,15 @@ import { RANGES, TODAY, dayOf } from "./support";
 // file mocks the API modules.
 // ---------------------------------------------------------------------------
 
+/** The one change a test user has unless the test says otherwise: from long before any day a test shows. */
+export function defaultChanges(): TargetChange[] {
+  return [change("2026-01-01", [RANGES.energyKcal.lower, RANGES.energyKcal.upper], [140, 180])];
+}
+
 export class FakeDays {
   today = TODAY;
+  /** The user's targets changes. A day takes the latest on or before it, else it has no targets. */
+  changes: TargetChange[] = defaultChanges();
   entries: Entry[] = [];
   removed = new Map<string, Entry>();
   /** Removed entries past their restore window: a restore answers 404. */
@@ -84,7 +92,7 @@ export class FakeDays {
 
   day(date: string): Day {
     const on = this.entries.filter((e) => e.date === date).sort((a, b) => a.position - b.position);
-    return dayOf(on, date, this.today);
+    return dayOf(on, date, this.today, overview(this.changes, date, this.today).inForce?.ranges ?? null);
   }
 
   status(ids: readonly string[], status: EntryStatus) {
@@ -335,24 +343,17 @@ export function serve(server: FakeDays): void {
   if (jest.isMockFunction(getOwnFoods) && !jest.mocked(getOwnFoods).getMockImplementation()) {
     jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });
   }
-  jest
-    .mocked(getTargets)
-    .mockImplementation(async () =>
-      overview(
-        [change("2026-01-01", [RANGES.energyKcal.lower, RANGES.energyKcal.upper], [140, 180])],
-        server.today,
-        server.today,
-      ),
-    );
+  jest.mocked(getTargets).mockImplementation(async () => overview(server.changes, server.today, server.today));
 }
 
-/** A client that already holds the targets answer, as the first-run gate leaves it. */
-export function seededClient(today = TODAY): QueryClient {
+/**
+ * A client that already holds the targets answer, as the first-run gate
+ * leaves it. A test of a day without targets passes the changes its server
+ * has, so the cache and the day agree.
+ */
+export function seededClient(today = TODAY, changes: TargetChange[] = defaultChanges()): QueryClient {
   const client = registerTestQueryClient(createTestQueryClient());
-  client.setQueryData(
-    queryKeys.targets(),
-    overview([change("2026-01-01", [RANGES.energyKcal.lower, RANGES.energyKcal.upper], [140, 180])], today, today),
-  );
+  client.setQueryData(queryKeys.targets(), overview(changes, today, today));
   return client;
 }
 
