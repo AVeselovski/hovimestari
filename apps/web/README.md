@@ -152,7 +152,7 @@ src/
 │   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
 │   ├── useStillUnderFinger.ts  No scroll by code while a finger is on the screen
-│   ├── useTapAfterLoweredKeyboard.ts  A tap on a field raises the keyboard again after it was lowered by hand
+│   ├── useNativeTapWhileKeyboardDown.ts  While the keyboard is down, a tap on a sheet's text field is the browser's own
 │   ├── useAnchoredPanel.ts     Holds a centred panel's top where it opened
 │   ├── useHeldSheetHeight.ts   Holds a phone's bottom sheet at the height it opened at
 │   ├── useScrolledUnder.ts     Whether <main> is scrolled from its top, so content sits under a header that stays

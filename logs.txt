@@ -326,3 +326,5 @@
 [reviewer DONE] (2026-11-18T11:51:44Z) delta review: approve, four small follow-ups (197k tokens)
 [frontend-engineer DONE] (2026-11-18T11:51:44Z) the four follow-ups: styles tests that pin the phone layout, one sentence in the Day page doc; 1360 web tests pass
 [orchestrator DONE] (2026-11-18T13:33:40Z) FR-TGT-04 reworded in docs/requirements.md with the wording Artur accepted; its TODO item deleted
+[frontend-engineer STARTED] (2026-11-18T13:55:29Z) lift finanssi's keyboard-down tap fix into the sheet primitive, in place of the unproven hook
+[frontend-engineer DONE] (2026-11-18T14:09:38Z) finanssi's useNativeTapWhileKeyboardDown lifted in place of the unproven hook: with the keyboard down a tap on a sheet's text field is the browser's own; 11 of 16 lifted tests fail on the old hook; 1364 web tests pass
