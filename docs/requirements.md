@@ -33,7 +33,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-TGT-01**: The system shall let a user set a daily calorie range as a lower and an upper bound in kilocalories.
 - **FR-TGT-02**: The system shall let a user set a daily protein range as a lower and an upper bound in grams, and shall treat the lower bound as a floor the day should reach.
 - **FR-TGT-03**: The system shall ask a new user for both ranges before it shows any other part of the app.
-- **FR-TGT-04**: The system shall offer no default, example or computed value for a target. The fields start empty.
+- **FR-TGT-04**: The system shall offer no default, example or computed value for a target. The fields for new targets start empty. Opening an existing change shows that change's own targets.
 - **FR-TGT-05**: The system shall refuse a range whose lower bound is above its upper bound, and a bound that is zero or negative.
 - **FR-TGT-06**: The system shall let a user change the targets at any time, taking effect from a date the user picks, today by default.
 - **FR-TGT-07**: The system shall measure each day against the targets in force on that day, so that changing the targets leaves earlier days as they were.
