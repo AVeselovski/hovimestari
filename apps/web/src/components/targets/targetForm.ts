@@ -24,8 +24,8 @@ export type TargetFieldError = ErrorCode | "digit_group";
 export type TargetFieldErrors = Partial<Record<TargetField, TargetFieldError>>;
 
 /**
- * Every field empty. The first run starts here, and so does a sheet on a date
- * with no targets in force: the app offers no number of its own.
+ * Every field empty. New targets start here, at the first run and from Change
+ * targets: the app offers no number of its own.
  */
 export const EMPTY_TARGET_FIELDS: TargetFieldValues = {
   energyLower: "",

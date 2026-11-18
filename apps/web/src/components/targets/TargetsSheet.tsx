@@ -15,10 +15,11 @@ import { formatDay, isIsoDate } from "@/lib/localDate";
 import type { TargetChange } from "@hovimestari/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useId, useState, type ReactElement } from "react";
 import { NotAdviceNote } from "./NotAdviceNote";
 import { TargetRangeFields, targetFieldId } from "./TargetRangeFields";
 import {
+  EMPTY_TARGET_FIELDS,
   fieldsOf,
   firstInvalidField,
   parseTargetFields,
@@ -26,24 +27,23 @@ import {
   type TargetFieldErrors,
   type TargetFieldValues,
 } from "./targetForm";
-import { inForceOn, removalOf, spanOf, type Removal, type Span } from "./targetLines";
+import { removalOf, spanOf, type Removal, type Span } from "./targetLines";
 
 // ---------------------------------------------------------------------------
 // TargetsSheet: a dated targets change. "Starts on" (today by default), the
 // four fields, a line naming the days the numbers apply to, and the note on
 // advice.
 //
-// The fields open with the user's own targets in force on the date, the ones
-// a save changes. A field the user has not typed in follows the date: picking
-// another one fills it with the targets in force there. A field they typed in
-// keeps what they typed. The fields are where the targets in force show, so
-// no line repeats them. The app offers no number of its own: with no targets
-// in force the fields are empty.
+// Opened on a change from the Settings list (`editing`), the date is fixed
+// and the fields open with that change's own targets, taken once as the
+// sheet mounts: a refetch that lands while it is open moves nothing. Saved
+// untouched, it sends nothing. The change can be removed while it is not the
+// last one.
 //
-// Picking a date that already has a change switches the sheet to editing
-// that change, and the title says so, so nothing is replaced without the
-// title naming it. Opened on a change from the Settings list, the date is
-// fixed, and the change can be removed while it is not the last one.
+// Opened from "Change targets", the sheet sets new targets: the fields open
+// empty and stay empty whatever date is picked. The app offers no number,
+// not even the user's own. Picking a date that already has a change switches
+// the title to name it, so nothing is replaced without the title saying so.
 // ---------------------------------------------------------------------------
 
 export interface TargetsSheetProps extends FormSheetCallerProps {
@@ -110,11 +110,13 @@ export function TargetsSheet({
   const dateId = `${id}-date`;
 
   const [date, setDate] = useState(editing ?? liveToday);
-  // The last date that was a date: the fields follow it, and a date being
-  // retyped leaves them as they were.
-  const [filledFrom, setFilledFrom] = useState(editing ?? liveToday);
-  // What the user typed, field by field. A field not in here follows the date.
-  const [typed, setTyped] = useState<Partial<TargetFieldValues>>({});
+  // Editing: the change's own targets, read once from the list it opened on.
+  // New targets: empty.
+  const [values, setValues] = useState<TargetFieldValues>(() =>
+    editing === undefined
+      ? EMPTY_TARGET_FIELDS
+      : fieldsOf(liveChanges.find((c) => c.effectiveFrom === editing) ?? null),
+  );
   const [fieldErrors, setFieldErrors] = useState<TargetFieldErrors>({});
   const [dateError, setDateError] = useState<string | null>(null);
   const [formError, setFormError] = useState<FormFailure | null>(null);
@@ -123,11 +125,9 @@ export function TargetsSheet({
   const validDate = isIsoDate(date);
   // What the sheet shows, kept from the moment it starts to close: the
   // refetch after a save or a removal lands while it slides out, and would
-  // otherwise switch its title, fields and lines mid-exit.
+  // otherwise switch its title and lines mid-exit.
   const changes = useRetainedValue(open ? liveChanges : null) ?? liveChanges;
-  const filled = useMemo(() => fieldsOf(inForceOn(changes, filledFrom)), [changes, filledFrom]);
-  const values: TargetFieldValues = { ...filled, ...typed };
-  // Opened and not changed is clean: the filled numbers are the baseline.
+  // Opened and not changed is clean: an edited change's own numbers are the baseline.
   const { dirty } = useFormDirty(JSON.stringify([date, values]), true);
   const existing = validDate && changes.some((c) => c.effectiveFrom === date);
   const span = validDate ? spanOf(changes, date) : null;
@@ -153,7 +153,7 @@ export function TargetsSheet({
   });
 
   function change(field: TargetField, raw: string): void {
-    setTyped((prev) => ({ ...prev, [field]: raw }));
+    setValues((prev) => ({ ...prev, [field]: raw }));
   }
 
   async function handleSubmit(): Promise<void> {
@@ -171,9 +171,9 @@ export function TargetsSheet({
       if (first) focusField(targetFieldId(id, first));
       return;
     }
-    // Opened and not changed: the targets on screen are the ones in force,
-    // so there is nothing to save. Sending them would add a change with the
-    // same numbers on a date that has none of its own.
+    // Opened on a change and not changed: the numbers on screen are already
+    // saved, so there is nothing to send. Only an edit gets here untouched:
+    // new targets open empty, and an empty field fails above.
     if (!dirty) {
       onClose();
       return;
@@ -236,7 +236,6 @@ export function TargetsSheet({
                   value={date}
                   onValueChange={(v) => {
                     setDate(v);
-                    if (isIsoDate(v)) setFilledFrom(v);
                     setDateError(null);
                   }}
                   required
