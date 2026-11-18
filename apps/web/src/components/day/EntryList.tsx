@@ -1,6 +1,6 @@
 "use client";
 
-import { btnText } from "@/components/ui/styles";
+import { btnText, dayEntriesHead, dayEntriesHeadButton, dayEntriesHeading } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import type { Entry } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
@@ -10,9 +10,10 @@ import { EntryRow } from "./EntryRow";
 // ---------------------------------------------------------------------------
 // EntryList: the "Entries" row and the day's entries in the order they were
 // added. "Mark all eaten" sits in the 44 px "Entries" row, so the row is the
-// same height with and without it. It shows on today and past days while
-// anything is planned. A future day holds only planned entries, which cannot
-// be marked, so it never shows there.
+// same height with and without it. The button shows on today and past days
+// while anything is planned. A future day holds only planned entries, which
+// cannot be marked, so it never shows there. From lg the row's heading lines
+// up with the summary's first heading beside it (`dayEntriesHead`).
 // ---------------------------------------------------------------------------
 
 export interface EntryListProps {
@@ -42,8 +43,8 @@ export function EntryList({ entries, future, actions, onOpen }: EntryListProps):
   const markAllBusy = planned.some((e) => actions.busyIds.has(e.id));
   return (
     <section aria-labelledby="day-entries">
-      <div className="flex min-h-11 items-center justify-between gap-3" data-entries-head="">
-        <h2 id="day-entries" className="section-label">
+      <div className={dayEntriesHead} data-entries-head="">
+        <h2 id="day-entries" className={dayEntriesHeading}>
           {t("title")}
         </h2>
         {canMarkAll && (
@@ -55,7 +56,7 @@ export function EntryList({ entries, future, actions, onOpen }: EntryListProps):
               focusFirstRow.current = e.detail === 0;
               void actions.markAll(planned);
             }}
-            className={btnText}
+            className={`${btnText} ${dayEntriesHeadButton}`}
           >
             {t("markAll")}
           </button>

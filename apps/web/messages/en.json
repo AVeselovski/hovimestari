@@ -317,7 +317,7 @@
       "proteinWithinSpoken": "In the range, {distance} g to the upper bound",
       "proteinAbove": "{distance} g above the range",
       "estimateBoth": "These totals include an estimate.",
-      "estimateWithPlan": "With plan includes an estimate.",
+      "estimateWithPlan": "Planned entries include an estimate.",
       "unmarked": "{count, plural, one {# planned entry was} other {# planned entries were}} never marked eaten."
     },
     "list": {
@@ -510,7 +510,7 @@
       "searchLabel": "Search foods and meals",
       "clear": "Clear the search",
       "favourites": "Favourites",
-      "favouritesEmpty": "Foods you mark as favourite appear here.",
+      "favouritesEmpty": "Tap any food here or in search, then tap its star.",
       "ownFoods": "Your foods",
       "ownFoodsEmpty": "Foods you add appear here.",
       "listsUnavailable": "Your favourites and your foods show here once Hovimestari can reach the server.",

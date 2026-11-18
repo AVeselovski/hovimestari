@@ -6,7 +6,7 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import { focusField } from "@/components/form/focus";
 import { FormError } from "@/components/form/FormError";
 import { StableLabel } from "@/components/ui/StableLabel";
-import { btnPrimary, btnText, btnTextDanger } from "@/components/ui/styles";
+import { btnPrimary, btnText, btnTextDanger, formStack, sectionStart } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -15,9 +15,11 @@ import { afterTargetsChange } from "@/lib/invalidation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useState, type FormEvent, type ReactElement } from "react";
+import { flushSync } from "react-dom";
 import { NotAdviceNote } from "./NotAdviceNote";
 import {
   EMPTY_TARGET_FIELDS,
+  TARGET_FIELDS,
   firstInvalidField,
   parseTargetFields,
   type TargetField,
@@ -70,8 +72,13 @@ export function FirstRunTargets({ today }: { today: string }): ReactElement {
       // Today as the server reads it in the account's time zone.
       await putTargets(today, parsed.body);
     } catch (err) {
+      // The fields are disabled while saving, so the browser has dropped
+      // focus to the page. Enable them first, then put focus back in the
+      // first field, as sign-in does. The refusal shows after, so its own
+      // reveal scrolls last (FormError).
+      flushSync(() => setSaving(false));
+      focusField(targetFieldId(idPrefix, TARGET_FIELDS[0]));
       setFormError(errors.forError(err));
-      setSaving(false);
       return;
     }
     // Still busy: the tabs replace this page once the targets read again.
@@ -83,7 +90,12 @@ export function FirstRunTargets({ today }: { today: string }): ReactElement {
   return (
     <AuthPage title={t("title")} titleId={`${idPrefix}-title`}>
       <p className="mb-6 text-base text-ink">{t("lead")}</p>
-      <form onSubmit={(e) => void handleSubmit(e)} noValidate aria-labelledby={`${idPrefix}-title`}>
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        noValidate
+        aria-labelledby={`${idPrefix}-title`}
+        className={formStack}
+      >
         <TargetRangeFields
           idPrefix={idPrefix}
           values={values}
@@ -92,9 +104,9 @@ export function FirstRunTargets({ today }: { today: string }): ReactElement {
           autoFocus={!isMobile}
           disabled={saving}
         />
-        <NotAdviceNote className="mt-4" />
+        <NotAdviceNote className={sectionStart} />
         <FormError message={formError} />
-        <button type="submit" disabled={saving} className={`mt-4 w-full ${btnPrimary}`}>
+        <button type="submit" disabled={saving} className={`w-full ${btnPrimary}`}>
           <StableLabel active={saving} idle={t("save")} busy={t("saving")} />
         </button>
       </form>

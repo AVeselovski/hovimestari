@@ -8,7 +8,7 @@ import { FormError } from "@/components/form/FormError";
 import { fieldOfCode, focusField } from "@/components/form/focus";
 import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
-import { btnPrimary, standaloneLinkClass } from "@/components/ui/styles";
+import { btnPrimary, formStack, standaloneLinkClass } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoogleAvailable } from "@/contexts/ProvidersContext";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
@@ -84,7 +84,7 @@ function SignUpForm(): ReactElement {
         </>
       )}
 
-      <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-3">
+      <form onSubmit={(e) => void handleSubmit(e)} noValidate className={formStack}>
         <Field
           id="email"
           name="email"

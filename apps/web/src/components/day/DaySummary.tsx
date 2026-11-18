@@ -1,6 +1,7 @@
 "use client";
 
 import { MacroDot } from "@/components/figures/MacroDot";
+import { dayHeadLine } from "@/components/ui/styles";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
 import { formatTarget } from "@/lib/targetFormat";
 import type { Day, DayReading, RangePosition } from "@hovimestari/types";
@@ -9,12 +10,14 @@ import type { ReactElement, ReactNode } from "react";
 import { Gauge, type GaugeMacro } from "./Gauge";
 
 // ---------------------------------------------------------------------------
-// DaySummary: a day's two readings, Eaten and With plan, side by side, under
-// one row of column heads. For calories and protein a gauge and, under it,
-// each reading's figure and its distance from the range. Carbohydrates and
-// fat as a two-row table in the same columns. Then two notes: whether a
-// reading includes an estimate, and how many planned entries a past day
-// never had marked eaten.
+// DaySummary: a day's two readings, Eaten and With plan, side by side: Eaten
+// on the left, With plan on the right. No visible heads name the columns. A
+// screen reader hears each figure's reading (`sr-only` terms), and the two
+// columns never merge, also when they are equal. For calories and protein a
+// gauge and, under it, each reading's figure and its distance from the
+// range. Carbohydrates and fat as a two-row table in the same columns. Then
+// two notes: whether a reading includes an estimate, and how many planned
+// entries a past day never had marked eaten.
 //
 // It is sized for the first screen of a phone: the entries start under it,
 // so every gap is what the type needs and no more.
@@ -158,7 +161,7 @@ function MacroBlock({ macro, date, day }: MacroBlockProps): ReactElement {
 
   return (
     <section aria-labelledby={labelId} data-summary-macro={macro}>
-      <div className="flex min-h-4 items-center justify-between gap-3 md:min-h-5">
+      <div className={`${dayHeadLine} justify-between gap-3`}>
         <h2 id={labelId} className="section-label">
           {macro === "energy" ? t("energy") : t("protein")}
         </h2>
@@ -267,19 +270,7 @@ export function DaySummary({ date, day, past, notice }: DaySummaryProps): ReactE
     // Busy while it loads: the labels read with nothing after them until the day arrives.
     <div data-day-summary="" aria-busy={day === null && !notice ? true : undefined} className="relative">
       <div className={notice ? "invisible" : undefined} aria-hidden={notice ? true : undefined}>
-        <div aria-hidden="true" className="grid grid-cols-2 gap-x-3 text-sm text-ink">
-          <span className="flex items-center gap-2">
-            <span className="size-3 shrink-0 rounded-[2px] bg-ink" />
-            {t("eaten")}
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="size-3 shrink-0 rounded-[2px] border-[1.5px] border-ink" />
-            {t("withPlan")}
-          </span>
-        </div>
-        <div className="mt-3">
-          <MacroBlock macro="energy" date={date} day={day} />
-        </div>
+        <MacroBlock macro="energy" date={date} day={day} />
         <div className="mt-3">
           <MacroBlock macro="protein" date={date} day={day} />
         </div>

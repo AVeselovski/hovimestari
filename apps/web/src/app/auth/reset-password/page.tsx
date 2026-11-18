@@ -6,7 +6,7 @@ import { FormError } from "@/components/form/FormError";
 import { focusField } from "@/components/form/focus";
 import { firstIssues } from "@/components/form/issues";
 import { StableLabel } from "@/components/ui/StableLabel";
-import { btnPrimary, errorNoticeClass, standaloneLinkClass } from "@/components/ui/styles";
+import { btnPrimary, errorNoticeClass, formStack, standaloneLinkClass } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { resetPassword } from "@/lib/api/auth";
@@ -85,7 +85,7 @@ function ResetPasswordForm(): ReactElement {
 
   return (
     <AuthPage title={t("title")}>
-      <form onSubmit={(e) => void handleSubmit(e)} noValidate className="space-y-3">
+      <form onSubmit={(e) => void handleSubmit(e)} noValidate className={formStack}>
         <Field
           id="new-password"
           name="new-password"

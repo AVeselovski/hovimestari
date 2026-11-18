@@ -6,6 +6,11 @@
 //
 // Only the sheet's body scrolls, never the page or the sheet itself, and only
 // as far as it must ("nearest"): what is already in view moves nothing.
+//
+// On a page, a refusal that belongs to no field shows right above the submit
+// button, with no room kept for it on a phone. `revealPageRefusal` scrolls the
+// page, as little as it must, so the refusal and the button under it are in
+// the visible viewport, above a phone's keyboard.
 // ---------------------------------------------------------------------------
 
 /** The lines a field is described by. */
@@ -38,10 +43,24 @@ function spanOf(els: readonly HTMLElement[]): Span {
   return { top: Math.min(...rects.map((r) => r.top)), bottom: Math.max(...rects.map((r) => r.bottom)) };
 }
 
-/** Scrolls `body` as little as it must to show `span`, its top first when it cannot show all of it. */
-function scrollToNearest(body: HTMLElement, span: Span, view: Span): void {
-  if (span.top < view.top) body.scrollTop -= view.top - span.top;
-  else if (span.bottom > view.bottom) body.scrollTop += Math.min(span.bottom - view.bottom, span.top - view.top);
+/**
+ * Scrolls `body` as little as it must to show `span`, its top first when it
+ * cannot show all of it. Scrolling down, when all that is left under the span
+ * is the body's own bottom padding, it goes on to the end, while the span's
+ * top stays in view: the last field's line then keeps the room the sheet
+ * gives it above the footer's rule (`form-ends-in-line`).
+ */
+function scrollToNearest(body: Element, span: Span, view: Span): void {
+  if (span.top < view.top) {
+    body.scrollTop -= view.top - span.top;
+    return;
+  }
+  if (span.bottom <= view.bottom) return;
+  const by = Math.min(span.bottom - view.bottom, span.top - view.top);
+  body.scrollTop += by;
+  const left = body.scrollHeight - body.clientHeight - body.scrollTop;
+  const room = parseFloat(getComputedStyle(body).paddingBottom) || 0;
+  if (left > 0 && left <= room && span.top - by - left >= view.top) body.scrollTop += left;
 }
 
 /**
@@ -105,4 +124,26 @@ export function revealFocused(form: HTMLFormElement | null): void {
   const field = document.activeElement;
   if (!form || !body || !(field instanceof HTMLElement) || field === form || !form.contains(field)) return;
   revealField(form, body, field, false);
+}
+
+/**
+ * Scrolls the page so the refusal `line` and its form's submit button are in
+ * the visible viewport, the part above a phone's keyboard, wherever it is
+ * panned to. Nothing, when they are in view already, or when the line sits
+ * in a sheet, whose footer keeps it in sight.
+ */
+export function revealPageRefusal(line: HTMLElement | null): void {
+  const page = document.scrollingElement ?? document.documentElement;
+  if (!line || line.closest("[data-sheet-body], [data-sheet-footer]")) return;
+  const button = line.closest("form")?.querySelector<HTMLElement>('button[type="submit"]');
+  // Boxes are measured against the layout viewport. With a keyboard up, the
+  // visual viewport is the part the user sees, and it can be panned down
+  // inside the layout viewport by its offsetTop.
+  const viewport = window.visualViewport;
+  const view = viewport
+    ? { top: viewport.offsetTop, bottom: viewport.offsetTop + viewport.height }
+    : { top: 0, bottom: window.innerHeight };
+  const span = spanOf(button ? [line, button] : [line]);
+  if (span.bottom - span.top > view.bottom - view.top) return scrollToNearest(page, spanOf([line]), view);
+  scrollToNearest(page, span, view);
 }

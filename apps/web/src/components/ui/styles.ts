@@ -76,15 +76,40 @@ export const fieldHintClass = "mt-1.5 text-sm text-ink-muted";
  * The room a field's line keeps whether or not it holds anything: one line
  * of text, for its hint or its refusal. Every such line fits one line at 320
  * pixels wide. One that cannot grows its block when it shows, which moves
- * only what is below it.
+ * only what is below it. `field-line` marks it, so a line that ends a form
+ * sheet's body is the room above the footer (`form-ends-in-line` in
+ * globals.css).
  */
-export const lineRoom = "min-h-5";
+export const lineRoom = "min-h-5 field-line";
 
 /**
  * A form's fields, top to bottom: 8px between one field's block and the
  * next. A block ends in its reserved line, which already sets it apart.
  */
 export const formStack = "flex flex-col gap-2";
+
+/**
+ * The line a Day tab column's heading sits on: 16px on a phone, 20px from
+ * `md`, as the summary's macro heads. From `lg` the summary and the entries
+ * stand side by side, and both columns' first headings sit on this line at
+ * the column's top, so they line up (`dayEntriesHead`).
+ */
+export const dayHeadLine = "flex min-h-4 items-center md:min-h-5";
+
+/**
+ * The "Entries" row: 44px, so "Mark all eaten" keeps its target and the row
+ * is the same height with and without it. Below `lg` the heading and the
+ * button sit on the row's middle. From `lg` they sit on its top line, the
+ * summary's `dayHeadLine`, and the button's target hangs below its words.
+ * The list starts at the same place either way.
+ */
+export const dayEntriesHead = "flex min-h-11 items-center justify-between gap-3 lg:items-start";
+
+/** The "Entries" heading: on the row's middle below `lg`, on the summary's head line from `lg`. */
+export const dayEntriesHeading = "section-label lg:flex lg:min-h-5 lg:items-center";
+
+/** "Mark all eaten" in `dayEntriesHead`: from `lg` its words on the row's top line, its 44px target below them. */
+export const dayEntriesHeadButton = "lg:items-start";
 
 /**
  * A block in a `formStack` that starts a section, such as a heading over a
@@ -102,6 +127,14 @@ export const sectionStart = "mt-2";
  */
 export const sectionStartWhenFilled = `${sectionStart} empty:-mt-2`;
 
+/**
+ * A block in a `formStack` that keeps no line under it, because it cannot be
+ * refused, such as Eaten or planned: 16px to the block under it, where a
+ * field's reserved line and the stack's gap would leave 34. Last in its
+ * stack, it adds nothing.
+ */
+export const linelessBlock = "not-last:mb-2";
+
 /** Sections that each start with a heading, such as the targets form's Calories and Protein: 16px apart. */
 export const sectionStack = "flex flex-col gap-4";
 
@@ -113,6 +146,25 @@ export const errorTextClass = "text-sm font-medium text-accent";
 
 /** A line under a field or a form: what went wrong. */
 export const fieldErrorClass = `mt-1.5 ${errorTextClass}`;
+
+/**
+ * The line for a refusal that belongs to no field (`FormError`), right above
+ * a form's buttons, on a page and in a form sheet's footer alike. On a phone
+ * it keeps no room: it is as tall as what it says. In a sheet the footer grows
+ * upward into the held sheet, and on a page the button moves down by the
+ * refusal's height, which stays next to the button. From `md` it keeps two
+ * lines of room, so a dialog's buttons and a page's button never move under
+ * the pointer. On a page it sits in the form's `formStack`, 8px from the last
+ * field's line and from the button.
+ */
+export const refusalLine = `${errorTextClass} md:min-h-10`;
+
+/**
+ * `refusalLine` in a form sheet's footer (`FormError inFooter`), which is no
+ * stack: it keeps the 8px above the buttons itself, and gives them back on a
+ * phone while empty.
+ */
+export const footerRefusal = `${refusalLine} mb-2 max-md:empty:mb-0`;
 
 /** A note above a form, such as "Password updated." */
 export const noticeClass = "rounded-control border border-rule bg-surface px-4 py-3 text-sm text-ink";
@@ -297,8 +349,14 @@ export function sheetBodyClass({ header, footer }: { header: boolean; footer: bo
  */
 export const sheetFooter = "shrink-0 border-t border-rule px-5 pt-4 pb-(--sheet-footer-pad) md:px-6 md:pb-5";
 
-/** The buttons in a `sheetFooter`: two equal halves below `md`, the dialog's right-aligned row from `md`. */
-export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end";
+/**
+ * The buttons in a `sheetFooter`: two equal halves below `md`, 8px apart, the
+ * dialog's right-aligned row from `md`. No gap between rows: a secondary
+ * action's row above the two keeps its own room below it
+ * (`sheetActionsStartButton`), so that room goes with the row when the row
+ * gives way to the keyboard. A grid's row gap would stay.
+ */
+export const sheetActions = "grid grid-cols-2 gap-x-2 md:flex md:flex-wrap md:justify-end";
 
 /**
  * A secondary action in a `sheetActions` row, such as "Delete entry": a row
@@ -309,6 +367,16 @@ export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:just
  * reset.
  */
 export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:mr-auto md:flex md:items-center";
+
+/**
+ * The text button in a `sheetActionsStart` row. Below `md` it keeps its 44px
+ * target, which reaches 10px past its line of text above and below: above,
+ * into the footer's top padding, so its words sit 16px under the footer's
+ * rule as a footer's content does. Below, 2px more keep the target off Cancel
+ * and Save, so the words sit 12px over them, with no empty band around them.
+ * From `md` it stands in the buttons' row at its full height.
+ */
+export const sheetActionsStartButton = "max-md:-mt-(--footer-start-reach) max-md:mb-0.5";
 
 /** Cancel and the submit button together: the two halves below `md`, one group at the end of the row from `md`. */
 export const sheetActionsPair = "contents md:ml-auto md:flex md:gap-3";
