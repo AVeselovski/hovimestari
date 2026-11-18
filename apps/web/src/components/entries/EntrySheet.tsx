@@ -4,7 +4,7 @@ import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
-import { labelClass, noticeClass } from "@/components/ui/styles";
+import { labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFailureLine } from "@/hooks/useFailureLine";
@@ -288,7 +288,7 @@ export function EntrySheet({
               autoFocus={autoFocus}
             />
           )}
-          <div data-entry-preview="">
+          <div data-entry-preview="" className={sectionStart}>
             <p aria-live="polite" className="mb-2 min-h-5 text-sm text-ink-muted">
               {caption}
             </p>
@@ -304,7 +304,6 @@ export function EntrySheet({
               value={fields.date}
               onValueChange={(date) => change({ date })}
               error={dateLine}
-              lineRoom="min-h-5"
             />
           </div>
         </>

@@ -4,7 +4,7 @@ import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
 import { DecimalField } from "@/components/ui/DecimalField";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
-import { fieldHintClass, sectionTitle } from "@/components/ui/styles";
+import { fieldHintClass, sectionStart, sectionTitle } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
@@ -174,7 +174,7 @@ export function OwnFoodSheet({
       formError={formError}
       idle={t("save")}
       busy={t("saving")}
-      sheet={{ size: "tall", stacked: remove.dialog }}
+      sheet={{ stacked: remove.dialog }}
       footerStart={food ? { label: t("delete"), onPress: (opener) => remove.open(food, opener) } : undefined}
     >
       {({ autoFocus }) => (
@@ -190,10 +190,9 @@ export function OwnFoodSheet({
             value={values.name}
             onChange={(e) => change("name", e.target.value)}
             error={lineOf(fieldErrors.name)}
-            lineRows={2}
             autoFocus={autoFocus}
           />
-          <fieldset aria-describedby={`${id}-hint`} className="m-0 min-w-0 border-0 p-0">
+          <fieldset aria-describedby={`${id}-hint`} className={`${sectionStart} min-w-0 border-0 p-0`}>
             <legend className={`${sectionTitle} p-0`}>{t("per100g")}</legend>
             <p id={`${id}-hint`} className={`${fieldHintClass} mt-1 mb-3`}>
               {t("hint")}
@@ -211,7 +210,6 @@ export function OwnFoodSheet({
                   onValueChange={(raw) => change(field, raw)}
                   invalid={fieldErrors[field] !== undefined}
                   line={lineOf(fieldErrors[field])}
-                  lineRows={2}
                   layout="beside"
                 />
               ))}
@@ -228,7 +226,6 @@ export function OwnFoodSheet({
             value={values.barcode}
             onChange={(e) => change("barcode", e.target.value)}
             error={lineOf(fieldErrors.barcode)}
-            lineRows={2}
           />
         </>
       )}

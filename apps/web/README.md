@@ -152,7 +152,9 @@ src/
 │   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
 │   ├── useStillUnderFinger.ts  No scroll by code while a finger is on the screen
+│   ├── useTapAfterLoweredKeyboard.ts  A tap on a field raises the keyboard again after it was lowered by hand
 │   ├── useAnchoredPanel.ts     Holds a centred panel's top where it opened
+│   ├── useHeldSheetHeight.ts   Holds a phone's bottom sheet at the height it opened at
 │   ├── useScrolledUnder.ts     Whether <main> is scrolled from its top, so content sits under a header that stays
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
@@ -236,7 +238,9 @@ To add a form sheet, such as the estimate sheet:
 4. Pass `held` while the sheet's writes must wait, such as while `useToday()` reports `holding`. Save and the secondary action then ignore a press, and Cancel and every dismissal stay free.
 5. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
 
-A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons, in two lines of room it keeps while the keyboard is closed. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
+A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons. On a phone the footer keeps no room for it: it grows upward when a refusal shows, with the buttons where they were, and the field that holds focus comes back into view if the taller footer covers it. From `md` the footer keeps two lines of room for it, because the dialog grows downward and would move the buttons. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
+
+Lay a form's fields out with the recipes in `styles.ts`: the form is a `formStack`, 8 pixels between fields, and a section's heading or a closing note takes `sectionStart`, 16 pixels from what is above it. Every field keeps one line of room under it (`lineRoom`). Write each line under a field to fit one line at 320 pixels wide, about 40 characters. A form sheet is as tall as its form and holds that height once open, so do not pass `size="tall"` for a form.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
@@ -246,7 +250,7 @@ A short outcome on the page, such as "Removed Rahka." with Undo, is a toast from
 
 ## Numbers and dates
 
-A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A number field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. A beside field whose unit can be a word is 11rem. A field whose unit changes, such as grams or portions, passes its longest unit as `widestUnit`, so its width holds as the unit changes. `lineRows={2}` keeps two lines of room under a field whose longest line wraps at 320 pixels. The field keeps room at its end for its unit: 1.75rem for one letter such as "g", 3rem for a short unit such as "kcal", and 5.5rem for a word such as "portions" or "meals".
+A number a person types is a `DecimalField`, a text field with an `inputMode`, never `type="number"`, which refuses the comma a Finnish keypad types. Use `inputMode="numeric"` for whole numbers and `"decimal"` where a decimal is likely. A number field never has a placeholder. `layout="beside"` puts the label on the left of a 9rem field, one row each, for a column of short figures such as a label's values per 100 g. A beside field whose unit can be a word is 11rem. A field whose unit changes, such as grams or portions, passes its longest unit as `widestUnit`, so its width holds as the unit changes. The line under it keeps one line of room. The field keeps room at its end for its unit: 1.75rem for one letter such as "g", 3rem for a short unit such as "kcal", and 5.5rem for a word such as "portions" or "meals".
 
 Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib/decimalInput.ts`. It answers `empty`, `invalid`, `group` or a `number`:
 
@@ -256,7 +260,7 @@ Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib
 
 Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
-A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room when the hint takes two lines. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
+A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room for a hint that always takes two lines, such as the targets sheet's in-force line. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 

@@ -59,8 +59,8 @@ export function AmountField({
     chip.id === GRAMS ? t("grams") : t("portion", { portion: chip.label ?? "", grams: formatGrams(chip.grams ?? 0) });
   const line = error === undefined ? null : error === "digit_group" ? tCommon("digitGroup") : errorCopy.forCode(error);
   return (
-    // 8 px under the chip row, whose own 4 px of focus-ring room makes the
-    // 12 px every field in a form sheet keeps.
+    // 8 px under the chip row, whose own 4 px of focus-ring room makes 12 px:
+    // the chips belong to the field, a little apart from its label.
     <div className="space-y-2">
       {/* Always drawn, "g" at least, so chips joining it when the food's portions load move nothing. */}
       <div
@@ -97,7 +97,6 @@ export function AmountField({
         onValueChange={onAmount}
         invalid={error !== undefined}
         line={line}
-        lineRows={2}
         layout={layout}
       />
     </div>

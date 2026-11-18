@@ -1,4 +1,4 @@
-import { FormSheet } from "@/components/ui/FormSheet";
+import { FormSheet, type FormFailure } from "@/components/ui/FormSheet";
 import { fieldBlockOf } from "@/lib/revealRefused";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState, type ReactElement } from "react";
@@ -116,5 +116,127 @@ describe("A refused form sheet", () => {
     layout({ a: 0, b: 120 });
     await submit();
     expect(body().scrollTop).toBe(0);
+  });
+});
+
+/** A sheet with two fields whose save is refused in the footer, by no field. */
+function FooterRefusalSheet(): ReactElement {
+  const [formError, setFormError] = useState<FormFailure | null>(null);
+  const [, setRenders] = useState(0);
+  return (
+    <FormSheet
+      open
+      onClose={jest.fn()}
+      title="Two fields"
+      returnFocusTo={null}
+      dirty={false}
+      submitting={false}
+      formError={formError}
+      idle="Save"
+      busy="Saving…"
+      onSubmit={() => setFormError({ line: "That did not save.", cause: null })}
+    >
+      {() => (
+        <>
+          {(["a", "b"] as const).map((k) => (
+            <div key={k}>
+              <label htmlFor={k}>{k}</label>
+              <input id={k} defaultValue="x" aria-describedby={`${k}-line`} />
+              <p id={`${k}-line`}>Copy the figures from the label.</p>
+            </div>
+          ))}
+          {/* Renders the sheet again with the same refusal, as typing would. */}
+          <button type="button" onClick={() => setRenders((n) => n + 1)}>
+            again
+          </button>
+        </>
+      )}
+    </FormSheet>
+  );
+}
+
+/**
+ * Lays out each field's parts as a browser would, stacked inside the
+ * scrolled content from `top`: its label (20 px), the field (40 px) and its
+ * line (20 px). A box moves up by the body's scrollTop.
+ */
+function layoutParts(tops: Record<string, number>): void {
+  for (const [id, top] of Object.entries(tops)) {
+    const parts: Array<[HTMLElement, number, number]> = [
+      [document.querySelector<HTMLElement>(`label[for="${id}"]`)!, 0, 20],
+      [document.getElementById(id)!, 20, 60],
+      [document.getElementById(`${id}-line`)!, 60, 80],
+    ];
+    for (const [el, from, to] of parts) {
+      el.getBoundingClientRect = () => {
+        const y = BODY.top + top - body().scrollTop;
+        return { top: y + from, bottom: y + to, height: to - from, left: 0, right: 300, width: 300 } as DOMRect;
+      };
+    }
+  }
+}
+
+/**
+ * The body as a phone gives it under a held sheet height: the footer's
+ * refusal line, with its 8 px gap, takes its 48 px from the body's bottom.
+ */
+function holdSheet(): void {
+  const footerLine = () => document.querySelector("[data-sheet-footer] [data-form-error]")!;
+  body().getBoundingClientRect = () => {
+    const bottom = BODY.bottom - (footerLine().textContent ? 48 : 0);
+    return { top: BODY.top, bottom, height: bottom - BODY.top, left: 0, right: 300, width: 300 } as DOMRect;
+  };
+}
+
+async function refuseWithFocusOn(id: string, top: number): Promise<void> {
+  render(<FooterRefusalSheet />);
+  layoutParts({ a: 0, [id]: top });
+  holdSheet();
+  act(() => document.getElementById(id)!.focus());
+  await submit();
+  expect(screen.getByText("That did not save.")).toBeInTheDocument();
+}
+
+// The body's bottom edge is at 400 before the refusal and at 352 after it.
+describe("A form sheet refused in its footer", () => {
+  it("brings the focused field and its label back into view when the taller footer covers the field", async () => {
+    // b's field runs from 320 to 360 on screen: 8 px under the new edge.
+    await refuseWithFocusOn("b", 200);
+    // Only as far as the field: its line, a hint here, stays covered.
+    expect(body().scrollTop).toBe(8);
+  });
+
+  // The refusal is in the footer. The line under the field is a hint at that
+  // moment, so a field in view with its label holds still.
+  it("moves nothing when only the focused field's line is covered", async () => {
+    // b's field runs from 300 to 340, its line from 340 to 360: under the edge at 352.
+    await refuseWithFocusOn("b", 180);
+    expect(body().scrollTop).toBe(0);
+  });
+
+  it("moves nothing when the focused field stays in view", async () => {
+    await refuseWithFocusOn("b", 120);
+    expect(body().scrollTop).toBe(0);
+  });
+
+  it("moves nothing when no field holds focus", async () => {
+    render(<FooterRefusalSheet />);
+    layoutParts({ a: 0, b: 200 });
+    holdSheet();
+    act(() => body().focus());
+    await submit();
+    expect(body().scrollTop).toBe(0);
+  });
+
+  // Once, as the refusal shows: a scroll the reader makes afterwards stays,
+  // whatever renders the sheet again while the same refusal shows.
+  it("leaves a later scroll alone while the same refusal shows", async () => {
+    await refuseWithFocusOn("b", 200);
+    act(() => {
+      // b's field now runs from 20 to 60 on screen, above the body's top edge at 100.
+      body().scrollTop = 300;
+    });
+    fireEvent.click(screen.getByRole("button", { name: "again" }));
+    expect(body().scrollTop).toBe(300);
   });
 });

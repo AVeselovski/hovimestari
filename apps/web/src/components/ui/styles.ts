@@ -73,17 +73,40 @@ export const labelBesideClass = "min-w-0 flex-1 text-base font-semibold text-ink
 export const fieldHintClass = "mt-1.5 text-sm text-ink-muted";
 
 /**
- * The room a field's line keeps whether or not it holds anything, in lines
- * of text, so an error that wraps moves nothing below it. `fromMd` is the
- * room from `md`, where a wider column takes the same line in fewer rows.
+ * The room a field's line keeps whether or not it holds anything: one line
+ * of text, for its hint or its refusal. Every such line fits one line at 320
+ * pixels wide. One that cannot grows its block when it shows, which moves
+ * only what is below it.
  */
-export function lineRoom(rows: 1 | 2, fromMd: 1 | 2 = rows): string {
-  const base = rows === 2 ? "min-h-10" : "min-h-5";
-  return fromMd === rows ? base : `${base} md:min-h-5`;
-}
+export const lineRoom = "min-h-5";
+
+/**
+ * A form's fields, top to bottom: 8px between one field's block and the
+ * next. A block ends in its reserved line, which already sets it apart.
+ */
+export const formStack = "flex flex-col gap-2";
+
+/**
+ * A block in a `formStack` that starts a section, such as a heading over a
+ * group of fields, or that closes the form, such as a note: 16px from the
+ * block above it.
+ */
+export const sectionStart = "mt-2";
+
+/**
+ * A line in a `formStack` that starts a section only while it says
+ * something, such as the targets sheet's rewrite line: 16px from the block
+ * above it when filled. Empty, it takes back the stack's gap, so it costs no
+ * room and the block after it sits where it would without it. It stays in
+ * the layout, so a live region still announces what it comes to say.
+ */
+export const sectionStartWhenFilled = `${sectionStart} empty:-mt-2`;
+
+/** Sections that each start with a heading, such as the targets form's Calories and Protein: 16px apart. */
+export const sectionStack = "flex flex-col gap-4";
 
 /** Two fields stacked on a phone and side by side from `md`, so a dialog shows its whole form. */
-export const pairRow = "space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0";
+export const pairRow = "flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-x-3 md:gap-y-2";
 
 /** The text of a line that says what went wrong. Errors use the accent. */
 export const errorTextClass = "text-sm font-medium text-accent";
@@ -207,9 +230,18 @@ export const sheetViewportAnchored = `fixed inset-0 ${zSheet} flex touch-none it
  * From `md` it sizes to its content, up to 1rem short of the viewport above
  * and below, so a form of a dozen rows fits a 1280 by 800 screen. Its
  * width from `md` comes from `BottomSheet`'s `panelClassName`.
+ *
+ * `--sheet-footer-pad` is the footer's bottom padding below `md`: it clears
+ * whichever is taller, the home indicator or the software keyboard.
+ * `--drawer-keyboard-inset` is the keyboard's height while one is open (Base
+ * UI's `Drawer.VirtualKeyboardProvider` sets it on the viewport for a
+ * `keyboardAware` sheet), and the keyboard already covers the home
+ * indicator, so the two never add up. It is set here, on the popup, so it
+ * reads the inset the viewport holds, and both the footer and the sheet's
+ * held height (`useHeldSheetHeight`) add the same amount.
  */
 const sheetPopupShape =
-  "relative flex w-full flex-col outline-hidden rounded-t-card border border-rule max-md:border-x-0 max-md:border-b-0 md:rounded-card max-h-[calc(100dvh-var(--safe-top)-1.5rem)] max-md:min-h-[calc(var(--sheet-min-height)+var(--safe-bottom))] md:max-h-[calc(100dvh-2rem)] sheet-popup-motion";
+  "[--sheet-footer-pad:calc(1rem+max(var(--safe-bottom),var(--drawer-keyboard-inset,0px)))] relative flex w-full flex-col outline-hidden rounded-t-card border border-rule max-md:border-x-0 max-md:border-b-0 md:rounded-card max-h-[calc(100dvh-var(--safe-top)-1.5rem)] max-md:min-h-[calc(var(--sheet-min-height)+var(--safe-bottom))] md:max-h-[calc(100dvh-2rem)] sheet-popup-motion";
 
 /** The sheet itself, on the surface colour. */
 export const sheetPopup = `${sheetPopupShape} bg-surface`;
@@ -226,6 +258,13 @@ export const sheetPopupStacked = `${sheetPopupShape} bg-surface-raised`;
  * 1366 by 768. Its top edge therefore stays put however its content changes.
  */
 export const sheetPopupTall = "h-[calc(100dvh-var(--safe-top)-3rem)] md:h-[min(48rem,calc(100dvh-2rem))]";
+
+/**
+ * A sheet held at the height it opened at, below `md` (`useHeldSheetHeight`):
+ * `--sheet-held-height` is that height less the footer's bottom padding, which
+ * is added back, so a keyboard opening still lifts the footer above it.
+ */
+export const sheetPopupHeld = "h-[calc(var(--sheet-held-height)+var(--sheet-footer-pad))]";
 
 /** The drag handle: the one visible cue that a sheet can be swiped. A phone-only affordance. */
 export const sheetHandle = "mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-pill bg-field-rule md:hidden";
@@ -252,15 +291,11 @@ export function sheetBodyClass({ header, footer }: { header: boolean; footer: bo
 
 /**
  * A sheet's action row, fixed below its scrolling body, so the actions stay
- * in reach however long the body is. Below `md` its bottom padding clears
- * whichever is taller, the home indicator or the software keyboard:
- * `--drawer-keyboard-inset` is the keyboard's height while one is open (Base
- * UI's `Drawer.VirtualKeyboardProvider` sets it for a `keyboardAware`
- * sheet), and the keyboard already covers the home indicator, so the two
- * never add up.
+ * in reach however long the body is. Below `md` its bottom padding is
+ * `--sheet-footer-pad`, which clears the home indicator or the software
+ * keyboard (`sheetPopupShape`).
  */
-export const sheetFooter =
-  "shrink-0 border-t border-rule px-5 pt-4 pb-[calc(1rem+max(var(--safe-bottom),var(--drawer-keyboard-inset,0px)))] md:px-6 md:pb-5";
+export const sheetFooter = "shrink-0 border-t border-rule px-5 pt-4 pb-(--sheet-footer-pad) md:px-6 md:pb-5";
 
 /** The buttons in a `sheetFooter`: two equal halves below `md`, the dialog's right-aligned row from `md`. */
 export const sheetActions = "grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end";

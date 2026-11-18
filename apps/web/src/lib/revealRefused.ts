@@ -45,34 +45,64 @@ function scrollToNearest(body: HTMLElement, span: Span, view: Span): void {
 }
 
 /**
- * Scrolls the body of the sheet `form` sits in so the refused field is in
- * view: the focused refused field, else the first in the form's order.
+ * Scrolls the body of the sheet `form` sits in so `field` is in view. With
+ * `withLines`, the lines it is described by count as part of it:
  *
- * - Nothing, when the field, its label and the lines it is described by are
- *   all in view.
- * - Its whole block when the block fits in the body.
- * - Else the field and its label with the lines it is described by, when
- *   those fit together. A figure's block is the whole grid and its shared
- *   line, taller than the body above a phone's keyboard.
+ * - Nothing, when the field, its label and (`withLines`) the lines it is
+ *   described by are all in view.
+ * - With `withLines`, its whole block when the block fits in the body, else
+ *   the field and its label with its lines, when those fit together. A
+ *   figure's block is the whole grid and its shared line, taller than the
+ *   body above a phone's keyboard.
  * - Else the field and its label, else the field alone.
  *
  * Each as little as it must, so what is in view already moves nothing.
  */
-export function revealRefused(form: HTMLFormElement | null): void {
-  const body = form?.closest<HTMLElement>("[data-sheet-body]");
-  if (!form || !body) return;
-  const refused = [...form.querySelectorAll<HTMLElement>('[aria-invalid="true"]')];
-  if (refused.length === 0) return;
-  const field = refused.find((el) => el === document.activeElement) ?? refused[0];
+function revealField(form: HTMLFormElement, body: HTMLElement, field: HTMLElement, withLines: boolean): void {
   const view = body.getBoundingClientRect();
   const fits = (span: Span): boolean => span.bottom - span.top <= view.bottom - view.top;
   const label = field.id ? form.querySelector<HTMLElement>(`label[for="${CSS.escape(field.id)}"]`) : null;
   const labelled = label ? [field, label] : [field];
-  const told = spanOf([...labelled, ...describedBy(field)]);
-  // The field, its label and its lines are all in view already: nothing moves.
+  const told = spanOf(withLines ? [...labelled, ...describedBy(field)] : labelled);
+  // What must show is all in view already: nothing moves.
   if (told.top >= view.top && told.bottom <= view.bottom) return;
-  const block = fieldBlockOf(field).getBoundingClientRect();
-  if (fits(block)) return scrollToNearest(body, block, view);
-  const candidates = [told, spanOf(labelled)];
+  if (withLines) {
+    const block = fieldBlockOf(field).getBoundingClientRect();
+    if (fits(block)) return scrollToNearest(body, block, view);
+  }
+  const candidates = withLines ? [told, spanOf(labelled)] : [told];
   scrollToNearest(body, candidates.find(fits) ?? spanOf([field]), view);
+}
+
+/** The scrolling body of the sheet `form` sits in. */
+function bodyOf(form: HTMLFormElement | null): HTMLElement | null {
+  return form?.closest<HTMLElement>("[data-sheet-body]") ?? null;
+}
+
+/**
+ * Scrolls the body of the sheet `form` sits in so the refused field is in
+ * view: the focused refused field, else the first in the form's order.
+ */
+export function revealRefused(form: HTMLFormElement | null): void {
+  const body = bodyOf(form);
+  if (!form || !body) return;
+  const refused = [...form.querySelectorAll<HTMLElement>('[aria-invalid="true"]')];
+  if (refused.length === 0) return;
+  revealField(form, body, refused.find((el) => el === document.activeElement) ?? refused[0], true);
+}
+
+/**
+ * Scrolls the body of the sheet `form` sits in so the field that holds focus
+ * and its label are in view again. For a refusal that shows in the sheet's
+ * footer: on a phone the sheet holds its height, so the taller footer takes
+ * its room from the body and can cover the field being typed in. The lines
+ * under the field do not count: the refusal is in the footer, and a line
+ * there is a hint, so a field in view with its label moves nothing even
+ * when its line is covered. Nothing, when focus is not on a field in the form.
+ */
+export function revealFocused(form: HTMLFormElement | null): void {
+  const body = bodyOf(form);
+  const field = document.activeElement;
+  if (!form || !body || !(field instanceof HTMLElement) || field === form || !form.contains(field)) return;
+  revealField(form, body, field, false);
 }

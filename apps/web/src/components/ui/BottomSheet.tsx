@@ -7,6 +7,7 @@ import {
   sheetHandle,
   sheetHeader,
   sheetPopup,
+  sheetPopupHeld,
   sheetPopupStacked,
   sheetPopupTall,
   sheetTitle,
@@ -15,10 +16,12 @@ import {
 } from "@/components/ui/styles";
 import { useAnchoredPanel } from "@/hooks/useAnchoredPanel";
 import { useEntryPressGuard } from "@/hooks/useEntryPressGuard";
+import { useHeldSheetHeight } from "@/hooks/useHeldSheetHeight";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useMainScrollLock } from "@/hooks/useMainScrollLock";
 import { useScrollHold } from "@/hooks/useScrollHold";
 import { useStillUnderFinger } from "@/hooks/useStillUnderFinger";
+import { useTapAfterLoweredKeyboard } from "@/hooks/useTapAfterLoweredKeyboard";
 import { focusIsInsideOrLost } from "@/lib/focus";
 import { restoreFocus } from "@/lib/lastInputModality";
 import { Drawer } from "@base-ui/react/drawer";
@@ -110,25 +113,19 @@ import { closingBackdropHandlers, closingBackdropStyle, useClosingPresses } from
 // moving between fields with the keyboard up gets the same treatment. It
 // places that tap where the finger lifts, so the body holds still while a
 // finger is down (`useStillUnderFinger`): a field the provider's own scroll
-// slid away mid-tap would lose it to whatever slid in.
+// slid away mid-tap would lose it to whatever slid in. A tap after the keyboard
+// was lowered by hand is `useTapAfterLoweredKeyboard`'s.
 //
-// A field focused by code rather than a tap gets no such trick: iOS scrolls
-// the page to reveal it as the keyboard rises and shoves the sheet off the
-// top, and on a real iPhone Base UI's own page restore (a fully modal
-// drawer) did not put it back. So no sheet focuses a text field on open on
-// a phone; the keyboard comes up when the reader taps one.
+// A field focused by code gets no such trick: iOS shoves the sheet off the
+// top as the keyboard rises, so no sheet focuses a text field on open on a
+// phone. A short sheet with no footer would be left under the keyboard
+// instead of being panned into view, so the keyboard handling is opt-in.
 //
-// That suits a tall sheet with a footer, whose body can scroll the field
-// above the keyboard. A short sheet with no footer would be left under the
-// keyboard instead of being panned into view, so it is opt-in.
-//
-// At `md`+ the centred panel holds still once it has opened: its top is
-// pinned where the centring put it and it never gets shorter while open, so
-// an inline error that grows the panel grows it downwards, nothing above the
-// error moves, and the footer stays put when the error goes
-// (`useAnchoredPanel`).
-// Below `md` the sheet hangs from the bottom edge and grows upwards, as a
-// sheet does.
+// Once open, a sheet holds still. At `md`+ the centred panel keeps its top
+// where the centring put it and never gets shorter, so a line that grows it
+// grows it downwards (`useAnchoredPanel`). Below `md` the sheet keeps the
+// height it opened at, so a line that appears scrolls the body rather than
+// moving the sheet's top edge (`useHeldSheetHeight`).
 //
 // A sheet whose content changes under the thumb, such as a list of search
 // results that changes on every keystroke, passes `size="tall"`: one fixed
@@ -335,15 +332,18 @@ export function BottomSheet({
     setRootOpen(open);
   }, [open]);
   const anchored = useAnchoredPanel(settled && !isMobile);
+  const held = useHeldSheetHeight(settled && isMobile && size === "auto");
   const setPopup = useCallback(
     (el: HTMLDivElement | null) => {
       popupRef.current = el;
       anchored.panelRef(el);
+      held.panelRef(el);
     },
-    [anchored.panelRef],
+    [anchored.panelRef, held.panelRef],
   );
   const holdRef = useScrollHold(holdScroll);
   const stillRef = useStillUnderFinger(keyboardAware);
+  useTapAfterLoweredKeyboard(keyboardAware && open, popupRef);
   const bodyRef = useCallback(
     (el: HTMLDivElement | null) => {
       holdRef(el);
@@ -438,8 +438,8 @@ export function BottomSheet({
                 finalFocus={false}
                 data-sheet-size={size}
                 {...closingPresses}
-                className={`${nested ? sheetPopupStacked : sheetPopup}${size === "tall" ? ` ${sheetPopupTall}` : ""} ${panelClassName}`}
-                style={anchored.style}
+                className={`${nested ? sheetPopupStacked : sheetPopup}${size === "tall" ? ` ${sheetPopupTall}` : ""}${held.held ? ` ${sheetPopupHeld}` : ""} ${panelClassName}`}
+                style={{ ...anchored.style, ...held.style }}
               >
                 {/* Outside Drawer.Content, so a mouse can drag it as well as a finger. */}
                 <div data-sheet-handle="" className={sheetHandle} aria-hidden="true" />

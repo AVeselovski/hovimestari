@@ -15,9 +15,8 @@ import type { FigureField } from "./entryForm";
 // field has its unit inside it. Tab and Enter follow that order.
 //
 // The four share one line under the grid, with its room always kept, so a
-// refusal moves nothing below it. The longest refusal a figure can show, the
-// thousands line, is two lines across the grid at 320 pixels wide and one
-// from `md`, so the room is two lines on a phone and one from `md`.
+// refusal moves nothing below it. Every refusal a figure can show fits that
+// one line across the grid at 320 pixels wide.
 // The line says the first refused field's reason, in that order, and every
 // refused field is marked and described by it. While nothing is refused it
 // may hold a hint, such as where the figures come from, and then describes
@@ -75,7 +74,7 @@ export function FigureFields({ idPrefix, values, errors, onChange, hint }: Figur
           />
         ))}
       </div>
-      <p id={lineId} className={`${first ? fieldErrorClass : fieldHintClass} ${lineRoom(2, 1)}`}>
+      <p id={lineId} className={`${first ? fieldErrorClass : fieldHintClass} ${lineRoom}`}>
         {first ? lineOf(errors[first]!) : (hint ?? null)}
       </p>
     </div>

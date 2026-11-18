@@ -1,4 +1,13 @@
-import { btnText, btnTextDanger, lineRoom, segmentedTray } from "@/components/ui/styles";
+import {
+  btnText,
+  btnTextDanger,
+  formStack,
+  lineRoom,
+  pairRow,
+  sectionStart,
+  sectionStartWhenFilled,
+  segmentedTray,
+} from "@/components/ui/styles";
 
 const tokens = (recipe: string) => recipe.split(/\s+/);
 
@@ -33,9 +42,18 @@ describe("segmented tray", () => {
   });
 });
 
-describe("a field line's room", () => {
-  it("keeps one or two lines of text", () => {
-    expect(lineRoom(1)).toBe("min-h-5");
-    expect(lineRoom(2)).toBe("min-h-10");
+describe("a form's density", () => {
+  it("keeps one line of room under a field", () => {
+    expect(lineRoom).toBe("min-h-5");
+  });
+
+  // The reserved line already sets a field apart: 8 px to the next field, 16 before a section.
+  it("puts 8 px between fields and 16 before a section, on a phone and from md", () => {
+    expect(tokens(formStack)).toEqual(["flex", "flex-col", "gap-2"]);
+    expect(tokens(sectionStart)).toEqual(["mt-2"]);
+    // A line that starts a section only while filled: 16 px when filled, and the stack's 8 px gap taken back when empty.
+    expect(tokens(sectionStartWhenFilled)).toEqual(["mt-2", "empty:-mt-2"]);
+    expect(tokens(pairRow)).toEqual(expect.arrayContaining(["flex-col", "gap-2", "md:gap-y-2"]));
+    expect(tokens(pairRow)).not.toContain("space-y-3");
   });
 });

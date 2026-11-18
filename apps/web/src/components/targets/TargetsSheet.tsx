@@ -3,7 +3,7 @@
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
-import { labelClass } from "@/components/ui/styles";
+import { labelClass, sectionStart, sectionStartWhenFilled } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
@@ -227,7 +227,7 @@ export function TargetsSheet({
             in force on it: two lines of room whether or not it has loaded, so
             its arrival moves nothing. Set apart from the fields below.
           */}
-          <div className="pb-3">
+          <div>
             {editing === undefined ? (
               <>
                 <label htmlFor={dateId} className={labelClass}>
@@ -258,22 +258,25 @@ export function TargetsSheet({
               </>
             )}
           </div>
-          <TargetRangeFields
-            idPrefix={id}
-            values={values}
-            onChange={change}
-            errors={fieldErrors}
-            autoFocus={editing !== undefined && autoFocus}
-          />
+          <div className={sectionStart}>
+            <TargetRangeFields
+              idPrefix={id}
+              values={values}
+              onChange={change}
+              errors={fieldErrors}
+              autoFocus={editing !== undefined && autoFocus}
+            />
+          </div>
           {/*
-            Always there, with room for its longest form at 320 wide, so picking
-            a date never moves the sheet. Announced, so a screen reader hears
-            which days a date rewrites.
+            Under the fields, as tall as what it says: a date picked above it
+            changes it, and only what is below it moves. It starts a section
+            of its own, 16px under the fields, and empty it takes no gap.
+            Announced, so a screen reader hears which days a date rewrites.
           */}
-          <p aria-live="polite" data-rewrite="" className="min-h-15 text-sm font-medium text-ink md:min-h-10">
+          <p aria-live="polite" data-rewrite="" className={`${sectionStartWhenFilled} text-sm font-medium text-ink`}>
             {rewrite && rewriteText(t, rewrite)}
           </p>
-          <NotAdviceNote />
+          <NotAdviceNote className={sectionStart} />
         </>
       )}
     </FormSheet>

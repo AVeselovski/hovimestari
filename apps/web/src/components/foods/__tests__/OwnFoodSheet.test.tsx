@@ -72,15 +72,16 @@ describe("OwnFoodSheet", () => {
     expect(dialog().querySelector("form")!.textContent!.replace("Per 100\u00a0g", "")).not.toMatch(/\d/);
   });
 
-  it("is the tall sheet, so its top never moves when lines appear under the fields", () => {
+  // As tall as its form: the sheet holds the height it opened at, so lines appearing move nothing above them.
+  it("sizes to its content, as every form sheet does", () => {
     renderSheet();
-    expect(dialog()).toHaveAttribute("data-sheet-size", "tall");
+    expect(dialog()).toHaveAttribute("data-sheet-size", "auto");
   });
 
-  it("keeps two lines of room under every field, and puts each value beside its label", () => {
+  it("keeps one line of room under every field, and puts each value beside its label", () => {
     renderSheet();
     for (const label of ["Name", "Energy", "Protein", "Carbohydrates", "Fat", "Barcode (optional)"]) {
-      expect([label, lineOf(label)!.className.split(" ")]).toEqual([label, expect.arrayContaining(["min-h-10"])]);
+      expect([label, lineOf(label)!.className.split(" ")]).toEqual([label, expect.arrayContaining(["min-h-5"])]);
     }
     for (const label of ["Energy", "Protein", "Carbohydrates", "Fat"]) {
       const row = input(label).parentElement!.parentElement!;
@@ -115,13 +116,11 @@ describe("OwnFoodSheet", () => {
     type("Fat", "abc");
     type("Barcode (optional)", "123");
     save();
-    expect(lineOf("Name")).toHaveTextContent(
-      "Use at least two letters or digits in a row, so search can find the food.",
-    );
-    expect(lineOf("Energy")).toHaveTextContent("Enter a number from 0 to 1000, with at most two decimals.");
-    expect(lineOf("Protein")).toHaveTextContent("Enter a number from 0 to 100, with at most three decimals.");
+    expect(lineOf("Name")).toHaveTextContent("Search needs two letters or digits in a row.");
+    expect(lineOf("Energy")).toHaveTextContent("Enter 0 to 1000, two decimals at most.");
+    expect(lineOf("Protein")).toHaveTextContent("Enter 0 to 100, three decimals at most.");
     expect(lineOf("Carbohydrates")).toHaveTextContent("Enter a value from the label.");
-    expect(lineOf("Fat")).toHaveTextContent("Enter a number from 0 to 100, with at most three decimals.");
+    expect(lineOf("Fat")).toHaveTextContent("Enter 0 to 100, three decimals at most.");
     expect(lineOf("Barcode (optional)")).toHaveTextContent("A barcode has 8 to 14 digits.");
     expect(input("Name")).toHaveFocus();
     expect(createFood).not.toHaveBeenCalled();
@@ -133,7 +132,7 @@ describe("OwnFoodSheet", () => {
     type("Energy", "1,000");
     type("Carbohydrates", "1.500");
     save();
-    const why = "This may mean thousands. Type it with no comma or point, or with fewer decimals.";
+    const why = "No comma or point, or fewer decimals.";
     expect(lineOf("Energy")).toHaveTextContent(why);
     expect(lineOf("Carbohydrates")).toHaveTextContent(why);
     expect(input("Energy")).toHaveFocus();
@@ -200,9 +199,7 @@ describe("OwnFoodSheet", () => {
     renderSheet({ food: detailOf(ownFood("Oma rahka")) });
     type("Name", "D");
     save();
-    expect(
-      await within(dialog()).findByText("Use at least two letters or digits in a row, so search can find the food."),
-    ).toBeInTheDocument();
+    expect(await within(dialog()).findByText("Search needs two letters or digits in a row.")).toBeInTheDocument();
     expect(updateFood).not.toHaveBeenCalled();
   });
 
