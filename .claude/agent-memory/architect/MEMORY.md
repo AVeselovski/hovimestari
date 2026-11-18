@@ -8,3 +8,4 @@
 - [Refresh-token families](project_refresh_token_families.md): siblings not replacement, fam claim for reuse, user-row lock before any token write
 - [Entry figures model](project_entry_figures_model.md): basis written once at add, sum of rounded rows, fixed gauge scale, stale today on resume
 - [Redesign against built primitives](feedback_redesign_against_built_primitives.md): hue allowlist test, toast under modal drawers, missing API fields, server-wins today
+- [Targets from their date](project_targets_from_their_date.md): owner flipped the first-change fallback 2026-11-18; no-targets copy stays neutral
