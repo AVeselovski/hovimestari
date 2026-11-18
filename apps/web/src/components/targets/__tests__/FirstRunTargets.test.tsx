@@ -100,7 +100,7 @@ describe("FirstRunTargets", () => {
     fillAll();
     type("Calories", "To", "1500");
     fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
-    expect(await within(group("Calories")).findByText("The second number cannot be below the first.")).toBeVisible();
+    expect(await within(group("Calories")).findByText("To cannot be lower than From.")).toBeVisible();
     expect(field("Calories", "To")).toHaveAttribute("aria-invalid", "true");
     expect(field("Calories", "From")).not.toHaveAttribute("aria-invalid");
     expect(field("Calories", "To")).toHaveFocus();
@@ -126,14 +126,10 @@ describe("FirstRunTargets", () => {
     type("Calories", "To", "100000");
     type("Protein", "From", "12,25");
     fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
-    expect(await within(group("Calories")).findByText("Enter a number below 100000, with one decimal at most.")).toBe(
-      caloriesLine,
-    );
-    expect(within(group("Protein")).getByText("Enter a number below 10000, with one decimal at most.")).toBe(
-      proteinLine,
-    );
-    // The same element before and after, with two lines of room either way.
-    for (const line of [caloriesLine, proteinLine]) expect(line.className.split(/\s+/)).toContain("min-h-10");
+    expect(await within(group("Calories")).findByText("Enter below 100000, one decimal at most.")).toBe(caloriesLine);
+    expect(within(group("Protein")).getByText("Enter below 10000, one decimal at most.")).toBe(proteinLine);
+    // The same element before and after, with one line of room either way, which each line fits at 320.
+    for (const line of [caloriesLine, proteinLine]) expect(line.className.split(/\s+/)).toContain("min-h-5");
   });
 
   it("says a number that may hold a thousands group with the group line, not the group's limit", async () => {
@@ -141,11 +137,7 @@ describe("FirstRunTargets", () => {
     fillAll();
     type("Calories", "From", "1,800");
     fireEvent.click(screen.getByRole("button", { name: "Save targets" }));
-    expect(
-      await within(group("Calories")).findByText(
-        "This may mean thousands. Type it with no comma or point, or with fewer decimals.",
-      ),
-    ).toBeInTheDocument();
+    expect(await within(group("Calories")).findByText("No comma or point, or fewer decimals.")).toBeInTheDocument();
     expect(putTargets).not.toHaveBeenCalled();
   });
 

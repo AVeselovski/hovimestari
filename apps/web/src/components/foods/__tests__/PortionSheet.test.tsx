@@ -64,20 +64,18 @@ describe("PortionSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("keeps two lines of room under each field, and shows why a value is refused", async () => {
+  it("keeps one line of room under each field, and shows why a value is refused", async () => {
     renderSheet();
     type("Weight", "6000");
     save();
     expect(lineOf("Name")).toHaveTextContent("Give the portion a name.");
-    expect(lineOf("Weight")).toHaveTextContent("Enter a weight above zero, up to 5000 g, with at most one decimal.");
-    for (const label of ["Name", "Weight"]) expect(lineOf(label)!.className.split(" ")).toContain("min-h-10");
+    expect(lineOf("Weight")).toHaveTextContent("Enter 0.1 to 5000 g, one decimal at most.");
+    for (const label of ["Name", "Weight"]) expect(lineOf(label)!.className.split(" ")).toContain("min-h-5");
     // The first submit's promise settles before the second press, as it does between two taps.
     await act(async () => {});
     type("Weight", "1.500");
     save();
-    expect(lineOf("Weight")).toHaveTextContent(
-      "This may mean thousands. Type it with no comma or point, or with fewer decimals.",
-    );
+    expect(lineOf("Weight")).toHaveTextContent("No comma or point, or fewer decimals.");
     expect(addPortion).not.toHaveBeenCalled();
   });
 

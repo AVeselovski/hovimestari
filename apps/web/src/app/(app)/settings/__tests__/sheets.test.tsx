@@ -228,8 +228,8 @@ describe("DeleteAccountSheet", () => {
   });
 
   it.each([
-    [true, "Password", "That password is not right. Check it and try again."],
-    [false, "Type your email to confirm", "That is not this account's email. Check it and try again."],
+    [true, "Password", "That password is not right. Try again."],
+    [false, "Type your email to confirm", "That is not this account's email. Try again."],
   ])(
     "with a password %s, says what did not match under the field and deletes nothing",
     async (hasPassword, label, line) => {

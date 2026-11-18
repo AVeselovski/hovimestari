@@ -136,7 +136,7 @@ describe("EstimateSheet", () => {
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save estimate" }));
     await waitFor(() => expect(input("Name")).toHaveFocus());
     expect(input("Name")).toHaveAccessibleDescription("Give it a name.");
-    expect(input("Calories")).toHaveAccessibleDescription(/This may mean thousands\./);
+    expect(input("Calories")).toHaveAccessibleDescription(/No comma or point, or fewer decimals\./);
     expect(add).not.toHaveBeenCalled();
   });
 });

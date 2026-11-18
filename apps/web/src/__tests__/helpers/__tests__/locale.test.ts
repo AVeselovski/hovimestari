@@ -27,6 +27,11 @@ describe("The test locale", () => {
     expect((19.8).toLocaleString("de-DE")).toBe("19,8");
   });
 
+  // These two run in this order on purpose: Jest runs the tests of one file
+  // one after another, in the order they are declared, and nothing here is
+  // `concurrent`. The second test proves that the setup's own `afterEach`
+  // puts the pin back. A single test with its own reset would prove only
+  // `resetTestLocale`, not that the setup calls it.
   it("follows a locale a test sets, and is back to the pinned one in the next test", () => {
     setTestLocale("fi-FI");
     expect(formatGrams(19.8)).toBe("19,8");

@@ -261,7 +261,7 @@ describe("SavedMealSheet", () => {
 
   it("describes every figure by the hint, and only the refused figures by a refusal", async () => {
     renderSheet();
-    const hint = "Copy the figures from the label or the menu.";
+    const hint = "Copy the figures from the label or menu.";
     expect(input("Carbohydrates").getAttribute("aria-describedby")).toBeTruthy();
     expect(input("Carbohydrates")).toHaveAccessibleDescription(expect.stringContaining(hint));
     fill();

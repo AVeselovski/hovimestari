@@ -135,12 +135,15 @@ describe("TargetsSheet", () => {
   });
 
   describe("the rewrite line", () => {
-    it("is one announced element with its room kept, whether or not a date rewrites any day", () => {
+    // Below every field, it is as tall as what it says: a date picked above it moves only what is below it.
+    it("is one announced element, whether or not a date rewrites any day, and keeps no room", () => {
       changes = [change("2026-11-01")];
       renderSheet();
       const line = dialog().querySelector<HTMLElement>("[data-rewrite]")!;
       expect(line).toHaveAttribute("aria-live", "polite");
-      expect(line.className.split(/\s+/)).toContain("min-h-15");
+      expect(line.className.split(/\s+/).filter((c) => /min-h/.test(c))).toEqual([]);
+      // A section of its own, 16 px under the fields, that takes no gap while empty.
+      expect(line.className.split(/\s+/)).toEqual(expect.arrayContaining(["mt-2", "empty:-mt-2"]));
       expect(line).toHaveTextContent(/every day from/);
       // A later date after the first change rewrites nothing: the line empties and stays.
       fireEvent.change(dateField(), { target: { value: "2026-11-20" } });
@@ -236,9 +239,7 @@ describe("TargetsSheet", () => {
     type("Protein", "To", "100");
     type("Calories", "From", "0");
     fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
-    expect(
-      await within(group("Protein")).findByText("The second number cannot be below the first."),
-    ).toBeInTheDocument();
+    expect(await within(group("Protein")).findByText("To cannot be lower than From.")).toBeInTheDocument();
     expect(within(group("Calories")).getByText("Enter a number above zero.")).toBeInTheDocument();
     expect(putTargets).not.toHaveBeenCalled();
   });

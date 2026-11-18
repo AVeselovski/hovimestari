@@ -88,22 +88,38 @@ describe("FormSheet", () => {
     expect(alert.compareDocumentPosition(cancel) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("keeps the refusal line's room in the footer, given back to the body only while the keyboard is open", () => {
-    renderSheet({ formError: null });
-    const line = screen.getByRole("dialog").querySelector("[data-sheet-footer] [data-form-error]")!;
-    expect(line.className.split(" ")).toContain("footer-error-room");
-    // jsdom computes no clamp(), so the rule itself is read: two lines and their gap
-    // while the keyboard is closed, none while it is open and the line is empty.
-    const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
-    const rule = css.slice(css.indexOf("@utility footer-error-room"));
-    const block = rule.slice(0, rule.indexOf("\n}\n"));
-    expect(block).toMatch(/^\s*min-height: 2\.5rem;$/m);
-    expect(block).toMatch(/^\s*margin-bottom: 0\.5rem;$/m);
-    const empty = block.slice(block.indexOf("&:empty"));
-    expect(empty).toContain("min-height: clamp(0px, calc(2.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 2.5rem)");
-    expect(empty).toContain(
-      "margin-bottom: clamp(0px, calc(0.5rem - var(--drawer-keyboard-inset, 0px) * 1000), 0.5rem)",
-    );
+  // On a phone the sheet holds its height, so the footer keeps no room for a
+  // refusal that is not there: an empty line has no height and no gap, and a
+  // refusal that appears takes 8 px above the buttons, growing the footer
+  // upward. From md the dialog is anchored at its top and grows downward, so
+  // the footer keeps two lines of room there and a refusal moves nothing.
+  // The classes are split into whole tokens: `md:min-h-10` must not pass for
+  // an unprefixed room, nor `max-md:empty:mb-0` for `empty:mb-0`. The
+  // geometry is measured in a browser.
+  describe("the footer's room for a refusal", () => {
+    function lineClasses(): string[] {
+      renderSheet({ formError: null });
+      const line = screen.getByRole("dialog").querySelector("[data-sheet-footer] [data-form-error]")!;
+      return line.className.split(" ");
+    }
+
+    it("on a phone, keeps none while there is no refusal", () => {
+      const classes = lineClasses();
+      // No unprefixed or phone-width height: below md the line is as tall as what it says.
+      expect(classes.filter((c) => /^(max-md:)?(min-h|h)-/.test(c))).toEqual([]);
+      // Its gap above the buttons goes too while it is empty, below md only.
+      expect(classes).toEqual(expect.arrayContaining(["mb-2", "max-md:empty:mb-0"]));
+      expect(classes).not.toContain("empty:mb-0");
+    });
+
+    it("from md, keeps two lines and the gap above the buttons while there is no refusal", () => {
+      const classes = lineClasses();
+      expect(classes).toContain("md:min-h-10");
+      // Nothing takes the gap away from md: the room stays the same with or without a refusal.
+      expect(classes.filter((c) => /^(md:)?empty:/.test(c))).toEqual([]);
+      const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+      expect(css).not.toContain("footer-error-room");
+    });
   });
 
   it("gives a yielding footer row's room to the keyboard, and keeps every other row", () => {

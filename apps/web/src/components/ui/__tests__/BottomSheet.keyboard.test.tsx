@@ -60,7 +60,11 @@ describe("BottomSheet and the software keyboard", () => {
     const viewportEl = dialog.parentElement!;
     await waitFor(() => expect(viewportEl.style.getPropertyValue("--drawer-keyboard-inset")).toBe(`${keyboard}px`));
     const footer = screen.getByRole("button", { name: "Save" }).closest<HTMLElement>("[data-sheet-footer]")!;
-    expect(footer.className).toContain("var(--drawer-keyboard-inset,0px)");
+    // The footer pads by the popup's `--sheet-footer-pad`, which adds the inset.
+    expect(footer.className.split(" ")).toContain("pb-(--sheet-footer-pad)");
+    expect(dialog.className.split(" ")).toContain(
+      "[--sheet-footer-pad:calc(1rem+max(var(--safe-bottom),var(--drawer-keyboard-inset,0px)))]",
+    );
   });
 
   // The provider takes over every tap on a text field, which a short sheet
