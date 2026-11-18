@@ -117,7 +117,7 @@ src/
 │   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider
 │   │   ├── TodayProvider.tsx   The app's today: the server's, moved by any newer answer, asked again by the device's clock
 │   │   ├── FirstRunTargets.tsx The first-run page: the first targets, Sign out and Delete account
-│   │   ├── TargetsSheet.tsx    A dated targets change: the date, the fields filled with the targets in force, the days they apply to, removal
+│   │   ├── TargetsSheet.tsx    A dated targets change: the date, the fields, empty or the edited change's own, the days they apply to, removal
 │   │   ├── TargetRangeFields.tsx  The four target fields, as two ranges with a shared line under each
 │   │   ├── NotAdviceNote.tsx   The note that the app gives no nutrition or medical advice
 │   │   ├── targetForm.ts       parseTargetFields(): the fields through parseDecimalInput and the shared schema

@@ -2,8 +2,8 @@ import { dayBefore } from "@/lib/localDate";
 import type { TargetChange } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
-// Which days a save or a removal changes, and which change is in force on a
-// date, from the list of changes the server answered.
+// Which days a save or a removal changes, from the list of changes the
+// server answered.
 //
 // A change covers the days from its date to the day before the next change.
 // The first change also covers every day before it.
@@ -24,16 +24,6 @@ function sorted(changes: readonly TargetChange[]): TargetChange[] {
 /** The first change after `date`, if any. */
 export function nextChangeAfter(changes: readonly TargetChange[], date: string): TargetChange | undefined {
   return sorted(changes).find((c) => c.effectiveFrom > date);
-}
-
-/**
- * The change in force on `date`: the latest one on or before it, else the
- * first. Null only with no changes. The server's rule, read from the list
- * the server answered, so a sheet can fill its fields as it opens.
- */
-export function inForceOn(changes: readonly TargetChange[], date: string): TargetChange | null {
-  const all = sorted(changes);
-  return all.filter((c) => c.effectiveFrom <= date).at(-1) ?? all[0] ?? null;
 }
 
 /**

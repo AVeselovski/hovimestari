@@ -87,13 +87,13 @@ describe("Settings, Targets", () => {
       .getAllByRole("textbox")
       .map((f) => (f as HTMLInputElement).value);
 
-  it("opens Change targets on today with the targets in force today in its fields", async () => {
+  it("opens Change targets on today with its fields empty, for new targets", async () => {
     changes = [change("2026-10-01", [1600, 2000], [100, 140]), change("2026-11-01")];
     render(<TargetsSection />);
     fireEvent.click(await within(region()).findByRole("button", { name: "Change targets" }));
     const sheet = await screen.findByRole("dialog", { name: "Change targets" });
     expect(within(sheet).getByLabelText("Starts on")).toHaveValue(TODAY);
-    expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
+    expect(fieldValues(sheet)).toEqual(["", "", "", ""]);
   });
 
   it("opens In force today on that change, with its own targets in its fields and the days they apply to", async () => {
@@ -103,6 +103,31 @@ describe("Settings, Targets", () => {
     const sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-11-01")}` });
     expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
     expect(sheet).toHaveTextContent(`These apply from ${formatDay("2026-11-01")} on. Earlier days keep their targets.`);
+  });
+
+  // The sheet stays mounted between opens (Settings keeps what it last showed),
+  // so each open must start fresh: no numbers carry from one open to the next.
+  it("opens each time with the fields of what it opens on, whatever was open before", async () => {
+    changes = [change("2026-10-01", [1600, 2000], [100, 140]), change("2026-11-01")];
+    render(<TargetsSection />);
+    const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    fireEvent.click(await within(region()).findByRole("button", { name: /In force today/ }));
+    let sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-11-01")}` });
+    expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
+    fireEvent.keyDown(document, { key: "Escape" });
+    await closed();
+
+    fireEvent.click(within(region()).getByRole("button", { name: "Change targets" }));
+    sheet = await screen.findByRole("dialog", { name: "Change targets" });
+    expect(fieldValues(sheet)).toEqual(["", "", "", ""]);
+    fireEvent.keyDown(document, { key: "Escape" });
+    await closed();
+
+    fireEvent.click(within(region()).getByText("Earlier targets"));
+    fireEvent.click(within(region()).getByRole("button", { name: new RegExp(`From ${formatDay("2026-10-01")}`) }));
+    sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-10-01")}` });
+    expect(fieldValues(sheet)).toEqual(["1600", "2000", "100", "140"]);
   });
 
   it("opens a row on its own change, with the date fixed", async () => {

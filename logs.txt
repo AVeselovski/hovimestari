@@ -308,3 +308,8 @@
 [frontend-engineer STARTED] (2026-11-18T01:44:49Z) the targets sheet opens with the targets it changes and says which days they apply to, and the food-names hint
 [frontend-engineer DONE] (2026-11-18T02:09:01Z) targets sheet opens with the targets in force on its date, untouched fields follow the date, the in-force line is gone, the line under the fields names the days the numbers apply to on every date, food-names hint reworded; docs, TODO and tests with it
 [orchestrator DONE] (2026-11-18T02:24:49Z) PR #46 merged (58b433f) after the @claude review, no blocking findings; two carried review notes filed in TODO.md
+[frontend-engineer STARTED] (2026-11-18T10:00:13Z) targets sheet: Change targets opens empty, a change opened from the list opens with its own targets (feedback round 2)
+[frontend-engineer DONE] (2026-11-18T10:10:42Z) Change targets opens empty on every date; a change opened from the list opens with its own targets, read once at open; web inForceOn removed; 1324 web tests pass (187k tokens)
+[reviewer STARTED] (2026-11-18T10:10:42Z) review of fix/targets-new-change-opens-empty against the owner's round 2 words and the diff
+[reviewer DONE] (2026-11-18T10:16:58Z) approve after fixes: six minors and nits, no change to the component's logic (94k tokens)
+[frontend-engineer DONE] (2026-11-18T10:16:58Z) the six review fixes, with a Settings test that pins the sheet's per-open key; 1325 web tests pass

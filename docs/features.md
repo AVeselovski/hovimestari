@@ -10,7 +10,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Targets
 
-- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, asked for on a first-run page before anything else and changed in Settings from a date the user picks, starting from the targets in force on it. Each day is measured against the change in force on it, and the app offers no default and no suggestion.
+- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, asked for on a first-run page before anything else and changed in Settings from a date the user picks. Each day is measured against the change in force on it, and the app offers no default and no suggestion.
 
 ## Foods
 

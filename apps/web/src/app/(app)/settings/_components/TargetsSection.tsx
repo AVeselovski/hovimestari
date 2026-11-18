@@ -19,8 +19,8 @@ import { useRef, useState, type ReactElement, type ReactNode } from "react";
 /**
  * The targets in force today, the changes still to come and, behind a
  * disclosure, the earlier ones. Every change opens the targets sheet on
- * itself, and Change targets opens it on today. Either way the sheet's fields
- * hold the targets in force on its date.
+ * itself, with its own targets in the fields. Change targets opens it on
+ * today, with the fields empty.
  */
 export function TargetsSection(): ReactElement {
   const t = useTranslations("settings.targets");

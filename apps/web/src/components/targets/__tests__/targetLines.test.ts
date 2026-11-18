@@ -1,5 +1,5 @@
 import type { TargetChange } from "@hovimestari/types";
-import { inForceOn, removalOf, spanOf } from "../targetLines";
+import { removalOf, spanOf } from "../targetLines";
 
 const change = (effectiveFrom: string): TargetChange => ({
   effectiveFrom,
@@ -50,24 +50,6 @@ describe("spanOf", () => {
       kind: "from",
       date: "2026-12-01",
     });
-  });
-});
-
-describe("inForceOn", () => {
-  const changes = [change("2026-12-01"), change("2026-10-01"), change("2026-11-01")];
-
-  it("is the change with the latest start on or before the date", () => {
-    expect(inForceOn(changes, "2026-11-01")?.effectiveFrom).toBe("2026-11-01");
-    expect(inForceOn(changes, "2026-11-30")?.effectiveFrom).toBe("2026-11-01");
-    expect(inForceOn(changes, "2027-01-01")?.effectiveFrom).toBe("2026-12-01");
-  });
-
-  it("is the first change for a date before every change", () => {
-    expect(inForceOn(changes, "2026-09-01")?.effectiveFrom).toBe("2026-10-01");
-  });
-
-  it("is null with no changes", () => {
-    expect(inForceOn([], today)).toBeNull();
   });
 });
 
