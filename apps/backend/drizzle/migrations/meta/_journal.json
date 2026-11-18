@@ -36,6 +36,13 @@
       "when": 1794800396018,
       "tag": "0004_days_and_logging",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795019863415,
+      "tag": "0005_first_run_done",
+      "breakpoints": true
     }
   ]
 }

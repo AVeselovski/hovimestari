@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "first_run_done_at" timestamp with time zone;
