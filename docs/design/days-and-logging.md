@@ -1198,6 +1198,8 @@ Checked against the copy rules: plain words, no semicolons, no dashes, no judgem
 
 ### R4. The gauge and the summary (`DaySummary`, `Gauge`)
 
+> **Superseded.** A user may have no targets, any change can be removed (`targets_last_change` is gone), and a day before the first change has none. `docs/design/targets-from-their-date.md` is the current design. `Day.targets` is nullable and the Day tab draws a day without them.
+
 **What it relies on.** Every user past the first-run gate has at least one targets change, the last change cannot be removed (`targets_last_change`), and the first change covers every day before it. So every `Day` the tab reads has `targets` and every reading has `energy` and `protein` positions. `DaySummary` takes `targets: TargetRanges` as non-null, and `DayTab` treats a null as the error state.
 
 **Layout, top to bottom,** on the page background, no card, in `PageContainer`:
