@@ -179,3 +179,237 @@ describe("BottomSheet holds its body still under a finger", () => {
     expect(body.scrollTop).toBeGreaterThan(0);
   });
 });
+
+// Base UI takes over every tap on a text field: it cancels the tap's default
+// and focuses the field from code inside the tap, which iOS answers with the
+// keyboard. Once the reader has hidden the keyboard with the keyboard's own
+// button, iOS shows it again only for a real tap on a field, never for a
+// focus from code, so every taken-over tap after that leaves the field
+// without a keyboard. While the keyboard is down, a tap on a text field is
+// left to the browser. A cancelled `touchend` is what a taken-over tap looks
+// like from outside.
+describe("BottomSheet while the keyboard is down", () => {
+  const onButtonClick = jest.fn();
+  const onTouch = jest.fn();
+
+  function EntrySheet({ keyboardAware = true }: { keyboardAware?: boolean }) {
+    return (
+      <BottomSheet
+        open
+        onClose={jest.fn()}
+        ariaLabel="Entry"
+        keyboardAware={keyboardAware}
+        // The log sheet's search field sits in the fixed header row, outside the body.
+        header={
+          <label>
+            Search
+            <input type="text" inputMode="search" />
+          </label>
+        }
+      >
+        {/* A React touch handler inside the sheet: it runs only when nothing stopped the touch. */}
+        <div onTouchStart={onTouch}>
+          <label>
+            Amount
+            <input type="text" inputMode="decimal" />
+          </label>
+          <label>
+            Name
+            <input type="text" />
+          </label>
+          <label>
+            Note
+            <textarea />
+          </label>
+          <label>
+            Day
+            <input type="date" />
+          </label>
+          <button type="button" onClick={onButtonClick}>
+            Eaten
+          </button>
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  beforeEach(() => {
+    onButtonClick.mockClear();
+    onTouch.mockClear();
+  });
+
+  function keyboardTo(height: number) {
+    act(() => {
+      viewport.height = height;
+      viewport.dispatchEvent(new Event("resize"));
+    });
+  }
+  const keyboardUp = () => keyboardTo(window.innerHeight - keyboard);
+  const keyboardDown = () => keyboardTo(window.innerHeight);
+
+  /** A tap on `el`. True when the browser keeps its own tap: its `touchend` is not cancelled. */
+  function tap(el: HTMLElement): boolean {
+    const point = { clientX: 100, clientY: 300 };
+    fireEvent.touchStart(el, { touches: [point], changedTouches: [point] });
+    const native = fireEvent.touchEnd(el, { touches: [], changedTouches: [point] });
+    // The browser's own tap ends in its own focus and click.
+    if (native) {
+      act(() => el.focus());
+      fireEvent.click(el);
+    }
+    return native;
+  }
+
+  async function setUp(keyboardAware?: boolean) {
+    render(<EntrySheet keyboardAware={keyboardAware} />);
+    const search = screen.getByRole("textbox", { name: "Search" });
+    await waitFor(() => expect(search).toHaveFocus());
+    await frames(2);
+    return {
+      search,
+      amount: screen.getByRole("textbox", { name: "Amount" }),
+      name: screen.getByRole("textbox", { name: "Name" }),
+      note: screen.getByRole("textbox", { name: "Note" }),
+      day: screen.getByLabelText("Day"),
+      eaten: screen.getByRole("button", { name: "Eaten" }),
+    };
+  }
+
+  it("takes over a tap on a text field while the keyboard is up", async () => {
+    const { name } = await setUp();
+    expect(tap(name)).toBe(false);
+    expect(name).toHaveFocus();
+  });
+
+  it("leaves a tap on a text field after the keyboard goes down to the browser", async () => {
+    const { name } = await setUp();
+    keyboardDown();
+    expect(tap(name)).toBe(true);
+    expect(name).toHaveFocus();
+  });
+
+  it("does the same for a tap on the field that kept focus when the keyboard went down", async () => {
+    const { search } = await setUp();
+    keyboardDown();
+    expect(tap(search)).toBe(true);
+  });
+
+  it("does the same for a tap on a field's label", async () => {
+    const { name } = await setUp();
+    keyboardDown();
+    expect(tap(name.closest("label")!)).toBe(true);
+  });
+
+  it("does the same for a field in the sheet's header row", async () => {
+    const { search, name } = await setUp();
+    act(() => name.focus());
+    keyboardDown();
+    expect(tap(search)).toBe(true);
+    expect(search).toHaveFocus();
+  });
+
+  // Across states: the takeover is back once the keyboard is.
+  it("takes over taps again once that field has focus and the keyboard is up", async () => {
+    const { name, note } = await setUp();
+    keyboardDown();
+    expect(tap(name)).toBe(true);
+    keyboardUp();
+    expect(tap(note)).toBe(false);
+    expect(note).toHaveFocus();
+  });
+
+  it("takes over again once the keyboard is back, even with no new focus", async () => {
+    const { search, name } = await setUp();
+    keyboardDown();
+    // The browser's tap on the field that kept focus raises the keyboard and focuses nothing new.
+    keyboardUp();
+    expect(tap(name)).toBe(false);
+    expect(search).not.toHaveFocus();
+  });
+
+  // A field that took focus while the keyboard stays down (the browser's tap
+  // did not raise it, or code focused it) is no sign that iOS will raise it
+  // for the next focus from code. Only the keyboard coming up is.
+  it("leaves every tap to the browser while the keyboard stays down", async () => {
+    const { name, note } = await setUp();
+    keyboardDown();
+    expect(tap(name)).toBe(true);
+    expect(tap(note)).toBe(true);
+    expect(note).toHaveFocus();
+  });
+
+  // The search field's clear button focuses its field from code.
+  it("leaves the next tap to the browser after code focused a field with the keyboard down", async () => {
+    const { name, note } = await setUp();
+    keyboardDown();
+    act(() => note.focus());
+    expect(tap(name)).toBe(true);
+  });
+
+  // Focus left the sheet's text fields (a button took it) and the keyboard went away.
+  it("leaves a tap to the browser after focus left the fields with the keyboard down", async () => {
+    const { search, eaten } = await setUp();
+    act(() => eaten.focus());
+    keyboardDown();
+    expect(tap(search)).toBe(true);
+    expect(search).toHaveFocus();
+  });
+
+  // A sheet that opens with the keyboard down: the keyboard was perhaps hidden
+  // over another sheet, and nothing has raised it since.
+  it("leaves a tap to the browser when the keyboard has been down since the sheet opened", async () => {
+    viewport.height = window.innerHeight;
+    render(<EntrySheet />);
+    const name = screen.getByRole("textbox", { name: "Name" });
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Search" })).toHaveFocus());
+    await frames(2);
+    expect(tap(name)).toBe(true);
+    expect(name).toHaveFocus();
+  });
+
+  it("leaves a tap on a button alone", async () => {
+    const { name, eaten } = await setUp();
+    keyboardDown();
+    tap(eaten);
+    expect(onTouch).toHaveBeenCalledTimes(1);
+    expect(onButtonClick).toHaveBeenCalledTimes(1);
+    // The keyboard is still down: the next tap on a field goes to the browser.
+    expect(tap(name)).toBe(true);
+  });
+
+  // A date field opens the platform's own picker, not a keyboard: Base UI
+  // leaves it alone, and so does the sheet.
+  it("leaves a tap on a date field alone", async () => {
+    const { day } = await setUp();
+    keyboardDown();
+    expect(tap(day)).toBe(true);
+    expect(onTouch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the touch from reaching the sheet's handlers only while the keyboard is down", async () => {
+    const { name, note } = await setUp();
+    keyboardDown();
+    tap(name);
+    expect(onTouch).not.toHaveBeenCalled();
+    keyboardUp();
+    tap(note);
+    expect(onTouch).toHaveBeenCalledTimes(1);
+  });
+
+  // Pinch-zoomed, the visual viewport's height says nothing about a keyboard,
+  // and Base UI reads it as no keyboard and takes over nothing.
+  it("leaves every tap to the browser while pinch-zoomed", async () => {
+    const { name } = await setUp();
+    act(() => {
+      (viewport as unknown as { scale: number }).scale = 2;
+    });
+    expect(tap(name)).toBe(true);
+  });
+
+  it("changes nothing for a sheet that is not keyboard-aware", async () => {
+    const { name } = await setUp(false);
+    keyboardDown();
+    expect(tap(name)).toBe(true);
+    expect(onTouch).toHaveBeenCalledTimes(1);
+  });
+});

@@ -19,9 +19,9 @@ import { useEntryPressGuard } from "@/hooks/useEntryPressGuard";
 import { useHeldSheetHeight } from "@/hooks/useHeldSheetHeight";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useMainScrollLock } from "@/hooks/useMainScrollLock";
+import { useNativeTapWhileKeyboardDown } from "@/hooks/useNativeTapWhileKeyboardDown";
 import { useScrollHold } from "@/hooks/useScrollHold";
 import { useStillUnderFinger } from "@/hooks/useStillUnderFinger";
-import { useTapAfterLoweredKeyboard } from "@/hooks/useTapAfterLoweredKeyboard";
 import { focusIsInsideOrLost } from "@/lib/focus";
 import { restoreFocus } from "@/lib/lastInputModality";
 import { Drawer } from "@base-ui/react/drawer";
@@ -113,8 +113,13 @@ import { closingBackdropHandlers, closingBackdropStyle, useClosingPresses } from
 // moving between fields with the keyboard up gets the same treatment. It
 // places that tap where the finger lifts, so the body holds still while a
 // finger is down (`useStillUnderFinger`): a field the provider's own scroll
-// slid away mid-tap would lose it to whatever slid in. A tap after the keyboard
-// was lowered by hand is `useTapAfterLoweredKeyboard`'s.
+// slid away mid-tap would lose it to whatever slid in.
+//
+// Once the reader hides the keyboard with its own button, iOS raises it
+// again only for a real tap, never for that focus from code. So while the
+// keyboard is down, a tap on a text field is left to the browser
+// (`useNativeTapWhileKeyboardDown`). Base UI takes over only while it is up,
+// which is when moving between fields needs its trick.
 //
 // A field focused by code gets no such trick: iOS shoves the sheet off the
 // top as the keyboard rises, so no sheet focuses a text field on open on a
@@ -333,17 +338,18 @@ export function BottomSheet({
   }, [open]);
   const anchored = useAnchoredPanel(settled && !isMobile);
   const held = useHeldSheetHeight(settled && isMobile && size === "auto");
+  const nativeTapRef = useNativeTapWhileKeyboardDown(keyboardAware && open);
   const setPopup = useCallback(
     (el: HTMLDivElement | null) => {
       popupRef.current = el;
       anchored.panelRef(el);
       held.panelRef(el);
+      nativeTapRef(el);
     },
-    [anchored.panelRef, held.panelRef],
+    [anchored.panelRef, held.panelRef, nativeTapRef],
   );
   const holdRef = useScrollHold(holdScroll);
   const stillRef = useStillUnderFinger(keyboardAware);
-  useTapAfterLoweredKeyboard(keyboardAware && open, popupRef);
   const bodyRef = useCallback(
     (el: HTMLDivElement | null) => {
       holdRef(el);
