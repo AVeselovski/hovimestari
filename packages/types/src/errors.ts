@@ -51,6 +51,7 @@ export const ERROR_CODES = [
   "food_value_required",
   "food_energy_invalid",
   "food_macro_invalid",
+  "food_macro_sum_too_high",
   "barcode_invalid",
   "barcode_taken",
   "portion_not_found",
