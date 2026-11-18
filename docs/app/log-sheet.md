@@ -46,7 +46,7 @@ While it logs, a ring turns in the pressed **+** and every **+** waits. The shee
 
 Tapping a food's row opens it in the same sheet. The top row holds **Back**, the food's name on one line and the favourite star. The body starts with the log block:
 
-1. Chips for the unit: "g", then each portion with its weight, such as "Medium piece · 125 g". The chosen chip is in the accent. The row scrolls sideways on a phone.
+1. Chips for the unit: "g", then each portion with its weight, such as "Medium piece · 125 g". The chosen chip is in the accent. The row scrolls sideways on a phone and runs to the sheet's edges, as [chips that scroll](shell.md#the-sheet-primitives) do.
 2. **Amount**, the grams or the count of the chosen portion, filled in with the last amount. A food never logged opens empty, with "Enter an amount to see its figures.".
 3. "For this amount" and the calories, protein, carbs and fat it comes to, side by side.
 4. **Eaten or planned**: Eaten on today and past days, Planned and fixed on a future day with "Future days hold planned entries.".

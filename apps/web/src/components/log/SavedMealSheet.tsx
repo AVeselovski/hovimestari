@@ -9,7 +9,6 @@ import {
   chip,
   chipOff,
   chipOn,
-  chipRowWrapping,
   fieldErrorClass,
   fieldHintClass,
   formStack,
@@ -19,6 +18,7 @@ import {
   pairRow,
   sectionStart,
   sectionTitle,
+  sheetChipRowWrapping,
 } from "@/components/ui/styles";
 import type { AddRequest, EntryActions, SaveAndLogDone } from "@/hooks/entryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
@@ -300,7 +300,7 @@ export function SavedMealSheet({
                   role="group"
                   aria-label={t("sources")}
                   data-meal-sources=""
-                  className={`${chipRowWrapping} mt-1.5`}
+                  className={`${sheetChipRowWrapping} mt-1.5`}
                 >
                   {sources.map((s) => (
                     <button

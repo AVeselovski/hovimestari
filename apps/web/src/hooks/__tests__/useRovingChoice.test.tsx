@@ -82,4 +82,26 @@ describe("useRovingChoice", () => {
     expect(tab).toBe(true);
     expect(radio("S")).toHaveAttribute("aria-checked", "true");
   });
+
+  it("brings the option a key moves to fully into view, to the nearest edge, and leaves a click alone", () => {
+    // jsdom lays nothing out and has no scrollIntoView: record the calls.
+    const calls: { el: Element; arg: unknown }[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element, arg?: boolean | ScrollIntoViewOptions) {
+      calls.push({ el: this, arg });
+    };
+    try {
+      render(<Group />);
+      radio("S").focus();
+      fireEvent.keyDown(radio("S"), { key: "ArrowRight" });
+      expect(calls).toEqual([{ el: radio("M"), arg: { block: "nearest", inline: "nearest" } }]);
+      fireEvent.keyDown(radio("M"), { key: "End" });
+      expect(calls.at(-1)?.el).toBe(radio("L"));
+      calls.length = 0;
+      fireEvent.click(radio("S"));
+      expect(calls).toEqual([]);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
 });

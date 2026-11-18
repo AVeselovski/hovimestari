@@ -333,3 +333,11 @@
 [reviewer STARTED] (2026-11-18T14:29:25Z) review of feat/targets-sheet-titles at the pinned tip
 [reviewer DONE] (2026-11-18T14:36:56Z) approve after fixes: six small ones, one a label that could name a start date still ahead (99k tokens)
 [frontend-engineer DONE] (2026-11-18T14:36:56Z) the six review fixes; a change in force before its own date is headed Current alone; 1375 web tests pass
+[frontend-engineer STARTED] (2026-11-18T13:29:04Z) Day tab: content at rest 24px under the launcher, the header's band stays 12px (feedback round 2, follow-up)
+[frontend-engineer DONE] (2026-11-18T13:53:24Z) content at rest 24px under the launcher (summary-stays now 40rem), the footer's text action centred on its ink, chip rows in a sheet scroll edge to edge on a shared --sheet-pad-x, two review nits, FR-TGT-04 design notes; 1365 web tests pass (307k tokens)
+[reviewer STARTED] (2026-11-18T13:53:24Z) review of fix/day-content-rest-clearance at the pinned tip
+[ui-validator STARTED] (2026-11-18T13:53:24Z) focused browser validation: every sheet's padding before and after the shared token, chips, footer, Day rest
+[reviewer DONE] (2026-11-18T14:40:05Z) approve after fixes: two stale comments and five nits (96k tokens)
+[ui-validator DONE] (2026-11-18T14:40:05Z) PASS against a master baseline: no sheet's padding moved, chips, footer and Day rest measure as stated; one medium finding that master shares (an arrow key focuses a chip the sheet's edge cuts) (220k tokens)
+[frontend-engineer STARTED] (2026-11-18T14:40:05Z) one fix batch from the review and the browser validation of the follow-ups
+[frontend-engineer DONE] (2026-11-18T14:48:14Z) the fix batch: stale comments, sheetChipRow renamed, StateChoice takes one reason prop, an arrow key brings a half-cut chip into view, a focused row stops 4px clear of the tab bar; 1371 web tests pass

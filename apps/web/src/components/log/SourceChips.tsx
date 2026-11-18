@@ -1,6 +1,6 @@
 "use client";
 
-import { chip, chipOff, chipOn, chipRow } from "@/components/ui/styles";
+import { chip, chipOff, chipOn, sheetChipRow } from "@/components/ui/styles";
 import { useRovingChoice } from "@/hooks/useRovingChoice";
 import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
@@ -28,7 +28,7 @@ export function SourceChips({ sources, value, onChange }: SourceChipsProps): Rea
   const chosen = value ?? ALL;
   const roving = useRovingChoice(options, chosen, (next) => onChange(next === ALL ? null : next));
   return (
-    <div role="radiogroup" aria-label={t("sources")} data-source-chips="" className={`${chipRow} mb-1`}>
+    <div role="radiogroup" aria-label={t("sources")} data-source-chips="" className={`${sheetChipRow} mb-1`}>
       {options.map((option) => (
         <button
           key={option}

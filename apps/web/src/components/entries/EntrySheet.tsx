@@ -254,7 +254,7 @@ export function EntrySheet({
             value={fields.status}
             onChange={(status) => change({ status })}
             future={future}
-            reasonId={dateHintId(fieldId("date"))}
+            reason={{ id: dateHintId(fieldId("date")), shown: dateLine === null }}
           />
           {entry.kind === "food" && (
             <AmountField
