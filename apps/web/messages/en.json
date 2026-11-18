@@ -262,6 +262,7 @@
     "food_value_required": "Enter a value from the label.",
     "food_energy_invalid": "Enter 0 to 1000, two decimals at most.",
     "food_macro_invalid": "Enter 0 to 100, three decimals at most.",
+    "food_macro_sum_too_high": "These three add up to more than 100 g.",
     "barcode_invalid": "A barcode has 8 to 14 digits.",
     "barcode_taken": "One of your foods already has this barcode.",
     "portion_not_found": "This portion is no longer available.",

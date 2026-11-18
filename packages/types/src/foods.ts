@@ -47,6 +47,27 @@ export const Per100gSchema = z.object({
   fatG: value("food_macro_invalid", 100, 3),
 });
 
+/** The most protein, carbohydrate and fat an own food holds together, in grams per 100 g. */
+export const MAX_MACRO_SUM_G = 100;
+/** What the sum may pass that by: three label values, each rounded by up to 0.5 g. */
+export const MACRO_SUM_ROUNDING_G = 1.5;
+
+/**
+ * An own food's values: the shared shape, and its three macros together at
+ * most 100 g with the rounding allowance, so 101.5 is accepted and 101.501
+ * refused. The sum is taken in thousandths, the macros' stored precision, so
+ * floating point cannot tip it (30.1 + 34.2 + 37.2 adds to 101.50000000000001).
+ * Reported on fat, the last macro, as a range reports on its upper bound.
+ * It runs only once each macro passed its own check. Reads keep
+ * `Per100gSchema`, so a food stored with a larger sum still reads.
+ */
+const OwnFoodPer100gSchema = Per100gSchema.refine(
+  (v) =>
+    Math.round(v.proteinG * 1000) + Math.round(v.carbsG * 1000) + Math.round(v.fatG * 1000) <=
+    (MAX_MACRO_SUM_G + MACRO_SUM_ROUNDING_G) * 1000,
+  { error: "food_macro_sum_too_high", path: ["fatG"], when: (payload) => payload.issues.length === 0 },
+);
+
 /** A food as a list shows it. `name` is in the user's food-name language. */
 export const FoodSummarySchema = z.object({
   id: z.uuid(),
@@ -136,7 +157,7 @@ const OwnFoodNameSchema = z
  */
 export const OwnFoodUpdateBodySchema = z.object({
   name: OwnFoodNameSchema,
-  per100g: Per100gSchema,
+  per100g: OwnFoodPer100gSchema,
   barcode: z
     .string({ error: "barcode_invalid" })
     .trim()

@@ -2,7 +2,7 @@
 
 import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
-import { DecimalField } from "@/components/ui/DecimalField";
+import { DecimalField, decimalLineId } from "@/components/ui/DecimalField";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { fieldHintClass, sectionStart, sectionTitle } from "@/components/ui/styles";
 import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
@@ -16,11 +16,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import {
-  OWN_FOOD_FIELDS,
   emptyOwnFood,
+  markedFields,
   ownFoodFieldOf,
   ownFoodValuesOf,
   parseOwnFood,
+  sharesSumLine,
   type FieldError,
   type OwnFoodErrors,
   type OwnFoodField,
@@ -36,7 +37,9 @@ import {
 // It stands tall, so its top and Save hold still. Every field keeps two
 // lines of room under it, the longest line it can show at 320 pixels wide,
 // so an error moves no field below it. The four values sit beside their
-// labels, one row each, which keeps the form short on a small phone.
+// labels, one row each, which keeps the form short on a small phone. A
+// refusal of the macros' sum shows under Fat and marks Protein,
+// Carbohydrates and Fat, which all read that one line.
 // ---------------------------------------------------------------------------
 
 export interface OwnFoodSheetProps extends FormSheetCallerProps {
@@ -124,12 +127,19 @@ export function OwnFoodSheet({
     setValues((prev) => ({ ...prev, [field]: raw }));
   }
 
+  /** Shows the errors and focuses the first field they mark. */
+  function refuse(next: OwnFoodErrors): void {
+    setFieldErrors(next);
+    focusField(fieldId(markedFields(next)[0] ?? "name"));
+  }
+
+  const marked = markedFields(fieldErrors);
+
   async function handleSubmit(): Promise<void> {
     setFormError(null);
     const parsed = parseOwnFood(values, saved);
     if (!parsed.ok) {
-      setFieldErrors(parsed.errors);
-      focusField(fieldId(OWN_FOOD_FIELDS.find((f) => parsed.errors[f] !== undefined) ?? "name"));
+      refuse(parsed.errors);
       return;
     }
     setFieldErrors({});
@@ -146,8 +156,7 @@ export function OwnFoodSheet({
       }
       const field = ownFoodFieldOf(code);
       if (field && code) {
-        setFieldErrors({ [field]: code });
-        focusField(fieldId(field));
+        refuse({ [field]: code });
       } else {
         setFormError({ line: errors.forError(err), cause: err });
       }
@@ -208,7 +217,8 @@ export function OwnFoodSheet({
                   inputMode="decimal"
                   value={values[field]}
                   onValueChange={(raw) => change(field, raw)}
-                  invalid={fieldErrors[field] !== undefined}
+                  invalid={marked.includes(field)}
+                  describedBy={sharesSumLine(field, fieldErrors) ? decimalLineId(fieldId("fat")) : undefined}
                   line={lineOf(fieldErrors[field])}
                   layout="beside"
                 />
