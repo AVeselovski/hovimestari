@@ -240,7 +240,9 @@ interface BottomSheetBaseProps {
    * and is never cut short. Pass it from the first render, or not at all:
    * the header grows by its height, so content arriving later would move
    * everything below it. Left out, the header is the title alone. Not part
-   * of the dialog's name. Needs a `title`.
+   * of the dialog's name. Needs a `title`. A subtitle that describes the
+   * sheet, such as "Starting on {date}", is a `SheetDescription` here, and is
+   * then the dialog's description.
    */
   headerNote?: ReactNode;
   /**

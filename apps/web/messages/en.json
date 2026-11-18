@@ -71,7 +71,8 @@
   "settings": {
     "targets": {
       "title": "Targets",
-      "inForceToday": "In force today",
+      "current": "Current <part>(from {date})</part>",
+      "currentOnly": "Current",
       "fromDate": "From {date}",
       "earlier": "Earlier targets",
       "change": "Change targets",
@@ -191,8 +192,11 @@
     },
     "sheet": {
       "title": "Change targets",
-      "titleExisting": "Targets from {date}",
+      "titleEdit": "Edit targets",
+      "startingOn": "Starting on {date}",
       "startsOn": "Starts on",
+      "replacesNamed": "{date} already has targets. Saving replaces them.",
+      "replacesThisDate": "This date already has targets. Saving replaces them.",
       "appliesBetween": "These apply from {date} to {end}. Other days keep their targets.",
       "appliesDay": "These apply to {date} only. Other days keep their targets.",
       "appliesFrom": "These apply from {date} on. Earlier days keep their targets.",
