@@ -1,13 +1,13 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { putTargets } from "@/lib/api/targets";
+import { getTargets, putTargets } from "@/lib/api/targets";
 import { deleteAccount } from "@/lib/api/users";
 import { queryKeys } from "@/lib/queryKeys";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { TEST_USER, fakeAuth, testPassword } from "../../../__tests__/helpers/auth";
 import { createTestQueryClient, queryWrapper } from "../../../__tests__/helpers/queryClient";
 import { FirstRunTargets } from "../FirstRunTargets";
-import { TODAY, change, refusal } from "./support";
+import { TODAY, change, overview, refusal } from "./support";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/targets", () => ({ getTargets: jest.fn(), putTargets: jest.fn(), deleteTargets: jest.fn() }));
@@ -46,6 +46,19 @@ describe("FirstRunTargets", () => {
     }
     expect(form.textContent).not.toMatch(/\d/);
     expect(document.body.querySelectorAll("[placeholder]")).toHaveLength(0);
+  });
+
+  it("stays empty even when targets are within its reach: the first run offers no number, the user's own included", async () => {
+    // Targets in the cache and on the server, as if another device had just saved some.
+    const known = change(TODAY, [1800, 2200], [120, 160]);
+    jest.mocked(getTargets).mockResolvedValue(overview([known]));
+    const client = createTestQueryClient();
+    client.setQueryData(queryKeys.targets(), overview([known]));
+    render(<FirstRunTargets today={TODAY} />, { wrapper: queryWrapper(client) });
+    await act(async () => {});
+    const form = screen.getByRole("form", { name: "Your daily targets" });
+    for (const input of within(form).getAllByRole("textbox")) expect(input).toHaveValue("");
+    expect(form.textContent).not.toMatch(/\d/);
   });
 
   it("is a form named by the page's title", () => {

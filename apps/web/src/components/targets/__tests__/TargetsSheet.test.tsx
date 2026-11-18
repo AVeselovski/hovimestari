@@ -2,6 +2,7 @@ import { describeFormSheetContract } from "@/__tests__/formSheet";
 import { confirmArmed, holdSheetExits } from "@/__tests__/sheet";
 import { deleteTargets, getTargets, putTargets } from "@/lib/api/targets";
 import { formatDay } from "@/lib/localDate";
+import { formatTarget } from "@/lib/targetFormat";
 import type { TargetChange } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { TargetsSheet, type TargetsSheetProps } from "../TargetsSheet";
@@ -51,9 +52,6 @@ function renderSheet(props: Partial<TargetsSheetProps> = {}) {
   return { onClose, onSaved };
 }
 
-/** The line that states the targets in force, once it has loaded. */
-const inForceLine = () => within(dialog()).findByText(/^In force on /);
-
 describe("TargetsSheet", () => {
   describeFormSheetContract({
     name: /change targets/i,
@@ -76,23 +74,136 @@ describe("TargetsSheet", () => {
     panelClass: "md:max-w-md",
   });
 
-  it("opens with every target field empty and no placeholder while a change is in force; the numbers in force sit only in the in-force line", async () => {
+  /** The four fields' values, Calories From and To, then Protein From and To. */
+  const values = () =>
+    [field("Calories", "From"), field("Calories", "To"), field("Protein", "From"), field("Protein", "To")].map(
+      (f) => f.value,
+    );
+  /** The date's own line, for its error. */
+  const inForceSlot = () => document.getElementById(`${dateField().id}-line`)!;
+
+  describe("what the fields open with", () => {
+    it("opens with the targets in force on today, the ones a save changes, and no placeholder", () => {
+      changes = [change("2026-10-01", [1500, 1700], [90, 100]), change("2026-11-01", [1800, 2200], [120, 160])];
+      renderSheet();
+      expect(values()).toEqual(["1800", "2200", "120", "160"]);
+      expect(dialog().querySelectorAll("[placeholder]")).toHaveLength(0);
+    });
+
+    it("holds a decimal as Settings shows it, in the form the field reads back", () => {
+      changes = [change("2026-11-01", [1800, 2200.5], [142.5, 160])];
+      renderSheet();
+      expect(values()).toEqual([formatTarget(1800), formatTarget(2200.5), formatTarget(142.5), formatTarget(160)]);
+    });
+
+    it("opened on a change from the list, holds that change's own targets", () => {
+      changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+      renderSheet({ editing: "2026-12-01" });
+      expect(values()).toEqual(["2000", "2400", "130", "170"]);
+    });
+
+    it("opens empty when no targets are in force on its date", () => {
+      changes = [];
+      renderSheet();
+      expect(values()).toEqual(["", "", "", ""]);
+    });
+
+    it("refills the fields not typed in from the targets in force on a picked date, and keeps what was typed", () => {
+      changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+      renderSheet();
+      type("Protein", "To", "175");
+      fireEvent.change(dateField(), { target: { value: "2026-12-10" } });
+      expect(values()).toEqual(["2000", "2400", "130", "175"]);
+      // Back again: the untouched fields follow, the typed one stays.
+      fireEvent.change(dateField(), { target: { value: "2026-10-15" } });
+      expect(values()).toEqual(["1800", "2200", "120", "175"]);
+    });
+
+    it("leaves the fields as they are while the date is being retyped", () => {
+      changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+      renderSheet();
+      fireEvent.change(dateField(), { target: { value: "" } });
+      expect(values()).toEqual(["1800", "2200", "120", "160"]);
+      fireEvent.change(dateField(), { target: { value: "2026-12-02" } });
+      expect(values()).toEqual(["2000", "2400", "130", "170"]);
+    });
+
+    it("keeps a field the user emptied empty when the date changes", () => {
+      changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+      renderSheet();
+      type("Calories", "From", "");
+      fireEvent.change(dateField(), { target: { value: "2026-12-10" } });
+      expect(values()).toEqual(["", "2400", "130", "170"]);
+    });
+  });
+
+  it("repeats the targets in force nowhere but in the fields, and keeps one line under the date for its error", () => {
     renderSheet();
-    const line = await inForceLine();
-    expect(line).toHaveTextContent(`In force on ${formatDay(TODAY)}: 1800 to 2200 kcal, 120 to 160 g protein.`);
-    for (const g of ["Calories", "Protein"] as const) {
-      for (const b of ["From", "To"] as const) {
-        expect(field(g, b)).toHaveValue("");
-        expect(field(g, b)).not.toHaveAttribute("placeholder");
-      }
-    }
-    expect(dialog().querySelectorAll("[placeholder]")).toHaveLength(0);
-    // Negative: no in-force number anywhere else in the sheet, as text or as a value.
-    const elsewhere = (dialog().textContent ?? "").replace(line.textContent ?? "", "");
-    for (const n of ["1800", "2200", "120", "160"]) expect(elsewhere).not.toContain(n);
-    for (const input of within(dialog()).getAllByRole("textbox")) {
-      for (const n of ["1800", "2200", "120", "160"]) expect((input as HTMLInputElement).value).not.toContain(n);
-    }
+    type("Calories", "From", "1900");
+    expect(dialog()).not.toHaveTextContent(/In force/);
+    const text = dialog().textContent ?? "";
+    for (const n of ["1800", "2200", "120", "160"]) expect(text).not.toContain(n);
+    expect(inForceSlot().className.split(/\s+/)).toContain("min-h-5");
+    expect(inForceSlot().className.split(/\s+/)).not.toContain("min-h-10");
+  });
+
+  it("reads no targets for its date from the server: the list it was given decides what the fields hold", () => {
+    changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+    renderSheet();
+    fireEvent.change(dateField(), { target: { value: "2026-12-10" } });
+    expect(values()).toEqual(["2000", "2400", "130", "170"]);
+    expect(getTargets).not.toHaveBeenCalled();
+  });
+
+  describe("an untouched sheet", () => {
+    it("closes on Escape with no confirmation, its prefilled numbers being no change", () => {
+      const { onClose } = renderSheet();
+      expect(values()).toEqual(["1800", "2200", "120", "160"]);
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("saves nothing on Save, and closes", async () => {
+      const { onClose, onSaved } = renderSheet();
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      expect(putTargets).not.toHaveBeenCalled();
+      expect(onSaved).not.toHaveBeenCalled();
+    });
+
+    it("on another date, saves the targets the fields followed to, on that date", async () => {
+      changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
+      renderSheet();
+      fireEvent.change(dateField(), { target: { value: "2026-12-24" } });
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+      await waitFor(() =>
+        expect(putTargets).toHaveBeenCalledWith("2026-12-24", {
+          ranges: { energyKcal: { lower: 2000, upper: 2400 }, proteinG: { lower: 130, upper: 170 } },
+        }),
+      );
+    });
+  });
+
+  it("saves one typed field with the three it was opened with", async () => {
+    changes = [change("2026-11-01", [1800, 2200.5], [142.5, 160])];
+    const { onClose } = renderSheet();
+    type("Protein", "To", "170");
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(putTargets).toHaveBeenCalledWith(TODAY, {
+        ranges: { energyKcal: { lower: 1800, upper: 2200.5 }, proteinG: { lower: 142.5, upper: 170 } },
+      }),
+    );
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("refuses a typed bound against a prefilled one under its pair, and sends nothing", async () => {
+    renderSheet();
+    type("Protein", "To", "100");
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+    expect(await within(group("Protein")).findByText("To cannot be lower than From.")).toBeInTheDocument();
+    expect(field("Protein", "To")).toHaveFocus();
+    expect(putTargets).not.toHaveBeenCalled();
   });
 
   it("starts on the server's today, as a native date field", () => {
@@ -101,111 +212,101 @@ describe("TargetsSheet", () => {
     expect(dateField()).toHaveValue(TODAY);
   });
 
-  it("switches the title to that change when the picked date has one, and reads the targets in force on it", async () => {
+  it("switches the title to that change when the picked date has one, and fills its targets", () => {
     changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
     renderSheet();
     expect(screen.getByRole("dialog", { name: "Change targets" })).toBeInTheDocument();
     fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
     expect(screen.getByRole("dialog", { name: `Targets from ${formatDay("2026-12-01")}` })).toBeInTheDocument();
-    await waitFor(() => expect(getTargets).toHaveBeenCalledWith("2026-12-01", expect.anything()));
-    await waitFor(async () =>
-      expect(await inForceLine()).toHaveTextContent("2000 to 2400 kcal, 130 to 170 g protein."),
-    );
-    // Still empty: the change's own numbers are never put in a field.
-    expect(field("Calories", "From")).toHaveValue("");
+    // The change's own numbers, in the fields it fills.
+    expect(values()).toEqual(["2000", "2400", "130", "170"]);
   });
 
-  it("states the targets in force directly under the date, as the date's own line", async () => {
-    renderSheet();
-    const line = await inForceLine();
-    expect(line.id).toBe(`${dateField().id}-line`);
-    expect(dateField()).toHaveAccessibleDescription(line.textContent ?? "");
-    expect(line).toHaveAttribute("aria-live", "polite");
-  });
+  describe("the line naming the days the numbers apply to", () => {
+    const span = () => dialog().querySelector<HTMLElement>("[data-span]")!;
 
-  it("empties the in-force line while the date is not a date, and keeps its room", async () => {
-    renderSheet();
-    const line = await inForceLine();
-    fireEvent.change(dateField(), { target: { value: "" } });
-    expect(document.getElementById(`${dateField().id}-line`)).toBe(line);
-    expect(line).toBeEmptyDOMElement();
-    expect(line.className.split(/\s+/)).toContain("min-h-10");
-    fireEvent.change(dateField(), { target: { value: TODAY } });
-    expect(await inForceLine()).toBe(line);
-  });
-
-  describe("the rewrite line", () => {
     // Below every field, it is as tall as what it says: a date picked above it moves only what is below it.
-    it("is one announced element, whether or not a date rewrites any day, and keeps no room", () => {
+    it("is one announced element through every date, and keeps no room", () => {
       changes = [change("2026-11-01")];
       renderSheet();
-      const line = dialog().querySelector<HTMLElement>("[data-rewrite]")!;
+      const line = span();
       expect(line).toHaveAttribute("aria-live", "polite");
       expect(line.className.split(/\s+/).filter((c) => /min-h/.test(c))).toEqual([]);
       // A section of its own, 16 px under the fields, that takes no gap while empty.
       expect(line.className.split(/\s+/)).toEqual(expect.arrayContaining(["mt-2", "empty:-mt-2"]));
-      expect(line).toHaveTextContent(/every day from/);
-      // A later date after the first change rewrites nothing: the line empties and stays.
       fireEvent.change(dateField(), { target: { value: "2026-11-20" } });
-      expect(dialog().querySelector("[data-rewrite]")).toBe(line);
-      expect(line).toBeEmptyDOMElement();
+      expect(span()).toBe(line);
+      expect(line).toHaveTextContent(`These apply from ${formatDay("2026-11-20")} on.`);
+      // Empty only while the date is not a date.
       fireEvent.change(dateField(), { target: { value: "" } });
-      expect(dialog().querySelector("[data-rewrite]")).toBe(line);
+      expect(span()).toBe(line);
+      expect(line).toBeEmptyDOMElement();
       fireEvent.change(dateField(), { target: { value: "2026-10-01" } });
-      expect(dialog().querySelector("[data-rewrite]")).toBe(line);
-      expect(line).toHaveTextContent(/every day/);
+      expect(span()).toBe(line);
+      expect(line).not.toBeEmptyDOMElement();
     });
 
-    it("names the days from today on, for today with no later change", () => {
+    it("from a date with no later change: from that date on, and earlier days keep theirs", () => {
       renderSheet();
-      expect(
-        within(dialog()).getByText(`This changes the targets for every day from ${formatDay(TODAY)} on.`),
-      ).toBeInTheDocument();
+      expect(span()).toHaveTextContent(`These apply from ${formatDay(TODAY)} on. Earlier days keep their targets.`);
     });
 
-    it("ends the day before the next change, for an earlier date", () => {
+    it("for a later date with no change on it, too", () => {
+      renderSheet();
+      fireEvent.change(dateField(), { target: { value: "2026-12-24" } });
+      expect(span()).toHaveTextContent(
+        `These apply from ${formatDay("2026-12-24")} on. Earlier days keep their targets.`,
+      );
+    });
+
+    it("between two changes: to the day before the next, and other days keep theirs", () => {
       changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
       renderSheet();
       fireEvent.change(dateField(), { target: { value: "2026-10-20" } });
-      expect(
-        within(dialog()).getByText(
-          `This changes the targets for every day from ${formatDay("2026-10-20")} to ${formatDay("2026-10-31")}.`,
-        ),
-      ).toBeInTheDocument();
+      expect(span()).toHaveTextContent(
+        `These apply from ${formatDay("2026-10-20")} to ${formatDay("2026-10-31")}. Other days keep their targets.`,
+      );
     });
 
     it("names the one day, not a stretch from a day to itself, when the next change starts the day after", () => {
       changes = [change("2026-11-01"), change("2026-11-16")];
       renderSheet();
       fireEvent.change(dateField(), { target: { value: "2026-11-15" } });
-      expect(
-        within(dialog()).getByText(`This changes the targets for ${formatDay("2026-11-15")}.`),
-      ).toBeInTheDocument();
-      expect(dialog()).not.toHaveTextContent(/every day from/);
+      expect(span()).toHaveTextContent(
+        `These apply to ${formatDay("2026-11-15")} only. Other days keep their targets.`,
+      );
     });
 
-    it("appears for an edit of a change, with the end from the next change", () => {
+    it("for an edit of a change, ends the day before the next change", () => {
       changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
       renderSheet({ editing: "2026-11-01" });
-      expect(
-        within(dialog()).getByText(
-          `This changes the targets for every day from ${formatDay("2026-11-01")} to ${formatDay("2026-11-30")}.`,
-        ),
-      ).toBeInTheDocument();
+      expect(span()).toHaveTextContent(
+        `These apply from ${formatDay("2026-11-01")} to ${formatDay("2026-11-30")}. Other days keep their targets.`,
+      );
     });
 
-    it("covers every earlier day for an edit of the first change", () => {
+    it("before the earliest change: every day before the next, later days keep theirs, and nothing said of earlier days", () => {
+      changes = [change("2026-11-01"), change("2026-12-01")];
+      renderSheet();
+      fireEvent.change(dateField(), { target: { value: "2026-10-15" } });
+      expect(span()).toHaveTextContent(
+        `These apply to every day before ${formatDay("2026-11-01")}. Later days keep their targets.`,
+      );
+      expect(span()).not.toHaveTextContent(/Earlier days|Other days/);
+    });
+
+    it("for an edit of the first change, every day before the next", () => {
       changes = [change("2026-11-01"), change("2026-12-01")];
       renderSheet({ editing: "2026-11-01" });
-      expect(
-        within(dialog()).getByText(`This changes the targets for every day before ${formatDay("2026-12-01")}.`),
-      ).toBeInTheDocument();
+      expect(span()).toHaveTextContent(
+        `These apply to every day before ${formatDay("2026-12-01")}. Later days keep their targets.`,
+      );
     });
 
-    it("is absent for a future date with no change on it", () => {
-      renderSheet();
-      fireEvent.change(dateField(), { target: { value: "2026-12-24" } });
-      expect(within(dialog()).queryByText(/^This changes the targets/)).toBeNull();
+    it("with no other change: these are the only targets, and no other days are said to keep any", () => {
+      renderSheet({ editing: "2026-11-01" });
+      expect(span()).toHaveTextContent("These are your only targets, so they apply to every day.");
+      expect(span()).not.toHaveTextContent(/keep their targets/);
     });
   });
 
@@ -296,9 +397,8 @@ describe("TargetsSheet", () => {
       const { rerender } = render(<TargetsSheet open changes={changes} {...props} />);
       const title = `Targets from ${formatDay("2026-12-01")}`;
       expect(screen.getByRole("dialog", { name: title })).toBeInTheDocument();
-      const line = await inForceLine();
-      const lineText = line.textContent;
-      const rewrite = dialog().querySelector("[data-rewrite]")?.textContent;
+      const span = dialog().querySelector("[data-span]")?.textContent;
+      const fields = values();
 
       // The removal closes the sheet, and then the list comes back without the change.
       rerender(<TargetsSheet open={false} changes={changes} {...props} />);
@@ -308,8 +408,13 @@ describe("TargetsSheet", () => {
 
       const closing = screen.getByRole("dialog", { hidden: true });
       expect(closing).toHaveAccessibleName(title);
-      expect(within(closing).getByText(/^In force on /).textContent).toBe(lineText);
-      expect(closing.querySelector("[data-rewrite]")?.textContent).toBe(rewrite);
+      expect(closing.querySelector("[data-span]")?.textContent).toBe(span);
+      // The fields keep the numbers they showed, though the change they came from is gone.
+      expect(
+        within(closing)
+          .getAllByRole("textbox", { hidden: true })
+          .map((f) => (f as HTMLInputElement).value),
+      ).toEqual(fields);
       expect(within(closing).getByRole("button", { name: "Remove these targets", hidden: true })).toBeInTheDocument();
     });
   });

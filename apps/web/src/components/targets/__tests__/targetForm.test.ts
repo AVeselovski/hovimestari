@@ -1,4 +1,5 @@
-import { EMPTY_TARGET_FIELDS, firstInvalidField, parseTargetFields } from "../targetForm";
+import { formatTarget } from "@/lib/targetFormat";
+import { EMPTY_TARGET_FIELDS, fieldsOf, firstInvalidField, parseTargetFields } from "../targetForm";
 
 const filled = { energyLower: "1800", energyUpper: "2200", proteinLower: "120,5", proteinUpper: "160" };
 
@@ -63,5 +64,41 @@ describe("parseTargetFields", () => {
   it("finds the first field with an error in screen order", () => {
     expect(firstInvalidField({ proteinUpper: "target_required", energyUpper: "target_required" })).toBe("energyUpper");
     expect(firstInvalidField({})).toBeUndefined();
+  });
+});
+
+describe("fieldsOf", () => {
+  const withDecimals = {
+    effectiveFrom: "2026-11-01",
+    ranges: { energyKcal: { lower: 1800, upper: 2200.5 }, proteinG: { lower: 142.5, upper: 160 } },
+    updatedAt: "2026-11-01T08:00:00.000Z",
+  };
+
+  it("is every field empty with no change", () => {
+    expect(fieldsOf(null)).toEqual(EMPTY_TARGET_FIELDS);
+  });
+
+  it("holds the change's numbers as Settings shows them, and they read back as the same numbers", () => {
+    const fields = fieldsOf(withDecimals);
+    // In this machine's language, as Settings formats them: never the machine's locale assumed.
+    expect(fields).toEqual({
+      energyLower: formatTarget(1800),
+      energyUpper: formatTarget(2200.5),
+      proteinLower: formatTarget(142.5),
+      proteinUpper: formatTarget(160),
+    });
+    expect(parseTargetFields(fields)).toEqual({ ok: true, body: { ranges: withDecimals.ranges } });
+  });
+
+  it("reads back in a language with a decimal comma", () => {
+    // What a Finnish phone puts in the fields, read back by the same parser.
+    const fields = {
+      energyLower: formatTarget(1800, "fi"),
+      energyUpper: formatTarget(2200.5, "fi"),
+      proteinLower: formatTarget(142.5, "fi"),
+      proteinUpper: formatTarget(160, "fi"),
+    };
+    expect(fields.proteinLower).toBe("142,5");
+    expect(parseTargetFields(fields)).toEqual({ ok: true, body: { ranges: withDecimals.ranges } });
   });
 });
