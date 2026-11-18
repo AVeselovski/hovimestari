@@ -52,7 +52,7 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    - every food left out, with the reason, such as a food with no protein value,
    - the catalogue foods it retired: those no longer in the release, and, named one by one, those the release still lists but without usable values,
    - how many household measures were added, changed, unchanged and removed, and how many were left out for each reason,
-   - how many foods had a name changed in case only, as "Names changed in case only",
+   - how many foods had their name changed in case only and in nothing else, as "Names changed in case only",
    - every food whose Finnish name changed in more than case under the same Fineli id, as "Renamed under the same id",
    - the credit to Fineli and THL that the licence asks for.
 

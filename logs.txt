@@ -294,3 +294,14 @@
 [ui-validator STARTED] (2026-11-17T23:47:16Z) the Day tab's header and remembered day in a real browser
 [ui-validator DONE] (2026-11-18T00:05:00Z) the Day tab's header at 84d66c4: PASS; the header's rect identical across every state at five widths, no press-through, the remembered day through tabs, reload, midnight and sign-out; two follow-ups (clearance under the launcher, the summary from lg)
 [frontend-engineer DONE] (2026-11-18T00:19:39Z) the Day tab's header: 24px under the launcher at every width, and from lg on a viewport at least 680px tall the summary stays under the header; web 1283 tests, gate green
+[frontend-engineer STARTED] (2026-11-17T21:40:00Z) sheets: taps after the keyboard was lowered, the footer's room, form density
+[frontend-engineer DONE] (2026-11-18T00:05:46Z) a tap after the keyboard was lowered by hand moves focus off the old field first, the footer keeps no empty room, one line under a field, phone sheets hug their content and hold the height they opened at; web 1274 tests, gate green (488k tokens)
+[ui-validator STARTED] (2026-11-18T00:05:46Z) every form sheet after the density change, in a real browser
+[reviewer STARTED] (2026-11-18T00:05:46Z) review of fix/sheet-density-and-taps
+[reviewer DONE] (2026-11-18T00:10:00Z) fix/sheet-density-and-taps at aca97f1: approve after fixes; three majors (a footer refusal moves Save in a dialog from md, a shortened message lost its second way out, the tap hook acts where the keyboard is misread as down)
+[ui-validator DONE] (2026-11-18T00:44:26Z) every form sheet at aca97f1: FAIL on one medium (a footer refusal covers the focused field at the body's end); the top edge, the buttons and the typed field hold in 11 sheets, density and messages pass
+[frontend-engineer STARTED] (2026-11-18T00:44:26Z) sheets fix cycle 1: the reviewer's and the ui-validator's findings
+[frontend-engineer DONE] (2026-11-18T01:26:47Z) sheets fix cycle 1 at 3e52589: the footer keeps its room from md, the tap hook acts only after a seen lowering, a footer refusal no longer covers the focused field, the hold lets go only on a width change, clearer one-line messages; web 1305 tests, gate green
+[reviewer STARTED] (2026-11-18T01:26:47Z) confirm of sheets fix cycle 1 (efe1460..3e52589)
+[reviewer DONE] (2026-11-18T01:39:22Z) confirm of sheets fix cycle 1 at 443363f: approve; the three majors fixed, 9 of 11 mutations caught, two tests added for the survivors
+[frontend-engineer DONE] (2026-11-18T01:39:22Z) sheets: a footer refusal brings back the field and its label only, two more tests, the log sheet's footer sentence; web 1308 tests, gate green

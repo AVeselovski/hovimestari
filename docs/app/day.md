@@ -101,7 +101,11 @@ The summary is sized so the entries start on the first screen. The figures are t
 
 Nothing moves. Every line that can change keeps the room of its longest form at the width it is shown at. Each distance keeps the room of its macro's three forms at a distance of 8888.8, such as "8888.8 kcal to the upper bound", in both columns. That is one line at 390 pixels and wider, and two lines at 320. At 375 the calories line keeps two lines and the protein line one. The estimate line is kept on every day, and the unmarked line on every past day. The loading frame shows the labels and empty tracks. A failure and offline lay their line over the summary's frame, at the same height. A row's height depends on nothing but its name, so marking it moves no row.
 
-The entry sheet's estimate shows its state and all four figures on the first screen at 390 by 844: the figures are a two by two grid with one shared line under it, which keeps two lines of room for the longest refusal any figure can show on a phone and one from `md` (`FigureFields` in `apps/web/src/components/entries/`). The name and the note keep one line each. At 375 by 667 and 320 by 568 the state and the name show, and the figures follow on a short scroll.
+The entry sheet is as tall as its form, and [holds still](shell.md#the-sheet-primitives) once open. Its estimate's figures are a two by two grid with one shared line under it, which keeps one line of room, and every refusal a figure can show fits it at 320 pixels wide (`FigureFields` in `apps/web/src/components/entries/`). The name, the note, the amount and the date keep one line each. Measured on a production build with the keyboard closed:
+
+- At 390 by 844 an entry for a saved meal shows its whole form. An entry for a food shows it down to the date, and the empty line under the date follows on a 28 pixel scroll. An estimate shows its state, its name, its four figures, its note and the caption "For this amount", and the figures under that caption follow on a scroll.
+- At 375 by 667 a food entry shows its state, the amount and "For this amount", and an estimate its state, its name and its four figures.
+- At 320 by 568 a food entry shows its state and the amount, and an estimate its state, its name, and Calories and Protein.
 
 Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as a share of the track's width. `Gauge.tsx` draws it.
 
