@@ -381,3 +381,13 @@
 [backend-engineer DONE] (2026-11-18T20:40:48Z) the firstRunDue race test no longer leans on an event-loop turn: it counts the overview's statements and waits for the commit; five full backend runs pass, 662 tests each
 [reviewer DONE] (2026-11-18T20:57:31Z) delta review of slice 2's fixes: approve after fixes; one major (the reopened Save went Back a second time after the person had), a test that never reached its guard, the day's entries dropped offline (299k tokens)
 [frontend-engineer DONE] (2026-11-18T20:57:31Z) one guarded Back for the first-run page, the gate's unmount guard tested for real, the day keeps its entries offline; 1460 web tests pass
+[architect STARTED] (2026-11-18T20:54:09Z) designs: a page for saved meals and own foods on the Recipes tab, and barcode lookup and scanning
+[architect DONE] (2026-11-18T21:10:53Z) docs/design/foods-page.md and docs/design/barcode.md written: the Recipes tab page reuses the log sheet's sheets, barcode in four slices (lookup backend, lookup web, local HTTPS runbook, camera) (277k tokens)
+[reviewer STARTED] (2026-11-18T21:10:53Z) design review of foods-page.md and barcode.md before implementation
+[reviewer DONE] (2026-11-18T21:21:29Z) design review of foods-page.md and barcode.md: build after fixes; 2 majors on the page (delete dialog's mount, two undo paths), 6 on barcode (owner questions not routed, shared rows, lookup as a query, no per-user limit, three-decimal prefill, camera left on)
+[architect STARTED] (2026-11-18T21:21:29Z) answering the design review of foods-page.md and barcode.md
+[architect DONE] (2026-11-18T21:30:54Z) design review answered in both docs: per-user visibility of kept products, POST lookup as a mutation, per-user budget, GS1 check digit, in-store codes, the phone prototype as slice 4's first step
+[reviewer STARTED] (2026-11-18T21:30:54Z) delta review of the answered designs
+[reviewer DONE] (2026-11-18T21:34:27Z) delta review of the designs: foods-page.md builds as is; barcode.md needs three short fixes before slice 1 (what kept means, in-store rules on the 14-digit form and which code is stored, the order of the two budgets) and one before slice 2
+[architect STARTED] (2026-11-18T21:34:27Z) writing the delta review's fixes into barcode.md, foods-page.md and TODO.md
+[architect DONE] (2026-11-18T21:40:57Z) delta review answered: newlyVisible replaces kept, in-store rules on the 14-digit form, a mismatched answer is not_found, both budgets taken in one step, one shared meal delete
