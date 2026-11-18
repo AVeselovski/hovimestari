@@ -11,6 +11,11 @@ import {
   sectionStart,
   sectionStartWhenFilled,
   segmentedTray,
+  sheetBodyClass,
+  sheetChipRow,
+  sheetChipRowWrapping,
+  sheetFooter,
+  sheetHeader,
 } from "@/components/ui/styles";
 import fs from "node:fs";
 import path from "node:path";
@@ -98,5 +103,43 @@ describe("the Day tab's head lines", () => {
   it("is the line the summary's macro heads sit on", () => {
     const source = fs.readFileSync(path.resolve(__dirname, "../../day/DaySummary.tsx"), "utf8");
     expect(source).toContain("className={`${dayHeadLine} justify-between gap-3`}");
+  });
+});
+
+describe("a row of chips in a sheet", () => {
+  const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
+  const pad = "(--sheet-pad-x)";
+
+  it("takes the sheet's inline padding from the one token the header, body and footer pad by", () => {
+    for (const recipe of [sheetHeader, sheetFooter, sheetBodyClass({ header: true, footer: true })]) {
+      expect(tokens(recipe)).toContain(`px-${pad}`);
+      // No second value beside it that could drift, at any width.
+      expect(tokens(recipe).filter((t) => /(^|:)px-/.test(t))).toEqual([`px-${pad}`]);
+    }
+    expect(css).toMatch(/--sheet-pad-x: 1\.25rem;/);
+    expect(css).toMatch(/@media \(width >= 48rem\) \{\s*:root \{[^}]*--sheet-pad-x: 1\.5rem;/);
+  });
+
+  it("bleeds to the sheet's edges by that padding and pads itself back by it, and stops a chip focus reveals at the fields' edge", () => {
+    expect(tokens(sheetChipRow)).toEqual(
+      expect.arrayContaining([
+        `-mx-${pad}`,
+        `px-${pad}`,
+        `scroll-px-${pad}`,
+        "overflow-x-auto",
+        "py-1",
+        "no-scrollbar",
+      ]),
+    );
+    expect(tokens(sheetChipRow).filter((t) => /^-?(m|p|scroll-p)x-/.test(t))).toEqual([
+      `-mx-${pad}`,
+      `scroll-px-${pad}`,
+      `px-${pad}`,
+    ]);
+  });
+
+  it("stays inside the body's padding from md, where it wraps and clips nothing", () => {
+    const md = tokens(sheetChipRowWrapping).filter((t) => t.startsWith("md:"));
+    expect(md).toEqual(expect.arrayContaining(["md:mx-0", "md:px-0", "md:flex-wrap", "md:overflow-x-visible"]));
   });
 });

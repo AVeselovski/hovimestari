@@ -462,7 +462,7 @@ describe("DayTab, the header", () => {
     expect(threshold - sum).toBeLessThan(0.5);
   });
 
-  it("starts the content 4px lower than the header's edge at rest, and stops a focused row and the staying summary at that same place", async () => {
+  it("starts the content 12px lower than the header's edge at rest, and stops a focused row and the staying summary at that same place", async () => {
     serve(new FakeDays([foodEntry("Quark", 250, { status: "planned" })]));
     renderDay();
     await screen.findByText("Quark");
@@ -470,12 +470,14 @@ describe("DayTab, the header", () => {
     const tokens = content.className.split(/\s+/);
     expect(tokens).toEqual(expect.arrayContaining(["under-day-header", "pt-(--day-header-rest)"]));
     const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
-    // 12px under the launcher for the header, 4px more at rest: 16px.
+    // 12px under the launcher for the header, 12px more at rest: 24px.
     expect(css).toContain("--day-header-clear: 0.75rem;");
-    expect(css).toContain("--day-header-rest: 0.25rem;");
+    expect(css).toContain("--day-header-rest: 0.75rem;");
     expect(css).toContain("--day-content-top: calc(var(--day-header-height) + var(--day-header-rest));");
     const rule = css.slice(css.indexOf("@utility under-day-header"));
     expect(rule.slice(0, rule.indexOf("\n}\n"))).toContain("scroll-margin-top: var(--day-content-top);");
+    // And short of the tab bar or the screen's bottom by the focus ring's reach and more.
+    expect(rule.slice(0, rule.indexOf("\n}\n"))).toContain("scroll-margin-bottom: 0.5rem;");
   });
 
   it("keeps one h1 on the page: the header adds no heading", async () => {

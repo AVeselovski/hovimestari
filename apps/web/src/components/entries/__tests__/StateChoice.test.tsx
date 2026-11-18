@@ -40,12 +40,21 @@ describe("StateChoice", () => {
   it("leaves the reason to another line when given one, and points the group at it", () => {
     render(
       <>
-        <StateChoice id="state" value="eaten" onChange={jest.fn()} future reasonId="date-line" />
+        <StateChoice id="state" value="eaten" onChange={jest.fn()} future reason={{ id: "date-line", shown: true }} />
         <p id="date-line">Future days hold planned entries.</p>
       </>,
     );
     const tray = screen.getByRole("radiogroup");
     expect(tray.nextElementSibling).toBeNull();
     expect(tray).toHaveAttribute("aria-describedby", "date-line");
+  });
+
+  it("points the group at nothing while the other line says nothing, and draws no line of its own", () => {
+    render(
+      <StateChoice id="state" value="eaten" onChange={jest.fn()} future reason={{ id: "date-line", shown: false }} />,
+    );
+    const tray = screen.getByRole("radiogroup");
+    expect(tray).not.toHaveAttribute("aria-describedby");
+    expect(tray.nextElementSibling).toBeNull();
   });
 });

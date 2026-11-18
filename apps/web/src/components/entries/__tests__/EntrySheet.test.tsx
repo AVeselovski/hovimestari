@@ -2,6 +2,7 @@ import { describeFormSheetContract } from "@/__tests__/formSheet";
 import { deferred } from "@/__tests__/helpers/queryClient";
 import { estimateEntry, foodEntry, mealEntry, portionEntry } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood, ownPortion } from "@/components/foods/__tests__/support";
+import { refusal } from "@/components/targets/__tests__/support";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { TodayContext, type TodayState } from "@/hooks/useToday";
 import { getFood } from "@/lib/api/foods";
@@ -251,6 +252,26 @@ describe("EntrySheet", () => {
       expect(group()).toHaveAccessibleDescription("");
       // Read as the field's description, not announced a second time from a live region.
       expect(dateLine().closest("[aria-live]")).toBeNull();
+    });
+
+    it("points Eaten or planned at no line on a day that can be either: the date's hint is empty there", () => {
+      renderOn(quark);
+      expect(group()).not.toHaveAttribute("aria-describedby");
+    });
+
+    it("points Eaten or planned at no empty line when a future date's line holds a refusal, and back at it once the date changes", async () => {
+      jest.mocked(actions.save).mockRejectedValue(refusal(400, "invalid_date"));
+      renderOn({ ...quark, date: "2026-11-17" });
+      expect(group()).toHaveAttribute("aria-describedby");
+      fireEvent.click(within(dialog()).getByRole("radio", { name: "Planned" }));
+      fireEvent.change(within(dialog()).getByLabelText("Amount", { selector: "input" }), { target: { value: "300" } });
+      fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(dateLine()).toHaveTextContent("Enter a valid date."));
+      // Still a future day, but its hint span is empty while the refusal shows.
+      expect(within(dialog()).getByRole("radio", { name: "Eaten" })).toHaveAttribute("aria-disabled", "true");
+      expect(group()).not.toHaveAttribute("aria-describedby");
+      fireEvent.change(within(dialog()).getByLabelText("Date"), { target: { value: "2026-11-18" } });
+      expect(group()).toHaveAccessibleDescription("Future days hold planned entries.");
     });
 
     it("fills the date's line when the date moves to a future day, and empties it when it moves back", () => {

@@ -145,7 +145,7 @@ describe("FormSheet", () => {
     expect(row.className.split(" ")).toContain("keyboard-yields");
     // jsdom computes no clamp(): the rule collapses the row to nothing, padding
     // and margins included, at any inset above 0. With no keyboard its padding
-    // is the 10 px the text button's target reaches past its words, and 4 px
+    // is the 10 px the text button's target reaches above its row, and 4 px
     // for the focus ring, taken back by its margins.
     const css = fs.readFileSync(path.resolve(__dirname, "../../../app/globals.css"), "utf8");
     const rule = css.slice(css.indexOf("@utility keyboard-yields"));
@@ -328,19 +328,24 @@ describe("FormSheet", () => {
     expect(within(footer).queryByRole("group")).toBeNull();
   });
 
-  it("sets the secondary action's words 16 px under the footer's rule and 12 px over the buttons on a phone, with its 44 px target kept", () => {
+  it("centres the secondary action's words between the footer's rule and the buttons on a phone, with its 44 px target kept", () => {
     renderSheet({ footerStart: { label: "Delete entry", onPress: jest.fn() } });
     const footer = screen.getByRole("dialog").querySelector<HTMLElement>("[data-sheet-footer]")!;
     const button = within(footer).getByRole("button", { name: "Delete entry" });
     const tokens = button.className.split(/\s+/);
     // The target stays 44 px tall at every width ...
     expect(tokens).toContain("min-h-11");
-    // ... and below md reaches 10 px above the words into the footer's padding,
-    // and keeps 2 px of its own under its target: words 12 px over the buttons.
-    // The reach is the one value the yielding row keeps clear of its clip
-    // (`keyboard-yields`), so the two cannot drift.
-    expect(tokens).toEqual(expect.arrayContaining(["max-md:-mt-(--footer-start-reach)", "max-md:mb-0.5"]));
+    // ... and below md reaches 10 px above its row into the footer's padding,
+    // and keeps 2 px of its own under its target. The reach is the one value
+    // the yielding row keeps clear of its clip (`keyboard-yields`), so the two
+    // cannot drift. Its words sit 4 px above the target's middle, which a
+    // browser measured centres their ink between the rule and the buttons:
+    // bottom padding only, so the target keeps its place and its height.
+    expect(tokens).toEqual(
+      expect.arrayContaining(["max-md:-mt-(--footer-start-reach)", "max-md:mb-0.5", "max-md:pb-2"]),
+    );
     expect(tokens.filter((c) => /^-?m[tby]-/.test(c))).toEqual([]);
+    expect(tokens.filter((c) => /^(max-md:)?p[ty]-/.test(c))).toEqual([]);
     // No row gap in the phone's grid, which would stay when the row gives way
     // to the keyboard: the room under the row is the button's own. The two
     // buttons stand 8 px apart.
