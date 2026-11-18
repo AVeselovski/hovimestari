@@ -1,4 +1,5 @@
 import type { AuthHandlers } from "@/lib/api";
+import { dayTabHref, rememberShownDay, useShownDay } from "@/lib/shownDay";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { TEST_USER, testPassword } from "../../__tests__/helpers/auth";
@@ -165,4 +166,20 @@ it("completes a sign-out tapped during a renewal that then times out", async () 
   } finally {
     jest.useRealTimers();
   }
+});
+
+describe("signing out", () => {
+  it("forgets the day the Day tab showed, so the next account's Day link leads to today", async () => {
+    fetchSpy.mockResolvedValueOnce(session());
+    const hook = renderHook(() => ({ auth: useAuth(), shown: useShownDay() }), { wrapper });
+    await waitFor(() => expect(hook.result.current.auth.status).toBe("authenticated"));
+    act(() => rememberShownDay("2026-11-15"));
+    expect(dayTabHref(hook.result.current.shown)).toBe("/?date=2026-11-15");
+
+    fetchSpy.mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await act(() => hook.result.current.auth.signOut());
+    expect(hook.result.current.auth.status).toBe("unauthenticated");
+    expect(hook.result.current.shown).toBeNull();
+    expect(dayTabHref(hook.result.current.shown)).toBe("/");
+  });
 });
