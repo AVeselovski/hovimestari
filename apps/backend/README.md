@@ -64,7 +64,7 @@ src/
 │   └── users.ts                The signed-in user: read, change settings, change password, delete the account
 ├── services/                   What a route does, without Express. The assistant's tools will call the same functions
 │   ├── reads/context.ts        ReadContext: the user, the database, now, the time zone and today
-│   ├── reads/targets.ts        targetsOn, the in-force rule, inForceOn, its pure form, and targetsOverview
+│   ├── reads/targets.ts        targetsOn, the in-force rule (null before the first change), inForceOn, its pure form, and targetsOverview
 │   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
 │   ├── reads/days.ts           getDay and listDaySummaries: the two readings and their positions
 │   ├── reads/log.ts            listRecents and lastAmountsOf, from eaten entries

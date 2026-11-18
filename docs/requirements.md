@@ -36,7 +36,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-TGT-04**: The system shall offer no default, example or computed value for a target. The fields for new targets start empty. Opening an existing change shows that change's own targets.
 - **FR-TGT-05**: The system shall refuse a range whose lower bound is above its upper bound, and a bound that is zero or negative.
 - **FR-TGT-06**: The system shall let a user change the targets at any time, taking effect from a date the user picks, today by default.
-- **FR-TGT-07**: The system shall measure each day against the targets in force on that day, so that changing the targets leaves earlier days as they were.
+- **FR-TGT-07**: The system shall measure each day against the targets in force on that day. Targets apply from their start date until the next change starts. A day before the first start date has no targets and is shown without ranges.
 
 ### 3.2 Foods
 

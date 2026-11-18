@@ -30,7 +30,7 @@ Each reading gives the position of its energy against the calorie range and of i
 - within: from the lower to the upper bound, both included, with the distance to the upper bound.
 - above: past the upper bound, with the distance past it.
 
-A distance has at most one decimal. Eaten protein of 129.9 g against a floor of 130 g is below, 0.1 g from it. Eaten protein of exactly 130 g is within. A user without targets gets the figures and no position. The targets a day uses are [the ones in force on its date](targets.md#which-targets-a-day-uses).
+A distance has at most one decimal. Eaten protein of 129.9 g against a floor of 130 g is below, 0.1 g from it. Eaten protein of exactly 130 g is within. A day without targets gets the figures and no position. A day has no targets before the user's first change, and none at all for a user with no change. The targets a day uses are [the ones in force on its date](targets.md#which-targets-a-day-uses).
 
 ### Figures that stay
 
@@ -64,7 +64,7 @@ Entry reads go through `selectEntries` in `apps/backend/src/services/entryRows.t
 
 ### Reads
 
-`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. A test pins the two to each other.
+`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other.
 
 ### API
 
@@ -75,7 +75,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`. 
 | GET    | `/days/:date`     | 200 with the day. `:date` is a date or `today`. 400 `invalid_date`                                               |
 | GET    | `/days?from=&to=` | 200 `{ days }`, every day without its entries. `from` on or before `to`, at most 42 days, else `invalid_request` |
 
-A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy` and `protein` (each `{ position, distance }`, or null without targets) and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
+A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy` and `protein` (each `{ position, distance }`, or null on a day without targets, as `targets` is) and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
 
 ### Data
 

@@ -345,3 +345,20 @@
 [backend-engineer DONE] (2026-11-18T15:37:18Z) an own food is refused above 101.5 g of protein, carbohydrates and fat per 100 g (food_macro_sum_too_high, on per100g.fatG), compared in thousandths; existing rows still read and log; 625 backend tests pass
 [frontend-engineer STARTED] (2026-11-18T15:37:18Z) the own-food form shows the macro sum refusal under Fat, with its copy
 [frontend-engineer DONE] (2026-11-18T15:55:47Z) the own-food form shows the macro sum refusal under Fat with all three fields marked, from the form's check and from the server alike; 1390 web tests pass
+[architect STARTED] (2026-11-18T14:42:22Z) design: targets apply from their own date, a day before the first has none, and first-run can be skipped
+[architect DONE] (2026-11-18T14:56:53Z) docs/design/targets-from-their-date.md: a change applies from its own date, a day before the first has no targets, the first run can be passed; two slices; five open questions for Artur
+[reviewer STARTED] (2026-11-18T14:56:53Z) design review of docs/design/targets-from-their-date.md before implementation
+[reviewer DONE] (2026-11-18T15:05:43Z) design review: ready after fixes; two majors (focus lost after a removal swaps the Settings panel, the loaded day's no-targets rule against a stale changes list), stale line references and missed fixtures
+[architect STARTED] (2026-11-18T15:05:43Z) design fixes from the review
+[architect DONE] (2026-11-18T15:10:23Z) design revised for every review finding: one Settings button that keeps focus through a removal, the loaded day's no-targets rule against a stale list, the reopened first run read from history state
+[backend-engineer STARTED] (2026-11-18T15:10:23Z) slice 1 backend: targets apply from their own date, no fallback to the first change
+[backend-engineer DONE] (2026-11-18T15:18:03Z) slice 1 backend: targetsOn and inForceOn answer null before the first change, no shape or error-code change; 9 of 49 changed tests fail on the old code; 628 backend tests pass with the database suites running
+[frontend-engineer STARTED] (2026-11-18T15:18:03Z) slice 1 web: a day without targets, Settings when the only change is later, the sheet's line and removal wording
+[frontend-engineer DONE] (2026-11-18T15:54:21Z) slice 1 web: a day without targets shows figures and 'Targets apply from {date}.', Settings when every change starts later, the sheet's line and removal wording, 'to' in the body face; 1399 web tests pass
+[ui-validator STARTED] (2026-11-18T15:54:21Z) browser validation of slice 1 at the pinned tip
+[reviewer STARTED] (2026-11-18T15:54:21Z) review of slice 1 against the design and the requirements
+[reviewer DONE] (2026-11-18T16:14:58Z) slice 1: approve after fixes, no blockers; one test that passes without the code it names, one undocumented edge, the removal wording (181k tokens)
+[ui-validator DONE] (2026-11-18T16:14:58Z) slice 1: PASS on all nine checks against a master baseline; days with targets are unchanged, a day without targets never shows a gauge; three low notes
+[frontend-engineer STARTED] (2026-11-18T16:14:58Z) slice 1 fix batch from the review and the browser validation
+[frontend-engineer DONE] (2026-11-18T16:34:08Z) slice 1 fix batch: the removal wording, a targets change now reads every held day again (the Day tab opened with the old targets), empty range lines hidden from assistive technology, the rewritten test; 1409 web and 631 backend tests pass (228k tokens)
+[orchestrator DONE] (2026-11-18T16:34:08Z) FR-TGT-07 reworded in docs/requirements.md with the wording Artur approved; build progress brought up to date

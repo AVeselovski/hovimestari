@@ -90,7 +90,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | targets, calorie range, protein range, floor       | `features/targets.md#setting-your-targets`           | `### Setting your targets`           |
 | dated change, targets in force                     | `features/targets.md#changing-your-targets`          | `### Changing your targets`          |
 | targets sheet fields, the days a change applies to | `features/targets.md#new-targets-and-edited-targets` | `### New targets and edited targets` |
-| which targets a day uses                           | `features/targets.md#which-targets-a-day-uses`       | `### Which targets a day uses`       |
+| which targets a day uses, a day without targets    | `features/targets.md#which-targets-a-day-uses`       | `### Which targets a day uses`       |
 | first run, no targets yet                          | `features/targets.md#the-first-run`                  | `### The first run`                  |
 | first-run gate, spinner or tabs or first run       | `features/targets.md#the-first-run-gate`             | `### The first-run gate`             |
 | not advice, no default target                      | `features/targets.md#not-advice`                     | `### Not advice`                     |
