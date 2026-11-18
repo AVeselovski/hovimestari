@@ -305,3 +305,5 @@
 [reviewer STARTED] (2026-11-18T01:26:47Z) confirm of sheets fix cycle 1 (efe1460..3e52589)
 [reviewer DONE] (2026-11-18T01:39:22Z) confirm of sheets fix cycle 1 at 443363f: approve; the three majors fixed, 9 of 11 mutations caught, two tests added for the survivors
 [frontend-engineer DONE] (2026-11-18T01:39:22Z) sheets: a footer refusal brings back the field and its label only, two more tests, the log sheet's footer sentence; web 1308 tests, gate green
+[frontend-engineer STARTED] (2026-11-18T01:44:49Z) the targets sheet opens with the targets it changes and says which days they apply to, and the food-names hint
+[frontend-engineer DONE] (2026-11-18T02:09:01Z) targets sheet opens with the targets in force on its date, untouched fields follow the date, the in-force line is gone, the line under the fields names the days the numbers apply to on every date, food-names hint reworded; docs, TODO and tests with it
