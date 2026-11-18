@@ -128,10 +128,12 @@ export const chipRow = "no-scrollbar -mx-1 flex gap-2 overflow-x-auto overscroll
 export const chipRowWrapping = `${chipRow} md:flex-wrap md:overflow-x-visible`;
 
 /**
- * The z-index ladder. Page content sits at the default. The header, the
- * tab bar and the rail sit at 30, under the sheets at 50. Every layer above
- * the page takes its class from here.
+ * The z-index ladder. Page content sits at the default. A page's own header
+ * that stays in view while its content scrolls under it sits at 20. The
+ * header, the tab bar and the rail sit at 30, under the sheets at 50. Every
+ * layer above the page takes its class from here.
  */
+export const zPageHeader = "z-20";
 export const zShell = "z-30";
 /**
  * A toast: above the shell, under every sheet, so an open sheet always
