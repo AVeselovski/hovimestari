@@ -32,3 +32,9 @@ type: project
 - **Lining up Day columns at lg: change the Entries row, not the summary.** Any summary height change moves `summary-stays` and can cost a laptop the staying summary. Mark all eaten's words sit on the row's top line from lg, with the 44px target hanging below (`dayEntriesHead`).
 - **Focus after a refusal on a form whose fields are disabled while saving:** `flushSync(() => setSaving(false))`, then `focusField`, then set the refusal, so the browser's focus scroll comes first and FormError's reveal last (FirstRunTargets).
 - **Stopping `npx next start` with pkill on the npx command leaves the `next-server` child on the port.** Kill the `next-server` pid too, then check the port before restarting.
+
+## Round 3 (2026-11-18): ink, bleed and partial commits
+
+- **Centre the ink, not the line box.** Artur judges a text action's place by its letters and underline. A Range rect gives the line box, which sits several pixels off the ink. Measure ink as pixel rows in a CSS-scale screenshot (sample the background beside the button, not under it, or a focus ring becomes the "background"). Move words inside their 44px target with bottom padding, so the footer height, the target's place and `--footer-start-reach` stay put.
+- **Full-bleed chip rows.** `-mx`, `px` and `scroll-px` all from `--sheet-pad-x`, the one token the sheet's header, body and footer pad by. Chromium counts the end padding in the scroll width. WebKit is unchecked (TODO item).
+- **The pre-commit hook re-stages whole files.** Staging a partial blob (`git update-index --cacheinfo`) is undone: prettier writes the working-tree file and `git add` takes all of it. To split one file's changes across commits, format the partial blob with `prettier --stdin-filepath`, stage it, and commit that one with `--no-verify`.
