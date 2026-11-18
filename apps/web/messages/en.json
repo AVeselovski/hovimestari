@@ -72,7 +72,6 @@
     "targets": {
       "title": "Targets",
       "current": "Current <part>(from {date})</part>",
-      "currentOnly": "Current",
       "fromDate": "From {date}",
       "earlier": "Earlier targets",
       "change": "Change targets",
@@ -181,12 +180,12 @@
       "proteinInvalid": "Enter below 10000, one decimal at most."
     },
     "range": {
-      "kcal": "<part>{lower} to</part> <part>{upper} kcal</part>",
-      "grams": "<part>{lower} to</part> <part>{upper} g</part>"
+      "kcal": "<part><num>{lower}</num> to</part> <part><num>{upper} kcal</num></part>",
+      "grams": "<part><num>{lower}</num> to</part> <part><num>{upper} g</num></part>"
     },
     "firstRun": {
       "title": "Your daily targets",
-      "lead": "Enter the ranges you aim for each day. You can change them at any time.",
+      "lead": "Enter the ranges you aim for each day. They apply from today, and you can change them in Settings at any time.",
       "save": "Save targets",
       "saving": "Saving…"
     },
@@ -195,13 +194,12 @@
       "titleEdit": "Edit targets",
       "startingOn": "Starting on {date}",
       "startsOn": "Starts on",
-      "replacesNamed": "{date} already has targets. Saving replaces them.",
       "replacesThisDate": "This date already has targets. Saving replaces them.",
-      "appliesBetween": "These apply from {date} to {end}. Other days keep their targets.",
-      "appliesDay": "These apply to {date} only. Other days keep their targets.",
-      "appliesFrom": "These apply from {date} on. Earlier days keep their targets.",
-      "appliesBefore": "These apply to every day before {next}. Later days keep their targets.",
-      "appliesAll": "These are your only targets, so they apply to every day.",
+      "appliesBetween": "These apply from {date} to {end}.",
+      "appliesDay": "These apply to {date} only.",
+      "appliesFrom": "These apply from {date} on.",
+      "earlierKeep": "Earlier days keep their targets.",
+      "earlierNone": "Earlier days have no targets.",
       "save": "Save",
       "saving": "Saving…",
       "remove": "Remove these targets",
@@ -209,7 +207,9 @@
       "removeBodyBetween": "Days from {date} to {end} are then measured against your earlier targets.",
       "removeBodyDay": "{date} is then measured against your earlier targets.",
       "removeBodyFrom": "Days from {date} on are then measured against your earlier targets.",
-      "removeBodyFirst": "Days before {next} are then measured against the targets from {next}.",
+      "removeBodyBetweenNone": "Days from {date} to {end} will have no targets.",
+      "removeBodyDayNone": "{date} will have no targets.",
+      "removeBodyFromNone": "Days from {date} on will have no targets.",
       "removeConfirm": "Remove",
       "removing": "Removing…"
     }
@@ -307,8 +307,8 @@
       "carbs": "Carbs",
       "carbsSpoken": "Carbohydrates",
       "fat": "Fat",
-      "kcalRange": "{lower} to {upper} kcal",
-      "gramsRange": "{lower} to {upper} g",
+      "kcalRange": "<num>{lower}</num> to <num>{upper} kcal</num>",
+      "gramsRange": "<num>{lower}</num> to <num>{upper} g</num>",
       "kcal": "kcal",
       "grams": "g",
       "approx": "≈",
@@ -323,7 +323,8 @@
       "proteinAbove": "{distance} g above the range",
       "estimateBoth": "These totals include an estimate.",
       "estimateWithPlan": "Planned entries include an estimate.",
-      "unmarked": "{count, plural, one {# planned entry was} other {# planned entries were}} never marked eaten."
+      "unmarked": "{count, plural, one {# planned entry was} other {# planned entries were}} never marked eaten.",
+      "targetsFrom": "Targets apply from {date}."
     },
     "list": {
       "title": "Entries",

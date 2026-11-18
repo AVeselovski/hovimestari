@@ -28,7 +28,7 @@ import {
   type TargetFieldErrors,
   type TargetFieldValues,
 } from "./targetForm";
-import { removalOf, spanOf, type Removal, type Span } from "./targetLines";
+import { spanOf, type Span } from "./targetLines";
 
 // ---------------------------------------------------------------------------
 // TargetsSheet: a dated targets change. The four fields, a line naming the
@@ -39,7 +39,8 @@ import { removalOf, spanOf, type Removal, type Span } from "./targetLines";
 // description: the date is fixed. The fields open with that change's own
 // targets, taken once as the sheet mounts: a refetch that lands while it is
 // open moves nothing. Saved untouched, it sends nothing. The change can be
-// removed while it is not the last one.
+// removed while it is not the last one. Its confirmation says what its days
+// then have: an earlier change's targets, or none.
 //
 // Opened from "Change targets", the sheet sets new targets from a date it
 // lets the reader pick, today by default. The fields open empty and stay
@@ -75,39 +76,39 @@ function spanText(t: T, span: Span): string {
       return t("appliesDay", { date: formatDay(span.date) });
     case "from":
       return t("appliesFrom", { date: formatDay(span.date) });
-    case "before":
-      return t("appliesBefore", { next: formatDay(span.next) });
-    case "all":
-      return t("appliesAll");
   }
 }
 
 /**
- * The line under the fields. On a picked date that already has a change, it
- * first says that saving replaces it, naming the date only where the span
- * does not already name it.
- * Two whole sentences, each one catalog entry, joined with a space: parts of
- * one sentence are never joined.
+ * The line under the fields: which days the numbers apply to, then what the
+ * days before them have. On a picked date that already has a change, it
+ * first says that saving replaces it. Whole sentences, each one catalog
+ * entry, joined with a space: parts of one sentence are never joined.
  */
-function lineText(t: T, date: string, span: Span, replaces: boolean): string {
-  const applies = spanText(t, span);
-  if (!replaces) return applies;
-  const named = span.kind === "between" || span.kind === "day" || span.kind === "from";
-  const notice = named ? t("replacesThisDate") : t("replacesNamed", { date: formatDay(date) });
-  return `${notice} ${applies}`;
+function lineText(t: T, span: Span, replaces: boolean): string {
+  const sentences = [spanText(t, span), span.earlier ? t("earlierKeep") : t("earlierNone")];
+  if (replaces) sentences.unshift(t("replacesThisDate"));
+  return sentences.join(" ");
 }
 
-function removalText(t: T, removal: Removal | null): string {
-  if (removal === null) return "";
-  switch (removal.kind) {
-    case "between":
-      return t("removeBodyBetween", { date: formatDay(removal.date), end: formatDay(removal.end) });
-    case "day":
-      return t("removeBodyDay", { date: formatDay(removal.date) });
-    case "from":
-      return t("removeBodyFrom", { date: formatDay(removal.date) });
-    case "first":
-      return t("removeBodyFirst", { next: formatDay(removal.next) });
+/**
+ * What removing the change on its date does to the days it covered: an
+ * earlier change takes them, or they have no targets.
+ */
+function removalText(t: T, span: Span): string {
+  switch (span.kind) {
+    case "between": {
+      const values = { date: formatDay(span.date), end: formatDay(span.end) };
+      return span.earlier ? t("removeBodyBetween", values) : t("removeBodyBetweenNone", values);
+    }
+    case "day": {
+      const values = { date: formatDay(span.date) };
+      return span.earlier ? t("removeBodyDay", values) : t("removeBodyDayNone", values);
+    }
+    case "from": {
+      const values = { date: formatDay(span.date) };
+      return span.earlier ? t("removeBodyFrom", values) : t("removeBodyFromNone", values);
+    }
   }
 }
 
@@ -154,7 +155,7 @@ export function TargetsSheet({
   const remove = useConfirmedDelete<string>({
     copy: (d) => ({
       title: t("removeTitle", { date: formatDay(d) }),
-      message: removalText(t, removalOf(changes, d)),
+      message: removalText(t, spanOf(changes, d)),
       confirmLabel: t("removeConfirm"),
       busyLabel: t("removing"),
     }),
@@ -284,7 +285,7 @@ export function TargetsSheet({
             screen reader hears which days the numbers apply to.
           */}
           <p aria-live="polite" data-span="" className={`${sectionStartWhenFilled} text-sm font-medium text-ink`}>
-            {span && lineText(t, date, span, replaces)}
+            {span && lineText(t, span, replaces)}
           </p>
           <NotAdviceNote className={sectionStart} />
         </>

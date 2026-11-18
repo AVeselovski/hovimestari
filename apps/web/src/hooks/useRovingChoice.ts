@@ -65,7 +65,8 @@ export function useRovingChoice<T extends string>(
     // Focus scrolls an option into view only when it is wholly out of view, so
     // a chip the row's edge half cuts would stay cut. Bring it fully in, to the
     // row's scroll padding. "nearest" moves nothing that is already in view,
-    // and only a key gets here, so a tap never makes the row jump.
+    // and only a key gets here, so a tap never makes the row jump. The `?.`
+    // is for jsdom, which does not implement scrollIntoView.
     el?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }
 

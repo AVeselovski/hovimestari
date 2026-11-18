@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/Icon";
+import { rangeFigure } from "@/components/figures/rangeParts";
 import { NotAdviceNote } from "@/components/targets/NotAdviceNote";
 import { TargetsSheet } from "@/components/targets/TargetsSheet";
 import { Card } from "@/components/ui/Card";
@@ -18,9 +19,15 @@ import { useRef, useState, type ReactElement, type ReactNode } from "react";
 
 /**
  * The targets in force today, the changes still to come and, behind a
- * disclosure, the earlier ones. Every change opens the targets sheet on
+ * disclosure, the earlier ones. A user whose changes all start later has no
+ * Current row, only those changes. Every change opens the targets sheet on
  * itself, with its own targets in the fields. Change targets opens it on
  * today, with the fields empty.
+ *
+ * The button is one element outside the state's content, rendered whenever
+ * there is an answer: a refetch that changes the panel's state, such as a
+ * removal that leaves no change in force, never unmounts it, so focus put on
+ * it after a removal stays there.
  */
 export function TargetsSection(): ReactElement {
   const t = useTranslations("settings.targets");
@@ -42,36 +49,33 @@ export function TargetsSection(): ReactElement {
 
   const inForce = data?.inForce ?? null;
   const changes = data?.changes ?? [];
-  const later = inForce
-    ? changes.filter((c) => c.effectiveFrom > today && c.effectiveFrom !== inForce.effectiveFrom)
-    : [];
+  // The changes still to come. With none in force, every change is still to come.
+  const later = changes.filter((c) => c.effectiveFrom > today && c.effectiveFrom !== inForce?.effectiveFrom);
   const earlier = inForce ? changes.filter((c) => c.effectiveFrom < inForce.effectiveFrom).reverse() : [];
 
   return (
     <Card labelledBy="settings-targets">
       <Card.Header id="settings-targets" title={t("title")} />
-      {data && inForce ? (
+      {data ? (
         <>
-          <ul className="-mx-2 divide-y divide-rule">
-            <li>
-              <ChangeRow
-                // A change in force before its own date (the first change, covering the days
-                // before it) is just "Current": a date not yet come would read as a start ahead.
-                heading={
-                  inForce.effectiveFrom > today
-                    ? t("currentOnly")
-                    : t.rich("current", { date: formatDay(inForce.effectiveFrom), part })
-                }
-                change={inForce}
-                onOpen={openOn}
-              />
-            </li>
-            {later.map((c) => (
-              <li key={c.effectiveFrom}>
-                <ChangeRow heading={t("fromDate", { date: formatDay(c.effectiveFrom) })} change={c} onOpen={openOn} />
-              </li>
-            ))}
-          </ul>
+          {(inForce || later.length > 0) && (
+            <ul className="-mx-2 divide-y divide-rule">
+              {inForce && (
+                <li>
+                  <ChangeRow
+                    heading={t.rich("current", { date: formatDay(inForce.effectiveFrom), part })}
+                    change={inForce}
+                    onOpen={openOn}
+                  />
+                </li>
+              )}
+              {later.map((c) => (
+                <li key={c.effectiveFrom}>
+                  <ChangeRow heading={t("fromDate", { date: formatDay(c.effectiveFrom) })} change={c} onOpen={openOn} />
+                </li>
+              ))}
+            </ul>
+          )}
           {earlier.length > 0 && (
             <details className="group mt-2 border-t border-rule pt-2">
               <summary
@@ -96,17 +100,19 @@ export function TargetsSection(): ReactElement {
               </ul>
             </details>
           )}
-          <button
-            ref={changeRef}
-            type="button"
-            onClick={(e) => openOn(undefined, e.currentTarget)}
-            className={`mt-5 w-full md:w-auto ${btnSecondary}`}
-          >
-            {t("change")}
-          </button>
         </>
       ) : (
         <p className="text-base text-ink-muted">{t("unavailable")}</p>
+      )}
+      {data && (
+        <button
+          ref={changeRef}
+          type="button"
+          onClick={(e) => openOn(undefined, e.currentTarget)}
+          className={`mt-5 w-full md:w-auto ${btnSecondary}`}
+        >
+          {t("change")}
+        </button>
       )}
       <NotAdviceNote className="mt-5" />
 
@@ -128,10 +134,11 @@ export function TargetsSection(): ReactElement {
 }
 
 /**
- * A range's figures. One that does not fit beside its label drops whole to
- * the next line, still on the right edge.
+ * A range: its figures and unit in the monospaced face, "to" in the body
+ * face (`rangeFigure`). One that does not fit beside its label drops whole
+ * to the next line, still on the right edge.
  */
-const figureClass = "ml-auto text-right font-mono text-lg text-ink tabular-nums";
+const figureClass = "ml-auto text-right font-body text-lg text-ink";
 
 /**
  * A run of text never broken. The two halves of a range, "1800 to" and "2200
@@ -170,13 +177,19 @@ function ChangeRow({
               lower: formatTarget(energyKcal.lower),
               upper: formatTarget(energyKcal.upper),
               part,
+              num: rangeFigure,
             })}
           </span>
         </span>
         <span className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3">
           <span className="text-base text-ink">{tFields("protein")}</span>
           <span className={figureClass}>
-            {tRange.rich("grams", { lower: formatTarget(proteinG.lower), upper: formatTarget(proteinG.upper), part })}
+            {tRange.rich("grams", {
+              lower: formatTarget(proteinG.lower),
+              upper: formatTarget(proteinG.upper),
+              part,
+              num: rangeFigure,
+            })}
           </span>
         </span>
       </span>
