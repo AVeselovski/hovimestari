@@ -5,14 +5,14 @@
    summary stays in view beside the entries (DayTab). Below that height it
    scrolls with the page, so its end is never out of reach. A media query
    cannot read a custom property, so the height is written here:
-   6rem from the top to the summary (`--day-content-top` from lg: 2rem
-   above, the 3rem row, 0.75rem clearance, 0.25rem room at rest) + 23.75rem
+   6.5rem from the top to the summary (`--day-content-top` from lg: 2rem
+   above, the 3rem row, 0.75rem clearance, 0.75rem room at rest) + 23.75rem
    tallest summary (a past day with both notes and five-digit figures,
    380px at 1024 wide, the narrowest lg column) + 7.25rem toast room
-   (`--spacing-toast-clearance`) + the 2.3125rem offline line = 39.3125rem,
+   (`--spacing-toast-clearance`) + the 2.3125rem offline line = 39.8125rem,
    rounded up. DayTab.test.tsx adds the tokens up and fails when this falls
    behind them. */
-@custom-variant summary-stays (@media (width >= 64rem) and (height >= 39.5rem));
+@custom-variant summary-stays (@media (width >= 64rem) and (height >= 40rem));
 
 /* ------------------------------------------------------------------ */
 /* Design tokens. docs/app/colors.md says what each one is for.        */
@@ -165,28 +165,35 @@
      under it. The clearance counts the header's one-pixel bottom edge.
      The height is the header's own box. The content under it starts a
      little lower at rest (`--day-header-rest`, which scrolls away), so it
-     sits 1rem under the launcher. `--day-content-top` is where that
-     content starts at rest, which is also where a focused row stops
-     (`under-day-header`) and where the summary stays from lg, so neither
-     moves when it starts to stay. From lg the two sit side by side in one
-     row. */
+     sits 1.5rem under the launcher at every width. `--day-content-top` is
+     where that content starts at rest, which is also where a focused row
+     stops (`under-day-header`) and where the summary stays from lg, so
+     neither moves when it starts to stay. From lg the two sit side by side
+     in one row. */
   --day-header-top: 0.5rem;
   --day-header-gap: 1rem;
   --day-header-clear: 0.75rem;
-  --day-header-rest: 0.25rem;
+  --day-header-rest: 0.75rem;
   --day-header-height: calc(var(--day-header-top) + 2.75rem + var(--day-header-gap) + 3rem + var(--day-header-clear));
   --day-content-top: calc(var(--day-header-height) + var(--day-header-rest));
 
   /* How far a secondary action's 44px target in a sheet's footer reaches
-     above its line of text on a phone (`sheetActionsStartButton`). The
+     above its row, into the footer's top padding, on a phone
+     (`sheetActionsStartButton`). The
      footer row that yields to the keyboard keeps this room, and 4px more
      for the focus ring, from its own clip (`keyboard-yields`). */
   --footer-start-reach: 0.625rem;
+
+  /* A sheet's inline padding: its header, body and footer (`sheetHeader`,
+     `sheetBodyClass`, `sheetFooter`). A row of chips in its body bleeds
+     through it to the sheet's edges (`sheetChipRow`). 1.5rem from md. */
+  --sheet-pad-x: 1.25rem;
 }
 
 @media (width >= 48rem) {
   :root {
     --day-header-top: 2rem;
+    --sheet-pad-x: 1.5rem;
   }
 }
 
@@ -391,7 +398,7 @@ body {
 /* sheet's Remove entry (FormSheetActions, `yieldsToKeyboard`). With   */
 /* the keyboard closed it is its content's height. Its padding, taken  */
 /* back by its margins, is room `overflow: hidden` must not clip: the  */
-/* text button's 44px target reaches 10px above its line of text       */
+/* text button's 44px target reaches 10px above the row                */
 /* (`sheetActionsStartButton`), and its focus ring 4px further. While  */
 /* --drawer-keyboard-inset is above 0 (Base UI sets it for a           */
 /* keyboard-aware sheet) the row clamps to nothing, its padding and    */
@@ -441,10 +448,13 @@ body {
 
 /* Content that scrolls under the Day tab's header: anything focused and
    scrolled into view, by the keyboard or by script, stops where the content
-   starts at rest, 1rem under the launcher, rather than behind the header. */
+   starts at rest, 1.5rem under the launcher, rather than behind the header.
+   At the bottom it stops 0.5rem short of the tab bar or the screen's edge,
+   so its focus ring, 4px out, shows whole. */
 @utility under-day-header {
   & * {
     scroll-margin-top: var(--day-content-top);
+    scroll-margin-bottom: 0.5rem;
   }
 }
 

@@ -60,6 +60,7 @@ function scrollToNearest(body: Element, span: Span, view: Span): void {
   body.scrollTop += by;
   const left = body.scrollHeight - body.clientHeight - body.scrollTop;
   const room = parseFloat(getComputedStyle(body).paddingBottom) || 0;
+  // The last clause keeps the top of what is revealed in view after the extra scroll.
   if (left > 0 && left <= room && span.top - by - left >= view.top) body.scrollTop += left;
 }
 

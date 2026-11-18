@@ -1,7 +1,7 @@
 "use client";
 
 import { DecimalField } from "@/components/ui/DecimalField";
-import { chipOff, chipOn, chipRowWrapping, chip as chipStyle } from "@/components/ui/styles";
+import { chipOff, chipOn, chip as chipStyle, sheetChipRowWrapping } from "@/components/ui/styles";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useRovingChoice } from "@/hooks/useRovingChoice";
 import { formatGrams } from "@/lib/foodFormat";
@@ -67,7 +67,7 @@ export function AmountField({
         role="radiogroup"
         aria-label={tSheet("amount")}
         // Room for the focus ring, which the scroll would clip.
-        className={chipRowWrapping}
+        className={sheetChipRowWrapping}
       >
         {chips.map((chip) => (
           <button

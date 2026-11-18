@@ -71,6 +71,7 @@ export function useNativeTapWhileKeyboardDown(enabled: boolean): NativeTapWhileK
   const ref = useCallback((el: HTMLElement | null) => setPopup(el), []);
 
   useEffect(() => {
+    // No visual viewport: never listen, since `keyboardIsUp` reads that as a keyboard that is down.
     if (!enabled || !popup || !window.visualViewport) return;
     const el = popup;
     // Bubble phase on the Popup: before React's listener at the root, where

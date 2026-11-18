@@ -188,19 +188,29 @@ export const sectionTitle = "section-label";
  * that never wraps its label. A label longer than its row is cut with an
  * ellipsis at the row's width, so no chip pushes past its row or makes a
  * sheet scroll sideways. Chips sit in one row that scrolls sideways
- * (`chipRow`). The chosen one is in the accent, because chosen is not the
+ * (`sheetChipRow`). The chosen one is in the accent, because chosen is not the
  * same as on target.
  */
 export const chip = `inline-block max-w-full shrink-0 truncate rounded-pill border px-4 text-base leading-10.5 font-semibold whitespace-nowrap transition-colors duration-150 ${focusRing}`;
 export const chipOn = "border-accent bg-accent text-on-accent";
 export const chipOff = "border-field-rule bg-surface-raised text-ink";
-/** A row of chips that scrolls sideways and never wraps, with room for the focus ring the scroll would clip. */
-export const chipRow = "no-scrollbar -mx-1 flex gap-2 overflow-x-auto overscroll-x-contain px-1 py-1";
 /**
- * A row of chips that scrolls sideways on a phone and wraps from `md`, where
- * a mouse has no way to scroll a row with no scrollbar.
+ * A row of chips in a sheet's body that scrolls sideways and never wraps. It
+ * bleeds through the body's inline padding to the sheet's edges and pads
+ * itself back by the same amount (`--sheet-pad-x`), so at rest the first chip
+ * lines up with the fields, mid-scroll the chips run to both edges, and at
+ * the end the last chip lines up with the fields' right edge. A chip that
+ * focus scrolls into view stops at that same edge (`scroll-padding-inline`).
+ * Its 4px above and below are the focus ring's room, which the scroll clips.
  */
-export const chipRowWrapping = `${chipRow} md:flex-wrap md:overflow-x-visible`;
+export const sheetChipRow =
+  "no-scrollbar -mx-(--sheet-pad-x) flex scroll-px-(--sheet-pad-x) gap-2 overflow-x-auto overscroll-x-contain px-(--sheet-pad-x) py-1";
+/**
+ * A `sheetChipRow` that scrolls sideways on a phone and wraps from `md`,
+ * where a mouse has no way to scroll a row with no scrollbar. Wrapped, it
+ * stays inside the body's padding, and nothing clips its focus rings.
+ */
+export const sheetChipRowWrapping = `${sheetChipRow} md:mx-0 md:flex-wrap md:overflow-x-visible md:px-0`;
 
 /**
  * The z-index ladder. Page content sits at the default. A page's own header
@@ -322,13 +332,13 @@ export const sheetPopupHeld = "h-[calc(var(--sheet-held-height)+var(--sheet-foot
 export const sheetHandle = "mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-pill bg-field-rule md:hidden";
 
 /** A sheet's title row, fixed above its scrolling body, so the title never scrolls away. */
-export const sheetHeader = "shrink-0 px-5 pt-4 md:px-6 md:pt-6";
+export const sheetHeader = "shrink-0 px-(--sheet-pad-x) pt-4 md:pt-6";
 
 /** The title in a `sheetHeader`, in the display face. A title that wraps is balanced. */
 export const sheetTitle = "font-display text-2xl font-medium text-balance text-ink";
 
 /** The scrolling part every sheet body shares. `touch-auto` undoes the viewport's `touch-none`. */
-const sheetBodyScroll = "min-h-0 flex-1 touch-auto overflow-y-auto overscroll-contain px-5 md:px-6";
+const sheetBodyScroll = "min-h-0 flex-1 touch-auto overflow-y-auto overscroll-contain px-(--sheet-pad-x)";
 
 /**
  * The sheet's scrolling body, padded for what sits around it. Above a footer
@@ -347,7 +357,7 @@ export function sheetBodyClass({ header, footer }: { header: boolean; footer: bo
  * `--sheet-footer-pad`, which clears the home indicator or the software
  * keyboard (`sheetPopupShape`).
  */
-export const sheetFooter = "shrink-0 border-t border-rule px-5 pt-4 pb-(--sheet-footer-pad) md:px-6 md:pb-5";
+export const sheetFooter = "shrink-0 border-t border-rule px-(--sheet-pad-x) pt-4 pb-(--sheet-footer-pad) md:pb-5";
 
 /**
  * The buttons in a `sheetFooter`: two equal halves below `md`, 8px apart, the
@@ -370,13 +380,14 @@ export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:mr
 
 /**
  * The text button in a `sheetActionsStart` row. Below `md` it keeps its 44px
- * target, which reaches 10px past its line of text above and below: above,
- * into the footer's top padding, so its words sit 16px under the footer's
- * rule as a footer's content does. Below, 2px more keep the target off Cancel
- * and Save, so the words sit 12px over them, with no empty band around them.
- * From `md` it stands in the buttons' row at its full height.
+ * target, which reaches 10px above its row, into the footer's top padding,
+ * and keeps 2px of its own under it, off Cancel and Save. Its words sit 4px
+ * above the target's middle (`pb-2`), so their ink is centred in the room
+ * between the footer's rule and the two buttons: the room above a capital's
+ * top and the room under the underline differ by 1px at most. From `md` it
+ * stands in the buttons' row at its full height.
  */
-export const sheetActionsStartButton = "max-md:-mt-(--footer-start-reach) max-md:mb-0.5";
+export const sheetActionsStartButton = "max-md:-mt-(--footer-start-reach) max-md:mb-0.5 max-md:pb-2";
 
 /** Cancel and the submit button together: the two halves below `md`, one group at the end of the row from `md`. */
 export const sheetActionsPair = "contents md:ml-auto md:flex md:gap-3";

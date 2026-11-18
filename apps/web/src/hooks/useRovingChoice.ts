@@ -60,7 +60,13 @@ export function useRovingChoice<T extends string>(
     if (next === undefined) return;
     e.preventDefault();
     if (next !== value) onChange(next);
-    elements.current.get(next)?.focus();
+    const el = elements.current.get(next);
+    el?.focus();
+    // Focus scrolls an option into view only when it is wholly out of view, so
+    // a chip the row's edge half cuts would stay cut. Bring it fully in, to the
+    // row's scroll padding. "nearest" moves nothing that is already in view,
+    // and only a key gets here, so a tap never makes the row jump.
+    el?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }
 
   return {

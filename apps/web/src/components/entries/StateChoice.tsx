@@ -41,20 +41,25 @@ export interface StateChoiceProps {
   /** The date is after today: only Planned can be saved. */
   future: boolean;
   /**
-   * The id of a line elsewhere in the form that says why only Planned can be
-   * saved, such as the date field's. Given, the group draws no line of its own.
+   * A line elsewhere in the form that says why only Planned can be saved,
+   * such as the date field's: its `id`, and whether it says so now (`shown`),
+   * which it does not while the date's line holds an error. Given, the group
+   * draws no line of its own.
    */
-  reasonId?: string;
+  reason?: { id: string; shown: boolean };
 }
 
-export function StateChoice({ id, value, onChange, future, reasonId }: StateChoiceProps): ReactElement {
+export function StateChoice({ id, value, onChange, future, reason }: StateChoiceProps): ReactElement {
   const t = useTranslations("entries.sheet");
   const shown: EntryStatus = future ? "planned" : value;
   const disabled = (s: EntryStatus) => future && s === "eaten";
   const roving = useRovingChoice(STATES, shown, onChange, disabled);
   const hintId = `${id}-hint`;
-  const ownLine = future && reasonId === undefined;
-  const describedBy = reasonId ?? (ownLine ? hintId : undefined);
+  const ownLine = future && reason === undefined;
+  // Only a line that says something describes the group: a future day's, and
+  // not while the date's line holds an error instead.
+  const line = reason ? (reason.shown ? reason.id : undefined) : hintId;
+  const describedBy = future ? line : undefined;
   return (
     <div data-state-choice="" className={ownLine ? undefined : linelessBlock}>
       <span id={`${id}-label`} className={labelClass}>

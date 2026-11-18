@@ -43,7 +43,7 @@ export interface NativeDateInputProps extends NativeInputProps {
 
 /**
  * The id of the span that holds a date field's hint, for a control the hint
- * explains (the Eaten or planned group's `reasonId`). Empty while the line
+ * explains (the Eaten or planned group's `reason`). Empty while the line
  * shows an error, so an error is never read as that control's reason.
  */
 export function dateHintId(id: string): string {
