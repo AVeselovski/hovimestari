@@ -1,5 +1,6 @@
 import { describeFormSheetContract } from "@/__tests__/formSheet";
 import { confirmArmed, holdSheetExits } from "@/__tests__/sheet";
+import { sectionStart } from "@/components/ui/styles";
 import { deleteTargets, getTargets, putTargets } from "@/lib/api/targets";
 import { formatDay } from "@/lib/localDate";
 import { formatTarget } from "@/lib/targetFormat";
@@ -101,20 +102,33 @@ describe("TargetsSheet", () => {
       expect(getTargets).not.toHaveBeenCalled();
     });
 
-    it("stays empty on a date that has a change of its own, and the title names that change", () => {
+    it("stays empty on a date that has a change of its own", () => {
       changes = [change("2026-11-01"), change("2026-12-01", [2000, 2400], [130, 170])];
       renderSheet();
-      expect(screen.getByRole("dialog", { name: "Change targets" })).toBeInTheDocument();
       fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
-      expect(screen.getByRole("dialog", { name: `Targets from ${formatDay("2026-12-01")}` })).toBeInTheDocument();
       expect(values()).toEqual(["", "", "", ""]);
     });
 
     it("stays empty on today when today has its own change, as on the first day", () => {
       changes = [change(TODAY)];
       renderSheet();
-      expect(screen.getByRole("dialog", { name: `Targets from ${formatDay(TODAY)}` })).toBeInTheDocument();
       expect(values()).toEqual(["", "", "", ""]);
+    });
+
+    // Across states: the title is one node with one text whatever date is picked.
+    it("keeps its title, one line with no room for a second, as the date moves onto a change and off it", () => {
+      changes = [change("2026-11-01"), change("2026-12-01")];
+      renderSheet();
+      const title = within(dialog()).getByRole("heading", { name: "Change targets" });
+      expect(title.className.split(/\s+/).filter((c) => /min-h/.test(c))).toEqual([]);
+      for (const day of ["2026-12-01", "2026-12-10", "2026-11-01", TODAY]) {
+        fireEvent.change(dateField(), { target: { value: day } });
+        expect(within(dialog()).getByRole("heading", { name: "Change targets" })).toBe(title);
+        expect(dialog()).toHaveAccessibleName("Change targets");
+      }
+      // No subtitle and no description: nothing in the header under the title.
+      expect(dialog()).not.toHaveAttribute("aria-describedby");
+      expect(dialog().querySelector("[data-sheet-header-note]")).toBeNull();
     });
 
     it("keeps what was typed when the date changes", () => {
@@ -316,6 +330,71 @@ describe("TargetsSheet", () => {
       expect(span()).toHaveTextContent("These are your only targets, so they apply to every day.");
       expect(span()).not.toHaveTextContent(/keep their targets/);
     });
+
+    describe("on a picked date that already has targets", () => {
+      // The whole line, so a notice in the wrong place or said twice fails.
+      const line = () => span().textContent;
+
+      it("between two changes: says it replaces this date's targets, then the days, naming the date once", () => {
+        changes = [change("2026-10-01"), change("2026-11-01"), change("2026-12-01")];
+        renderSheet();
+        fireEvent.change(dateField(), { target: { value: "2026-11-01" } });
+        expect(line()).toBe(
+          "This date already has targets. Saving replaces them. These apply from November 1, 2026 to November 30, 2026. Other days keep their targets.",
+        );
+      });
+
+      it("for one day: says it replaces this date's targets, then the day", () => {
+        changes = [change("2026-11-01"), change("2026-11-15"), change("2026-11-16")];
+        renderSheet();
+        fireEvent.change(dateField(), { target: { value: "2026-11-15" } });
+        expect(line()).toBe(
+          "This date already has targets. Saving replaces them. These apply to November 15, 2026 only. Other days keep their targets.",
+        );
+      });
+
+      it("on the last change: says it replaces this date's targets, then from it on", () => {
+        changes = [change("2026-11-01"), change("2026-12-01")];
+        renderSheet();
+        fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
+        expect(line()).toBe(
+          "This date already has targets. Saving replaces them. These apply from December 1, 2026 on. Earlier days keep their targets.",
+        );
+      });
+
+      it("on the first change: names the date, since the days are named by the next change", () => {
+        changes = [change("2026-11-01"), change("2026-12-01")];
+        renderSheet();
+        fireEvent.change(dateField(), { target: { value: "2026-11-01" } });
+        expect(line()).toBe(
+          "November 1, 2026 already has targets. Saving replaces them. These apply to every day before December 1, 2026. Later days keep their targets.",
+        );
+      });
+
+      it("on the only change: names the date, then says these are the only targets", () => {
+        changes = [change(TODAY)];
+        renderSheet();
+        expect(line()).toBe(
+          "November 16, 2026 already has targets. Saving replaces them. These are your only targets, so they apply to every day.",
+        );
+      });
+
+      // Across states: one announced line, the notice comes and goes with the date.
+      it("comes and goes in the same announced line as the date moves onto a change and off it", () => {
+        changes = [change("2026-11-01"), change("2026-12-01")];
+        renderSheet();
+        const el = span();
+        expect(el).not.toHaveTextContent(/already has targets/);
+        fireEvent.change(dateField(), { target: { value: "2026-12-01" } });
+        expect(span()).toBe(el);
+        expect(el).toHaveAttribute("aria-live", "polite");
+        expect(el).toHaveTextContent(/^This date already has targets\. Saving replaces them\. /);
+        fireEvent.change(dateField(), { target: { value: "2026-12-02" } });
+        expect(span()).toBe(el);
+        expect(el).not.toHaveTextContent(/already has targets|replaces/);
+        expect(el).toHaveTextContent(`These apply from ${formatDay("2026-12-02")} on.`);
+      });
+    });
   });
 
   it("saves on the picked date and closes", async () => {
@@ -353,11 +432,40 @@ describe("TargetsSheet", () => {
     expect(putTargets).not.toHaveBeenCalled();
   });
 
-  it("opened on a change, shows its date as text, not a field", () => {
-    changes = [change("2026-11-01"), change("2026-12-01")];
-    renderSheet({ editing: "2026-12-01" });
-    expect(within(dialog()).queryByLabelText("Starts on")).toBeNull();
-    expect(within(dialog()).getByText(formatDay("2026-12-01"))).toBeInTheDocument();
+  describe("opened on a change", () => {
+    beforeEach(() => {
+      changes = [change("2026-11-01"), change("2026-12-01")];
+    });
+
+    it("is Edit targets, described by its date in the header, and its body starts with the fields", () => {
+      renderSheet({ editing: "2026-12-01" });
+      const sheet = screen.getByRole("dialog", { name: "Edit targets" });
+      expect(sheet).toHaveAccessibleDescription("Starting on December 1, 2026");
+      const subtitle = within(sheet).getByText("Starting on December 1, 2026");
+      // In the fixed header under the title, not in the body that scrolls.
+      expect(subtitle.closest("[data-sheet-header]")).toContainElement(within(sheet).getByRole("heading"));
+      expect(subtitle.closest("[data-sheet-body]")).toBeNull();
+      expect(subtitle.className.split(/\s+/)).toEqual(expect.arrayContaining(["text-base", "text-ink-muted"]));
+      // No date field, no "Starts on" label, and no date in the body above the fields.
+      expect(within(sheet).queryByLabelText("Starts on")).toBeNull();
+      expect(sheet).not.toHaveTextContent(/Starts on/);
+      const body = sheet.querySelector<HTMLElement>("[data-sheet-body]")!;
+      const form = body.querySelector("form")!;
+      expect(form.firstElementChild).toContainElement(group("Calories"));
+      const classes = form.firstElementChild?.className.split(/\s+/) ?? [];
+      for (const c of sectionStart.split(/\s+/)) expect(classes).not.toContain(c);
+    });
+
+    it("keeps no room for a second title line", () => {
+      renderSheet({ editing: "2026-12-01" });
+      const title = within(dialog()).getByRole("heading", { name: "Edit targets" });
+      expect(title.className.split(/\s+/).filter((c) => /min-h/.test(c))).toEqual([]);
+    });
+
+    it("says nothing of replacing, though its date has a change", () => {
+      renderSheet({ editing: "2026-12-01" });
+      expect(dialog()).not.toHaveTextContent(/already has targets|replaces/);
+    });
   });
 
   it("offers no Remove with one change, nor for a new change", () => {
@@ -403,8 +511,9 @@ describe("TargetsSheet", () => {
         editing: "2026-12-01",
       };
       const { rerender } = render(<TargetsSheet open changes={changes} {...props} />);
-      const title = `Targets from ${formatDay("2026-12-01")}`;
-      expect(screen.getByRole("dialog", { name: title })).toBeInTheDocument();
+      const title = "Edit targets";
+      const description = `Starting on ${formatDay("2026-12-01")}`;
+      expect(screen.getByRole("dialog", { name: title, description })).toBeInTheDocument();
       const span = dialog().querySelector("[data-span]")?.textContent;
       const fields = values();
 
@@ -416,6 +525,7 @@ describe("TargetsSheet", () => {
 
       const closing = screen.getByRole("dialog", { hidden: true });
       expect(closing).toHaveAccessibleName(title);
+      expect(closing).toHaveAccessibleDescription(description);
       expect(closing.querySelector("[data-span]")?.textContent).toBe(span);
       // The fields keep the numbers they showed, though the change they came from is gone.
       expect(

@@ -36,14 +36,15 @@ beforeEach(() => {
 const region = () => screen.getByRole("region", { name: "Targets" });
 
 describe("Settings, Targets", () => {
-  it("shows the targets in force today, in figures, and each later change", async () => {
+  it("shows the targets in force today under the date they start on, in figures, and each later change", async () => {
     changes = [
       change("2026-10-01", [1600, 2000], [100, 140]),
       change("2026-11-01"),
       change("2026-12-01", [2000, 2400], [130, 170]),
     ];
     render(<TargetsSection />);
-    const today = await within(region()).findByRole("button", { name: /In force today/ });
+    const today = await within(region()).findByRole("button", { name: /^Current \(from / });
+    expect(today).toHaveTextContent(`Current (from ${formatDay("2026-11-01")})`);
     expect(today).toHaveTextContent("Calories1800 to 2200 kcal");
     expect(today).toHaveTextContent("Protein120 to 160 g");
     const later = within(region()).getByRole("button", { name: new RegExp(`From ${formatDay("2026-12-01")}`) });
@@ -62,7 +63,7 @@ describe("Settings, Targets", () => {
   it("breaks a range's figures only between its halves, and keeps them on the right edge when they drop under their label", async () => {
     changes = [change("2026-11-01", [99999.9, 99999.9], [9999.9, 9999.9])];
     render(<TargetsSection />);
-    const row = await within(region()).findByRole("button", { name: /In force today/ });
+    const row = await within(region()).findByRole("button", { name: /^Current \(from / });
     const figures = [...row.querySelectorAll<HTMLElement>(".font-mono")];
     expect(figures.map((f) => f.textContent)).toEqual(["99999.9 to 99999.9 kcal", "9999.9 to 9999.9 g"]);
     for (const figure of figures) {
@@ -78,8 +79,36 @@ describe("Settings, Targets", () => {
   it("has no Earlier targets with nothing before the change in force", async () => {
     changes = [change("2026-11-01")];
     render(<TargetsSection />);
-    await within(region()).findByRole("button", { name: /In force today/ });
+    await within(region()).findByRole("button", { name: /^Current \(from / });
     expect(within(region()).queryByText("Earlier targets")).toBeNull();
+  });
+
+  it("labels the change in force with its own date, kept whole on one line when the label wraps", async () => {
+    changes = [change("2026-10-01"), change("2026-11-17")];
+    // TODAY is 2026-11-16: the change in force is the October one.
+    render(<TargetsSection />);
+    const row = await within(region()).findByRole("button", { name: /^Current \(from / });
+    const heading = row.querySelector<HTMLElement>(".text-ink-muted")!;
+    expect(heading).toHaveTextContent("Current (from October 1, 2026)");
+    // The one place it may break is after "Current".
+    const kept = heading.querySelector<HTMLElement>(".whitespace-nowrap")!;
+    expect(kept.textContent).toBe("(from October 1, 2026)");
+    expect(heading.firstChild?.textContent).toBe("Current ");
+    expect(within(region()).queryByText(/In force/)).toBeNull();
+  });
+
+  it('heads the first change "Current" alone, with no date, on a day before it starts', async () => {
+    // The first change also covers every day before it. TODAY is 2026-11-16.
+    changes = [change("2026-11-20"), change("2026-12-01")];
+    render(<TargetsSection />);
+    const row = await within(region()).findByRole("button", { name: /^Current/ });
+    const heading = row.querySelector<HTMLElement>(".text-ink-muted")!;
+    expect(heading.textContent).toBe("Current");
+    expect(row).not.toHaveTextContent(/\(from|2026-11-20/);
+    expect(row).not.toHaveTextContent(formatDay("2026-11-20"));
+    expect(
+      within(region()).getByRole("button", { name: new RegExp(`^From ${formatDay("2026-12-01")}`) }),
+    ).toBeInTheDocument();
   });
 
   const fieldValues = (sheet: HTMLElement) =>
@@ -96,11 +125,14 @@ describe("Settings, Targets", () => {
     expect(fieldValues(sheet)).toEqual(["", "", "", ""]);
   });
 
-  it("opens In force today on that change, with its own targets in its fields and the days they apply to", async () => {
+  it("opens the current change on itself, with its own targets in its fields and the days they apply to", async () => {
     changes = [change("2026-10-01", [1600, 2000], [100, 140]), change("2026-11-01")];
     render(<TargetsSection />);
-    fireEvent.click(await within(region()).findByRole("button", { name: /In force today/ }));
-    const sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-11-01")}` });
+    fireEvent.click(await within(region()).findByRole("button", { name: /^Current \(from / }));
+    const sheet = await screen.findByRole("dialog", {
+      name: "Edit targets",
+      description: `Starting on ${formatDay("2026-11-01")}`,
+    });
     expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
     expect(sheet).toHaveTextContent(`These apply from ${formatDay("2026-11-01")} on. Earlier days keep their targets.`);
   });
@@ -112,8 +144,11 @@ describe("Settings, Targets", () => {
     render(<TargetsSection />);
     const closed = () => waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
-    fireEvent.click(await within(region()).findByRole("button", { name: /In force today/ }));
-    let sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-11-01")}` });
+    fireEvent.click(await within(region()).findByRole("button", { name: /^Current \(from / }));
+    let sheet = await screen.findByRole("dialog", {
+      name: "Edit targets",
+      description: `Starting on ${formatDay("2026-11-01")}`,
+    });
     expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
     fireEvent.keyDown(document, { key: "Escape" });
     await closed();
@@ -126,7 +161,10 @@ describe("Settings, Targets", () => {
 
     fireEvent.click(within(region()).getByText("Earlier targets"));
     fireEvent.click(within(region()).getByRole("button", { name: new RegExp(`From ${formatDay("2026-10-01")}`) }));
-    sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-10-01")}` });
+    sheet = await screen.findByRole("dialog", {
+      name: "Edit targets",
+      description: `Starting on ${formatDay("2026-10-01")}`,
+    });
     expect(fieldValues(sheet)).toEqual(["1600", "2000", "100", "140"]);
   });
 
@@ -136,7 +174,10 @@ describe("Settings, Targets", () => {
     fireEvent.click(
       await within(region()).findByRole("button", { name: new RegExp(`From ${formatDay("2026-12-01")}`) }),
     );
-    const sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-12-01")}` });
+    const sheet = await screen.findByRole("dialog", {
+      name: "Edit targets",
+      description: `Starting on ${formatDay("2026-12-01")}`,
+    });
     expect(within(sheet).queryByLabelText("Starts on")).toBeNull();
     expect(within(sheet).getByRole("button", { name: "Remove these targets" })).toBeInTheDocument();
   });

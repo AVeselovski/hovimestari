@@ -277,7 +277,7 @@ describe("TodayProvider", () => {
     expect(dayChange).toHaveBeenCalledTimes(1);
   });
 
-  it("brings Settings' In force today to the new date after midnight", async () => {
+  it("brings Settings' current targets to the new date after midnight", async () => {
     jest.setSystemTime(HELSINKI_MIDNIGHT - 30_000);
     serverAt(0);
     renderProvider(seeded("2026-11-16"), <TargetsSection />);
@@ -287,7 +287,10 @@ describe("TodayProvider", () => {
     expect(probe()).toMatch(/^2026-11-17/);
     await advance(100);
     expect(screen.queryByText(`From ${formatDay("2026-11-17")}`)).toBeNull();
-    expect(screen.getByText("In force today").closest("li")).toHaveTextContent("2000 to 2400 kcal");
+    const current = `Current (from ${formatDay("2026-11-17")})`;
+    expect(screen.getByRole("button", { name: (name) => name.startsWith(current) })).toHaveTextContent(
+      "2000 to 2400 kcal",
+    );
   });
 });
 
