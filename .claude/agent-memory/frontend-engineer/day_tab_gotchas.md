@@ -42,3 +42,12 @@ type: project
 - **Render order beats z-index for stacked toasts**: they share one absolute place, so the later node paints on top. Close before add keeps node order stable.
 - **`pkill -f "next start"` leaves `next-server` holding the port.** Find the child by `PORT` in `/proc/<pid>/environ` and stop it. The dev backend keeps pool connections until its `tsx` child exits, so `drop database` fails until both are gone.
 - **A measuring script that presses Save can change the seed data.** An estimate accepts 0 calories, so "0 then Save" saved it. Check screenshots for stray data before handing them on.
+
+## Sticky header and remembered day, 2026-11-17
+
+- **A sticky header must own the room above it.** With the page's own top padding outside the header, the header slides up by that padding when it starts to stick. `PageContainer untitled` is `pt-0` for that reason, and `DayHeader` pads itself. Measure the header's rect at scroll 0, mid and end, not only at rest.
+- **The hairline lives in the clearance.** The bottom border is always 1 px (page colour at rest, rule colour while scrolled), and the bottom padding is the clearance less 1 px, so the hairline never changes the height and the visible gap stays exact.
+- **Focus scroll needs `scroll-margin-top` on the targets.** Without it, Tab and Shift+Tab left rows hidden behind the header (7 of 62 stops at 390, 3 at 1280). `under-day-header` gives every descendant the header's height.
+- **Faking midnight in a real browser:** the server's today follows the account's zone, so PATCH `/users/me/settings` from Pago_Pago to Kiritimati moves it a day, and `page.clock.fastForward` makes the provider ask. A reload writes the device's own zone (UTC in headless) back to the account, so dates after a reload follow UTC.
+- **A worktree named `old` in the scratchpad belonged to another run** and vanished mid-check. Name scratch worktrees uniquely and build `packages/types` in them, or every suite fails on the `dist` mapping.
+- Owner preference (from his phone, 2026-11-17): the date bar and Log food stay in view, 16 px apart, with 24 px to the content (his own inspector edit measures 29 px to the legend box; 16 px read tighter). A plain solid header with a hairline was chosen over glass. From lg the summary stays under the header too, only on viewports at least 680 px tall (the `summary-stays` variant), so its end is never out of reach.

@@ -84,7 +84,7 @@ On a phone a sheet with another stacked on it shrinks to `--sheet-stack-scale` (
 
 ### Layers
 
-One ladder, in `apps/web/src/components/ui/styles.ts`: the page at the default, the header, tab bar and side rail at 30 (`zShell`), the toast at 40 (`zToast`), and a sheet with its scrim at 50 (`zSheet`). The tab bar and the toast sit under every sheet. A new layer takes its class from the ladder, never a number of its own.
+One ladder, in `apps/web/src/components/ui/styles.ts`: the page at the default, a page header that stays in view while its page scrolls under it at 20 (`zPageHeader`, the Day tab's date bar and launcher), the header, tab bar and side rail at 30 (`zShell`), the toast at 40 (`zToast`), and a sheet with its scrim at 50 (`zSheet`). The tab bar and the toast sit under every sheet. A new layer takes its class from the ladder, never a number of its own.
 
 ### Type
 
@@ -108,6 +108,7 @@ The fonts are the three variable `woff2` files in `apps/web/src/app/fonts/`, loa
 
 - Widths: `--container-page` (40rem) for every tab's content column from `md`, `--container-page-wide` (64rem) for the Day tab's two columns from `lg`, `--container-auth` (26rem) for the guest pages' column, `--spacing-rail` (14rem) for the side rail.
 - Heights: `--spacing-tab-bar` (3.5rem), the phone's tab bar cell, which the toast's place above it reads too. `--spacing-toast-clearance` (7.25rem), the room a page keeps at its end for the tallest toast: three lines of text, the toast's padding and the gap it hangs above the tab bar by.
+- The Day tab's header: `--day-header-top` (0.5rem on a phone, 2rem from `md`), the room above the date bar. `--day-header-gap` (1rem), between the date bar and the launcher. `--day-header-clear` (1.5rem), from the launcher to the content, its one-pixel bottom edge included. `--day-header-height`, the header's whole height, which `under-day-header` gives the content as its scroll margin so focus stops below the header.
 - The toast: ink as its fill and the page colour as its text, the inverse of the page, so it reads apart from every surface under it.
 - Radii: `--radius-control` for fields and buttons, `--radius-card` for panels, `--radius-pill`.
 - Safe areas: `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`, the device's insets.

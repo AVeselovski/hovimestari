@@ -6,7 +6,7 @@ The frame every signed-in screen sits in: a page title at the top of most tabs, 
 
 ### The tabs
 
-**Day** opens first, at `/`. **Recipes**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. [Day](day.md) shows one day, its summary and its entries. Recipes and Groceries say "Nothing here yet." until later steps fill them, and promise nothing about what is coming.
+**Day** opens first, at `/`. **Recipes**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. The **Day** tab leads back to the day it last showed, and pressed on the Day tab it goes to today, as [Coming back to the tab](day.md#coming-back-to-the-tab) says. [Day](day.md) shows one day, its summary and its entries. Recipes and Groceries say "Nothing here yet." until later steps fill them, and promise nothing about what is coming.
 
 ### The header
 
@@ -60,7 +60,7 @@ No signed-in page puts user data in its server-rendered HTML. Each renders on th
 - `TabBar` is `md:hidden` and `SideRail` is `hidden md:flex`. Both are mounted and CSS shows one, so the first paint is right at any width.
 - From `md` every tab shares one centred 40rem column, the header's, so the title sits at the same place on the three tabs that show one and the header's rule spans exactly the content under it. `PageContainer` holds the column and the one horizontal gutter. The Day tab, with no title to line up with, widens to 64rem from `lg` (`wide`) for its two columns.
 - The rail's wordmark sits on the page title's baseline.
-- The header, the tab bar and the rail sit at z-index 30, the toast at 40, and the sheets at 50. The ladder is in `apps/web/src/components/ui/styles.ts`.
+- A page's own header that stays in view while the page scrolls, such as the Day tab's, sits at z-index 20, inside `<main>`. The header, the tab bar and the rail sit at 30, the toast at 40, and the sheets at 50. The ladder is in `apps/web/src/components/ui/styles.ts`.
 - The tab bar's cell height is the token `--spacing-tab-bar`, which the toast's place above it reads too.
 - The room a page keeps at its end for a toast is the token `--spacing-toast-clearance`, which `PageContainer` takes with `clearToast`.
 
