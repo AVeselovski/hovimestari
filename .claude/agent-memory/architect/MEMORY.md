@@ -9,3 +9,6 @@
 - [Entry figures model](project_entry_figures_model.md): basis written once at add, sum of rounded rows, fixed gauge scale, stale today on resume
 - [Redesign against built primitives](feedback_redesign_against_built_primitives.md): hue allowlist test, toast under modal drawers, missing API fields, server-wins today
 - [Targets from their date](project_targets_from_their_date.md): owner flipped the first-change fallback 2026-11-18; no-targets copy stays neutral
+- [Open Food Facts API facts](reference_open_food_facts_api.md): 15 reads/min/IP, 404 on not found, per-100ml trap, zxing-wasm sizes
+- [Recipes tab and barcode order](project_recipes_tab_and_barcode_order.md): owner order 2026-11-18; page reuses log sheet sheets; local HTTPS
+- [Shared rows leak through answers](project_shared_rows_leak_through_answers.md): per-user flags on shared rows, timing leaks named honestly, xmax=0

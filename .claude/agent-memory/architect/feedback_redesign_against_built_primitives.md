@@ -15,3 +15,5 @@ A frontend design written before its screens existed broke against the built cod
 **Why:** each of these would have cost an engineer a fix cycle; all were invisible in the design text and obvious in the code.
 
 **How to apply:** before handing a UI design to engineers, grep the tests that pin tokens or users, read the overlay primitive's dismissal rules, and diff every field the design reads against `packages/types`.
+
+**Added 2026-11-18 (design review of the Recipes tab and barcode):** four misses a reviewer caught. A confirmation pressed inside an open sheet must sit in that sheet's `stacked` slot, or Base UI does not nest it. A web call that can write must not be a cached query under `["foods"]`, because every food write refetches that prefix and flips the screen. A prefill with three decimals is refused by the own-food form's thousands-group rule unless it acts as the baseline. A `getUserMedia` that resolves after close needs a session guard. **How to apply:** before naming a mount site, a query key or a prefill, read the primitive's comment block and the parse function, not only the props.
