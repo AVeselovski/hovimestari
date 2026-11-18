@@ -1,6 +1,6 @@
 ---
 name: Targets sheet prefill
-description: Owner, 2026-11-18: only a change opened from the Settings list prefills (its own targets); "Change targets" opens empty whatever the date. Why the in-force line went, untouched Save, two browser-sweep traps.
+description: Owner, 2026-11-18: titles never name a date (Edit targets + subtitle, Change targets fixed); only a change opened from the Settings list prefills (its own targets); "Change targets" opens empty whatever the date. Why the in-force line went, untouched Save, two browser-sweep traps.
 type: project
 ---
 
@@ -10,3 +10,5 @@ type: project
 - **Save on an untouched edit closes and sends nothing.** In new mode an untouched sheet is empty and fails validation before the dirty check.
 - **Playwright sweeps: save `storageState` after every context.** Each reload rotates the refresh cookie, so a later context loading an older state file lands on sign-in and every phase after it times out.
 - **The rm safety check refuses `rm -rf <dir>/*` after a `cd`.** Clear screenshots with `find <abs dir> -maxdepth 1 -name "*.png" -delete`.
+- **Owner decision, 2026-11-18: no title names a date.** An edit is "Edit targets" with "Starting on {date}" as a subtitle (`headerNote` wrapped in `SheetDescription`, so it is the dialog's description; no new primitive prop was needed). Settings' in-force label is "Current (from {date})". The orchestrator chose that "Change targets" never switches title: the replace warning lives in the days line. **Why:** a date in a title took two lines on every phone and forced reserved room. **How to apply:** put a changing date in a line under the title or in the body, never in the title.
+- **`getByText` misses a heading split by a rich-text `<part>`.** It matches an element's own text nodes only. Find the row by role with a `name` function (`(n) => n.startsWith(...)`) instead.

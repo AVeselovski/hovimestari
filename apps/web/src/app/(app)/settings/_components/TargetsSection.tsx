@@ -54,7 +54,17 @@ export function TargetsSection(): ReactElement {
         <>
           <ul className="-mx-2 divide-y divide-rule">
             <li>
-              <ChangeRow heading={t("inForceToday")} change={inForce} onOpen={openOn} />
+              <ChangeRow
+                // A change in force before its own date (the first change, covering the days
+                // before it) is just "Current": a date not yet come would read as a start ahead.
+                heading={
+                  inForce.effectiveFrom > today
+                    ? t("currentOnly")
+                    : t.rich("current", { date: formatDay(inForce.effectiveFrom), part })
+                }
+                change={inForce}
+                onOpen={openOn}
+              />
             </li>
             {later.map((c) => (
               <li key={c.effectiveFrom}>
@@ -124,9 +134,11 @@ export function TargetsSection(): ReactElement {
 const figureClass = "ml-auto text-right font-mono text-lg text-ink tabular-nums";
 
 /**
- * The two halves of a range, "1800 to" and "2200 kcal", each never broken. A
- * range that does not fit even on a line of its own, such as "99999.9 to
- * 99999.9 kcal" at 320 wide, breaks between them and nowhere else.
+ * A run of text never broken. The two halves of a range, "1800 to" and "2200
+ * kcal": a range that does not fit even on a line of its own, such as
+ * "99999.9 to 99999.9 kcal" at 320 wide, breaks between them and nowhere
+ * else. And the date in "Current (from November 17, 2026)", which wraps
+ * after "Current" and nowhere else.
  */
 const part = (chunks: ReactNode): ReactElement => <span className="whitespace-nowrap">{chunks}</span>;
 
@@ -136,7 +148,7 @@ function ChangeRow({
   change,
   onOpen,
 }: {
-  heading: string;
+  heading: ReactNode;
   change: TargetChange;
   onOpen: (effectiveFrom: string, opener: HTMLElement) => void;
 }): ReactElement {

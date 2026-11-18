@@ -1,6 +1,7 @@
 "use client";
 
 import { focusField } from "@/components/form/focus";
+import { SheetDescription } from "@/components/ui/BottomSheet";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput } from "@/components/ui/NativeDateInput";
 import { labelClass, sectionStart, sectionStartWhenFilled } from "@/components/ui/styles";
@@ -30,20 +31,22 @@ import {
 import { removalOf, spanOf, type Removal, type Span } from "./targetLines";
 
 // ---------------------------------------------------------------------------
-// TargetsSheet: a dated targets change. "Starts on" (today by default), the
-// four fields, a line naming the days the numbers apply to, and the note on
-// advice.
+// TargetsSheet: a dated targets change. The four fields, a line naming the
+// days the numbers apply to, and the note on advice.
 //
-// Opened on a change from the Settings list (`editing`), the date is fixed
-// and the fields open with that change's own targets, taken once as the
-// sheet mounts: a refetch that lands while it is open moves nothing. Saved
-// untouched, it sends nothing. The change can be removed while it is not the
-// last one.
+// Opened on a change from the Settings list (`editing`), the sheet is "Edit
+// targets", with "Starting on {date}" under the title as the dialog's
+// description: the date is fixed. The fields open with that change's own
+// targets, taken once as the sheet mounts: a refetch that lands while it is
+// open moves nothing. Saved untouched, it sends nothing. The change can be
+// removed while it is not the last one.
 //
-// Opened from "Change targets", the sheet sets new targets: the fields open
-// empty and stay empty whatever date is picked. The app offers no number,
-// not even the user's own. Picking a date that already has a change switches
-// the title to name it, so nothing is replaced without the title saying so.
+// Opened from "Change targets", the sheet sets new targets from a date it
+// lets the reader pick, today by default. The fields open empty and stay
+// empty whatever date is picked. The app offers no number, not even the
+// user's own. The title never changes: a date that already has a change of
+// its own is named in the line under the fields, which says that saving
+// replaces it, so nothing is replaced without the sheet saying so.
 // ---------------------------------------------------------------------------
 
 export interface TargetsSheetProps extends FormSheetCallerProps {
@@ -77,6 +80,21 @@ function spanText(t: T, span: Span): string {
     case "all":
       return t("appliesAll");
   }
+}
+
+/**
+ * The line under the fields. On a picked date that already has a change, it
+ * first says that saving replaces it, naming the date only where the span
+ * does not already name it.
+ * Two whole sentences, each one catalog entry, joined with a space: parts of
+ * one sentence are never joined.
+ */
+function lineText(t: T, date: string, span: Span, replaces: boolean): string {
+  const applies = spanText(t, span);
+  if (!replaces) return applies;
+  const named = span.kind === "between" || span.kind === "day" || span.kind === "from";
+  const notice = named ? t("replacesThisDate") : t("replacesNamed", { date: formatDay(date) });
+  return `${notice} ${applies}`;
 }
 
 function removalText(t: T, removal: Removal | null): string {
@@ -129,7 +147,8 @@ export function TargetsSheet({
   const changes = useRetainedValue(open ? liveChanges : null) ?? liveChanges;
   // Opened and not changed is clean: an edited change's own numbers are the baseline.
   const { dirty } = useFormDirty(JSON.stringify([date, values]), true);
-  const existing = validDate && changes.some((c) => c.effectiveFrom === date);
+  // New targets on a date that already has a change replace it: the line under the fields says so.
+  const replaces = editing === undefined && validDate && changes.some((c) => c.effectiveFrom === date);
   const span = validDate ? spanOf(changes, date) : null;
 
   const remove = useConfirmedDelete<string>({
@@ -203,7 +222,7 @@ export function TargetsSheet({
     <FormSheet
       open={open}
       onClose={onClose}
-      title={existing ? t("titleExisting", { date: formatDay(date) }) : t("title")}
+      title={editing === undefined ? t("title") : t("titleEdit")}
       returnFocusTo={returnFocusTo}
       dirty={dirty}
       submitting={submitting}
@@ -214,43 +233,40 @@ export function TargetsSheet({
       // Two fields side by side and a line of dates: wider than the default dialog.
       sheet={{
         panelClassName: "md:max-w-md",
-        // While a date can be picked, the title switches to "Targets from {date}",
-        // which takes two lines on a phone: its room is kept, so the switch moves nothing.
-        titleClassName: editing === undefined ? "max-md:min-h-16" : undefined,
+        // An edit's fixed date, under the title in the fixed header, and the dialog's description.
+        headerNote:
+          editing === undefined ? undefined : (
+            <SheetDescription className="text-base text-ink-muted">
+              {t("startingOn", { date: formatDay(editing) })}
+            </SheetDescription>
+          ),
         stacked: remove.dialog,
       }}
       footerStart={canRemove ? { label: t("remove"), onPress: (opener) => remove.open(editing, opener) } : undefined}
     >
       {({ autoFocus }) => (
         <>
-          {/* The date, with the one line its error takes, set apart from the fields below. */}
-          <div>
-            {editing === undefined ? (
-              <>
-                <label htmlFor={dateId} className={labelClass}>
-                  {t("startsOn")}
-                </label>
-                <NativeDateInput
-                  id={dateId}
-                  name="effective-from"
-                  value={date}
-                  onValueChange={(v) => {
-                    setDate(v);
-                    setDateError(null);
-                  }}
-                  required
-                  autoFocus={autoFocus}
-                  error={dateError}
-                />
-              </>
-            ) : (
-              <>
-                <p className={labelClass}>{t("startsOn")}</p>
-                <p className="text-base text-ink">{formatDay(editing)}</p>
-              </>
-            )}
-          </div>
-          <div className={sectionStart}>
+          {/* New targets: the date, with the one line its error takes, set apart from the fields below. */}
+          {editing === undefined && (
+            <div>
+              <label htmlFor={dateId} className={labelClass}>
+                {t("startsOn")}
+              </label>
+              <NativeDateInput
+                id={dateId}
+                name="effective-from"
+                value={date}
+                onValueChange={(v) => {
+                  setDate(v);
+                  setDateError(null);
+                }}
+                required
+                autoFocus={autoFocus}
+                error={dateError}
+              />
+            </div>
+          )}
+          <div className={editing === undefined ? sectionStart : undefined}>
             <TargetRangeFields
               idPrefix={id}
               values={values}
@@ -263,11 +279,12 @@ export function TargetsSheet({
             Under the fields, as tall as what it says: a date picked above it
             changes it, and only what is below it moves. It starts a section
             of its own, 16px under the fields, and empty, while the date is
-            not a date, it takes no gap. Announced, so a screen reader hears
-            which days the numbers apply to.
+            not a date, it takes no gap. On a picked date that already has
+            targets, it says first that saving replaces them. Announced, so a
+            screen reader hears which days the numbers apply to.
           */}
           <p aria-live="polite" data-span="" className={`${sectionStartWhenFilled} text-sm font-medium text-ink`}>
-            {span && spanText(t, span)}
+            {span && lineText(t, date, span, replaces)}
           </p>
           <NotAdviceNote className={sectionStart} />
         </>

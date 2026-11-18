@@ -328,3 +328,8 @@
 [orchestrator DONE] (2026-11-18T13:33:40Z) FR-TGT-04 reworded in docs/requirements.md with the wording Artur accepted; its TODO item deleted
 [frontend-engineer STARTED] (2026-11-18T13:55:29Z) lift finanssi's keyboard-down tap fix into the sheet primitive, in place of the unproven hook
 [frontend-engineer DONE] (2026-11-18T14:09:38Z) finanssi's useNativeTapWhileKeyboardDown lifted in place of the unproven hook: with the keyboard down a tap on a sheet's text field is the browser's own; 11 of 16 lifted tests fail on the old hook; 1364 web tests pass
+[frontend-engineer STARTED] (2026-11-18T14:14:48Z) targets sheet titles per Artur's decision: Edit targets with a 'Starting on' subtitle, Change targets on one line, 'Current (from date)' in Settings
+[frontend-engineer DONE] (2026-11-18T14:29:25Z) Settings label 'Current (from date)', edit sheet titled 'Edit targets' with a 'Starting on' subtitle, Change targets keeps one title and names a replaced date in its days line; 1371 web tests pass
+[reviewer STARTED] (2026-11-18T14:29:25Z) review of feat/targets-sheet-titles at the pinned tip
+[reviewer DONE] (2026-11-18T14:36:56Z) approve after fixes: six small ones, one a label that could name a start date still ahead (99k tokens)
+[frontend-engineer DONE] (2026-11-18T14:36:56Z) the six review fixes; a change in force before its own date is headed Current alone; 1375 web tests pass
