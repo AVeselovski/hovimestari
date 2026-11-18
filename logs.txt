@@ -307,3 +307,4 @@
 [frontend-engineer DONE] (2026-11-18T01:39:22Z) sheets: a footer refusal brings back the field and its label only, two more tests, the log sheet's footer sentence; web 1308 tests, gate green
 [frontend-engineer STARTED] (2026-11-18T01:44:49Z) the targets sheet opens with the targets it changes and says which days they apply to, and the food-names hint
 [frontend-engineer DONE] (2026-11-18T02:09:01Z) targets sheet opens with the targets in force on its date, untouched fields follow the date, the in-force line is gone, the line under the fields names the days the numbers apply to on every date, food-names hint reworded; docs, TODO and tests with it
+[orchestrator DONE] (2026-11-18T02:24:49Z) PR #46 merged (58b433f) after the @claude review, no blocking findings; two carried review notes filed in TODO.md
