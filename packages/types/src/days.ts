@@ -11,7 +11,7 @@ export const MAX_DAY_RANGE = 42;
 export const DayReadingSchema = z.object({
   /** The sum of the rows' rounded figures. */
   figures: FiguresSchema,
-  /** Null only for a user without targets. */
+  /** Null on a day without targets: before the first change, or for a user with none. */
   energy: RangePositionSchema.nullable(),
   protein: RangePositionSchema.nullable(),
   includesEstimate: z.boolean(),
@@ -22,7 +22,7 @@ export const DaySummarySchema = z.object({
   /** The user's today, in their time zone. */
   today: IsoDateSchema,
   relation: z.enum(["past", "today", "future"]),
-  /** The targets in force on the date, or null without targets. */
+  /** The targets in force on the date. Null on a day without targets: before the first change, or for a user with none. */
   targets: TargetRangesSchema.nullable(),
   eaten: DayReadingSchema,
   withPlan: DayReadingSchema,

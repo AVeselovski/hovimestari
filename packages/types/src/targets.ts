@@ -40,7 +40,8 @@ export const TargetChangeSchema = z.object({
 
 /**
  * The targets in force on `date`, every change, and the user's `today`.
- * `inForce` is null only for a user with no targets.
+ * `inForce` is null on a date before the first change, so it can be null
+ * while `changes` is not empty, and always for a user with no changes.
  */
 export const TargetsOverviewSchema = z.object({
   date: IsoDateSchema,

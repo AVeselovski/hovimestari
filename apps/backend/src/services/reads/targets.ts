@@ -17,8 +17,9 @@ export const targetChangeOf = (row: TargetChangeRow): TargetChange => ({
 
 /**
  * The targets in force on `date`: the change with the latest start on or
- * before it. Before the first change, the first change. Null only for a user
- * with no targets.
+ * before it. A change applies from its own date until the next one starts,
+ * so a date before the first change, and every date of a user with no
+ * changes, has none: null.
  */
 export async function targetsOn(ctx: ReadContext, date: string): Promise<TargetChange | null> {
   const [latest] = await ctx.db
@@ -27,23 +28,16 @@ export async function targetsOn(ctx: ReadContext, date: string): Promise<TargetC
     .where(and(eq(targetChanges.userId, ctx.userId), lte(targetChanges.effectiveFrom, date)))
     .orderBy(desc(targetChanges.effectiveFrom))
     .limit(1);
-  if (latest) return targetChangeOf(latest);
-  const [first] = await ctx.db
-    .select()
-    .from(targetChanges)
-    .where(eq(targetChanges.userId, ctx.userId))
-    .orderBy(asc(targetChanges.effectiveFrom))
-    .limit(1);
-  return first ? targetChangeOf(first) : null;
+  return latest ? targetChangeOf(latest) : null;
 }
 
 /**
  * The rule of `targetsOn` without the database: of `changesAsc`, oldest
- * first, the change with the latest start on or before `date`, else the first
- * change, else null. The week reads every change once and asks this per date.
+ * first, the change with the latest start on or before `date`, else null.
+ * The week reads every change once and asks this per date.
  */
 export function inForceOn(changesAsc: TargetChange[], date: string): TargetChange | null {
-  let inForce: TargetChange | null = changesAsc[0] ?? null;
+  let inForce: TargetChange | null = null;
   for (const change of changesAsc) {
     if (change.effectiveFrom > date) break;
     inForce = change;
@@ -61,7 +55,10 @@ export async function listTargetChanges(ctx: ReadContext): Promise<TargetChange[
   return rows.map(targetChangeOf);
 }
 
-/** The targets in force on `date` (the user's today when absent), every change, and today. */
+/**
+ * The targets in force on `date` (the user's today when absent), every
+ * change, and today. `inForce` is null on a date before the first change.
+ */
 export async function targetsOverview(ctx: ReadContext, date: string = ctx.today): Promise<TargetsOverview> {
   const [inForce, changes] = await Promise.all([targetsOn(ctx, date), listTargetChanges(ctx)]);
   return { date, today: ctx.today, inForce, changes };
