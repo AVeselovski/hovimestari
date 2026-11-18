@@ -24,13 +24,13 @@ Saving or removing a change rewrites the days it covers, and only those:
 
 A change can be removed, except the last one. A user who has targets always keeps a set.
 
-### Starting a change from your own targets
+### New targets and edited targets
 
-The targets sheet opens with the user's own targets in force on its date in its four fields. They are the targets a save changes, shown as stored, in the form the fields read back, such as "142,5" on a Finnish phone. With no targets in force on the date the fields are empty. The first run has no targets, so its fields are always empty.
+The targets sheet sets new targets or edits a change the user already has.
 
-A field the user has not typed in follows the date. Picking another date fills it with the targets in force on that date. A field the user typed in, even one they emptied, keeps what they typed. While the date field holds no full date, the fields stay as they are.
+New targets start empty. "Change targets" and the first run open with their four fields empty. On "Change targets" they stay empty whatever date is picked, a date that already has a change of its own included. The title then names that change, so the user knows a save replaces it. Save on an empty field shows "Enter a number." under its pair.
 
-A sheet opened and left as it was is not a change. It closes without asking, and Save closes it without sending anything. Sending its numbers would add a change on a date that has none, with the numbers already in force there.
+An edited change starts with its own targets. A change opened from the list shows its four numbers as stored, in the form the fields read back, such as "142,5" on a Finnish phone. Its date is fixed. The numbers are read once, as the sheet opens, so a save from another device while it is open moves nothing on screen. An edited change opened and left as it was is not a change. It closes without asking, and Save closes it without sending anything.
 
 Under the fields, a line names the days the numbers apply to, from the rule in [Changing your targets](#changing-your-targets):
 
@@ -67,13 +67,13 @@ Only a definite answer that the account has no targets shows the first-run page,
 
 ### Not advice
 
-Hovimestari never suggests or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. No target field holds an example. A field starts empty, or with [the user's own targets](#starting-a-change-from-your-own-targets) when they change them. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be.
+Hovimestari never suggests or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. No target field holds an example. A field starts empty, or with [a change's own targets](#new-targets-and-edited-targets) when the user edits that change. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be.
 
 ## How it works
 
 ### The dated change
 
-`target_changes` holds one row per change: the user, `effective_from` and the four bounds. `targetsOn(ctx, date)` in `apps/backend/src/services/reads/targets.ts` reads the row with the latest `effective_from` on or before `date`, and falls back to the user's earliest row. It answers null only for a user with no rows. `targetsOverview` answers that change, every change oldest first, the date asked for and the user's today. The targets sheet applies the same rule to that list of changes, through `inForceOn` in `apps/web/src/components/targets/targetLines.ts`, so its fields fill as it opens and as the date changes. `spanOf` beside it names the days a save applies to.
+`target_changes` holds one row per change: the user, `effective_from` and the four bounds. `targetsOn(ctx, date)` in `apps/backend/src/services/reads/targets.ts` reads the row with the latest `effective_from` on or before `date`, and falls back to the user's earliest row. It answers null only for a user with no rows. `targetsOverview` answers that change, every change oldest first, the date asked for and the user's today. The targets sheet edits a change with the numbers of that change in this list. `spanOf` in `apps/web/src/components/targets/targetLines.ts` names the days a save applies to.
 
 `setTargets` in `apps/backend/src/services/writes/targets.ts` inserts the row, or overwrites the one on the same date. An identical save writes nothing. It first takes the user's row `FOR KEY SHARE` through `lockUserForWrite`, so a save never waits behind a session renewal, and one that races an account deletion answers 404 `user_not_found`. `removeTargetChange` runs in a transaction that first locks the user's row in `users`, then refuses a date with no change (404) and the last change (409). The lock makes two removals at once wait for each other, so they cannot both find another change left.
 
@@ -118,4 +118,4 @@ Requirements: FR-TGT-01 to FR-TGT-07, NFR-ADV-01, NFR-ADV-02 (requirements 3.1 a
 
 - [First run](../app/first-run.md): the first targets, before any other part of the app.
 - [The Day tab](../app/day.md): the ranges the summary measures each day against, and the day it opens on.
-- [Settings](../app/settings.md#targets): the targets in force, later and earlier changes, the targets sheet, which opens with the targets it changes, and removing a change.
+- [Settings](../app/settings.md#targets): the targets in force, later and earlier changes, the targets sheet, empty for new targets and filled for a change being edited, and removing a change.

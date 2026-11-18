@@ -85,16 +85,16 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Targets
 
-| Concept                                            | Home                                                          | Heading                                       |
-| -------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------- |
-| targets, calorie range, protein range, floor       | `features/targets.md#setting-your-targets`                    | `### Setting your targets`                    |
-| dated change, targets in force                     | `features/targets.md#changing-your-targets`                   | `### Changing your targets`                   |
-| targets sheet fields, the days a change applies to | `features/targets.md#starting-a-change-from-your-own-targets` | `### Starting a change from your own targets` |
-| which targets a day uses                           | `features/targets.md#which-targets-a-day-uses`                | `### Which targets a day uses`                |
-| first run, no targets yet                          | `features/targets.md#the-first-run`                           | `### The first run`                           |
-| first-run gate, spinner or tabs or first run       | `features/targets.md#the-first-run-gate`                      | `### The first-run gate`                      |
-| not advice, no default target                      | `features/targets.md#not-advice`                              | `### Not advice`                              |
-| today, the user's time zone                        | `features/targets.md#today-and-the-time-zone`                 | `### Today and the time zone`                 |
+| Concept                                            | Home                                                 | Heading                              |
+| -------------------------------------------------- | ---------------------------------------------------- | ------------------------------------ |
+| targets, calorie range, protein range, floor       | `features/targets.md#setting-your-targets`           | `### Setting your targets`           |
+| dated change, targets in force                     | `features/targets.md#changing-your-targets`          | `### Changing your targets`          |
+| targets sheet fields, the days a change applies to | `features/targets.md#new-targets-and-edited-targets` | `### New targets and edited targets` |
+| which targets a day uses                           | `features/targets.md#which-targets-a-day-uses`       | `### Which targets a day uses`       |
+| first run, no targets yet                          | `features/targets.md#the-first-run`                  | `### The first run`                  |
+| first-run gate, spinner or tabs or first run       | `features/targets.md#the-first-run-gate`             | `### The first-run gate`             |
+| not advice, no default target                      | `features/targets.md#not-advice`                     | `### Not advice`                     |
+| today, the user's time zone                        | `features/targets.md#today-and-the-time-zone`        | `### Today and the time zone`        |
 
 ## Foods
 
