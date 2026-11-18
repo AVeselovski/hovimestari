@@ -4,6 +4,7 @@ import type {
   CopyEntriesResult,
   Entry,
   EntryPatchBody,
+  EntryRemoveManyResult,
   EntryRemoveResult,
   EntryStatus,
   EntryStatusResult,
@@ -249,6 +250,52 @@ export async function removeEntry(ctx: WriteContext, id: string): Promise<WriteO
     return row.date;
   });
   return { value: { days: [await getDay(ctx, date)] }, outcome: "deleted" };
+}
+
+/**
+ * Removes the listed entries that are the user's and still there, whatever
+ * happened to them since they were made. Each moves to `removed_entries`
+ * exactly as `removeEntry` moves one, so each can be restored for ten
+ * minutes. Missing and other users' ids are skipped, never an error. Answers
+ * the ids it removed, in day and position order, and their days.
+ */
+export async function removeEntries(ctx: WriteContext, ids: string[]): Promise<WriteOutcome<EntryRemoveManyResult>> {
+  const wanted = ids.filter(isUuid);
+  const removed = await ctx.db.transaction(async (tx) => {
+    await lockUserForWrite(tx, ctx.userId);
+    await purgeExpired(tx, ctx);
+    if (wanted.length === 0) return [];
+    // Locked in id order first, as the status batch and a source edit's rewrite lock them, so they never deadlock.
+    const locked = await tx
+      .select({ id: entries.id })
+      .from(entries)
+      .where(and(eq(entries.userId, ctx.userId), inArray(entries.id, wanted)))
+      .orderBy(asc(entries.id))
+      .for("update");
+    if (locked.length === 0) return [];
+    const mine = and(
+      eq(entries.userId, ctx.userId),
+      inArray(
+        entries.id,
+        locked.map((r) => r.id),
+      ),
+    );
+    const moved = await tx.execute<{ id: string; date: string; position: string }>(sql`
+      WITH gone AS (DELETE FROM ${entries} WHERE ${mine} RETURNING *)
+      INSERT INTO ${removedEntries} (id, user_id, row, removed_at)
+      SELECT gone.id, gone.user_id, to_jsonb(gone), ${ctx.now} FROM gone
+      RETURNING id, row->>'date' AS date, (row->>'position')::bigint AS position`);
+    return moved.rows.map((r) => ({ id: r.id, date: r.date, position: Number(r.position) }));
+  });
+  removed.sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position || a.id.localeCompare(b.id));
+  const value = {
+    removedIds: removed.map((r) => r.id),
+    days: await getDays(
+      ctx,
+      removed.map((r) => r.date),
+    ),
+  };
+  return { value, outcome: removed.length > 0 ? "deleted" : "unchanged" };
 }
 
 /** Deletes the user's removed entries too old to restore. */

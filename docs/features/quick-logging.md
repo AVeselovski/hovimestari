@@ -54,6 +54,7 @@ Every logging action has an inverse:
 - Marking entries eaten is undone by marking exactly the entries it changed as planned.
 - A remove is undone by a restore, within ten minutes. The entry comes back exactly as it was, with its place in the day and its figures, even when its food or meal was deleted since.
 - A move is undone by moving back, eaten again when the move made it planned.
+- A copy is undone by removing its copies, up to 100 in one request. Each copy goes whatever happened to it since, edited, marked eaten or moved. Ids that are gone or not the user's are skipped, and each removed copy can be restored for ten minutes like any removal.
 
 A restore is exact. The other inverses bring back the entry's date, status, amount and figures, but not when it was eaten. Marking an entry eaten again, after it was eaten and then planned, records the time of that mark. The entry then counts as eaten most recently, so it moves to the front of recent items, and its amount becomes the last amount.
 
@@ -75,19 +76,19 @@ An add that could not confirm reads its day and the recent items again at once, 
 
 ### Writes
 
-`apps/backend/src/services/writes/entries.ts` has `addEntry`, `updateEntry`, `setEntriesStatus`, `copyEntries`, `removeEntry` and `restoreEntry`. Each runs in one transaction and answers the days it changed, read through `getDay` after the write. `addEntry` is the only write that reads a basis from a source. A PATCH of an estimate's figures replaces the estimate's own basis. `setEntriesStatus` answers the ids it changed, in day and position order, so an undo can change exactly those back. `copyEntries` copies every column of the source entry but its id and position, so a copy of an entry whose source is hidden still works.
+`apps/backend/src/services/writes/entries.ts` has `addEntry`, `updateEntry`, `setEntriesStatus`, `copyEntries`, `removeEntry`, `removeEntries` and `restoreEntry`. Each runs in one transaction and answers the days it changed, read through `getDay` after the write. `addEntry` is the only write that reads a basis from a source. A PATCH of an estimate's figures replaces the estimate's own basis. `setEntriesStatus` answers the ids it changed, in day and position order, so an undo can change exactly those back. `removeEntries` answers the ids it removed in the same order. `copyEntries` copies every column of the source entry but its id and position, so a copy of an entry whose source is hidden still works.
 
 ### Replays and restores
 
 An add, a copy and a save-and-log carry an id the client chose. A repeat answers the first result with `outcome: "replayed"`, also when it arrives while the first is still being written. A copy answers `replayed` when it added no entry. An id another user holds answers 409 `entry_id_taken`.
 
-`removeEntry` moves the entry's whole row into `removed_entries` in the same transaction, written with `to_jsonb`. `restoreEntry` puts it back with `jsonb_populate_record`, so the id, position, basis, amount, references and status return exactly, and a hidden source restores too. A row older than ten minutes is not restored, and each remove and each restore clears the user's older rows. A stored row the `entries` table no longer takes, after a migration changed the table, answers `entry_not_found`. An add whose id is in `removed_entries` adds nothing and answers `replayed` with no entry.
+`removeEntry` and `removeEntries` move each entry's whole row into `removed_entries` in the same transaction, written with `to_jsonb`. `restoreEntry` puts it back with `jsonb_populate_record`, so the id, position, basis, amount, references and status return exactly, and a hidden source restores too. A row older than ten minutes is not restored, and each remove and each restore clears the user's older rows. A stored row the `entries` table no longer takes, after a migration changed the table, answers `entry_not_found`. An add whose id is in `removed_entries` adds nothing and answers `replayed` with no entry.
 
 ### Locks and races
 
 Every entry and saved meal write first takes the user's row `FOR KEY SHARE` through `lockUserForWrite` in `sourceValues.ts`, the lock the entry's foreign key takes anyway. Taking it first puts the user row before any source row, the order an account deletion locks in. It never waits behind a session or targets write. A write that races an account deletion waits for it, then answers 404 `user_not_found`, as a request with a deleted account's live access token does.
 
-The status batch and the planned rewrite lock the entries they change in id order before they update them, so the two never deadlock over the same entries. A deadlock anywhere answers 503 with `Retry-After`, as a lock wait that gave up does.
+The status batch, the batch remove and the planned rewrite lock the entries they change in id order before they write them, so they never deadlock over the same entries. A deadlock anywhere answers 503 with `Retry-After`, as a lock wait that gave up does.
 
 ### Recent items in code
 
@@ -119,6 +120,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`. 
 | PATCH  | `/entries/:id`         | 200 `{ entry, days, outcome }`, two days for a move. 404 `entry_not_found`, `portion_not_found`. 400 `entry_kind_mismatch`, `entry_eaten_in_future`                   |
 | POST   | `/entries/status`      | 200 `{ changedIds, days }`. Takes `{ entryIds, status }`, 1 to 100 ids                                                                                                |
 | POST   | `/entries/copy`        | 201 `{ entries, days, outcome }`, 200 when it added none. Takes `{ toDate, entries: [{ sourceId, id }] }`, 1 to 100. 404 `entry_not_found`. 409 `entry_id_taken`      |
+| POST   | `/entries/remove`      | 200 `{ removedIds, days }`, empty lists when nothing was left to remove. Takes `{ entryIds }`, 1 to 100 distinct ids. 400 `invalid_request`                           |
 | DELETE | `/entries/:id`         | 200 `{ days }`. 404 `entry_not_found`                                                                                                                                 |
 | POST   | `/entries/:id/restore` | 201 `{ entry, days, outcome }`, 200 when it is already back. 404 `entry_not_found`                                                                                    |
 | GET    | `/log/recents?limit=`  | 200 `{ items }`. `limit` 1 to 30, 12 by default. Else 400 `invalid_request`                                                                                           |
