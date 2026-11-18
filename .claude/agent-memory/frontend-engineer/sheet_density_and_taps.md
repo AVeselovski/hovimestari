@@ -16,3 +16,19 @@ type: project
 - **The lowered-keyboard tap acts only after a lowering it has seen** (keyboard up, then down, focus kept in the sheet's fields). Reviewer's reason: where the keyboard reading is wrong (layout-viewport keyboards, floating iPad keyboard), acting on "no keyboard" alone bounced the keyboard on every field change.
 - **jsdom: Base UI finishes a sheet's entry inside `render()`.** To pin "measured once at rest", hold the entry: set `globalThis.BASE_UI_ANIMATIONS_DISABLED = false` and stub `Element.prototype.getAnimations` with one animation whose `finished` you resolve by hand (see `BottomSheet.held.test.tsx`). Set footer styles through a ref inside the footer, not after render.
 - **Splitting hunks across commits: the pre-commit hook re-stages files from the working tree** after formatting, so an index built with `git apply --cached` or `update-index` is overwritten. Put the working tree in the commit's state, commit, then restore. Shell variables do not survive between Bash calls, so keep commit messages inline.
+
+## Round two (2026-11-18): owner wants one spacing pattern everywhere
+
+- Artur, on his iPhone: "Everything should have same spacing patterns for consistency." Guest pages and the first-run page now use `formStack`, `sectionStart`, `formRefusal`. A page keeps two lines of refusal room above its button (it grows downward, like the md dialog). Filed in TODO as a decision for him, not settled.
+- He reads any band that only some states use as wasted: a reserved line under a control that cannot be refused, a 44px text-button box plus a row gap. Fix by putting a reason in the line of the field that causes it, and by letting a 44px target reach into padding with negative margins (`sheetActionsStartButton`), never by shrinking the target.
+- Gotcha that cost a rebuild: a grid row gap cannot be taken back by a negative margin on a row that collapses to zero (tracks floor at 0). Put the room under a yielding row on the row's own margin, inside the `keyboard-yields` wrapper, and clamp padding and margins to 0 with the inset.
+- Day summary column heads were removed at Artur's request ("let's try removing them"). The sr-only dt/span names stay. Any summary height change must move `summary-stays`; DayTab.test.tsx now adds the tokens up and fails if the threshold lags.
+
+## Round two fix batch (2026-11-18)
+
+- **The pre-commit formatter rewraps long CSS lines** (a `clamp()` over the print width becomes one argument per line). A test that string-matches globals.css then fails right after the commit, though it passed before. Compare with whitespace stripped from both sides (FormSheet.test.tsx `has`).
+- **A sheet's reveal is our own JS (`scrollToNearest` in lib/revealRefused.ts), not `scrollIntoView`,** so `scroll-margin` and `scroll-padding` do nothing for it. Room a reveal must keep belongs in that function. It now goes on to the body's end when only the body's bottom padding is left.
+- **Visual viewport: `getBoundingClientRect` is in layout-viewport coordinates,** and the visible band is `[vv.offsetTop, vv.offsetTop + vv.height]`. Emulating a keyboard by shrinking the layout viewport never gives an offset, so a page-level test needs a mocked `offsetTop` too.
+- **Lining up Day columns at lg: change the Entries row, not the summary.** Any summary height change moves `summary-stays` and can cost a laptop the staying summary. Mark all eaten's words sit on the row's top line from lg, with the 44px target hanging below (`dayEntriesHead`).
+- **Focus after a refusal on a form whose fields are disabled while saving:** `flushSync(() => setSaving(false))`, then `focusField`, then set the refusal, so the browser's focus scroll comes first and FormError's reveal last (FirstRunTargets).
+- **Stopping `npx next start` with pkill on the npx command leaves the `next-server` child on the port.** Kill the `next-server` pid too, then check the port before restarting.

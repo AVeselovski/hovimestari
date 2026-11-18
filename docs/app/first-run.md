@@ -20,7 +20,7 @@ A range that breaks a rule says so in the line under its pair, and focus moves t
 - Anything that is not a number with at most one decimal under the limit: "Enter below 100000, one decimal at most." for calories and "Enter below 10000, one decimal at most." for protein.
 - A number that may mean thousands, such as "1,800": "No comma or point, or fewer decimals."
 
-A refusal from the server shows its line above the button, such as "A number is too large or has more than one decimal.", and Save works again.
+A refusal from the server shows its line above the button, such as "A number is too large or has more than one decimal.", and Save works again. Focus goes back to the first field, and the line is announced. On a phone that line keeps no room: the button sits 16 pixels under the note about advice, and a refusal moves it down by the refusal's height, both scrolled into view together above the keyboard. From `md` the line keeps two lines of room, so the button never moves. The note sits 16 pixels under the ranges, as in the targets sheet.
 
 ### Leaving
 
@@ -46,7 +46,7 @@ The page has no route. `TargetsGate` in `apps/web/src/components/targets/` sits 
 
 ### Layout
 
-The guest pages' frame, `AuthPage`: one column, 26rem wide from `md`, anchored to the top, with the offline line at the top while the app is offline. From `md` the first field takes focus on load. The two fields of a pair are equal halves. Each pair keeps one line of room under it whether or not it holds anything, and every line it can show fits that line at 320 pixels wide, so an error appearing moves nothing below it. The groups stand 16 pixels apart, and so does the note under them. The line above the button keeps two lines. At 390 by 844 the button ends 695 pixels from the top. At 375 by 667 and 320 by 568 it follows on a short scroll. The form is named by the page title. The text buttons are 44 pixels tall.
+The guest pages' frame, `AuthPage`: one column, 26rem wide from `md`, anchored to the top, with the offline line at the top while the app is offline. From `md` the first field takes focus on load. The two fields of a pair are equal halves. Each pair keeps one line of room under it whether or not it holds anything, and every line it can show fits that line at 320 pixels wide, so an error appearing moves nothing below it. The groups stand 16 pixels apart, and so does the note under them. The line above the button keeps no room on a phone and two lines from `md`. At 390 by 844 and 375 by 667 the button ends 649 pixels from the top, in view. At 320 by 568 it follows on a short scroll. The form is named by the page title. The text buttons are 44 pixels tall.
 
 ### Data and refresh
 
