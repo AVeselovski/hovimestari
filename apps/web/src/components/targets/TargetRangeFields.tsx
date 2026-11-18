@@ -10,8 +10,8 @@ import type { TargetField, TargetFieldErrors, TargetFieldValues } from "./target
 // ---------------------------------------------------------------------------
 // TargetRangeFields: the four fields both targets forms share. Two groups,
 // Calories and Protein, each a lower and an upper bound side by side, From
-// and To. Every field starts empty and has no placeholder: the app offers no
-// number, not even as an example.
+// and To. No field has a placeholder: the app offers no number, not even as
+// an example. Each form decides what its fields start with.
 //
 // Each group keeps one line under its pair for the first error of either
 // field, or for Protein its hint, so an error appearing moves nothing below.

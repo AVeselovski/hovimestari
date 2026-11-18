@@ -117,7 +117,7 @@ src/
 │   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider
 │   │   ├── TodayProvider.tsx   The app's today: the server's, moved by any newer answer, asked again by the device's clock
 │   │   ├── FirstRunTargets.tsx The first-run page: the first targets, Sign out and Delete account
-│   │   ├── TargetsSheet.tsx    A dated targets change: the date, the in-force line, the fields, the days it rewrites, removal
+│   │   ├── TargetsSheet.tsx    A dated targets change: the date, the fields filled with the targets in force, the days they apply to, removal
 │   │   ├── TargetRangeFields.tsx  The four target fields, as two ranges with a shared line under each
 │   │   ├── NotAdviceNote.tsx   The note that the app gives no nutrition or medical advice
 │   │   ├── targetForm.ts       parseTargetFields(): the fields through parseDecimalInput and the shared schema
@@ -260,7 +260,7 @@ Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib
 
 Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
-A date is a `NativeDateInput`, the platform's own picker. Its `hint` is the line under it while there is no error, and `lineRoom` sets that line's room for a hint that always takes two lines, such as the targets sheet's in-force line. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
+A date is a `NativeDateInput`, the platform's own picker. It keeps one line under it for the form's error, passed in `error`. A date from the API is a `YYYY-MM-DD` string: move it with `addDays` and show it with `formatDay` from `src/lib/localDate.ts`. "Today" comes from the server's answer, never from this device's clock. The device's clock only decides when to ask again. Read it with `useToday()`.
 
 [The sheet primitives](../../docs/app/shell.md#the-sheet-primitives) hold the conventions every form keeps, among them the room a line under a field reserves so an error moves nothing.
 

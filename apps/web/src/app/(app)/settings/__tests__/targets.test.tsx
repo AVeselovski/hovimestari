@@ -82,13 +82,27 @@ describe("Settings, Targets", () => {
     expect(within(region()).queryByText("Earlier targets")).toBeNull();
   });
 
-  it("opens Change targets on today with every field empty", async () => {
-    changes = [change("2026-11-01")];
+  const fieldValues = (sheet: HTMLElement) =>
+    within(sheet)
+      .getAllByRole("textbox")
+      .map((f) => (f as HTMLInputElement).value);
+
+  it("opens Change targets on today with the targets in force today in its fields", async () => {
+    changes = [change("2026-10-01", [1600, 2000], [100, 140]), change("2026-11-01")];
     render(<TargetsSection />);
     fireEvent.click(await within(region()).findByRole("button", { name: "Change targets" }));
-    const sheet = await screen.findByRole("dialog");
+    const sheet = await screen.findByRole("dialog", { name: "Change targets" });
     expect(within(sheet).getByLabelText("Starts on")).toHaveValue(TODAY);
-    for (const input of within(sheet).getAllByRole("textbox")) expect(input).toHaveValue("");
+    expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
+  });
+
+  it("opens In force today on that change, with its own targets in its fields and the days they apply to", async () => {
+    changes = [change("2026-10-01", [1600, 2000], [100, 140]), change("2026-11-01")];
+    render(<TargetsSection />);
+    fireEvent.click(await within(region()).findByRole("button", { name: /In force today/ }));
+    const sheet = await screen.findByRole("dialog", { name: `Targets from ${formatDay("2026-11-01")}` });
+    expect(fieldValues(sheet)).toEqual(["1800", "2200", "120", "160"]);
+    expect(sheet).toHaveTextContent(`These apply from ${formatDay("2026-11-01")} on. Earlier days keep their targets.`);
   });
 
   it("opens a row on its own change, with the date fixed", async () => {
@@ -148,7 +162,9 @@ describe("Settings, Food names", () => {
     render(<FoodNamesSection />);
     await waitFor(() => expect(within(group()).getByRole("radio", { name: "Finnish" })).toBeChecked());
     expect(within(group()).getByRole("radio", { name: "English" })).not.toBeChecked();
-    expect(screen.getByText("Search finds foods by either name.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Food names show in this language. Search finds a food in either one."),
+    ).toBeInTheDocument();
   });
 
   it("saves a choice at once, and refreshes the account and every food name", async () => {

@@ -49,21 +49,6 @@ export function targetsQuery() {
 }
 
 /**
- * The targets in force on `date`. The server applies the in-force rule, so
- * the client never does. While another date loads, the last answer stays on
- * screen, so the line that shows it never empties and moves what is under it.
- */
-export function targetsOnQuery(date: string) {
-  return queryOptions({
-    queryKey: queryKeys.targetsOn(date),
-    queryFn: ({ signal }) => getTargets(date, { signal }),
-    placeholderData: keepPreviousData,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-  });
-}
-
-/**
  * The search results for `q`. The signal is handed to the request, so a query
  * that a newer one replaces, and so loses its last observer, is aborted.
  * While the next query loads, the last results stay on screen, so the list

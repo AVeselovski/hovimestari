@@ -12,31 +12,33 @@ import { deleteTargets, putTargets } from "@/lib/api/targets";
 import { getErrorCode } from "@/lib/errors";
 import { afterTargetsChange } from "@/lib/invalidation";
 import { formatDay, isIsoDate } from "@/lib/localDate";
-import { targetsOnQuery } from "@/lib/queryOptions";
-import { formatTarget } from "@/lib/targetFormat";
 import type { TargetChange } from "@hovimestari/types";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { NotAdviceNote } from "./NotAdviceNote";
 import { TargetRangeFields, targetFieldId } from "./TargetRangeFields";
 import {
-  EMPTY_TARGET_FIELDS,
+  fieldsOf,
   firstInvalidField,
   parseTargetFields,
   type TargetField,
   type TargetFieldErrors,
+  type TargetFieldValues,
 } from "./targetForm";
-import { removalOf, rewriteOf, type Removal, type Rewrite } from "./targetLines";
+import { inForceOn, removalOf, spanOf, type Removal, type Span } from "./targetLines";
 
 // ---------------------------------------------------------------------------
 // TargetsSheet: a dated targets change. "Starts on" (today by default), the
-// targets in force on that date as a line of text, the four fields, which
-// always start empty, a line naming the days the save rewrites when it
-// rewrites any, and the note on advice.
+// four fields, a line naming the days the numbers apply to, and the note on
+// advice.
 //
-// The numbers in force appear in the in-force line only, never in a field:
-// the app offers no number, not even the user's own as a starting point.
+// The fields open with the user's own targets in force on the date, the ones
+// a save changes. A field the user has not typed in follows the date: picking
+// another one fills it with the targets in force there. A field they typed in
+// keeps what they typed. The fields are where the targets in force show, so
+// no line repeats them. The app offers no number of its own: with no targets
+// in force the fields are empty.
 //
 // Picking a date that already has a change switches the sheet to editing
 // that change, and the title says so, so nothing is replaced without the
@@ -62,18 +64,18 @@ export interface TargetsSheetProps extends FormSheetCallerProps {
 
 type T = ReturnType<typeof useTranslations<"targets.sheet">>;
 
-function rewriteText(t: T, rewrite: Rewrite): string {
-  switch (rewrite.kind) {
+function spanText(t: T, span: Span): string {
+  switch (span.kind) {
     case "between":
-      return t("rewriteBetween", { date: formatDay(rewrite.date), end: formatDay(rewrite.end) });
+      return t("appliesBetween", { date: formatDay(span.date), end: formatDay(span.end) });
     case "day":
-      return t("rewriteDay", { date: formatDay(rewrite.date) });
+      return t("appliesDay", { date: formatDay(span.date) });
     case "from":
-      return t("rewriteFrom", { date: formatDay(rewrite.date) });
+      return t("appliesFrom", { date: formatDay(span.date) });
     case "before":
-      return t("rewriteBefore", { next: formatDay(rewrite.next) });
+      return t("appliesBefore", { next: formatDay(span.next) });
     case "all":
-      return t("rewriteAll");
+      return t("appliesAll");
   }
 }
 
@@ -108,35 +110,27 @@ export function TargetsSheet({
   const dateId = `${id}-date`;
 
   const [date, setDate] = useState(editing ?? liveToday);
-  const [values, setValues] = useState(EMPTY_TARGET_FIELDS);
+  // The last date that was a date: the fields follow it, and a date being
+  // retyped leaves them as they were.
+  const [filledFrom, setFilledFrom] = useState(editing ?? liveToday);
+  // What the user typed, field by field. A field not in here follows the date.
+  const [typed, setTyped] = useState<Partial<TargetFieldValues>>({});
   const [fieldErrors, setFieldErrors] = useState<TargetFieldErrors>({});
   const [dateError, setDateError] = useState<string | null>(null);
   const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { dirty } = useFormDirty(JSON.stringify([date, values]), true);
 
   const validDate = isIsoDate(date);
-  const { data: liveOnDate } = useQuery({ ...targetsOnQuery(date), enabled: validDate });
   // What the sheet shows, kept from the moment it starts to close: the
   // refetch after a save or a removal lands while it slides out, and would
-  // otherwise switch its title and lines mid-exit.
-  const live = useMemo(
-    () => ({ today: liveToday, changes: liveChanges, onDate: liveOnDate }),
-    [liveToday, liveChanges, liveOnDate],
-  );
-  const { today, changes, onDate } = useRetainedValue(open ? live : null) ?? live;
+  // otherwise switch its title, fields and lines mid-exit.
+  const changes = useRetainedValue(open ? liveChanges : null) ?? liveChanges;
+  const filled = useMemo(() => fieldsOf(inForceOn(changes, filledFrom)), [changes, filledFrom]);
+  const values: TargetFieldValues = { ...filled, ...typed };
+  // Opened and not changed is clean: the filled numbers are the baseline.
+  const { dirty } = useFormDirty(JSON.stringify([date, values]), true);
   const existing = validDate && changes.some((c) => c.effectiveFrom === date);
-  const inForce = validDate ? (onDate?.inForce ?? null) : null;
-  const inForceText = inForce
-    ? t("inForce", {
-        date: formatDay(onDate?.date ?? date),
-        energyLower: formatTarget(inForce.ranges.energyKcal.lower),
-        energyUpper: formatTarget(inForce.ranges.energyKcal.upper),
-        proteinLower: formatTarget(inForce.ranges.proteinG.lower),
-        proteinUpper: formatTarget(inForce.ranges.proteinG.upper),
-      })
-    : null;
-  const rewrite = validDate ? rewriteOf(changes, date, today) : null;
+  const span = validDate ? spanOf(changes, date) : null;
 
   const remove = useConfirmedDelete<string>({
     copy: (d) => ({
@@ -159,7 +153,7 @@ export function TargetsSheet({
   });
 
   function change(field: TargetField, raw: string): void {
-    setValues((prev) => ({ ...prev, [field]: raw }));
+    setTyped((prev) => ({ ...prev, [field]: raw }));
   }
 
   async function handleSubmit(): Promise<void> {
@@ -175,6 +169,13 @@ export function TargetsSheet({
     if (!parsed.ok) {
       const first = firstInvalidField(parsed.errors);
       if (first) focusField(targetFieldId(id, first));
+      return;
+    }
+    // Opened and not changed: the targets on screen are the ones in force,
+    // so there is nothing to save. Sending them would add a change with the
+    // same numbers on a date that has none of its own.
+    if (!dirty) {
+      onClose();
       return;
     }
     setSubmitting(true);
@@ -222,11 +223,7 @@ export function TargetsSheet({
     >
       {({ autoFocus }) => (
         <>
-          {/*
-            The date, and under it, in the line its error would take, the targets
-            in force on it: two lines of room whether or not it has loaded, so
-            its arrival moves nothing. Set apart from the fields below.
-          */}
+          {/* The date, with the one line its error takes, set apart from the fields below. */}
           <div>
             {editing === undefined ? (
               <>
@@ -239,22 +236,18 @@ export function TargetsSheet({
                   value={date}
                   onValueChange={(v) => {
                     setDate(v);
+                    if (isIsoDate(v)) setFilledFrom(v);
                     setDateError(null);
                   }}
                   required
                   autoFocus={autoFocus}
                   error={dateError}
-                  hint={inForceText}
-                  lineRoom="min-h-10"
                 />
               </>
             ) : (
               <>
                 <p className={labelClass}>{t("startsOn")}</p>
                 <p className="text-base text-ink">{formatDay(editing)}</p>
-                <p aria-live="polite" className="mt-1.5 min-h-10 text-sm text-ink">
-                  {inForceText}
-                </p>
               </>
             )}
           </div>
@@ -270,11 +263,12 @@ export function TargetsSheet({
           {/*
             Under the fields, as tall as what it says: a date picked above it
             changes it, and only what is below it moves. It starts a section
-            of its own, 16px under the fields, and empty it takes no gap.
-            Announced, so a screen reader hears which days a date rewrites.
+            of its own, 16px under the fields, and empty, while the date is
+            not a date, it takes no gap. Announced, so a screen reader hears
+            which days the numbers apply to.
           */}
-          <p aria-live="polite" data-rewrite="" className={`${sectionStartWhenFilled} text-sm font-medium text-ink`}>
-            {rewrite && rewriteText(t, rewrite)}
+          <p aria-live="polite" data-span="" className={`${sectionStartWhenFilled} text-sm font-medium text-ink`}>
+            {span && spanText(t, span)}
           </p>
           <NotAdviceNote className={sectionStart} />
         </>

@@ -1,5 +1,6 @@
 import { parseDecimalInput } from "@/lib/decimalInput";
-import { SetTargetsBodySchema, type ErrorCode, type SetTargetsBody } from "@hovimestari/types";
+import { formatTarget } from "@/lib/targetFormat";
+import { SetTargetsBodySchema, type ErrorCode, type SetTargetsBody, type TargetChange } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
 // The four target fields as typed, and the one check both targets forms run
@@ -22,13 +23,32 @@ export type TargetFieldValues = Record<TargetField, string>;
 export type TargetFieldError = ErrorCode | "digit_group";
 export type TargetFieldErrors = Partial<Record<TargetField, TargetFieldError>>;
 
-/** Every field empty. Every targets form starts here: the app offers no number. */
+/**
+ * Every field empty. The first run starts here, and so does a sheet on a date
+ * with no targets in force: the app offers no number of its own.
+ */
 export const EMPTY_TARGET_FIELDS: TargetFieldValues = {
   energyLower: "",
   energyUpper: "",
   proteinLower: "",
   proteinUpper: "",
 };
+
+/**
+ * The user's own targets in `change`, as the fields hold them: as Settings
+ * shows them, in this device's language, which the fields read back. Empty
+ * with no change.
+ */
+export function fieldsOf(change: TargetChange | null): TargetFieldValues {
+  if (change === null) return EMPTY_TARGET_FIELDS;
+  const { energyKcal, proteinG } = change.ranges;
+  return {
+    energyLower: formatTarget(energyKcal.lower),
+    energyUpper: formatTarget(energyKcal.upper),
+    proteinLower: formatTarget(proteinG.lower),
+    proteinUpper: formatTarget(proteinG.upper),
+  };
+}
 
 /** Where each field sits in `SetTargetsBody`. */
 const PATHS: Record<TargetField, readonly [string, string]> = {

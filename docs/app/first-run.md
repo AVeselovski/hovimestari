@@ -8,7 +8,7 @@ The page a new account sees instead of the tabs, until it has targets. It asks f
 
 The wordmark, then the title "Your daily targets" and the lead "Enter the ranges you aim for each day. You can change them at any time."
 
-Two groups follow, **Calories** and **Protein**, each a pair of fields side by side, **From** and **To**, with the unit inside each field: kcal or g. Under Protein sits the line "The lower number is your floor." Every field starts empty and has no example in it. Under the fields sits the note "Hovimestari is not a source of nutrition or medical advice. It measures your days against the numbers you enter."
+Two groups follow, **Calories** and **Protein**, each a pair of fields side by side, **From** and **To**, with the unit inside each field: kcal or g. Under Protein sits the line "The lower number is your floor." Every field starts empty and has no example in it, because the person has no targets yet. Under the fields sits the note "Hovimestari is not a source of nutrition or medical advice. It measures your days against the numbers you enter."
 
 **Save targets** sends the two ranges, and reads "Saving…" while it works. The fields are locked until it answers. The ranges take effect today. [Targets](../features/targets.md#setting-your-targets) holds the rules a range must keep.
 
