@@ -5,6 +5,7 @@ import {
   hasAtMostDecimals,
   OwnFoodBodySchema,
   OwnFoodUpdateBodySchema,
+  Per100gSchema,
   PortionBodySchema,
   SettingsBodySchema,
 } from "../index.js";
@@ -72,6 +73,55 @@ describe("OwnFoodUpdateBodySchema", () => {
     [{ name: "Ab", per100g, barcode: "1234567" }, "barcode_invalid"],
   ])("refuses %j with %p, as a create does", (input, code) => {
     expect(firstMessage(OwnFoodUpdateBodySchema.safeParse(input))).toBe(code);
+  });
+});
+
+describe("an own food's macros together", () => {
+  const macros = (proteinG: number, carbsG: number, fatG: number) => ({ energyKcal: 400, proteinG, carbsG, fatG });
+  const issuesOf = (schema: typeof OwnFoodBodySchema | typeof OwnFoodUpdateBodySchema, p: object) => {
+    const result = schema.safeParse({ name: "Ab", per100g: p });
+    return result.success ? [] : result.error.issues.map((i) => ({ message: i.message, path: i.path }));
+  };
+
+  it.each([
+    ["exactly 100 g", macros(50, 30, 20)],
+    ["101.5 g, the rounding allowance", macros(33.5, 33.5, 34.5)],
+    ["101.5 g in thousandths", macros(33.833, 33.833, 33.834)],
+    ["protein alone at 100 g", macros(100, 0, 0)],
+    ["carbohydrates alone at 100 g", macros(0, 100, 0)],
+    ["fat alone at 100 g", macros(0, 0, 100)],
+    ["no macros at all", macros(0, 0, 0)],
+    ["30.1 + 34.2 + 37.2, which floating point adds to 101.50000000000001", macros(30.1, 34.2, 37.2)],
+  ])("accepts %s, on create and on edit", (_, p) => {
+    expect(issuesOf(OwnFoodBodySchema, p)).toEqual([]);
+    expect(issuesOf(OwnFoodUpdateBodySchema, p)).toEqual([]);
+  });
+
+  it.each([
+    ["101.501 g, one thousandth past the allowance", macros(33.5, 33.5, 34.501)],
+    ["101.6 g", macros(50, 50, 1.6)],
+    ["200 g", macros(100, 50, 50)],
+    ["300 g, each at its own cap", macros(100, 100, 100)],
+  ])("refuses %s with one food_macro_sum_too_high on per100g.fatG, on create and on edit", (_, p) => {
+    const refused = [{ message: "food_macro_sum_too_high", path: ["per100g", "fatG"] }];
+    expect(issuesOf(OwnFoodBodySchema, p)).toEqual(refused);
+    expect(issuesOf(OwnFoodUpdateBodySchema, p)).toEqual(refused);
+  });
+
+  it("answers a missing macro's own code, not the sum's", () => {
+    expect(issuesOf(OwnFoodBodySchema, { energyKcal: 400, proteinG: 100, carbsG: 100 })).toEqual([
+      { message: "food_value_required", path: ["per100g", "fatG"] },
+    ]);
+  });
+
+  it("answers a macro above its own cap with food_macro_invalid alone", () => {
+    expect(issuesOf(OwnFoodBodySchema, macros(100.5, 50, 0))).toEqual([
+      { message: "food_macro_invalid", path: ["per100g", "proteinG"] },
+    ]);
+  });
+
+  it("leaves the shared values shape alone, so a stored food over the sum still reads", () => {
+    expect(Per100gSchema.safeParse(macros(100, 100, 100)).success).toBe(true);
   });
 });
 
