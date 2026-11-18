@@ -85,7 +85,7 @@
       "title": "Food names",
       "fi": "Finnish",
       "en": "English",
-      "hint": "Search finds foods by either name."
+      "hint": "Food names show in this language. Search finds a food in either one."
     },
     "appearance": {
       "title": "Appearance",
@@ -193,12 +193,11 @@
       "title": "Change targets",
       "titleExisting": "Targets from {date}",
       "startsOn": "Starts on",
-      "inForce": "In force on {date}: {energyLower} to {energyUpper} kcal, {proteinLower} to {proteinUpper} g protein.",
-      "rewriteBetween": "This changes the targets for every day from {date} to {end}.",
-      "rewriteDay": "This changes the targets for {date}.",
-      "rewriteFrom": "This changes the targets for every day from {date} on.",
-      "rewriteBefore": "This changes the targets for every day before {next}.",
-      "rewriteAll": "This changes the targets for every day.",
+      "appliesBetween": "These apply from {date} to {end}. Other days keep their targets.",
+      "appliesDay": "These apply to {date} only. Other days keep their targets.",
+      "appliesFrom": "These apply from {date} on. Earlier days keep their targets.",
+      "appliesBefore": "These apply to every day before {next}. Later days keep their targets.",
+      "appliesAll": "These are your only targets, so they apply to every day.",
       "save": "Save",
       "saving": "Saving…",
       "remove": "Remove these targets",

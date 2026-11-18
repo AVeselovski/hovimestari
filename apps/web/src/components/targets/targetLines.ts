@@ -2,16 +2,15 @@ import { dayBefore } from "@/lib/localDate";
 import type { TargetChange } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
-// Which days a save or a removal changes, from the list of changes the
-// server answered. The in-force rule itself stays on the server: these only
-// name the stretch of days between one change and the next.
+// Which days a save or a removal changes, and which change is in force on a
+// date, from the list of changes the server answered.
 //
 // A change covers the days from its date to the day before the next change.
 // The first change also covers every day before it.
 // ---------------------------------------------------------------------------
 
-/** What the rewrite line says, before it is put in words. */
-export type Rewrite =
+/** Which days a save on a date applies to, before it is put in words. */
+export type Span =
   | { kind: "between"; date: string; end: string }
   | { kind: "day"; date: string }
   | { kind: "from"; date: string }
@@ -28,16 +27,23 @@ export function nextChangeAfter(changes: readonly TargetChange[], date: string):
 }
 
 /**
- * The days a save on `date` changes, or null when it changes none that have
- * passed. Shown when the save rewrites days that already have targets: a
- * date of today or earlier, an edit of an existing change, or a date before
- * every change, which then covers the days before it too. A new change on a
- * later date leaves every day before it as it was, and says nothing.
+ * The change in force on `date`: the latest one on or before it, else the
+ * first. Null only with no changes. The server's rule, read from the list
+ * the server answered, so a sheet can fill its fields as it opens.
  */
-export function rewriteOf(changes: readonly TargetChange[], date: string, today: string): Rewrite | null {
-  const existing = changes.some((c) => c.effectiveFrom === date);
+export function inForceOn(changes: readonly TargetChange[], date: string): TargetChange | null {
+  const all = sorted(changes);
+  return all.filter((c) => c.effectiveFrom <= date).at(-1) ?? all[0] ?? null;
+}
+
+/**
+ * The days a save on `date` applies to: from the date to the day before the
+ * next change, or on from the date when none follows. A save before every
+ * other change becomes the first one, and covers the days before it too.
+ * Every other day keeps the targets it has.
+ */
+export function spanOf(changes: readonly TargetChange[], date: string): Span {
   const earlier = changes.some((c) => c.effectiveFrom < date);
-  if (!existing && earlier && date > today) return null;
   const next = nextChangeAfter(changes, date);
   if (!earlier) return next ? { kind: "before", next: next.effectiveFrom } : { kind: "all" };
   return next ? stretch(date, dayBefore(next.effectiveFrom)) : { kind: "from", date };

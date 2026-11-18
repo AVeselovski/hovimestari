@@ -1,7 +1,7 @@
 "use client";
 
 import { fieldErrorClass, inputClass } from "@/components/ui/styles";
-import { useLayoutEffect, useRef, type InputHTMLAttributes, type ReactElement, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type InputHTMLAttributes, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
 // NativeDateInput: the platform's own date field, `<input type="date">`, so a
@@ -34,13 +34,6 @@ export interface NativeDateInputProps extends NativeInputProps {
   onValueChange: (value: string) => void;
   /** The form's line under the field, or null. */
   error?: string | null;
-  /**
-   * What the line under the field says while there is no error, such as what
-   * the date means. Read after the field's label, and announced as it changes.
-   */
-  hint?: ReactNode;
-  /** The line's room, for a hint longer than one line: `min-h-10` for two. Default `min-h-5`. */
-  lineRoom?: string;
 }
 
 export function NativeDateInput({
@@ -48,8 +41,6 @@ export function NativeDateInput({
   value,
   onValueChange,
   error = null,
-  hint = null,
-  lineRoom = "min-h-5",
   "aria-describedby": describedBy,
   ...rest
 }: NativeDateInputProps): ReactElement {
@@ -72,16 +63,12 @@ export function NativeDateInput({
         type="date"
         onChange={(e) => onValueChange(e.target.value)}
         aria-invalid={error ? true : undefined}
-        aria-describedby={[describedBy, error || hint ? lineId : null].filter(Boolean).join(" ") || undefined}
+        aria-describedby={[describedBy, error ? lineId : null].filter(Boolean).join(" ") || undefined}
         className={inputClass}
       />
       {/* Always there, so an error appearing moves nothing below it. */}
-      <p
-        id={lineId}
-        aria-live={hint === null ? undefined : "polite"}
-        className={`${error || hint === null ? fieldErrorClass : "mt-1.5 text-sm text-ink"} ${lineRoom}`}
-      >
-        {error ?? hint}
+      <p id={lineId} className={`${fieldErrorClass} min-h-5`}>
+        {error}
       </p>
     </>
   );

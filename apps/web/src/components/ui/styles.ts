@@ -95,7 +95,7 @@ export const sectionStart = "mt-2";
 
 /**
  * A line in a `formStack` that starts a section only while it says
- * something, such as the targets sheet's rewrite line: 16px from the block
+ * something, such as the line under the targets sheet's fields: 16px from the block
  * above it when filled. Empty, it takes back the stack's gap, so it costs no
  * room and the block after it sits where it would without it. It stays in
  * the layout, so a live region still announces what it comes to say.

@@ -40,8 +40,7 @@ export async function afterAccountChange(client: QueryClient, me?: Me): Promise<
 }
 
 /**
- * After a targets change is saved or removed: every targets read, today's and
- * each date's, and every day, which answers the targets in force and the
+ * After a targets change is saved or removed: the targets read and every day, which answers the targets in force and the
  * positions against them.
  */
 export async function afterTargetsChange(client: QueryClient): Promise<void> {
