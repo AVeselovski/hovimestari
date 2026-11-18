@@ -35,14 +35,14 @@ src/
 │       └── google/link/start/, google/link/complete/ The two ends of linking Google, bound by a nonce cookie
 ├── components/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
-│   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, shared by Settings and the first-run page
+│   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, for Settings
 │   ├── day/                    The Day tab:
 │   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry sheet's mount
 │   │   ├── DayHeader.tsx       The date bar and the launcher, kept at the top while the day scrolls under them, with the hairline
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
 │   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
 │   │   ├── DaySummary.tsx      Both readings, the distances, carbohydrates and fat, and the two notes, each line in its reserved room
-│   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, and from which date
+│   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, with Set targets or from which date
 │   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
 │   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
 │   │   ├── EntryList.tsx       "Entries", Mark all eaten, the rows and the empty line
@@ -115,9 +115,9 @@ src/
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
 │   ├── targets/                Targets on the web:
-│   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider
+│   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider, and useFirstRun
 │   │   ├── TodayProvider.tsx   The app's today: the server's, moved by any newer answer, asked again by the device's clock
-│   │   ├── FirstRunTargets.tsx The first-run page: the first targets, Sign out and Delete account
+│   │   ├── FirstRunTargets.tsx The first-run page: the first targets, or Continue without targets
 │   │   ├── TargetsSheet.tsx    A dated targets change: new targets from a picked date, or an edited change under its date, the days they apply to, removal
 │   │   ├── TargetRangeFields.tsx  The four target fields, as two ranges with a shared line under each
 │   │   ├── NotAdviceNote.tsx   The note that the app gives no nutrition or medical advice

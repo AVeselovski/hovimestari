@@ -47,7 +47,7 @@ The signed-in routes are in `apps/web/src/app/(app)/`. Its layout wraps them in 
 - While the server is out of reach, the shell on a device with a known session, so the app opens offline. On any other device, `OfflineSignedOut` from `apps/web/src/components/auth/SessionStates.tsx`, titled "Not signed in" under the one offline line.
 - On a server fault, `SessionProblem` from the same file, whose button calls the context's `retry`.
 
-Between the query cache and the shell sits [the first-run gate](../features/targets.md#the-first-run-gate). An account without targets sees [the first-run page](first-run.md) in place of the shell, on the same address.
+Between the query cache and the shell sits [the first-run gate](../features/targets.md#the-first-run-gate). A new account that has not passed the first run sees [the first-run page](first-run.md) in place of the shell, on the same address, and so does a user with no targets who opens it again from a day.
 
 No signed-in page puts user data in its server-rendered HTML. Each renders on the device, behind the session, which is what lets the service worker cache pages.
 

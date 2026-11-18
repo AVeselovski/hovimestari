@@ -214,7 +214,7 @@ The refresh cookie `__refresh_token` is `httpOnly`, `SameSite=Strict`, `Secure` 
 
 Three tables, in `apps/backend/src/db/schema/`:
 
-- `users`: `email` unique and always lower case, `password_hash` null on a Google-only account, `google_id` unique and null on a password-only account. The CHECK `users_has_sign_in_method` requires one of the two. The CHECK `users_email_lower` refuses a mixed-case email. It also holds `food_name_language`, whose rule is in [food-name language](foods.md#food-name-language), and `time_zone`, whose rule is in [today and the time zone](targets.md#today-and-the-time-zone).
+- `users`: `email` unique and always lower case, `password_hash` null on a Google-only account, `google_id` unique and null on a password-only account. The CHECK `users_has_sign_in_method` requires one of the two. The CHECK `users_email_lower` refuses a mixed-case email. It also holds `food_name_language`, whose rule is in [food-name language](foods.md#food-name-language), `time_zone`, whose rule is in [today and the time zone](targets.md#today-and-the-time-zone), and `first_run_done_at`, whose rule is in [the first run](targets.md#the-first-run).
 - `refresh_tokens`: one row per refresh token, with `token_hash` unique, `family_id` naming the sign-in it descends from, `superseded_at` set once it was renewed, and `expires_at`.
 - `password_reset_tokens`: one row per reset link, with `token_hash` unique and `expires_at`.
 

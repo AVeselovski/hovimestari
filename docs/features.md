@@ -10,7 +10,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Targets
 
-- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, asked for on a first-run page before anything else and changed in Settings from a date the user picks. A change applies from its date, a day before the first change has none, and the app offers no default and no suggestion.
+- **[Targets](features/targets.md)**: a calorie range and a protein range in the user's own numbers, offered once on a first-run page, which a person may pass by, and changed in Settings from a date the user picks. A user may have no targets and log all the same. A change applies from its date, a day before the first change has none, and the app offers no default and no suggestion.
 
 ## Foods
 
@@ -33,6 +33,6 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 - **[Day](app/day.md)**: one day, its two readings against the person's targets, and its entries to mark, change and remove.
 - **[The log sheet](app/log-sheet.md)**: logging a food, a saved meal or an estimate to a day, logging a recent item again in one press, finding a food or a meal, reading its figures, and keeping foods and saved meals of your own.
 - **[Settings](app/settings.md)**: targets, the language of food names, the theme, sign-in methods, the account and the food data credit.
-- **[First run](app/first-run.md)**: the page that asks a new account for its targets before the tabs.
+- **[First run](app/first-run.md)**: the page that offers a new account its targets, once, before the tabs, and opens again from a day for a user with none.
 - **[Sign-in and account pages](app/auth.md)**: signing in, creating an account and resetting a password.
 - **[Colours and type](app/colors.md)**: the design tokens every screen paints with.
