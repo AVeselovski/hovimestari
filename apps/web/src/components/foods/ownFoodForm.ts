@@ -142,7 +142,29 @@ export function ownFoodFieldOf(code: ErrorCode | undefined): OwnFoodField | null
     case "barcode_invalid":
     case "barcode_taken":
       return "barcode";
+    case "food_macro_sum_too_high":
+      return "fat";
     default:
       return null;
   }
+}
+
+/** The three macros, which one refusal can be about together. */
+const MACRO_FIELDS = ["protein", "carbs", "fat"] as const satisfies readonly OwnFoodField[];
+
+/**
+ * The fields a set of errors marks invalid, in the form's order. The macros'
+ * sum is refused under Fat, the last of the three, and marks all three, so
+ * the eye and a screen reader both see the line is about the three together.
+ */
+export function markedFields(errors: OwnFoodErrors): OwnFoodField[] {
+  const sum = errors.fat === "food_macro_sum_too_high";
+  return OWN_FOOD_FIELDS.filter(
+    (f) => errors[f] !== undefined || (sum && (MACRO_FIELDS as readonly OwnFoodField[]).includes(f)),
+  );
+}
+
+/** True when a field shares the macros' sum line under Fat rather than a line of its own. */
+export function sharesSumLine(field: OwnFoodField, errors: OwnFoodErrors): boolean {
+  return errors.fat === "food_macro_sum_too_high" && (field === "protein" || field === "carbs");
 }

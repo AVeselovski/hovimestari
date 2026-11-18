@@ -81,6 +81,11 @@ export function besideWidth(widestUnit: string): string {
   return isWord(widestUnit) ? "w-44" : "w-36";
 }
 
+/** The id of a field's own line, for another field to point `describedBy` at. */
+export function decimalLineId(id: string): string {
+  return `${id}-line`;
+}
+
 export function DecimalField({
   id,
   label,
@@ -97,7 +102,7 @@ export function DecimalField({
   ...input
 }: DecimalFieldProps): ReactElement {
   const unitId = `${id}-unit`;
-  const lineId = `${id}-line`;
+  const lineId = decimalLineId(id);
   const describedByIds = [unitId, describedBy, line !== undefined ? lineId : null].filter(Boolean).join(" ");
   const beside = layout === "beside";
   return (
