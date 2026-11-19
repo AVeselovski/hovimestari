@@ -4,7 +4,7 @@ import { env } from "../lib/env.js";
 import { contextForUser } from "../lib/requestContext.js";
 import { APP_RULES_URI, appRulesFor } from "./appRules.js";
 import { connectionAuthOf, type ConnectionAuthExtra } from "./auth.js";
-import { runTool, type ToolContext } from "./result.js";
+import { loggedInput, runTool, type ToolContext } from "./result.js";
 import { READ_TOOLS } from "./tools/index.js";
 
 // ---------------------------------------------------------------------------
@@ -60,7 +60,11 @@ export const buildServer: McpServerFactory = ({ authInfo }) => {
   for (const tool of READ_TOOLS) {
     server.registerTool(
       tool.name,
-      { description: tool.description, inputSchema: tool.inputSchema, annotations: READ_ONLY },
+      {
+        description: tool.description,
+        inputSchema: loggedInput(tool, auth.connectionId),
+        annotations: { ...READ_ONLY, ...tool.annotations },
+      },
       (args: Record<string, unknown>) => runTool(tool, args, toolContext(auth, canWrite)),
     );
   }

@@ -39,3 +39,43 @@ export const TimeZoneSchema = z
   });
 
 export type IsoDate = z.infer<typeof IsoDateSchema>;
+
+// ---------------------------------------------------------------------------
+// Calendar arithmetic on `YYYY-MM-DD` dates, in UTC on purpose: a date here is
+// a day, not an instant, so no daylight-saving switch can move it. The week is
+// Monday to Sunday, the week a plan is made for. The web's week sheet and the
+// assistant's get_days read the same week from these.
+// ---------------------------------------------------------------------------
+
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The instant at UTC midnight of `date`, or null for a string that is not a real date. */
+function utcMidnightOf(date: string): Date | null {
+  const match = ISO_DATE.exec(date);
+  if (!match) return null;
+  const [, y, m, d] = match.map(Number);
+  const at = new Date(Date.UTC(y, m - 1, d));
+  return at.getUTCFullYear() === y && at.getUTCMonth() === m - 1 && at.getUTCDate() === d ? at : null;
+}
+
+/** `date` moved by `days`, which may be negative. Throws a RangeError for a string that is not a real date. */
+export function addDays(date: string, days: number): string {
+  const at = utcMidnightOf(date);
+  if (!at) throw new RangeError(`Not a date: ${date}`);
+  at.setUTCDate(at.getUTCDate() + days);
+  return at.toISOString().slice(0, 10);
+}
+
+/** The first day of a week, as `Date.prototype.getUTCDay` numbers it: Monday. */
+export const WEEK_START = 1;
+
+/** How many days a week holds. */
+export const WEEK_LENGTH = 7;
+
+/** The week holding `date`: its Monday and its Sunday, both included. */
+export function weekOf(date: string): { from: string; to: string } {
+  const at = utcMidnightOf(date);
+  if (!at) throw new RangeError(`Not a date: ${date}`);
+  const from = addDays(date, -((at.getUTCDay() - WEEK_START + WEEK_LENGTH) % WEEK_LENGTH));
+  return { from, to: addDays(from, WEEK_LENGTH - 1) };
+}

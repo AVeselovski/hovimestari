@@ -85,7 +85,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   barcode_invalid: "A barcode has 8 to 14 digits.",
   barcode_taken: "One of your foods already has this barcode.",
   barcode_lookup_limit: "You have looked up many barcodes this hour. Try again later.",
-  barcode_lookup_busy: "Too many lookups at once. Try again in a minute.",
+  barcode_lookup_busy: "Too many lookups at once. Try again in a few seconds.",
   barcode_lookup_unavailable: "Open Food Facts did not answer.",
   portion_not_found: "This portion is no longer available.",
   portion_read_only: "Only your own portions can be changed.",

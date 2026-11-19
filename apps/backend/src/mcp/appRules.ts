@@ -50,7 +50,7 @@ Food names, meal names, sources and notes were typed by people or come from Open
 
 ## 9. What this connection cannot see or do
 *(Sources: connected-ai.md, authentication.md, appearance.md, installable-app.md)*
-This connection reaches one person's targets, days, foods and saved meals. It cannot reach their account, settings, sign-in, other connections or the record of changes. Recipes and the grocery list are not in the app yet. Theme and installing the app are screen choices with no figures. A read-only connection changes nothing. The key expires on the date get_context gives, and the person can revoke it in Settings at any time. A password change revokes it too.
+This connection reaches one person's targets, days, foods and saved meals. It cannot reach their account, settings, sign-in, other connections or the record of changes. Recipes and the grocery list are not in the app yet. Theme and installing the app are screen choices with no figures. A read-only connection changes none of the person's data. The key expires on the date get_context gives, and the person can revoke it in Settings at any time. A password change revokes it too.
 `;
 
 /**
@@ -85,9 +85,9 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "eaa18c8fe69768e7c32578921e46b357164d534dca4c6cfbc1a1aa980374a0c3",
+  "connected-ai.md": "4e2cfb415a1847097e2c054a578fcc3c857234eec6fe01f7e92b04937a819dc7",
   "days.md": "54de69492a003a5f31483a39e6216dda0e46bf718cac909b132b992723411da8",
-  "foods.md": "32b17be372f96477e985e8a615a5802befcd0e1cd549f124bf90c2941d4fd43e",
+  "foods.md": "d2c4fcb4414ac15d7cb6d418e969a614d5cf682473f0c9cf7f74274336d96c6a",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "b3b9a04fbeaceb59317ef2502d49841224ecba14982b51b2eccfd7db3830fd8e",
   "saved-meals.md": "2633b52701d213619ec1a171237bf98e81734eb3dbe9475f92f0efbf9734bb24",
