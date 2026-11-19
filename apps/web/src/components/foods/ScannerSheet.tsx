@@ -97,7 +97,10 @@ export function ScannerSheet({
     },
   });
   const { status } = camera;
-  /** The line under the picture in each state. */
+  /**
+   * The line under the picture in each state. Only `busy` offers Try again. A scanner that did not load offers
+   * Type the number alone, on purpose: the usual cause is the network, and typing needs none.
+   */
   const lines: Record<CameraStatus, string> = {
     starting: t("starting"),
     scanning: t("aim"),

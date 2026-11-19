@@ -23,9 +23,9 @@ import type { ReaderOptions, ZXingModuleOverrides } from "zxing-wasm/reader";
 //   own code. The decoder checks each code's check digit.
 // - `formatOf` maps the decoder's format names to the ones the lookup takes.
 //   Only an 8-digit code needs one, and the lookup ignores it on a longer
-//   code. ZXing reports a UPC-A as an EAN-13 with a leading 0 and a UPC-E
-//   expanded to 13 digits, so in practice only an EAN-8 reaches the server
-//   as 8 digits.
+//   code. What the decoder answers for each retail format, and so which
+//   codes reach the server as 8 digits, is pinned on real images in
+//   `__tests__/decoder.test.ts`. That test is the authority, not this note.
 //
 // No frame leaves the device: a frame is decoded here, and what the scanner
 // sends on is the text.
