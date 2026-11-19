@@ -166,6 +166,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | the ten-key limit under concurrent creates                               | `features/connected-ai.md#making-and-revoking`          | `### Making and revoking`          |
 | what an assistant reads, `get_context`, the read tools                   | `features/connected-ai.md#what-an-assistant-reads`      | `### What an assistant reads`      |
 | what an assistant can change, the entry tools, outcomes                  | `features/connected-ai.md#what-an-assistant-can-change` | `### What an assistant can change` |
+| what stays out of an assistant's reach, deleting, removing a portion     | `features/connected-ai.md#what-stays-out-of-reach`      | `### What stays out of reach`      |
 | the record of changes, the change record                                 | `features/connected-ai.md#the-record-of-changes`        | `### The record of changes`        |
 | request key, replayed, a retry that lands once                           | `features/connected-ai.md#request-keys`                 | `### Request keys`                 |
 | app rules                                                                | `features/connected-ai.md#the-app-rules`                | `### The app rules`                |
@@ -178,6 +179,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | write tools, `runWriteTool`, the write brakes in order, `WRITE_TOOLS`    | `features/connected-ai.md#write-tools`                  | `### Write tools`                  |
 | `recordedWrite`, `RequestKeyTaken`, the recorded writes, the screen path | `features/connected-ai.md#recording-a-change`           | `### Recording a change`           |
 | app rules text, `APP_RULES_SOURCES`, the rules stamp                     | `features/connected-ai.md#the-app-rules-text`           | `### The app rules text`           |
+| the MCP smoke check, `mcp:smoke`                                         | `features/connected-ai.md#the-smoke-check`              | `### The smoke check`              |
 | the request log and tool log on `/mcp`                                   | `features/connected-ai.md#logs`                         | `### Logs`                         |
 
 ## Example area

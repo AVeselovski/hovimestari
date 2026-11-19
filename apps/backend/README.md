@@ -59,7 +59,7 @@ src/
 │   ├── auth.ts                 verifyConnectionKey and requireConnectionKey: a key to AuthInfo for its user, or a 401 saying why
 │   ├── server.ts               The server built per request: instructions, the tools, the app rules resource, and contextForUser per call
 │   ├── result.ts               defineTool, runTool, the answer envelope, refusals with their code and seconds to wait, the tool log line
-│   ├── inputs.ts               DayDate, DayRange and RequestKey for tool inputs, and dateIn, which reads today as the person's today
+│   ├── inputs.ts               DayDate, DayRange, RequestKey, writeInput and EntryIdSet for tool inputs, and dateIn, which reads today as the person's today
 │   ├── writeBrake.ts           The per-minute window on write calls, keyed by user, and the hourly limit's numbers
 │   ├── appRules.ts             The app rules text, the write rules, appRulesFor and APP_RULES_SOURCES, the feature docs' stamps
 │   └── tools/
@@ -71,7 +71,10 @@ src/
 │       └── writes/
 │           ├── index.ts        WRITE_TOOLS, listed only to a key that can write while writing is on
 │           ├── run.ts          defineWriteTool and runWriteTool: the brakes, the request hash, the replay, the recorded write, the note
-│           └── entries.ts      The eight entry write tools: log_food, log_saved_meal, log_estimate, update_entry, set_entries_status, copy_entries, remove_entries, restore_entry
+│           ├── entries.ts      The eight entry write tools: log_food, log_saved_meal, log_estimate, update_entry, set_entries_status, copy_entries, remove_entries, restore_entry
+│           ├── foods.ts        create_own_food, update_own_food, add_portion, update_portion and set_favourite
+│           ├── meals.ts        create_saved_meal, update_saved_meal and set_saved_meal_archived
+│           └── targets.ts      set_targets and remove_targets
 ├── middleware/
 │   ├── authenticate.ts         Bearer access token check, sets req.user
 │   ├── requireBff.ts           The relay secret check and the relayed client address rules
@@ -106,20 +109,27 @@ src/
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/settings.ts      updateSettings: the food-name language and the time zone. finishFirstRun and markFirstRunDone
 │   ├── writes/connections.ts   createConnection for a live session under the user lock and the ten-key limit, revokeConnection, revokeAllConnections
-│   ├── writes/changeRecord.ts  recordedWrite, which runs an assistant's write and its record row in one transaction, findReplay, replayAfterConflict, requestHashOf, countRecentChanges
+│   ├── writes/changeRecord.ts  recordedWrite, which runs an assistant's write and its record row in one transaction, findReplay, replayAfterConflict, requestHashOf, countRecentChanges, fieldChanges, goneAsNull
 │   ├── writes/recorded/entries.ts  One function per entry write tool: its before-read, the one screen write it calls, its record, and its replay reader
+│   ├── writes/recorded/foods.ts  The same for the own-food, portion and favourite tools
+│   ├── writes/recorded/savedMeals.ts  The same for the saved-meal tools
+│   ├── writes/recorded/targets.ts  The same for set_targets and remove_targets, with their user locks
 │   ├── entryRows.ts            The selection every entry read answers with, and an entry's figures
 │   ├── sourceValues.ts         Reads an entry's basis from its source, takes the user lock, checks a source's use and rewrites planned entries
 │   ├── foodScope.ts            visibleTo and portionVisibleTo, the only place the visibility rules are written
 │   ├── foodRows.ts             The selection every food read answers with, names in the user's language
 │   └── foodSearch.ts           The query's words and the ranked search query
 ├── scripts/
-│   └── fineliImport/           The Fineli import command
-│       ├── index.ts            Entry point: a pool from DATABASE_URL alone, the default folder, the exit code
-│       ├── cli.ts              Arguments, the run, VACUUM ANALYZE foods, the exit codes
-│       ├── readRelease.ts      Reads a release folder into foods and portions, or names the missing file or column
-│       ├── applyRelease.ts     Writes a release in one transaction: upserts, retirement, the retire and rename guards, portions
-│       └── report.ts           The report a person reads after each run
+│   ├── fineliImport/           The Fineli import command
+│   │   ├── index.ts            Entry point: a pool from DATABASE_URL alone, the default folder, the exit code
+│   │   ├── cli.ts              Arguments, the run, VACUUM ANALYZE foods, the exit codes
+│   │   ├── readRelease.ts      Reads a release folder into foods and portions, or names the missing file or column
+│   │   ├── applyRelease.ts     Writes a release in one transaction: upserts, retirement, the retire and rename guards, portions
+│   │   └── report.ts           The report a person reads after each run
+│   └── mcpSmoke/               The MCP smoke check
+│       ├── index.ts            Its own user and data through the API, every read tool against its route, the revoke and the clean-up
+│       ├── writeLeg.ts         log_food against POST /entries, and the record row
+│       └── checks.ts           The tool names each key lists, and the tally
 └── types/
     └── express.d.ts            req.user and req.relay
 ```
@@ -146,7 +156,7 @@ The two call budgets and the answers held in memory live in the process, so the 
 
 `POST /mcp` is where a connected assistant calls, with `Authorization: Bearer` and a connection key. It is outside `/api/v1`, mounted after the request log and before CORS and the JSON parser, so it sends no CORS headers and parses its own body with a 100 kB limit. Any request with an `Origin` header answers 403. A connection key opens nothing under `/api/v1`, and an access token opens nothing at `/mcp`. The router's steps, its limits and what a request must carry in each protocol revision are in [the connected AI feature doc](../../docs/features/connected-ai.md#the-endpoint). The limits live in process memory, like the other rate limits.
 
-A tool in `src/mcp/tools/` calls the read service its REST route calls and selects fields. `look_up_barcode` calls `lookupBarcode` with `sharedLookupDeps()`, as `POST /foods/lookup` does, so both spend one budget. A new tool is a `defineTool` in its area's file, added to `READ_TOOLS`. `src/mcp/__tests__/importBoundary.test.ts` fails when a file under `src/mcp/` imports a route, middleware, the database module, `drizzle-orm` or a database driver, imports a module by a computed path or through `createRequire`, imports a `lib/` module that is not on its allow-list, or reaches the database client or builds SQL. A change to any `docs/features/*.md` re-reads the app rules section that names it in `src/mcp/appRules.ts` and re-stamps it in `APP_RULES_SOURCES`. `src/mcp/__tests__/appRules.test.ts` fails until then, printing the doc's new hash.
+A tool in `src/mcp/tools/` calls the read service its REST route calls and selects fields. `look_up_barcode` calls `lookupBarcode` with `sharedLookupDeps()`, as `POST /foods/lookup` does, so both spend one budget. A new read tool is a `defineTool` in its area's file, added to `READ_TOOLS`. A new write tool is a `defineWriteTool` under `src/mcp/tools/writes/`, added to `WRITE_TOOLS`, that calls one function in `src/services/writes/recorded/`. `src/mcp/__tests__/importBoundary.test.ts` fails when a file under `src/mcp/` imports a route, middleware, the database module, `drizzle-orm` or a database driver, imports a module by a computed path or through `createRequire`, imports a `lib/` module that is not on its allow-list, or reaches the database client or builds SQL. A change to any `docs/features/*.md` re-reads the app rules section that names it in `src/mcp/appRules.ts` and re-stamps it in `APP_RULES_SOURCES`. `src/mcp/__tests__/appRules.test.ts` fails until then, printing the doc's new hash.
 
 ### The connected AI switches
 
@@ -166,9 +176,21 @@ pnpm --filter @hovimestari/backend db:generate  # SQL migration from a schema ch
 pnpm --filter @hovimestari/backend db:migrate   # apply migrations to DATABASE_URL
 pnpm --filter @hovimestari/backend db:studio    # Drizzle Studio on DATABASE_URL
 pnpm --filter @hovimestari/backend fineli:import [dir] [--dry-run] [--allow-retire] [--allow-rename]
+pnpm --filter @hovimestari/backend mcp:smoke    # every read tool and one write against their REST routes, on a local _smoke database
 ```
 
 `fineli:import` loads an unzipped Fineli release into the food catalogue. The folder defaults to `apps/backend/data/fineli/`, which git ignores, and a relative folder is read from where you run the command. Only `DATABASE_URL` is needed. The steps, local and on Fly, are in [the Fineli import runbook](../../docs/setup/fineli-import.md), and how the import treats each food in [the foods feature doc](../../docs/features/foods.md#the-fineli-import).
+
+`mcp:smoke` checks the MCP endpoint against the REST routes on a local, migrated database made for it, the one `DATABASE_URL` names. It refuses a host other than `localhost`, `127.0.0.1` or `::1`, a URL with query parameters, and a database whose name does not end in `_smoke`. Set `MCP_SMOKE_ANY_DATABASE=true` to lift the name rule. To run it locally:
+
+```bash
+psql postgresql://postgres@localhost:5432/postgres -c "CREATE DATABASE hovimestari_smoke"
+export DATABASE_URL=postgresql://postgres@localhost:5432/hovimestari_smoke
+pnpm --filter @hovimestari/backend db:migrate
+pnpm --filter @hovimestari/backend mcp:smoke
+```
+
+It signs up a user of its own with a password it makes, gives it a day of data through the API, compares every read tool with its route, runs one write through `log_food` and `POST /entries`, makes a food through `create_own_food` and logs it, then revokes its keys and deletes its user. It makes any secret the env lacks at start-up and reaches nothing outside the machine. It prints each check and exits 1 on any mismatch. CI runs it after the tests on a database of its own. What it covers is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-smoke-check).
 
 Local setup, from `pnpm env:init` to a running server, is in [the local development runbook](../../docs/setup/local-development.md).
 
@@ -229,7 +251,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. `nameCase.test.ts` pins how a name written in capitals is stored, and `fineliImportCase.db.test.ts` imports a release in capitals over stored names. `support/capitalRelease.ts` makes that release as a temp copy of a fixture. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
 - `src/routes/__tests__/connections.db.test.ts` makes, lists and revokes connection keys on the real database, with the two switches set on the parsed `env`. It holds the user's row on its own connection to show a create waits and counts the key added meanwhile, and races six creates for the tenth place. `src/routes/__tests__/connectionsRevoke.db.test.ts` changes and resets passwords, and fails their transactions at commit with a deferred trigger to show a failed change revokes no key. `src/routes/__tests__/connectionsSession.db.test.ts` shows that only a live session makes a key. `src/lib/__tests__/connectionKeys.test.ts` renders the lookup's and the last-use write's SQL with drizzle's own dialect.
-- `src/mcp/__tests__/` tests the endpoint. `harness.ts` makes every key at start-up, stands in for the key lookup, runs the app on a real port for the real MCP client, and freezes `Date` alone with `freezeDate`, so the limiters and the services read one fixed instant. `router.test.ts` covers the refusals, the Origin guard, the bodies, the `Host` header and the tool list in both protocol revisions. `deadKeyBrake`, `refusedKeyBrake`, `brakeAfterBody` and `rateLimit` run the limiters in order on one address, and move the frozen clock past a window to show it refill. `disabled.test.ts` starts the app with `MCP_ENABLED=false`. `server.db.test.ts` calls `get_context` with a key made through the API and compares it with `GET /targets` on a real database. `readTools.db.test.ts` does the same for every other read tool against its route on one frozen clock, and runs `look_up_barcode` against the `offStub` stand-in for Open Food Facts. `importBoundary.test.ts` reads every file under `src/mcp/` with `importsOf` from `src/__tests__/support/importsOf.ts` and `withoutComments` from `src/__tests__/support/withoutComments.ts`. `registries.test.ts` keeps every write tool out of `READ_TOOLS`, and `writesOff.test.ts` starts the endpoint with `MCP_WRITES_ENABLED=false`. `entryWrites.db.test.ts` runs every entry write tool on a real database with a key made through the API: its change, its record row and its replay. `writeReplays.db.test.ts` holds a first call open with `serviceHolder` to race a second with the same request key, for a tool that adds and for each tool that changes what is there, and forces a failure after the service to show the change and its record go together. `writeBrakes.db.test.ts` runs both write limits for two keys of one person on a frozen clock, on both sides of each window. They share `writeSupport.ts`. `src/services/writes/recorded/__tests__/screenPath.test.ts` reads the recorded writes and fails on a row written there, a namespace or run-time import, or a function that calls other than one write service.
+- `src/mcp/__tests__/` tests the endpoint. `harness.ts` makes every key at start-up, stands in for the key lookup, runs the app on a real port for the real MCP client, and freezes `Date` alone with `freezeDate`, so the limiters and the services read one fixed instant. `router.test.ts` covers the refusals, the Origin guard, the bodies, the `Host` header and the tool list in both protocol revisions. `deadKeyBrake`, `refusedKeyBrake`, `brakeAfterBody` and `rateLimit` run the limiters in order on one address, and move the frozen clock past a window to show it refill. `disabled.test.ts` starts the app with `MCP_ENABLED=false`. `server.db.test.ts` calls `get_context` with a key made through the API and compares it with `GET /targets` on a real database. `readTools.db.test.ts` does the same for every other read tool against its route on one frozen clock, and runs `look_up_barcode` against the `offStub` stand-in for Open Food Facts. `importBoundary.test.ts` reads every file under `src/mcp/` with `importsOf` from `src/__tests__/support/importsOf.ts` and `withoutComments` from `src/__tests__/support/withoutComments.ts`. `registries.test.ts` keeps every write tool out of `READ_TOOLS`, and `writesOff.test.ts` starts the endpoint with `MCP_WRITES_ENABLED=false`. `entryWrites.db.test.ts` runs every entry write tool on a real database with a key made through the API: its change, its record row and its replay. `otherWrites.db.test.ts` does the same for the food and saved-meal tools, and `targetWrites.db.test.ts` for the targets tools, with the races a screen save and a second call run against `set_targets`, held by a pause in `setTargets`. `writeReplays.db.test.ts` holds a first call open with `serviceHolder` to race a second with the same request key, for a tool that adds, for each tool that changes what is there, and for a different call under the same key, and forces a failure after the service to show the change and its record go together. `writeBrakes.db.test.ts` runs both write limits for two keys of one person on a frozen clock, on both sides of each window. They share `writeSupport.ts`. `src/services/writes/recorded/__tests__/screenPath.test.ts` reads the recorded writes and fails on a row written there, a namespace or run-time import, or a function that calls other than one write service.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment

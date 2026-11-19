@@ -2,7 +2,7 @@
 
 Connected AI is how a person gives their own AI assistant access to their Hovimestari data: a named connection key they make, hand to the assistant and revoke whenever they like. The app runs no model of its own and keeps no key to any AI service.
 
-A signed-in person makes, lists and revokes keys in [Settings](../app/settings.md#connected-ai). An assistant connects with a key over the Model Context Protocol. It reads what the person's screens show: their targets, their days with both readings, their foods, favourites and recent items, and their saved meals. It can look up a barcode, and it reads the app rules, the text that tells it how to read every figure. With a key that can make changes, while the server allows them, it also logs, plans, changes, marks, copies, removes and restores the entries on the person's days. Every change it makes is recorded under the connection's name.
+A signed-in person makes, lists and revokes keys in [Settings](../app/settings.md#connected-ai). An assistant connects with a key over the Model Context Protocol. It reads what the person's screens show: their targets, their days with both readings, their foods, favourites and recent items, and their saved meals. It can look up a barcode, and it reads the app rules, the text that tells it how to read every figure. With a key that can make changes, while the server allows them, it also logs, plans, changes, marks, copies, removes and restores the entries on the person's days, adds and edits the person's own foods and their portions, marks favourites, saves, edits and archives saved meals, and sets and removes targets. Every change it makes is recorded under the connection's name.
 
 ## In detail
 
@@ -56,7 +56,9 @@ A call with an input the tool does not take is refused, and the refusal names th
 
 ### What an assistant can change
 
-A key that can make changes, while the server allows them, also lists eight tools that change the person's entries. Each makes the same change the Day tab and the log sheet make, through the same write, and the app refuses what the screen refuses.
+A key that can make changes, while the server allows them, also lists 18 tools that change the person's data. Each makes the same change the screen makes, through the same write, and the app refuses what the screen refuses.
+
+For the entries on the person's days, as the Day tab and the log sheet change them:
 
 - `log_food`: logs or plans a food on a day, by grams or by a count of one of its portions.
 - `log_saved_meal`: logs or plans a saved meal, by its count of meals.
@@ -67,27 +69,52 @@ A key that can make changes, while the server allows them, also lists eight tool
 - `remove_entries`: removes up to 100 entries. Each can be put back for ten minutes.
 - `restore_entry`: puts back an entry removed in the last ten minutes, exactly as it was.
 
-The app makes the id of every new entry. Entries are all an assistant can change, as the [known gaps](#known-gaps) list.
+For [foods](foods.md#your-own-foods), as the log sheet and the Recipes tab change them:
 
-Every answer says what happened. `created`, `changed` or `deleted` means the change was made and recorded. `unchanged` means nothing needed changing, such as marking entries already eaten, and nothing was recorded. `replayed` answers a retry, as [request keys](#request-keys) describe.
+- `create_own_food`: adds one of the person's own foods with its values per 100 g from a label, and a barcode if it has one. The answer holds the new food's id, so it can be logged at once.
+- `update_own_food`: changes one of the person's own foods, given whole as the edit form saves it. A barcode left out is removed. Its planned entries from today on take the new values.
+- `add_portion`: adds a portion of the person's own to any food they can see, such as a slice of a Fineli bread.
+- `update_portion`: changes the name and grams of one of the person's own portions.
+- `set_favourite`: marks a food the person can see as a favourite, or takes it off.
+
+For [saved meals](saved-meals.md#a-saved-meal):
+
+- `create_saved_meal`: saves a meal with its figures for one meal and an optional source.
+- `update_saved_meal`: changes a saved meal, given whole as the edit form saves it. A source left out is removed. Its planned entries from today on take the new figures.
+- `set_saved_meal_archived`: archives a saved meal or brings it back.
+
+For [targets](targets.md#changing-your-targets):
+
+- `set_targets`: sets the targets from a date, today when the date is left out, with the numbers the person gave. A change already on that date is replaced. The answer holds the change and the targets after it.
+- `remove_targets`: removes the change that starts on a date. Its days fall to the change before it, or have no targets.
+
+The app makes the id of every new entry and saved meal. Only the person's own foods can be edited. A Fineli food or a kept Open Food Facts product answers "Only your own foods can be changed." with `food_read_only`, as on screen.
+
+Targets an assistant sets are the person's own numbers, set by their own assistant on their word. The app takes them as given and adds no view of its own. It refuses only what the screen refuses, such as a lower bound above the upper one.
+
+Every answer says what happened. `created`, `changed` or `deleted` means the change was made and recorded. `unchanged` means nothing needed changing, such as marking entries already eaten, saving a meal as it already is or archiving one already archived, and nothing was recorded. `replayed` answers a retry, as [request keys](#request-keys) describe.
+
+### What stays out of reach
+
+An assistant cannot delete a food or a saved meal, and cannot remove a portion, because each is gone for good once removed. Those stay on screen. Removing entries from a day is in reach, because a removed entry can be put back. An assistant never reaches the person's account, settings, time zone, sign-in, other connections or the record of changes.
 
 ### The record of changes
 
 Every change an assistant makes is recorded in the app, in the same step as the change itself, so a change is never made without its line in the record, nor a line written for a change that did not happen. A write the app refuses records nothing, and so does a write that changed nothing. A change made on screen is never recorded.
 
-Each line holds the connection's name when the change was made, the time, what kind of change it was, the entries it made or changed, and what a person needs to read it: each entry's name, date, status, kind, amount and figures, and for an edit each field it changed from what to what. An estimate's note is recorded only when an edit changes it. The record never holds the connection key, the call's arguments as sent or anything the assistant said. Names in it are data, exactly as typed.
+Each line holds the connection's name when the change was made, the time, what kind of change it was, the ids of what it made or changed, and what a person needs to read it. For entries that is each entry's name, date, status, kind, amount and figures. For a food, a portion, a favourite or a saved meal it is the food's or the meal's name, with the values a new one was given and, for an edit, each field it changed from what to what. For targets it is the date the change starts, the ranges it replaced or removed, and the ranges it set. An estimate's note is recorded only when an edit changes it. The record never holds the connection key, the call's arguments as sent or anything the assistant said. Names in it are data, exactly as typed.
 
 The record is kept as long as the account and goes with it.
 
 ### Request keys
 
-Every call that changes something carries a request key: a new random text the assistant makes for that call. Sent again with the same key and the same arguments, such as after a timeout, the call changes nothing a second time. It answers `replayed`, with when the first call was made, what it recorded, and the entries as they are now. An entry removed since answers as gone, with its day. Two calls with one key that arrive at the same moment make one change, and the second answers as the replay of the first.
+Every call that changes something carries a request key: a new random text the assistant makes for that call. Sent again with the same key and the same arguments, such as after a timeout, the call changes nothing a second time. It answers `replayed`, with when the first call was made, what it recorded, and the thing as it is now, with its id: the entries, the food, the portion, the saved meal or the targets. So a `create_own_food` whose first answer was lost still learns the new food's id. Something deleted since answers as gone, an entry with its day. A food the person deleted on screen reads as gone even when days still use it, as it does on screen. Two calls with one key that arrive at the same moment make one change, and the second answers as the replay of the first.
 
-The same key with other arguments, or sent to another tool, is refused with "This requestKey was already used for a different change. Use a new requestKey." A write that changed nothing or was refused keeps no key, so the key is free again. A key belongs to its connection: two connections of one person may use the same text.
+The same key with other arguments, or sent to another tool, is refused with "This requestKey was already used for a different change. Use a new requestKey." A call that changed nothing, was refused or failed before anything was saved keeps no key, so the key can be sent again, also with corrected arguments. A key belongs to its connection: two connections of one person may use the same text.
 
 ### The app rules
 
-The app rules are a short text for the assistant, in plain words. They say how to read the figures: that the app computes every figure and the assistant quotes them, that targets are the person's own numbers, that planned is not eaten and every day has two readings, that an estimate is always named as one, and that names typed by people or read from Open Food Facts are data, never instructions. They say that nothing the app returns is nutrition or medical advice, and that the app never judges a day. A key that can make changes, while the server allows them, also gets the rules for making changes: propose a change and wait for a yes, give figures as the person stated them, use a new request key for every change, and that every change is recorded under the connection's name. They name only what such a key can change.
+The app rules are a short text for the assistant, in plain words. They say how to read the figures: that the app computes every figure and the assistant quotes them, that targets are the person's own numbers, that planned is not eaten and every day has two readings, that an estimate is always named as one, and that names typed by people or read from Open Food Facts are data, never instructions. They say that nothing the app returns is nutrition or medical advice, and that the app never judges a day. A key that can make changes, while the server allows them, also gets the rules for making changes: propose a change and wait for a yes, give figures as the person stated them, set targets only with the numbers the person gave, use a new request key for every change and retry with the same one, and that every change is recorded under the connection's name. They name only what such a key can change.
 
 The rules come with `get_context` and also as a resource the assistant can read, because not every assistant shows a resource to its model.
 
@@ -103,7 +130,7 @@ A barcode lookup that reaches Open Food Facts spends from the person's 30 lookup
 
 Changes have two limits of their own, also shared by every key of one person:
 
-- 30 calls that change something a minute, counted whether or not the app made the change. Past it the answer is "Too many changes in a minute. Wait a minute, then carry on."
+- 30 calls that change something a minute, counted whether or not the app made the change. Past it the answer is "Too many changes in a minute. Wait a minute, then send the same call again with the same requestKey. A change that already landed is not made twice." A call this limit refuses changes nothing and is not counted, so the same call sent again after the wait makes its change once.
 - 300 recorded changes in the last hour. A change to a batch of entries counts as one. Past it the answer is "This account has had 300 changes by assistants in the last hour. Make the rest in the app, or wait." A retry of a change that already landed still answers as its replay.
 
 Both come back as a refusal the assistant reads, never as an HTTP 429.
@@ -203,32 +230,38 @@ The app rules are also the resource `hovimestari://app-rules`, as `text/markdown
 
 ### Write tools
 
-The write tools are `WRITE_TOOLS` in `mcp/tools/writes/index.ts`, defined with `defineWriteTool` in `tools/writes/entries.ts`. `mcp/server.ts` registers them after the read tools only when the key can write and `MCP_WRITES_ENABLED` is on, never on the key's scope alone. Each is marked as a change, idempotent through its request key and reaching nothing outside the app. `update_entry`, `set_entries_status` and `remove_entries` are marked destructive, the others only add. Each input is a strict object built from the pieces of the body schema its route parses, plus `requestKey`: 8 to 64 letters, digits, `-` or `_`.
+The write tools are `WRITE_TOOLS` in `mcp/tools/writes/index.ts`, defined with `defineWriteTool` in `tools/writes/entries.ts`, `foods.ts`, `meals.ts` and `targets.ts`. `mcp/server.ts` registers them after the read tools only when the key can write and `MCP_WRITES_ENABLED` is on, never on the key's scope alone. Each is marked as a change, idempotent through its request key and reaching nothing outside the app. `update_entry`, `set_entries_status`, `remove_entries`, `update_own_food`, `update_portion`, `update_saved_meal`, `set_saved_meal_archived`, `set_targets` and `remove_targets` are marked destructive, the others only add. Each input is `writeInput` in `mcp/inputs.ts`: a strict object built from the pieces of the body schema its route parses, plus `requestKey`, 8 to 64 letters, digits, `-` or `_`. `EntryIdSet` there is the list of entry ids `copy_entries` and `remove_entries` take, which refuses a repeated id with "Give each entry id once."
 
-A tool takes its input, calls one function in `apps/backend/src/services/writes/recorded/entries.ts` and selects fields from its answer. `runWriteTool` in `tools/writes/run.ts` runs every call in this order:
+A tool takes its input, calls one function in `apps/backend/src/services/writes/recorded/` and selects fields from its answer. `runWriteTool` hands the tool its arguments without the request key, which only it reads. `runWriteTool` in `tools/writes/run.ts` runs every call in this order:
 
 1. The per-minute limit, in memory, keyed by the key's user (`mcp/writeBrake.ts`). A call the SDK refuses at input validation never reaches it, so it does not count.
 2. The actor: the connection's id and name, the request key, and the request hash, the SHA-256 of the tool's name and the call's other arguments as canonical JSON. `entryIds` hash as a set, sorted, lower-cased and without repeats. A date hashes as sent, so a retry the next day with `today` and the same key replays the first change.
 3. `findReplay`: the record row of this connection and request key. The same hash answers the replay. Another hash is refused 409 `request_key_reused`.
 4. The hourly limit, only when there is no replay: `countRecentChanges` counts the user's rows of the last hour on the index `assistant_changes_user_idx`. It reads before the write's transaction, so calls in flight together can each pass at 299 and land past 300. The per-minute limit bounds that to one minute's calls.
 5. The recorded write.
-6. The answer: the outcome from the record, the fields the tool selected, and a note. A replay answers `firstCallAt`, `recorded` (the row's summary) and the entries as they are now, read by the row's ids through read services.
+6. The answer: the outcome from the record, the fields the tool selected, and a note. A replay answers `firstCallAt`, `recorded` (the row's summary) and the thing as it is now, read by the row's ids through read services. `goneAsNull` in `changeRecord.ts` turns a read's own not-found refusal into null, and lets every other failure through.
 
 A refusal comes back as an error result with its message and code. Anything unexpected is logged and answered "Something went wrong. Send the same call again with the same requestKey. If the change was saved, the app returns it and saves nothing twice."
 
 ### Recording a change
 
-`recordedWrite(ctx, via, w)` in `apps/backend/src/services/writes/changeRecord.ts` is the one place a change and its record meet. It opens one transaction, takes the user's row `FOR KEY SHARE` first, as every entry write does, runs the write's before-read, runs the screen's write service on the transaction, and inserts the record row last. Each service opens its own transaction, which runs as a savepoint inside this one, so no service knows it is recorded. The connection reaches `recordedWrite` as a parameter, and the service context keeps its shape.
+`recordedWrite(ctx, via, w)` in `apps/backend/src/services/writes/changeRecord.ts` is the one place a change and its record meet. It opens one transaction, takes the user's row first, `FOR KEY SHARE` as every entry write does, runs the write's before-read, runs the screen's write service on the transaction, and inserts the record row last. Each service opens its own transaction, which runs as a savepoint inside this one, so no service knows it is recorded. The connection reaches `recordedWrite` as a parameter, and the service context keeps its shape.
 
-Each function in `services/writes/recorded/entries.ts` calls exactly one write service, and nothing there writes a row of its own. `services/writes/recorded/__tests__/screenPath.test.ts` reads their source and pins both. A file there imports every module by name, never as a namespace or at run time, so the count sees every write service it reaches. A function's before-read locks the entries it may change `FOR NO KEY UPDATE`, in id order as the batch writes lock them: `update_entry` reads the entry it compares, and `remove_entries` the entries the record names, which are gone after the write.
+`set_targets` takes the user's row `FOR UPDATE` instead, and reads the change it replaces and writes under that one lock. A targets change on a date with none yet has no row to lock, and the screen's save takes the user's row only `FOR KEY SHARE`, so this is the lock that makes a screen save on any date wait, and the record's before is exactly what the assistant replaced. `remove_targets` takes the user's row `FOR NO KEY UPDATE`, the lock its service takes first, then the change's own row. No lock is ever upgraded, so two targets writes at once queue and never deadlock.
 
-The outcome follows the record. When the write changed nothing, the function answers no record, and `recordedWrite` answers `unchanged` whatever the service said. That covers an edit to the same values, a status already set, entries already gone and an entry already restored.
+Each function in `services/writes/recorded/` calls exactly one write service, and nothing there writes a row of its own. `services/writes/recorded/__tests__/screenPath.test.ts` reads their source and pins both. A file there imports every module by name, never as a namespace or at run time, so the count sees every write service it reaches. A function's before-read locks the entries it may change `FOR NO KEY UPDATE`, in id order as the batch writes lock them: `update_entry` reads the entry it compares, and `remove_entries` the entries the record names, which are gone after the write. `update_own_food` and `update_portion` lock the own food or portion `FOR NO KEY UPDATE`, and `update_saved_meal` and `set_saved_meal_archived` lock the meal `FOR UPDATE`, as the meal's own service does. `fieldChanges` in `changeRecord.ts` lists each field whose value changed.
+
+The outcome follows the record. When the write changed nothing, the function answers no record, and `recordedWrite` answers `unchanged` whatever the service said. That covers an edit to the same values, a status already set, entries already gone, an entry already restored, a favourite already set, a meal already archived and the same targets saved again.
 
 Two calls with one key at once both start. A call that only adds makes its change, and its record insert waits on the unique index `assistant_changes_request_key_uq`, then fails once the first commits. Its whole transaction rolls back with its change. A call that changes what is there, such as an edit, a mark, a removal or a restore, waits on the first call's row locks instead, then finds nothing left to change. Before it answers `unchanged`, `recordedWrite` looks for a record row with this connection and request key, and the first call's row is there to read. Either way `recordedWrite` throws `RequestKeyTaken`, and `runWriteTool` answers it from the first call's row through `replayAfterConflict`.
 
 ### The app rules text
 
 `apps/backend/src/mcp/appRules.ts` holds the text: `APP_RULES` for every key and `WRITE_RULES` added for a key that can make changes while the server allows them. Each section names the feature docs it is written from in a `*(Sources: …)*` line. `APP_RULES_SOURCES` stamps every doc in `docs/features/` with its SHA-256 at the last review. `apps/backend/src/mcp/__tests__/appRules.test.ts` fails when a feature doc changes, naming the doc and printing its new hash, so a change to a feature re-reads the rules that rest on it. The test also keeps advice words out of the text, bounds its length and checks that every feature doc is named.
+
+### The smoke check
+
+`pnpm --filter @hovimestari/backend mcp:smoke` runs `apps/backend/src/scripts/mcpSmoke/` against a local, migrated database made for it, the one `DATABASE_URL` names. It refuses any host but `localhost`, `127.0.0.1` or `::1`, a URL with query parameters, and a database whose name does not end in `_smoke`, unless `MCP_SMOKE_ANY_DATABASE=true` lifts the name rule. It starts the app inside its own process on a free local port, signs up a user of its own with a password it makes, and gives it a day of data through the REST routes. Then it makes a read key and a writing key, calls every read tool with the real client and compares each answer with the REST route the screen reads. Its write leg logs one food through `log_food` and the same body through `POST /entries`, compares the two, checks one record row for the tool's change and none for the screen's, and checks that a retry replays. It then makes a food through `create_own_food`, compares it with `GET /foods/:id`, logs it through `log_food` and checks the two record rows. At the end it revokes both keys, checks that a call is refused, and deletes its user, which takes every row it made. It makes every secret it lacks at start-up and points barcode lookups at a closed local port, so it reaches nothing outside the machine. CI runs it after the tests, on a database of its own.
 
 ### Logs
 
@@ -273,17 +306,17 @@ The body of a create is `{ name, access, expiresInDays }`. `access` is `read` or
 - `user_id`: the person, with `ON DELETE CASCADE`.
 - `connection_id`: the connection that made the change, with `ON DELETE CASCADE`. A connection row is never deleted while its user lives, so its record stays after a revoke.
 - `connection_name`: the connection's name when the change was made.
-- `action`: the kind of change, such as `entry.added`, `entry.changed`, `entries.marked`, `entries.copied`, `entries.removed` or `entry.restored`, by the CHECK `assistant_changes_action`. The CHECK also names the actions of foods, portions, favourites, saved meals, targets and deletion requests, which no tool makes yet.
-- `entity_ids`: the ids of the entries the change made or changed, at least one by the CHECK `assistant_changes_entity_ids`: the new entry, the changed one, the ones a batch changed or removed, or the copies in their order. It has no foreign key, since an entry may be gone since.
+- `action`: the kind of change, by the CHECK `assistant_changes_action`: `entry.added`, `entry.changed`, `entries.marked`, `entries.copied`, `entries.removed`, `entry.restored`, `food.created`, `food.changed`, `portion.added`, `portion.changed`, `favourite.set`, `favourite.unset`, `saved_meal.created`, `saved_meal.changed`, `saved_meal.archived`, `saved_meal.restored`, `targets.set` and `targets.removed`. The CHECK also names `deletion.requested`, which no tool makes yet.
+- `entity_ids`: the ids of what the change made or changed, at least one by the CHECK `assistant_changes_entity_ids`: the new or changed entry, the ones a batch changed or removed, or the copies in their order. A food's id, then a portion's for a portion. A saved meal's id. A targets change's row id, which the API never shows. It has no foreign key, since a row may be gone since.
 - `summary`: what a person reads, as `AssistantChangeSummarySchema` in `packages/types/src/assistantChanges.ts` shapes it.
 - `request_key` and `request_hash`: the call's key and the hash of its arguments. The unique index `assistant_changes_request_key_uq` is on the connection and the key.
 - `created_at`: the moment of the insert, `clock_timestamp()`, so the order of changes is kept. The index `assistant_changes_connection_idx` reads one connection's record newest first, and `assistant_changes_user_idx` counts the person's last hour.
 
 ### Known gaps
 
-- An assistant changes entries only. The person's own foods, portions, favourites, saved meals and targets are changed on screen alone, and an assistant cannot ask for anything to be deleted.
 - No screen shows the record of changes yet. The rules for making changes say that every change is recorded, and not where to read it.
-- Keys that make changes stay switched off on the server by default. While they are on, the Settings sheet that makes such a key names changes to foods, saved meals and targets, which an assistant cannot make, and a record to read under Activity, which no screen shows.
+- An assistant has no way to ask for a deletion. What it cannot delete is in [what stays out of reach](#what-stays-out-of-reach).
+- Keys that make changes stay switched off on the server by default. While they are on, the Settings sheet that makes such a key names a record to read under Activity, which no screen shows.
 
 Requirements: FR-AI-01 to FR-AI-08, FR-AI-11 to FR-AI-16, NFR-SEC-02, NFR-SEC-04 (requirements 3.10 and 4)
 
