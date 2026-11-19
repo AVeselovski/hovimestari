@@ -12,20 +12,18 @@ import { MEAL_ROW_ATTRIBUTE } from "@/components/log/SavedMealRow";
 import { StatusLine, useStatusMessage } from "@/components/log/StatusLine";
 import { useLogAgain } from "@/components/log/useLogAgain";
 import { useLogForm, type LogTarget } from "@/components/log/useLogForm";
-import { useMealActions } from "@/components/log/useMealActions";
+import { sayIfFailed, useMealActions } from "@/components/log/useMealActions";
+import { useSavedMealDelete } from "@/components/log/useSavedMealDelete";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import type { AddDone, EntryActions } from "@/hooks/entryActions";
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
-import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { foodNameLangs, useFoodNameLanguage } from "@/hooks/useFoodNameLanguage";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
-import { deleteFood } from "@/lib/api/foods";
-import { deleteSavedMeal } from "@/lib/api/savedMeals";
 import { getErrorCode } from "@/lib/errors";
 import { afterFoodGone, afterSavedMealGone } from "@/lib/invalidation";
 import { foodDetailQuery, prefetchLogLists, savedMealsQuery } from "@/lib/queryOptions";
@@ -39,6 +37,7 @@ import { FoodSearchView } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type OwnFoodTarget, type PortionTarget } from "./FoodSheetStack";
 import { SearchField } from "./SearchField";
 import { useFavourite } from "./useFavourite";
+import { useOwnFoodDelete } from "./useOwnFoodDelete";
 import { useSheetNavigation } from "./useSheetNavigation";
 
 // ---------------------------------------------------------------------------
@@ -94,7 +93,6 @@ type View =
 
 export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodSheetProps): ReactElement {
   const t = useTranslations("foods.sheet");
-  const tDetail = useTranslations("foods.detail");
   const tLog = useTranslations("log");
   const errors = useErrorCopy();
   const client = useQueryClient();
@@ -205,7 +203,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     kind === "food" ? foodGone(id) : mealGone(id);
 
   const sayFailure = useCallback((text: string) => status.say(text, "failure"), [status]);
-  const meals = useMealActions({ held: actions.holding, sayFailure, onGone: mealGone });
+  const meals = useMealActions({ held: actions.holding, onGone: mealGone });
+  /** Archives or restores a meal, a failure on the status line, then `then` with the meal as it now is. */
+  const archiveMeal = (meal: SavedMeal, archived: boolean, then?: (now: SavedMeal) => void): void =>
+    void meals.setArchived(meal, archived).then((outcome) => {
+      const now = sayIfFailed(outcome, sayFailure);
+      if (now) then?.(now);
+    });
 
   const again = useLogAgain({ date, statusAt, actions, onLogged, onGone, sayFailure });
 
@@ -232,32 +236,15 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     // Runs when the food turns out to be gone, not on every render.
   }, [gone, favouriteGone]);
 
-  const remove = useConfirmedDelete<FoodSummary>({
-    copy: (food) => ({ title: tDetail("deleteTitle", { name: food.name }), message: tDetail("deleteBody") }),
-    // Gone already, deleted on another device: what the user asked for is true.
-    run: (food) =>
-      deleteFood(food.id).catch((err: unknown) => {
-        if (getErrorCode(err) !== "food_not_found") throw err;
-      }),
-    onDone: (_result, food) => afterDelete(food.id),
-  });
+  // The deletes run the shared helpers, which also drop the food or meal from every list.
+  const remove = useOwnFoodDelete<FoodSummary>({ onDone: () => afterDelete() });
+  const removeMeal = useSavedMealDelete({ onDone: () => afterDelete() });
 
-  const removeMeal = useConfirmedDelete<SavedMeal>({
-    copy: (meal) => ({ title: tLog("meal.deleteTitle", { name: meal.name }), message: tLog("meal.deleteBody") }),
-    // Gone already, deleted on another device: what the user asked for is true.
-    run: (meal) =>
-      deleteSavedMeal(meal.id).catch((err: unknown) => {
-        if (getErrorCode(err) !== "saved_meal_not_found") throw err;
-      }),
-    onDone: (_result, meal) => afterDelete(meal.id, "meal"),
-  });
-
-  /** After the open food is deleted: the browse view, with focus in the search field. */
-  function afterDelete(id: string, kind: "food" | "meal" = "food"): void {
+  /** After the open food or meal is deleted: the browse view, with focus in the search field. */
+  function afterDelete(): void {
     ownSheet.close();
     setText("");
     nav.reset();
-    void (kind === "food" ? afterFoodGone(client, id) : afterSavedMealGone(client, id));
   }
 
   const food = view.kind === "food" ? (detail.data ?? view.food) : null;
@@ -346,6 +333,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               showMealAs(meal);
             },
             onMealGone: mealGone,
+            // The meal sheet has closed itself: the view goes back to browsing.
+            onMealDeleted: () => afterDelete(),
           }}
           confirmation={
             <>
@@ -357,7 +346,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
             if (view.kind === "food" && view.food.id === saved.id) return;
             showFood(saved, null, undefined);
           }}
-          onDeletedFood={afterDelete}
+          onDeletedFood={() => afterDelete()}
           onFoodGone={foodGone}
           focusAfterPortionDelete={() =>
             contentRef.current?.querySelector<HTMLElement>(`[${ADD_PORTION_ATTRIBUTE}]`) ?? null
@@ -389,13 +378,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               busy={meals.busyId === view.meal.id}
               held={actions.holding}
               onEdit={(opener) => mealSheet.open(opener, { meal: view.meal, name: view.meal.name })}
-              onArchive={(archived) => void meals.setArchived(view.meal, archived).then((m) => m && showMealAs(m))}
+              onArchive={(archived) => archiveMeal(view.meal, archived, showMealAs)}
               onDelete={(opener) => removeMeal.open(view.meal, opener)}
             />
           ) : view.kind === "archived" ? (
             <ArchivedMealsView
               onOpenMeal={(meal, opener) => showMeal(meal, opener, meal.lastCount)}
-              onRestore={(meal) => void meals.setArchived(meal, false)}
+              onRestore={(meal) => archiveMeal(meal, false)}
               busyId={meals.busyId}
               held={actions.holding}
             />

@@ -49,6 +49,8 @@ export interface StackLogging {
   onSavedMeal: (meal: SavedMeal) => void;
   /** The meal a stacked sheet works on is gone. */
   onMealGone: (id: string) => void;
+  /** The meal sheet deleted its meal and has closed itself. */
+  onMealDeleted: (id: string) => void;
 }
 
 export interface FoodSheetStackProps {
@@ -62,7 +64,7 @@ export interface FoodSheetStackProps {
   confirmation: ReactNode;
   /** An own food was saved. */
   onSavedFood: (food: FoodDetail) => void;
-  /** The own food open in the own-food sheet was deleted from it. */
+  /** The own food open in the own-food sheet was deleted from it, and that sheet has closed itself. */
   onDeletedFood: (id: string) => void;
   /** The food a stacked sheet works on turned out to be gone. */
   onFoodGone: (id: string) => void;
@@ -105,7 +107,6 @@ export function FoodSheetStack({
           onClose={portionSheet.close}
           foodId={portionSheet.shown.value.foodId}
           portion={portionSheet.shown.value.portion}
-          onDeleted={portionSheet.close}
           onFoodGone={onFoodGone}
           focusAfterDelete={focusAfterPortionDelete}
         />
@@ -116,14 +117,20 @@ export function FoodSheetStack({
           open={mealSheet.isOpen}
           returnFocusTo={mealSheet.shown.opener}
           onClose={mealSheet.close}
-          meal={mealSheet.shown.value.meal}
-          initialName={mealSheet.shown.value.name}
-          date={logging.date}
           sources={logging.sources}
-          actions={logging.actions}
-          onLogged={logging.onLogged}
           onSavedMeal={logging.onSavedMeal}
-          onGone={logging.onMealGone}
+          {...(mealSheet.shown.value.meal
+            ? {
+                kind: "edit" as const,
+                meal: mealSheet.shown.value.meal,
+                onGone: logging.onMealGone,
+                onDeleted: logging.onMealDeleted,
+              }
+            : {
+                kind: "new" as const,
+                initialName: mealSheet.shown.value.name,
+                logging: { date: logging.date, actions: logging.actions, onLogged: logging.onLogged },
+              })}
         />
       )}
       {estimateSheet.shown && (

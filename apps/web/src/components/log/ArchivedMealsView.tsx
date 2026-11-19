@@ -25,9 +25,17 @@ export interface ArchivedMealsViewProps {
   busyId: string | null;
   /** Writes wait: the app asks the server for today. */
   held: boolean;
+  /** What a row's press does, for assistive tech. Only a list whose rows open an edit passes it. */
+  rowDescription?: string;
 }
 
-export function ArchivedMealsView({ onOpenMeal, onRestore, busyId, held }: ArchivedMealsViewProps): ReactElement {
+export function ArchivedMealsView({
+  onOpenMeal,
+  onRestore,
+  busyId,
+  held,
+  rowDescription,
+}: ArchivedMealsViewProps): ReactElement {
   const t = useTranslations("log.archived");
   const figures = useMealFigures();
   const query = useQuery(savedMealsQuery(true));
@@ -53,6 +61,7 @@ export function ArchivedMealsView({ onOpenMeal, onRestore, busyId, held }: Archi
             meal={meal}
             meta={figures(meal)}
             metaFigures
+            description={rowDescription}
             onOpen={onOpenMeal}
             trailing={
               <button

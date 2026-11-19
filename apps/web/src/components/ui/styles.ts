@@ -30,6 +30,16 @@ export const btnPrimary = `${btnShape} ${btnSize} bg-accent text-on-accent hover
 /** A secondary action: an outlined button on the page. */
 export const btnSecondary = `${btnShape} ${btnSize} border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface`;
 
+/**
+ * Two equal actions side by side at every width, such as "New saved meal"
+ * and "Add an estimate". The grid stretches both to the taller one, so a
+ * label that wraps to two lines never leaves its neighbour shorter.
+ */
+export const actionPair = "grid grid-cols-2 gap-2";
+
+/** A button in `actionPair`: secondary, at least 48 px tall, growing with a wrapped label. */
+export const actionPairButton = `${btnSecondary} h-auto! min-h-12 px-3 py-2 text-center`;
+
 /** A secondary action across the full width whose label names typed text, such as "Add “rahka” as your own food". A long label wraps. */
 export const btnWide = `${btnSecondary} h-auto! min-h-12 w-full py-2.5 text-center break-words`;
 
@@ -182,6 +192,23 @@ export const cardPadClass = "p-5 md:p-6";
 export const cardPadDenseClass = "p-4";
 export const panelHeadClass = "mb-4 flex items-center justify-between gap-3";
 export const sectionTitle = "section-label";
+
+/** The one line a list shows in place of its rows, such as "Meals you save appear here.": 48px tall. */
+export const listLine = "py-3 text-base text-ink-muted";
+
+/**
+ * The room a list keeps while it loads or cannot be read: one `listLine`
+ * tall, the least a loaded list takes, so a short list never moves what
+ * sits under it when it arrives.
+ */
+export const listLineFrame = "min-h-12";
+
+/**
+ * A spinning ring that says a control is busy, laid over the control's own
+ * box (`absolute`, placed by the caller). In the ink, and still when the
+ * reader asks for less motion.
+ */
+export const busyRing = "animate-spin rounded-pill border-2 border-transparent border-t-ink motion-reduce:animate-none";
 
 /**
  * A choice chip, such as a unit or a meal's source: a pill 44 pixels tall

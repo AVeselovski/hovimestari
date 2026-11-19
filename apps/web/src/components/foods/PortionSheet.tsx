@@ -34,8 +34,6 @@ export interface PortionSheetProps extends FormSheetCallerProps {
   foodId: string;
   /** The user's own portion to edit. Left out, the sheet adds one. */
   portion?: Portion;
-  /** The portion was deleted. The caller closes this sheet. */
-  onDeleted?: () => void;
   /**
    * The food was found gone, deleted on another device. The caller closes
    * this sheet, leaves the food's detail and refreshes the food reads.
@@ -52,7 +50,6 @@ export function PortionSheet({
   onSaved,
   foodId,
   portion,
-  onDeleted,
   onFoodGone,
   focusAfterDelete,
 }: PortionSheetProps): ReactElement {
@@ -78,7 +75,7 @@ export function PortionSheet({
       }),
     onDone: (_result, p) => {
       void afterPortionDeleted(client, foodId, p.id);
-      onDeleted?.();
+      onClose();
     },
     onError: (err) => {
       if (getErrorCode(err) === "food_not_found") onFoodGone?.(foodId);

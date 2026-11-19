@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/Icon";
-import { focusRing } from "@/components/ui/styles";
+import { busyRing, focusRing } from "@/components/ui/styles";
 import { foodNameLangs, useFoodNameLanguage } from "@/hooks/useFoodNameLanguage";
 import { formatKcal, formatMacroGrams } from "@/lib/foodFormat";
 import type { FoodSummary } from "@hovimestari/types";
@@ -20,7 +20,12 @@ import type { ReactElement, ReactNode } from "react";
 // A list may pass `meta`, a line in place of the per-100 g figures, such as
 // "Last 200 g" in the recent items, and `trailing`, a control beside the
 // row's button inside the same `<li>`, such as the "+" that logs it again.
-// A button never sits inside another.
+// A button never sits inside another. A list of the user's own foods alone
+// leaves "Yours" out (`ownMark`), since every row there is theirs.
+//
+// `busy`: what the row opens is being read. The row stays pressed and a ring
+// turns in the star's place, the same size, so nothing in the row moves.
+// `description` says what a press does, for assistive tech.
 // ---------------------------------------------------------------------------
 
 export interface FoodRowProps {
@@ -30,6 +35,12 @@ export interface FoodRowProps {
   meta?: string;
   /** A control beside the row's button, such as "+". */
   trailing?: ReactNode;
+  /** "Yours" on an own food. Default true. */
+  ownMark?: boolean;
+  /** What the row opens is being read: the row shows it, and says so to assistive tech. */
+  busy?: boolean;
+  /** What a press does, such as "Opens it to edit.", read after the row's name. */
+  description?: string;
 }
 
 /** The attribute a row's button carries, so focus can find it again after the detail closes. */
@@ -47,7 +58,15 @@ export function rowSelectorOf(opener: HTMLElement, attribute: string): string | 
   return list ? `[data-list="${CSS.escape(list)}"] ${row}` : row;
 }
 
-export function FoodRow({ food, onOpen, meta, trailing }: FoodRowProps): ReactElement {
+export function FoodRow({
+  food,
+  onOpen,
+  meta,
+  trailing,
+  ownMark = true,
+  busy = false,
+  description,
+}: FoodRowProps): ReactElement {
   const t = useTranslations("foods.row");
   const lang = foodNameLangs(food, useFoodNameLanguage());
   return (
@@ -55,8 +74,10 @@ export function FoodRow({ food, onOpen, meta, trailing }: FoodRowProps): ReactEl
       <button
         type="button"
         {...{ [FOOD_ROW_ATTRIBUTE]: food.id }}
+        aria-busy={busy || undefined}
+        aria-description={description}
         onClick={(e) => onOpen(food, e.currentTarget)}
-        className={`flex min-h-14 min-w-0 flex-1 items-start gap-3 py-3 text-left hover:bg-surface-raised active:bg-surface-raised ${focusRing}`}
+        className={`flex min-h-14 min-w-0 flex-1 items-start gap-3 py-3 text-left hover:bg-surface-raised active:bg-surface-raised ${busy ? "bg-surface-raised " : ""}${focusRing}`}
       >
         <span className="min-w-0 flex-1">
           <span lang={lang.name} className="block text-base font-medium break-words hyphens-auto text-ink">
@@ -79,15 +100,16 @@ export function FoodRow({ food, onOpen, meta, trailing }: FoodRowProps): ReactEl
           )}
         </span>
         <span data-food-row-marks="" className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
-          <span className={`size-5 text-accent${food.isFavourite ? "" : " invisible"}`}>
+          <span className={`relative size-5 text-accent${food.isFavourite ? "" : " invisible"}`}>
             {food.isFavourite && (
               <>
-                <Icon name="star" filled className="size-5" />
+                <Icon name="star" filled className={`size-5${busy ? " opacity-0" : ""}`} />
                 <span className="sr-only">{t("favourite")}</span>
               </>
             )}
+            {busy && <span aria-hidden="true" data-row-busy="" className={`visible absolute inset-0 ${busyRing}`} />}
           </span>
-          {food.isOwn && <span className="section-label">{t("yours")}</span>}
+          {food.isOwn && ownMark && <span className="section-label">{t("yours")}</span>}
         </span>
       </button>
       {trailing}

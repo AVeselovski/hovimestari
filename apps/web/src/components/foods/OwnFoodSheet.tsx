@@ -5,10 +5,9 @@ import { focusField } from "@/components/form/focus";
 import { DecimalField, decimalLineId } from "@/components/ui/DecimalField";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { fieldHintClass, sectionStart, sectionTitle } from "@/components/ui/styles";
-import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFormDirty } from "@/hooks/useFormDirty";
-import { createFood, deleteFood, updateFood } from "@/lib/api/foods";
+import { createFood, updateFood } from "@/lib/api/foods";
 import { getErrorCode } from "@/lib/errors";
 import { afterOwnFoodSaved } from "@/lib/invalidation";
 import type { FoodDetail } from "@hovimestari/types";
@@ -26,6 +25,7 @@ import {
   type OwnFoodErrors,
   type OwnFoodField,
 } from "./ownFoodForm";
+import { useOwnFoodDelete } from "./useOwnFoodDelete";
 
 // ---------------------------------------------------------------------------
 // OwnFoodSheet: add or edit the user's own food. A name, the four values per
@@ -50,10 +50,16 @@ export interface OwnFoodSheetProps extends FormSheetCallerProps {
   /** The save worked: the food as the server answered it. Called before `onSaved`. */
   onSavedFood?: (food: FoodDetail) => void;
   /**
-   * The food was deleted, or was gone already. The caller closes this sheet,
-   * leaves the food's detail and refreshes the food reads.
+   * The food was deleted, or was gone already, and the lists have dropped it.
+   * This sheet has closed itself. The caller leaves the food's detail.
    */
   onDeleted?: (id: string) => void;
+  /**
+   * Where focus goes after a delete, read while the opener is still on the
+   * page: a control that stays, such as the next row. Default: none, and the
+   * sheet underneath takes it.
+   */
+  focusAfterDelete?: () => HTMLElement | null;
   /**
    * A save found the food gone, deleted on another device. The caller closes
    * this sheet, leaves the food's detail and refreshes the food reads.
@@ -92,10 +98,10 @@ export function OwnFoodSheet({
   initialName = "",
   onSavedFood,
   onDeleted,
+  focusAfterDelete,
   onFoodGone,
 }: OwnFoodSheetProps): ReactElement {
   const t = useTranslations("foods.ownFood");
-  const tDetail = useTranslations("foods.detail");
   const tCommon = useTranslations("common");
   const errors = useErrorCopy();
   const client = useQueryClient();
@@ -109,15 +115,12 @@ export function OwnFoodSheet({
   const [submitting, setSubmitting] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify(values), true);
 
-  const remove = useConfirmedDelete<FoodDetail>({
-    copy: (f) => ({ title: tDetail("deleteTitle", { name: f.name }), message: tDetail("deleteBody") }),
-    // Gone already, deleted on another device: what the user asked for is true.
-    run: (f) =>
-      deleteFood(f.id).catch((err: unknown) => {
-        if (getErrorCode(err) !== "food_not_found") throw err;
-      }),
-    onDone: (_result, f) => onDeleted?.(f.id),
-    focusAfter: () => null,
+  const remove = useOwnFoodDelete<FoodDetail>({
+    onDone: (f) => {
+      onClose();
+      onDeleted?.(f.id);
+    },
+    focusAfter: () => focusAfterDelete?.() ?? null,
   });
 
   const lineOf = (error: FieldError | undefined): string | null =>

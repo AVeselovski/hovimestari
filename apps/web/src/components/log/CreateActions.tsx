@@ -1,6 +1,6 @@
 "use client";
 
-import { btnSecondary } from "@/components/ui/styles";
+import { actionPair, actionPairButton } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 
@@ -19,19 +19,11 @@ export interface CreateActionsProps {
 export function CreateActions({ onNewMeal, onEstimate }: CreateActionsProps): ReactElement {
   const t = useTranslations("log.browse");
   return (
-    <div data-create-actions="" className="grid grid-cols-2 gap-2">
-      <button
-        type="button"
-        onClick={(e) => onNewMeal(e.currentTarget)}
-        className={`${btnSecondary} h-auto! min-h-12 px-3 py-2 text-center`}
-      >
+    <div data-create-actions="" className={actionPair}>
+      <button type="button" onClick={(e) => onNewMeal(e.currentTarget)} className={actionPairButton}>
         {t("newMeal")}
       </button>
-      <button
-        type="button"
-        onClick={(e) => onEstimate(e.currentTarget)}
-        className={`${btnSecondary} h-auto! min-h-12 px-3 py-2 text-center`}
-      >
+      <button type="button" onClick={(e) => onEstimate(e.currentTarget)} className={actionPairButton}>
         {t("addEstimate")}
       </button>
     </div>
