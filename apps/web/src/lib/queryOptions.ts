@@ -1,4 +1,5 @@
 import { getProviders } from "@/lib/api/auth";
+import { getConnections } from "@/lib/api/connections";
 import { getDay, getDaySummaries } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
@@ -31,6 +32,18 @@ export function providersQuery() {
     queryKey: queryKeys.providers(),
     queryFn: ({ signal }) => getProviders({ signal }),
     staleTime: Infinity,
+  });
+}
+
+/**
+ * The user's connections and what the server offers now. Read again when the
+ * page is shown, so a key's last use and expiry follow the server.
+ */
+export function connectionsQuery() {
+  return queryOptions({
+    queryKey: queryKeys.connections(),
+    queryFn: ({ signal }) => getConnections({ signal }),
+    refetchOnWindowFocus: true,
   });
 }
 

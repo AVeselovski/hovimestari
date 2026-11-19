@@ -51,6 +51,10 @@ export const queryKeys = {
   savedMeals: () => ["savedMeals"] as const,
   /** The active saved meals, or the archived ones. */
   savedMealList: (archived: boolean) => ["savedMeals", "list", archived] as const,
+
+  // Connected AI -----------------------------------------------------------
+  /** The user's connections and what the server offers. Never a key: the list answer holds none. */
+  connections: () => ["connections"] as const,
 };
 
 /**

@@ -46,6 +46,21 @@ export function formatDay(date: string, locale?: string): string {
 }
 
 /**
+ * The instant `iso` as the day it falls on in `timeZone`, in this device's
+ * language: "19 December 2026". Pass the account's zone, the one the app's
+ * days follow. A zone the runtime does not know falls back to the device's
+ * own, so a stored zone the browser lacks never breaks the page.
+ */
+export function formatMomentDay(iso: string, timeZone: string | undefined, locale?: string): string {
+  const options: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
+  try {
+    return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(new Date(iso));
+  } catch {
+    return new Intl.DateTimeFormat(locale, options).format(new Date(iso));
+  }
+}
+
+/**
  * The `YYYY-MM-DD` that the instant `now` falls on in `timeZone`. A zone the
  * runtime does not know reads as Helsinki, as the server reads it. Used only
  * to decide when to ask the server for today again, never as today itself.

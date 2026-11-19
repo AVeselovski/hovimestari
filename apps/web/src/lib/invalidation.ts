@@ -1,11 +1,22 @@
 import { releaseHeldLists } from "@/components/log/heldList";
-import type { Day, DaySummaryList, FoodDetail, Me, Portion, SavedMeal, TargetChange } from "@hovimestari/types";
+import type {
+  Connection,
+  Day,
+  DaySummaryList,
+  FoodDetail,
+  Me,
+  Portion,
+  SavedMeal,
+  TargetChange,
+} from "@hovimestari/types";
 import { matchQuery, onlineManager, type Query, type QueryClient, type QueryKey } from "@tanstack/react-query";
+import { dropConnection, putNewConnection } from "./connectionCache";
 import { daySummaryOf } from "./daySummary";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
 import { dropMeal, putMeal, putNewMeal, takeMealOutOf } from "./mealCache";
 import { forgetSeen } from "./pendingIds";
 import { queryKeys } from "./queryKeys";
+import { settledWithin } from "./settledWithin";
 import { putSavedChange } from "./targetsCache";
 
 // ---------------------------------------------------------------------------
@@ -33,30 +44,6 @@ async function refresh(client: QueryClient, keys: readonly QueryKey[], me?: Me, 
   if (me) client.setQueryData(queryKeys.me(), me);
   edit?.();
   await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
-}
-
-/**
- * True when `work` settles within `ms`. False after `ms`, and at once while
- * or as soon as the device is offline, where a read waits for the connection.
- */
-function settledWithin(work: Promise<unknown>, ms: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    let unsubscribe = (): void => {};
-    const end = (settled: boolean): void => {
-      clearTimeout(timer);
-      unsubscribe();
-      resolve(settled);
-    };
-    const timer = setTimeout(() => end(false), ms);
-    unsubscribe = onlineManager.subscribe((online) => {
-      if (!online) end(false);
-    });
-    if (!onlineManager.isOnline()) end(false);
-    work.then(
-      () => end(true),
-      () => end(true),
-    );
-  });
 }
 
 /**
@@ -486,4 +473,27 @@ export async function afterSavedMealGone(client: QueryClient, id: string): Promi
     releaseHeldLists(client);
   };
   await editMeals(client, drop, [queryKeys.savedMeals(), queryKeys.days(), queryKeys.log()]);
+}
+
+/**
+ * Once a new key's reveal closes: its row (the create's answer, which holds no key) goes at the head of the list at
+ * once, in the same update, so it can take focus as the reveal closes. Then the list is read again.
+ */
+export async function afterConnectionCreated(client: QueryClient, connection: Connection): Promise<void> {
+  putNewConnection(client, connection);
+  await refresh(client, [queryKeys.connections()], undefined, () => putNewConnection(client, connection));
+}
+
+/**
+ * After a create that was refused or got no answer: the list is read again.
+ * A key the server made before its answer was lost then shows as a row that
+ * can be revoked, and a switch turned off shows in what the list offers.
+ */
+export async function afterConnectionCreateFailed(client: QueryClient): Promise<void> {
+  await refresh(client, [queryKeys.connections()]);
+}
+
+/** After a key is revoked or removed, or found already gone: its row leaves at once, then the list is read again. */
+export async function afterConnectionRevoked(client: QueryClient, id: string): Promise<void> {
+  await refresh(client, [queryKeys.connections()], undefined, () => dropConnection(client, id));
 }
