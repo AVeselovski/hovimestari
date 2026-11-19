@@ -6,6 +6,7 @@ import { db } from "./db/index.js";
 import { env } from "./lib/env.js";
 import { googleConfig } from "./lib/google.js";
 import { registerGoogleStrategies } from "./lib/passport.js";
+import { mcpRouter } from "./mcp/router.js";
 import { errorHandler } from "./middleware/error.js";
 import { requestLog } from "./middleware/requestLog.js";
 import { router } from "./routes/index.js";
@@ -22,8 +23,14 @@ const allowedOrigins = env.CORS_ORIGIN.split(",")
   .filter(Boolean);
 // `maxAge` lets the browser reuse a preflight per URL for 2 hours (Chrome's
 // cap) instead of the 5s default.
-app.use(cors({ origin: allowedOrigins, credentials: true, maxAge: 7200 }));
+// The request log runs first, so /mcp gets its line too. A CORS preflight on
+// any route gets one as well.
 if (env.NODE_ENV !== "test") app.use(requestLog());
+// Connected AI's endpoint, before CORS and the JSON parser: it never sends
+// CORS headers and parses its own body. Unmounted while MCP_ENABLED is off,
+// so the path answers Express's 404.
+if (env.MCP_ENABLED) app.use("/mcp", mcpRouter);
+app.use(cors({ origin: allowedOrigins, credentials: true, maxAge: 7200 }));
 app.use(express.json({ limit: "100kb" }));
 
 // Google is optional per deployment. Without its four values the strategies

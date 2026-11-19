@@ -495,3 +495,16 @@
 [backend-engineer DONE] (2026-11-19T11:07:28Z) the four delta-review fixes: a test that the session check runs under the user lock, the name rule lets joiners and flag characters in and requires one visible character, fam required when signing, the feature doc states the rule as built (tip 4c5e4a2)
 [documentation-specialist STARTED] (2026-11-19T11:07:28Z) the docs of connection keys against the standard
 [documentation-specialist DONE] (2026-11-19T11:09:30Z) connection keys docs: the feature doc no longer says an assistant can connect today, the catalog line follows it, the backend README names the session suite (3eac23f)
+[backend-engineer STARTED] (2026-11-19T11:20:46Z) connected AI slice 2a: the /mcp endpoint, key auth, the brakes, get_context and the app rules
+[backend-engineer DONE] (2026-11-19T11:42:57Z) connected AI slice 2a built at 132606f: /mcp behind MCP_ENABLED, key auth, four limiters, get_context, the app rules with their stamp test; backend 985 tests
+[validator STARTED] (2026-11-19T11:42:57Z) slice 2a against the requirements and the design at 132606f
+[reviewer STARTED] (2026-11-19T11:42:57Z) slice 2a, security first, at 132606f
+[validator DONE] (2026-11-19T11:50:48Z) slice 2a: pass, no critical or major finding; three minors (a failed key lookup answers 500 silently, two design lines) and three nits
+[reviewer DONE] (2026-11-19T11:50:48Z) slice 2a: approve after fixes; the security core holds; four minor gaps (the silent 500, three ways round the import boundary, no test of a limiter window refilling, one rule's wording and two doc lines) (287k tokens)
+[backend-engineer STARTED] (2026-11-19T11:50:48Z) one fix batch for slice 2a from the validator and the reviewer
+[backend-engineer DONE] (2026-11-19T12:01:06Z) slice 2a fix batch: a failed key lookup is logged, the import boundary refuses computed imports, drivers and raw SQL, limiter windows pinned on both sides, rule 1 reworded, AuthInfo holds the connection id not the key (tip 0d1fef3)
+[reviewer STARTED] (2026-11-19T12:01:06Z) delta review of the slice 2a fix batch at 0d1fef3
+[reviewer DONE] (2026-11-19T12:08:27Z) delta review of slice 2a: approve after one fix, an allow-list for lib imports under src/mcp, and three nits (312k tokens)
+[backend-engineer DONE] (2026-11-19T12:08:27Z) slice 2a: the lib allow-list, createRequire refused, a string-aware comment stripper, the dead-key cap's window pinned; backend 1017 tests (tip 3b78d23)
+[documentation-specialist STARTED] (2026-11-19T12:08:27Z) the docs of the /mcp endpoint against the standard
+[documentation-specialist DONE] (2026-11-19T12:11:54Z) /mcp endpoint docs: the logs line, where a key can appear, the import boundary as the test has it, known gaps for the rules that run ahead of their tools; two docs re-stamped (3637410)

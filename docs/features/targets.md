@@ -75,7 +75,7 @@ Arriving on the tabs from the first-run page, by leaving the page opened again o
 
 ### Not advice
 
-Hovimestari never suggests or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. No target field holds an example. A field starts empty, or with [a change's own targets](#new-targets-and-edited-targets) when the user edits that change. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be.
+Hovimestari never suggests or computes a target. It holds no default value, offers no calculator, and its error messages name no number to aim for. No target field holds an example. A field starts empty, or with [a change's own targets](#new-targets-and-edited-targets) when the user edits that change. Every target is a number the user entered. It measures days against those numbers and says nothing about what they should be. Where targets are set, a note says "Hovimestari is not a source of nutrition or medical advice. It measures your days against the numbers you enter." The rules a [connected assistant](connected-ai.md#the-app-rules) reads say the same.
 
 ## How it works
 
@@ -123,10 +123,6 @@ A date in a path or a query is a `YYYY-MM-DD` that exists, or 400 `invalid_date`
 - `target_changes`: `user_id` cascading from `users`, `effective_from` a date, `energy_kcal_lower` and `energy_kcal_upper` with one decimal, `protein_g_lower` and `protein_g_upper` with one decimal. The unique index `target_changes_user_date_uq` keeps one change per date and serves the lookup. The CHECKs `target_changes_energy_range` and `target_changes_protein_range` require `0 < lower <= upper`.
 - `users.time_zone`: a canonical IANA zone name, `Europe/Helsinki` until the user's settings change it.
 - `users.first_run_done_at`: when the user passed the first run, null until then. Set once and never cleared.
-
-### Known gaps
-
-- The note that the app is not a source of nutrition or medical advice shows where targets are set. The rules a connected assistant reads arrive with the assistant step.
 
 Requirements: FR-TGT-01 to FR-TGT-07, NFR-ADV-01, NFR-ADV-02 (requirements 3.1 and 4)
 
