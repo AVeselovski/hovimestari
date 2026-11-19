@@ -10,6 +10,7 @@ import { activeSource, mealFilter } from "@/components/log/mealFilter";
 import { RecentList } from "@/components/log/RecentList";
 import { MealRows, SavedMealList } from "@/components/log/SavedMealList";
 import { btnSecondary, btnWide, fieldHintClass, noticeClass, sectionTitle } from "@/components/ui/styles";
+import { barcodeOf } from "@/lib/barcode";
 import { favouriteFoodsQuery, foodSearchQuery, ownFoodsQuery, recentsQuery, savedMealsQuery } from "@/lib/queryOptions";
 import type { FavouriteFood, FoodList, FoodSummary, SavedMeal } from "@hovimestari/types";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
@@ -34,6 +35,12 @@ import { FoodRow } from "./FoodRow";
 // one loads, so the list never flashes empty. A query no food matches offers
 // to add it as the user's own food, both lines naming the settled text.
 //
+// Text that names a barcode (8 to 14 digits) puts the view in barcode mode:
+// no search is sent, not even for the barcode's text once the field leaves
+// it, and no saved meal shows, and the sheet's barcode block
+// (`BarcodeResult`) stands in place of the lists and results. Leaving it
+// brings the search back.
+//
 // When the results replace the lists, and when the text changes, the sheet's
 // body goes to its top, so the best matches are the first thing in view.
 // Back from a food or a meal mounts the view again where it was left, and
@@ -56,6 +63,8 @@ export interface FoodSearchViewProps {
   /** What browsing needs to log an item again and to open it with its last amount. */
   logging: BrowseLogging;
   meals: MealBrowsing;
+  /** The barcode block, when the text names a barcode. It replaces the lists and the results. */
+  barcode: ReactElement | null;
 }
 
 /** What the saved meals in browsing and in the results need from the sheet. */
@@ -78,8 +87,14 @@ export function FoodSearchView({
   notice,
   logging,
   meals,
+  barcode,
 }: FoodSearchViewProps): ReactElement {
-  const searching = query.length >= MIN_QUERY_LENGTH && settled.length >= MIN_QUERY_LENGTH;
+  // A barcode is never searched as a name, also while the debounced text still holds one the field has left.
+  const searching =
+    barcode === null &&
+    barcodeOf(settled) === null &&
+    query.length >= MIN_QUERY_LENGTH &&
+    settled.length >= MIN_QUERY_LENGTH;
   const search = useQuery({ ...foodSearchQuery(settled), enabled: searching });
   // The first answer for a search is on its way: the lists stay until it lands.
   const firstLoad = search.data === undefined && search.fetchStatus === "fetching";
@@ -102,7 +117,9 @@ export function FoodSearchView({
           {notice}
         </p>
       )}
-      {!showsResults ? (
+      {barcode !== null ? (
+        barcode
+      ) : !showsResults ? (
         <Browse onOpen={onOpen} onAddOwn={onAddOwn} logging={logging} meals={meals} />
       ) : (
         <>

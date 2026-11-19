@@ -22,7 +22,8 @@ import { Per100gFigures } from "./Per100gFigures";
 // The log sheet's food view, under its log block. The header holds Back, the
 // food's name on one line, and the favourite star. The body scrolls under it and holds the food's name, the other
 // language's name, where the figures come from, the figures per 100 g, the
-// portions, and for the user's own food Edit and Delete. The name scrolls
+// portions, for the user's own food Edit and Delete, and for an Open Food
+// Facts food, which nobody edits, Copy to your foods. The name scrolls
 // with the body, so a long one never squeezes the body under a fixed header.
 // Edit shows once the detail has loaded, since the form opens on what was
 // saved. Until the detail has loaded it shows the row it was opened from, so
@@ -110,6 +111,8 @@ export interface FoodDetailBodyProps {
   /** Opens the edit form on the loaded detail. Edit food shows only once the detail is there. */
   onEdit: (detail: FoodDetailData, opener: HTMLElement) => void;
   onDelete: (opener: HTMLElement) => void;
+  /** Opens the own-food form filled in from this Open Food Facts food, so the person can correct it. */
+  onCopy: (detail: FoodDetailData, opener: HTMLElement) => void;
 }
 
 export function FoodDetailBody({
@@ -122,6 +125,7 @@ export function FoodDetailBody({
   onEditPortion,
   onEdit,
   onDelete,
+  onCopy,
 }: FoodDetailBodyProps): ReactElement {
   const t = useTranslations("foods.detail");
   const portionLabel = usePortionLabel();
@@ -145,7 +149,7 @@ export function FoodDetailBody({
             {food.otherName}
           </p>
         )}
-        <FoodSourceLine source={food.source} onLeave={onLeave} />
+        <FoodSourceLine source={food.source} barcode={detail?.barcode} onLeave={onLeave} />
       </div>
       {food.retired && <p className={noticeClass}>{t("retired")}</p>}
       <section aria-labelledby="food-per-100g">
@@ -190,6 +194,13 @@ export function FoodDetailBody({
           </>
         )}
       </section>
+      {food.source === "open_food_facts" && detail !== undefined && (
+        <div className="border-t border-rule pt-4">
+          <button type="button" onClick={(e) => onCopy(detail, e.currentTarget)} className={`${btnSecondary} w-full`}>
+            {t("copyToOwn")}
+          </button>
+        </div>
+      )}
       {food.isOwn && (
         <div className="flex flex-col items-start gap-2 border-t border-rule pt-4">
           {detail !== undefined && (

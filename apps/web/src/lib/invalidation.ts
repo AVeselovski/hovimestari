@@ -244,6 +244,20 @@ export async function afterFavourite(client: QueryClient, foodId: string): Promi
   await refresh(client, [queryKeys.foodDetail(foodId), queryKeys.foodFavourites()]);
 }
 
+/**
+ * After a barcode lookup found a food: it goes into its cached detail, so
+ * the food view opens on it with no read. When the lookup made the food
+ * visible to this user, every cached search is stale, since a search by
+ * name now finds it. Searches on their way are cancelled first, so none
+ * answers from before the lookup.
+ */
+export async function afterBarcodeFound(client: QueryClient, food: FoodDetail, newlyVisible: boolean): Promise<void> {
+  client.setQueryData(queryKeys.foodDetail(food.id), food);
+  if (!newlyVisible) return;
+  await client.cancelQueries({ queryKey: queryKeys.foodSearches() });
+  await client.invalidateQueries({ queryKey: queryKeys.foodSearches() });
+}
+
 // ---------------------------------------------------------------------------
 // Days and logging. A write answers every day it changed, so the answer goes
 // into the cache first and the reads that follow only settle what it could

@@ -6,23 +6,17 @@ import type { AddDone, EntryActions } from "@/hooks/entryActions";
 import type { SheetTarget } from "@/hooks/useSheetTarget";
 import type { FoodDetail, Portion, SavedMeal } from "@hovimestari/types";
 import type { ReactElement, ReactNode } from "react";
-import { OwnFoodSheet } from "./OwnFoodSheet";
+import { OwnFoodSheet, type OwnFoodTarget } from "./OwnFoodSheet";
 import { PortionSheet } from "./PortionSheet";
 
 // ---------------------------------------------------------------------------
 // FoodSheetStack: every sheet stacked on the log sheet, in one place, so the
 // log sheet itself holds its views and nothing else: the own-food and portion
-// forms, the saved meal and estimate forms, and the delete confirmations. Each sheet is kept
-// mounted while it slides out, from the `useSheetTarget` the log sheet owns
-// and passes in. Rendered in the log sheet's `stacked` slot, so each is a
-// nested sheet and the log sheet recedes behind it.
+// forms, the saved meal and estimate forms, and the delete confirmations.
+// Each sheet is kept mounted while it slides out, from the `useSheetTarget`
+// the log sheet owns and passes in. Rendered in the log sheet's `stacked`
+// slot, so each is a nested sheet and the log sheet recedes behind it.
 // ---------------------------------------------------------------------------
-
-/** What the own-food sheet opens on: a food to edit, or a name to start a new one from. */
-export interface OwnFoodTarget {
-  food?: FoodDetail;
-  name: string;
-}
 
 /** What the portion sheet opens on: the food, and a portion to edit or none for a new one. */
 export interface PortionTarget {
@@ -92,8 +86,7 @@ export function FoodSheetStack({
           open={ownSheet.isOpen}
           returnFocusTo={ownSheet.shown.opener}
           onClose={ownSheet.close}
-          food={ownSheet.shown.value.food}
-          initialName={ownSheet.shown.value.name}
+          {...ownSheet.shown.value}
           onSavedFood={onSavedFood}
           onDeleted={onDeletedFood}
           onFoodGone={onFoodGone}

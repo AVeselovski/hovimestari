@@ -1,6 +1,9 @@
 import { api, type RequestOptions } from "@/lib/api";
 import {
   MAX_LIST_LIMIT,
+  type BarcodeFormat,
+  type BarcodeLookup,
+  type BarcodeLookupBody,
   type FavouriteFoodList,
   type FoodDetail,
   type FoodList,
@@ -12,6 +15,20 @@ import {
 /** `GET /foods/search`: the foods whose names hold every word of `q`, ranked by the server. */
 export async function searchFoods(q: string, req?: RequestOptions): Promise<FoodList> {
   const res = await api.get<FoodList>("/foods/search", { params: { q }, signal: req?.signal });
+  return res.data;
+}
+
+/**
+ * `POST /foods/lookup`: finds a barcode among the user's own foods, then the
+ * products kept from Open Food Facts, then asks Open Food Facts. A write,
+ * since it may keep a product and records that this user looked it up.
+ * `format` is a scan's, and settles which way an 8-digit code reads. It
+ * takes no signal: a lookup is never aborted, since the server may already
+ * have stored the product.
+ */
+export async function lookupBarcode(barcode: string, format?: BarcodeFormat): Promise<BarcodeLookup> {
+  const body: BarcodeLookupBody = format === undefined ? { barcode } : { barcode, format };
+  const res = await api.post<BarcodeLookup>("/foods/lookup", body);
   return res.data;
 }
 
