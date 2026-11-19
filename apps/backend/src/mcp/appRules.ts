@@ -56,21 +56,25 @@ This connection reaches one person's targets, days, foods and saved meals. It ca
 /**
  * The rules for making changes, added after APP_RULES only for a key that can
  * write while writing is switched on. A read-only connection never sees them.
- * Rule 6 says no tool deletes a food or a saved meal. The slice that adds
- * request_deletion rewrites it in the same change, so the rules never name a
- * tool an assistant cannot list.
+ * They name only what a writing key can do now, so the rules never name a
+ * tool an assistant cannot list (appRules.test.ts reads the write registry):
+ * entries only. Rule 4 says the connection does not change targets, rule 6
+ * that no tool deletes a food or a saved meal, and rule 7 that changes are
+ * recorded, without where to read them. The slices that add the food, meal
+ * and targets tools, the record's screen and request_deletion rewrite them
+ * in the same change (design d.6).
  */
 export const WRITE_RULES = `## 10. Making changes
 *(Sources: connected-ai.md, quick-logging.md, targets.md, saved-meals.md, foods.md)*
-This connection can also log, plan, change, move, mark, copy, remove and restore entries, add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, and change targets.
+This connection can also log, plan, change, move, mark, copy, remove and restore entries.
 
 1. Propose, then act. Before every change, tell the person what will change, with the old and new values, and wait for their yes. A list of changes is proposed as a list. Batch tools change up to 100 entries in one call.
 2. The app does the arithmetic. Give amounts and figures as the person stated them or as a label shows them. Never work out a figure from other entries. If the amount is not known, ask, or log an estimate when they say it is one. A figure you judged from a photo or a description goes in with log_estimate. Keep the person's own wording about what they ate in its name or note. Quote the figures from the result, never figures of your own.
-3. Planned or eaten: ask when unsure whether a meal was eaten. A planned entry that was eaten is marked eaten with set_entries_status or update_entry, not logged again. A future date takes planned only. Values the person reads from a label go in with create_own_food.
-4. Targets are the person's numbers. Set them only with the numbers the person gave, from the date they gave, today by default. A change replaces another change on the same date.
+3. Planned or eaten: ask when unsure whether a meal was eaten. A planned entry that was eaten is marked eaten with set_entries_status or update_entry, not logged again. A future date takes planned only.
+4. Targets are the person's numbers. This connection reads them and does not change them.
 5. Every call takes a new requestKey. Send the same one again only to retry the same call after an error or no answer. replayed means an earlier call already made this change, and the answer shows the thing as it is now, with its id. unchanged means nothing needed changing, and nothing was recorded. An error is the app refusing: tell the person what it said, and do not work around it. The limits on changes count every connection of this person together.
-6. This connection cannot delete foods or saved meals. Removing entries from a day needs no approval.
-7. Everything you change is recorded in the app under this connection's name, and the person can read it in Settings.
+6. This connection cannot delete foods or saved meals. Removing entries from a day takes no deletion request, because a removed entry can be put back for ten minutes with restore_entry. Like every change, remove entries only when the person has asked for it.
+7. Everything you change is recorded in the app under this connection's name.
 `;
 
 /** The rules a connection reads: the base text, and the write rules when it can write. */
@@ -85,11 +89,11 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "8638ed44292b5db356585c840ec7cbee0fed60b753543b63fa1cb87c25cbeb69",
-  "days.md": "54de69492a003a5f31483a39e6216dda0e46bf718cac909b132b992723411da8",
+  "connected-ai.md": "ce5d133a73820b0b8a08bfa7b72cd133314f700939bc088184968eb7d32f3634",
+  "days.md": "bdd7ad905dbcdad8e7620daa771c5acdb60a92b7e98b8373a94882ed49cff7d5",
   "foods.md": "dee0a02b53ae2d23dd6bc8934815b5a82c0289f27c888631aad7485da91ca8cb",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
-  "quick-logging.md": "b3b9a04fbeaceb59317ef2502d49841224ecba14982b51b2eccfd7db3830fd8e",
+  "quick-logging.md": "a8a465b5700395044d3aa83a42370055a772b3783b196fc5843b60105bf7c5ca",
   "saved-meals.md": "2633b52701d213619ec1a171237bf98e81734eb3dbe9475f92f0efbf9734bb24",
   "targets.md": "86713380d3027b9952b387dc5bed92747b7f6c40bcd46eb73939783bb500ce7e",
 };

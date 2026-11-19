@@ -116,6 +116,10 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   connection_not_found: "This connection does not exist or is already revoked.",
   connect_off: "Connecting an AI assistant is switched off on this server.",
   writes_off: "Keys that can make changes are switched off on this server.",
+  request_key_reused: "This requestKey was already used for a different change. Use a new requestKey.",
+  assistant_writes_per_minute: "Too many changes in a minute. Wait a minute, then carry on.",
+  assistant_changes_per_hour:
+    "This account has had 300 changes by assistants in the last hour. Make the rest in the app, or wait.",
 };
 
 /** An AppError for `code`, with the code's fixed message, and when to try again if that is known. */

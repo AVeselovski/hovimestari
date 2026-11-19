@@ -6,6 +6,8 @@ import { APP_RULES_URI, appRulesFor } from "./appRules.js";
 import { connectionAuthOf, type ConnectionAuthExtra } from "./auth.js";
 import { loggedInput, runTool, type ToolContext } from "./result.js";
 import { READ_TOOLS } from "./tools/index.js";
+import { WRITE_TOOLS } from "./tools/writes/index.js";
+import { runWriteTool } from "./tools/writes/run.js";
 
 // ---------------------------------------------------------------------------
 // The per-request server factory (design d.2), lifted from finanssiappisV2's
@@ -21,6 +23,8 @@ const { version } = JSON.parse(readFileSync(new URL("../../package.json", import
 };
 
 const READ_ONLY = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
+/** Every write tool is idempotent through its request key, and reaches nothing outside the app. */
+const WRITES = { readOnlyHint: false, idempotentHint: true, openWorldHint: false } as const;
 
 export const WRITE_SCOPE = "data:write";
 
@@ -45,7 +49,7 @@ function serverInstructions(canWrite: boolean, writeScope: boolean): string {
 
 /** The context of one tool call: the key's user at this instant. */
 function toolContext(auth: ConnectionAuthExtra, canWrite: boolean): ToolContext {
-  return { read: contextForUser({ id: auth.userId, timeZone: auth.timeZone }, new Date()), auth, canWrite };
+  return { service: contextForUser({ id: auth.userId, timeZone: auth.timeZone }, new Date()), auth, canWrite };
 }
 
 export const buildServer: McpServerFactory = ({ authInfo }) => {
@@ -67,6 +71,24 @@ export const buildServer: McpServerFactory = ({ authInfo }) => {
       },
       (args: Record<string, unknown>) => runTool(tool, args, toolContext(auth, canWrite)),
     );
+  }
+
+  // Only on `canWrite`, never on the scope: a writing key's scope names
+  // data:write whatever MCP_WRITES_ENABLED says, and only canWrite folds the
+  // switch in. A key that cannot write never lists a write tool.
+  if (canWrite) {
+    for (const tool of WRITE_TOOLS) {
+      server.registerTool(
+        tool.name,
+        {
+          description: tool.description,
+          inputSchema: loggedInput(tool, auth.connectionId),
+          annotations: { ...WRITES, destructiveHint: tool.destructive },
+        },
+        (args: Record<string, unknown> & { requestKey: string }) =>
+          runWriteTool(tool, args, toolContext(auth, canWrite)),
+      );
+    }
   }
 
   server.registerResource(

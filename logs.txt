@@ -556,3 +556,13 @@
 [frontend-engineer DONE] (2026-11-19T16:52:23Z) slice 4b last fixes: the decoder purge runs before the load is released, the starting ring holds 3.6:1 over any frame, the hint names the corners, foods.md re-stamped; web 1810 tests (tip f884b12)
 [documentation-specialist STARTED] (2026-11-19T16:52:23Z) the docs of the camera scan against the standard
 [documentation-specialist DONE] (2026-11-19T16:54:47Z) camera scan docs: the phone list in the foods doc's known gaps, the page doc links the rules it had restated, the on-camera tokens' test said plainly; foods.md re-stamped (579c958)
+[backend-engineer STARTED] (2026-11-19T16:28:04Z) connected AI slice 4a: the change record, recorded writes with request keys, the write brakes and the eight entry tools
+[backend-engineer DONE] (2026-11-19T16:59:56Z) connected AI slice 4a built at bd47dcf: the change record in one transaction with its change, request keys with replay, two write brakes per user, eight entry tools registered only when the key can write and writing is on; backend 1145 tests
+[validator STARTED] (2026-11-19T16:59:56Z) slice 4a against the requirements and the design at bd47dcf
+[reviewer STARTED] (2026-11-19T16:59:56Z) slice 4a, security first, at bd47dcf
+[validator DONE] (2026-11-19T17:24:29Z) slice 4a: pass; the same changes through a tool and through the screen's route give identical days, the limits and the off switch hold; one minor and three nits
+[reviewer DONE] (2026-11-19T17:24:29Z) slice 4a: approve after fixes; a change never commits without its record; three majors (a lost race on one request key answered unchanged, rule 6 read as leave to act unasked, the branch behind master) (201k tokens)
+[backend-engineer DONE] (2026-11-19T17:24:29Z) slice 4a onto master and its fix batch: a lost race now replays, rule 6 reworded, another person's ids tested per tool, two ways round the boundary closed; backend 1168 tests (tip 640c404)
+[reviewer STARTED] (2026-11-19T17:24:29Z) delta review of the slice 4a fix batch
+[reviewer DONE] (2026-11-19T17:31:03Z) delta review of slice 4a: approve; the race fix holds under READ COMMITTED and reverting it turns four tests red; five nits (carried to slice 4b)
+[documentation-specialist DONE] (2026-11-19T17:31:03Z) write machinery docs: the import boundary said truly, what the record holds, three facts on limits and replay from the code, one home for the entries-only rule; two docs re-stamped (54b4acb)

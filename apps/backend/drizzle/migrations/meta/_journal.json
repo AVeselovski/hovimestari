@@ -57,6 +57,13 @@
       "when": 1795071576613,
       "tag": "0007_assistant_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795106019038,
+      "tag": "0008_assistant_changes",
+      "breakpoints": true
     }
   ]
 }

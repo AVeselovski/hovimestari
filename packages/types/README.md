@@ -22,6 +22,7 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 ## Modules
 
 ```text
+assistantChanges.ts  The actions of an assistant's changes, an entry as a line of the record, a field change, the summary union and one change as a person reads it
 auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
 barcode.ts     The barcode lookup's body with its optional scan format, and its four answers: found, incomplete, not found, a shop's own
 connections.ts A connection key's access, lifetimes, limit and prefix, the create body, a connection, the list with what the server offers, and the one answer that holds the key

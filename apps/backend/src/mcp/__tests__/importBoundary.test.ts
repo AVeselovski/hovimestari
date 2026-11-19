@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { importsOf } from "../../__tests__/support/importsOf.js";
+import { withoutComments } from "../../__tests__/support/withoutComments.js";
 
 // What a connection key can reach is decided by what src/mcp imports (design
 // d.3, d.4). It reads through the services the REST routes call, and never
@@ -10,9 +11,12 @@ import { importsOf } from "../../__tests__/support/importsOf.js";
 // fields and computes nothing. Nor does it reach the database client a
 // context carries (`read.db`, `$client`), build SQL, load a module by a
 // computed path, or import a database driver. Write services are imported only by the write
-// tools, and by tools/foods.ts for the barcode lookup, which is a read. It
-// never names a deletion the screen offers without a restore, nor approving a
-// deletion: those stay out of an assistant's reach.
+// tools, and by tools/foods.ts for the barcode lookup, which is a read. A
+// write tool reaches a write only through services/writes/recorded/ and the
+// record, so no write runs without the connection as its actor and its
+// record row. The write tools never join READ_TOOLS. It never names a
+// deletion the screen offers without a restore, nor approving a deletion:
+// those stay out of an assistant's reach.
 
 const ROOT = join(process.cwd(), "src", "mcp");
 const FORBIDDEN = [
@@ -46,6 +50,11 @@ const LITERAL_ARGUMENT = /^\s*(["'])[^"'`$\n]*\1\s*\)/;
 const OUT_OF_REACH = ["deleteOwnFood", "deleteSavedMeal", "removePortion", "removeEntry", "approveDeletion"];
 const WRITE_SERVICES = /\/services\/writes\//;
 const BARCODE = /\/services\/writes\/barcode\.js$/;
+/** What a write tool may import from the write services: the recorded writes and the record. */
+const THROUGH_THE_RECORD = /\/services\/writes\/(recorded\/[\w-]+|changeRecord)\.js$/;
+/** The record. Only tools/writes/run.ts imports it, for the replay, the hash and the hourly count. */
+const THE_RECORD = /\/services\/writes\/changeRecord\.js$/;
+const RUN = "tools/writes/run.ts";
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -56,34 +65,6 @@ function sourceFiles(dir: string): string[] {
 }
 
 const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
-
-/**
- * The source without its comments, so a comment may name the database.
- * String and template literals are kept whole, so a "//" inside one hides
- * nothing after it. A regular expression literal is read as code.
- */
-function withoutComments(text: string): string {
-  let out = "";
-  let i = 0;
-  while (i < text.length) {
-    const c = text[i];
-    if (c === "/" && text[i + 1] === "/") {
-      while (i < text.length && text[i] !== "\n") i++;
-    } else if (c === "/" && text[i + 1] === "*") {
-      const end = text.indexOf("*/", i + 2);
-      i = end === -1 ? text.length : end + 2;
-    } else if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < text.length && text[j] !== c) j += text[j] === "\\" ? 2 : 1;
-      out += text.slice(i, j + 1);
-      i = j + 1;
-    } else {
-      out += c;
-      i++;
-    }
-  }
-  return out;
-}
 
 describe("src/mcp import boundary", () => {
   const files = sourceFiles(ROOT).map((path) => relative(ROOT, path));
@@ -134,6 +115,54 @@ describe("src/mcp import boundary", () => {
         .filter((path) => !file.startsWith("tools/writes/") && !(file === "tools/foods.ts" && BARCODE.test(path)))
         .map((path) => `${file} imports ${path}`),
     );
+    expect(offenders).toEqual([]);
+  });
+
+  it("has write tools, and they import the recorded writes", () => {
+    const writeTools = files.filter((file) => file.startsWith("tools/writes/") && !/\/(run|index)\.ts$/.test(file));
+    expect(writeTools).toEqual(expect.arrayContaining(["tools/writes/entries.ts"]));
+    for (const file of writeTools) {
+      expect(importsOf(source(file)).filter((path) => /\/services\/writes\/recorded\//.test(path))).not.toEqual([]);
+    }
+  });
+
+  it("lets a write tool reach a write service only through the recorded writes and the record", () => {
+    const offenders = files
+      .filter((file) => file.startsWith("tools/writes/"))
+      .flatMap((file) =>
+        importsOf(source(file))
+          .filter((path) => WRITE_SERVICES.test(path) && !THROUGH_THE_RECORD.test(path))
+          .map((path) => `${file} imports ${path}`),
+      );
+    expect(offenders).toEqual([]);
+  });
+
+  it("imports the record only into tools/writes/run.ts", () => {
+    const offenders = files
+      .filter((file) => file !== RUN)
+      .flatMap((file) =>
+        importsOf(source(file))
+          .filter((path) => THE_RECORD.test(path))
+          .map((path) => `${file} imports ${path}`),
+      );
+    expect(offenders).toEqual([]);
+  });
+
+  it.each(files)(
+    "%s never calls recordedWrite itself, so every write goes through services/writes/recorded/",
+    (file) => {
+      expect(withoutComments(source(file))).not.toMatch(/\brecordedWrite\b/);
+    },
+  );
+
+  it("keeps the write tools out of the read registry and the read tools' files", () => {
+    const offenders = files
+      .filter((file) => !file.startsWith("tools/writes/") && file !== "server.ts")
+      .flatMap((file) =>
+        importsOf(source(file))
+          .filter((path) => /(^|\/)writes\//.test(path) && !WRITE_SERVICES.test(path))
+          .map((path) => `${file} imports ${path}`),
+      );
     expect(offenders).toEqual([]);
   });
 

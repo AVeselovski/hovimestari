@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { DayDate, DayRange } from "../inputs.js";
+import { DayDate, DayRange, RequestKey } from "../inputs.js";
 
 // The inputs parse what the REST routes parse.
 
@@ -28,5 +28,18 @@ describe("DayRange", () => {
     [{ from: "2026-11-01" }, "no to"],
   ])("refuses %j (%s)", (value, _why) => {
     expect(DayRange.safeParse(value).success).toBe(false);
+  });
+});
+
+describe("RequestKey", () => {
+  it("takes 8 to 64 letters, digits, - or _", () => {
+    for (const key of ["k7Qx2mPa", "a".repeat(64), "rk_A-b_9-xyz"])
+      expect(RequestKey.safeParse(key).success).toBe(true);
+  });
+
+  it("refuses a shorter or longer key, or one with any other character", () => {
+    for (const key of ["k7Qx2mP", "a".repeat(65), "k7Qx 2mPa", "k7Qx2mPa!", "käyttäjä1", ""]) {
+      expect(RequestKey.safeParse(key).success).toBe(false);
+    }
   });
 });

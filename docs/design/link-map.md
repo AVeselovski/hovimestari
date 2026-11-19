@@ -154,26 +154,31 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Connected AI
 
-| Concept                                                       | Home                                                   | Heading                           |
-| ------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------- |
-| connected AI, connected assistant                             | `features/connected-ai.md`                             | Doc                               |
-| connection, connection key, key limit                         | `features/connected-ai.md#connections-and-keys`        | `### Connections and keys`        |
-| access, read only, read and write, key lifetime               | `features/connected-ai.md#access-and-lifetime`         | `### Access and lifetime`         |
-| showing a new key, key reveal, I have copied it               | `features/connected-ai.md#showing-a-new-key`           | `### Showing a new key`           |
-| revoking a key, revoked on a password change                  | `features/connected-ai.md#revoking-a-key`              | `### Revoking a key`              |
-| `MCP_ENABLED`, `MCP_WRITES_ENABLED`, the switches             | `features/connected-ai.md#the-two-switches`            | `### The two switches`            |
-| key format, key hash, key lookup and its states               | `features/connected-ai.md#keys`                        | `### Keys`                        |
-| the ten-key limit under concurrent creates                    | `features/connected-ai.md#making-and-revoking`         | `### Making and revoking`         |
-| what an assistant reads, `get_context`, the read tools        | `features/connected-ai.md#what-an-assistant-reads`     | `### What an assistant reads`     |
-| app rules                                                     | `features/connected-ai.md#the-app-rules`               | `### The app rules`               |
-| a refused key, revoked or expired, the refusal texts          | `features/connected-ai.md#when-a-key-stops-working`    | `### When a key stops working`    |
-| the brakes, the request limit, the refused-key limits         | `features/connected-ai.md#limits`                      | `### Limits`                      |
-| switched off on the server, connecting off                    | `features/connected-ai.md#switched-off-on-the-server`  | `### Switched off on the server`  |
-| MCP endpoint, `/mcp`, the router's steps, protocol eras       | `features/connected-ai.md#the-endpoint`                | `### The endpoint`                |
-| key to service context, `AuthInfo.extra`, scopes              | `features/connected-ai.md#from-key-to-service-context` | `### From key to service context` |
-| tools, the result envelope, `defineTool`, the import boundary | `features/connected-ai.md#tools`                       | `### Tools`                       |
-| app rules text, `APP_RULES_SOURCES`, the rules stamp          | `features/connected-ai.md#the-app-rules-text`          | `### The app rules text`          |
-| the request log and tool log on `/mcp`                        | `features/connected-ai.md#logs`                        | `### Logs`                        |
+| Concept                                                                  | Home                                                    | Heading                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------- | ---------------------------------- |
+| connected AI, connected assistant                                        | `features/connected-ai.md`                              | Doc                                |
+| connection, connection key, key limit                                    | `features/connected-ai.md#connections-and-keys`         | `### Connections and keys`         |
+| access, read only, read and write, key lifetime                          | `features/connected-ai.md#access-and-lifetime`          | `### Access and lifetime`          |
+| showing a new key, key reveal, I have copied it                          | `features/connected-ai.md#showing-a-new-key`            | `### Showing a new key`            |
+| revoking a key, revoked on a password change                             | `features/connected-ai.md#revoking-a-key`               | `### Revoking a key`               |
+| `MCP_ENABLED`, `MCP_WRITES_ENABLED`, the switches                        | `features/connected-ai.md#the-two-switches`             | `### The two switches`             |
+| key format, key hash, key lookup and its states                          | `features/connected-ai.md#keys`                         | `### Keys`                         |
+| the ten-key limit under concurrent creates                               | `features/connected-ai.md#making-and-revoking`          | `### Making and revoking`          |
+| what an assistant reads, `get_context`, the read tools                   | `features/connected-ai.md#what-an-assistant-reads`      | `### What an assistant reads`      |
+| what an assistant can change, the entry tools, outcomes                  | `features/connected-ai.md#what-an-assistant-can-change` | `### What an assistant can change` |
+| the record of changes, the change record                                 | `features/connected-ai.md#the-record-of-changes`        | `### The record of changes`        |
+| request key, replayed, a retry that lands once                           | `features/connected-ai.md#request-keys`                 | `### Request keys`                 |
+| app rules                                                                | `features/connected-ai.md#the-app-rules`                | `### The app rules`                |
+| a refused key, revoked or expired, the refusal texts                     | `features/connected-ai.md#when-a-key-stops-working`     | `### When a key stops working`     |
+| the brakes, the request limit, the refused-key limits, the write limits  | `features/connected-ai.md#limits`                       | `### Limits`                       |
+| switched off on the server, connecting off                               | `features/connected-ai.md#switched-off-on-the-server`   | `### Switched off on the server`   |
+| MCP endpoint, `/mcp`, the router's steps, protocol eras                  | `features/connected-ai.md#the-endpoint`                 | `### The endpoint`                 |
+| key to service context, `AuthInfo.extra`, scopes                         | `features/connected-ai.md#from-key-to-service-context`  | `### From key to service context`  |
+| tools, the result envelope, `defineTool`, the import boundary            | `features/connected-ai.md#tools`                        | `### Tools`                        |
+| write tools, `runWriteTool`, the write brakes in order, `WRITE_TOOLS`    | `features/connected-ai.md#write-tools`                  | `### Write tools`                  |
+| `recordedWrite`, `RequestKeyTaken`, the recorded writes, the screen path | `features/connected-ai.md#recording-a-change`           | `### Recording a change`           |
+| app rules text, `APP_RULES_SOURCES`, the rules stamp                     | `features/connected-ai.md#the-app-rules-text`           | `### The app rules text`           |
+| the request log and tool log on `/mcp`                                   | `features/connected-ai.md#logs`                         | `### Logs`                         |
 
 ## Example area
 

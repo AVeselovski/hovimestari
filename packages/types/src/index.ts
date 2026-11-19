@@ -1,3 +1,4 @@
+export * from "./assistantChanges.js";
 export * from "./auth.js";
 export * from "./barcode.js";
 export * from "./connections.js";

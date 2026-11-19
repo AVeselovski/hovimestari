@@ -20,10 +20,11 @@ export interface ToolContext {
   /**
    * Built by `contextForUser` for this call, exactly as a REST route builds
    * it. Typed as what that function returns, a write service's context, so
-   * the barcode lookup can take it. Which services a tool may call at all is
-   * the import boundary's to decide.
+   * the barcode lookup can take it, and the write tools hand it to
+   * `recordedWrite` with the connection as the actor. Which services a tool
+   * may call at all is the import boundary's to decide.
    */
-  read: ReturnType<typeof contextForUser>;
+  service: ReturnType<typeof contextForUser>;
   auth: ConnectionAuthExtra;
   /** The key can write and writing is switched on. */
   canWrite: boolean;
@@ -49,7 +50,7 @@ export const UNITS =
   "Energy in kcal. Protein, carbohydrates and fat in grams. eaten and withPlan are the two readings of a day.";
 
 export function envelope(ctx: ToolContext, data: unknown) {
-  return { today: ctx.read.today, timeZone: ctx.read.timeZone, units: UNITS, data };
+  return { today: ctx.service.today, timeZone: ctx.service.timeZone, units: UNITS, data };
 }
 
 export function text(value: string, isError = false): CallToolResult {
@@ -71,8 +72,11 @@ export function refusalText(err: AppError): string {
   return notes ? `${err.message} (${notes})` : err.message;
 }
 
+/** How a tool call ended, as the tool log names it. `replayed` and `unchanged` come from write tools only. */
+export type ToolOutcome = "ok" | "replayed" | "unchanged" | "refused" | "error";
+
 /** The tool log line: the tool, the connection, the time and the outcome. Never an argument, a key, a name or a figure. */
-export function toolLine(tool: string, connectionId: string, ms: number, outcome: "ok" | "refused" | "error"): string {
+export function toolLine(tool: string, connectionId: string, ms: number, outcome: ToolOutcome): string {
   return `mcp tool=${tool} conn=${connectionId} ms=${ms} ${outcome}`;
 }
 
@@ -83,7 +87,7 @@ export function toolLine(tool: string, connectionId: string, ms: number, outcome
  * The JSON schema the SDK lists is the tool's own.
  */
 export function loggedInput<S extends z.ZodObject>(
-  tool: Tool<S>,
+  tool: { name: string; inputSchema: S },
   connectionId: string,
 ): StandardSchemaWithJSON<z.input<S>, z.output<S>> {
   const standard = tool.inputSchema["~standard"];
@@ -114,8 +118,7 @@ export async function runTool<S extends z.ZodObject>(
   ctx: ToolContext,
 ): Promise<CallToolResult> {
   const started = Date.now();
-  const line = (outcome: "ok" | "refused" | "error") =>
-    toolLine(tool.name, ctx.auth.connectionId, Date.now() - started, outcome);
+  const line = (outcome: ToolOutcome) => toolLine(tool.name, ctx.auth.connectionId, Date.now() - started, outcome);
   try {
     const data = await tool.run(args, ctx);
     console.log(line("ok"));

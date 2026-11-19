@@ -85,6 +85,9 @@ export const ERROR_CODES = [
   "connection_not_found",
   "connect_off",
   "writes_off",
+  "request_key_reused",
+  "assistant_writes_per_minute",
+  "assistant_changes_per_hour",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

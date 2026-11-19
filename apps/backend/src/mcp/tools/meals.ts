@@ -14,8 +14,8 @@ export const listSavedMealsTool = defineTool({
   inputSchema: z.strictObject({
     archived: z.boolean().default(false).describe("true lists the archived meals instead of the active ones."),
   }),
-  async run(args, { read }) {
-    return { meals: await listSavedMeals(read, args) };
+  async run(args, { service }) {
+    return { meals: await listSavedMeals(service, args) };
   },
 });
 
@@ -26,5 +26,5 @@ export const getSavedMealTool = defineTool({
   inputSchema: z.strictObject({
     savedMealId: z.uuid().describe("The meal's id, from list_saved_meals or list_recent_items."),
   }),
-  run: ({ savedMealId }, { read }) => getSavedMeal(read, savedMealId),
+  run: ({ savedMealId }, { service }) => getSavedMeal(service, savedMealId),
 });
