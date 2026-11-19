@@ -456,3 +456,12 @@
 [reviewer STARTED] (2026-11-19T06:14:07Z) delta review of slice B's fix batch
 [reviewer DONE] (2026-11-19T06:19:15Z) delta review of slice B's fixes: approve; every earlier gap is closed and each mutation now fails one test; three docs and test tidy-ups (202k tokens)
 [ui-validator DONE] (2026-11-19T06:27:03Z) delta check of slice B: pass; long names wrap and nothing scrolls sideways, the refusal moves nothing, Copy is 44 by 44, a copy survives leaving the page (272k tokens)
+[architect STARTED] (2026-11-19T05:55:04Z) design connected AI over MCP (build step 4 in the pivot plan): keys, the Settings section, read and write tools, the change record, the app rules
+[architect DONE] (2026-11-19T06:10:22Z) docs/design/connected-ai.md written: 13 read and 19 write tools over the existing services, keys and the endpoint lifted from finanssi with named changes, six slices with two hand-over points
+[reviewer STARTED] (2026-11-19T06:10:22Z) design review of connected-ai.md before implementation
+[reviewer DONE] (2026-11-19T06:20:11Z) design review of connected-ai.md: build after fixes; five majors (the change record stores no ids, slice 1 reads a table slice 4 creates, writing on by default before the record is visible, diffs computed in the tool files, the key's one-time reveal against the real sheets) and 19 minors
+[architect STARTED] (2026-11-19T06:20:11Z) answering the design review of connected-ai.md
+[architect DONE] (2026-11-19T06:34:38Z) design review of connected-ai.md answered: the record stores ids, writing off by default, no SQL under src/mcp, the key's reveal as its own sheet, slices 2 and 4 split, seven decisions for Artur in TODO.md (258k tokens)
+[reviewer STARTED] (2026-11-19T06:34:38Z) delta review of the answered connected AI design
+[reviewer DONE] (2026-11-19T06:43:25Z) delta review of the connected AI design: build after named fixes; twelve small points, each tied to the slice that needs it (345k tokens)
+[architect DONE] (2026-11-19T06:43:25Z) the delta review's twelve points written into the design; slice 1 can start (304k tokens)
