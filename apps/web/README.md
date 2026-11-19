@@ -66,8 +66,13 @@ src/
 │   ├── foods/                  Foods on the web, and the log sheet that holds them:
 │   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's and a meal's view, the archived meals, Log, and the sheets stacked on it
 │   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
-│   │   ├── FoodSheetStack.tsx  The own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
-│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals"
+│   │   ├── FoodSheetStack.tsx  The scanner, the own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
+│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals", with the camera button or the clear cross at its end
+│   │   ├── ScannerSheet.tsx    The camera scanner: the live view with its band, Torch and Try again, a line for each state and Type the number
+│   │   ├── scanner/            The scanner's camera and decoder:
+│   │   │   ├── useCameraStream.ts  The camera and its decode loop over the band's part of each frame (`visibleBand`), with a session number so every way out stops every track
+│   │   │   ├── decoder.ts      The one file that imports zxing-wasm: loads the reader with the app's own wasm, reads the retail formats
+│   │   │   └── useScanner.ts   The log sheet's side: opens the scanner, types a read into the field, looks it up and places focus
 │   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure, or the barcode block
 │   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
 │   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
@@ -333,4 +338,5 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
 - `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
-- Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them.
+- The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.
+- Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them. The scanner runs in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, and `--use-file-for-fake-video-capture=<file>.y4m` plays a barcode to it. Make the `.y4m` from a barcode image with `ffmpeg -loop 1 -i code.png -t 5 -pix_fmt yuv420p code.y4m`, outside the repository.

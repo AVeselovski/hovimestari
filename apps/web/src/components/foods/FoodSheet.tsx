@@ -36,6 +36,7 @@ import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
 import { FoodSearchView } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
 import type { OwnFoodTarget } from "./OwnFoodSheet";
+import { useScanner } from "./scanner/useScanner";
 import { SearchField } from "./SearchField";
 import { useBarcodeMode } from "./useBarcodeMode";
 import { useFavourite } from "./useFavourite";
@@ -54,7 +55,9 @@ import { useSheetNavigation } from "./useSheetNavigation";
 //   logs again in one press ("+", `useLogAgain`). A typed barcode puts the
 //   search in barcode mode (`useBarcodeMode`): Look up or Enter sends it, a
 //   food found opens its food view while the search still shows that code,
-//   and anything else offers the own-food form from the label.
+//   and anything else offers the own-food form from the label. The camera
+//   button in the empty field opens the scanner (`useScanner`), whose read
+//   types the code and looks it up at once.
 // - Food: Back, the name and the star in the header. The log block on top,
 //   then the food's detail, scrolling. Log in the pinned footer.
 // - Meal: Back and the meal's name. The log block with the number of meals,
@@ -71,8 +74,8 @@ import { useSheetNavigation } from "./useSheetNavigation";
 // view whose amount differs from its prefill, or whose log runs, refuses a
 // swipe and springs back. Back always leaves it.
 //
-// The forms (own food, portion, saved meal, estimate) and the delete
-// confirmations are sheets of their own, stacked on this one
+// The scanner, the forms (own food, portion, saved meal, estimate) and the
+// delete confirmations are sheets of their own, stacked on this one
 // (`FoodSheetStack`). A saved meal or an estimate logged from one closes both
 // sheets in one update.
 // ---------------------------------------------------------------------------
@@ -132,7 +135,14 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   // The lists follow their data only while they cannot be pressed: the sheet
   // slides in, or a sheet stacked on it is open (heldList.tsx). While that
   // sheet slides away its backdrop swallows every press.
-  const stackedOpen = [ownSheet, portionSheet, mealSheet, estimateSheet].some((s) => s.isOpen);
+  const scanner = useScanner({
+    setText: typeText,
+    lookUp: (code, format) => barcode.lookUp(code, format),
+    say: (note) => status.say(note, "note"),
+    inputRef,
+    contentRef,
+  });
+  const stackedOpen = [scanner.sheet, ownSheet, portionSheet, mealSheet, estimateSheet].some((s) => s.isOpen);
   const listsFollow = !armed.armed || stackedOpen;
   const activeMeals = useQuery(savedMealsQuery(false)).data?.meals;
   const sources = activeMeals ? sourcesOf(activeMeals) : [];
@@ -172,6 +182,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     // A view over the search goes back to the search, never to another food.
     if (nav.depth > 1) nav.swap(next);
     else nav.open(next, typeof row === "string" || row === null ? row : rowSelectorOf(row, FOOD_ROW_ATTRIBUTE));
+  }
+
+  /** The search field's text changed, typed or read by the scanner. */
+  function typeText(next: string): void {
+    setText(next);
+    setNotice(null);
+    barcode.textChanged(next);
   }
 
   const barcode = useBarcodeMode({
@@ -294,12 +311,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
         id={searchId}
         inputRef={inputRef}
         value={text}
-        onChange={(next) => {
-          setText(next);
-          setNotice(null);
-          barcode.textChanged(next);
-        }}
+        onChange={typeText}
         onEnter={barcode.onEnter}
+        onScan={scanner.open}
         autoFocus={!isMobile}
       />
     );
@@ -334,6 +348,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
       }
       stacked={
         <FoodSheetStack
+          scanner={scanner}
           ownSheet={ownSheet}
           portionSheet={portionSheet}
           mealSheet={mealSheet}

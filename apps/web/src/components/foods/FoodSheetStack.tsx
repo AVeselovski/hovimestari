@@ -8,11 +8,14 @@ import type { FoodDetail, Portion, SavedMeal } from "@hovimestari/types";
 import type { ReactElement, ReactNode } from "react";
 import { OwnFoodSheet, type OwnFoodTarget } from "./OwnFoodSheet";
 import { PortionSheet } from "./PortionSheet";
+import { ScannerSheet } from "./ScannerSheet";
+import type { Scanner } from "./scanner/useScanner";
 
 // ---------------------------------------------------------------------------
 // FoodSheetStack: every sheet stacked on the log sheet, in one place, so the
-// log sheet itself holds its views and nothing else: the own-food and portion
-// forms, the saved meal and estimate forms, and the delete confirmations.
+// log sheet itself holds its views and nothing else: the barcode scanner, the
+// own-food and portion forms, the saved meal and estimate forms, and the
+// delete confirmations.
 // Each sheet is kept mounted while it slides out, from the `useSheetTarget`
 // the log sheet owns and passes in. Rendered in the log sheet's `stacked`
 // slot, so each is a nested sheet and the log sheet recedes behind it.
@@ -48,6 +51,8 @@ export interface StackLogging {
 }
 
 export interface FoodSheetStackProps {
+  /** The barcode scanner, from `useScanner`. */
+  scanner: Scanner;
   ownSheet: SheetTarget<OwnFoodTarget>;
   portionSheet: SheetTarget<PortionTarget>;
   mealSheet: SheetTarget<MealSheetTarget>;
@@ -67,6 +72,7 @@ export interface FoodSheetStackProps {
 }
 
 export function FoodSheetStack({
+  scanner,
   ownSheet,
   portionSheet,
   mealSheet,
@@ -80,6 +86,17 @@ export function FoodSheetStack({
 }: FoodSheetStackProps): ReactElement {
   return (
     <>
+      {scanner.sheet.shown && (
+        <ScannerSheet
+          key={`scanner-${scanner.sheet.shown.key}`}
+          open={scanner.sheet.isOpen}
+          returnFocusTo={scanner.sheet.shown.opener}
+          restoreFocusOnClose={scanner.restoreFocusOnClose}
+          onClose={scanner.sheet.close}
+          onRead={scanner.onRead}
+          onTypeNumber={scanner.onTypeNumber}
+        />
+      )}
       {ownSheet.shown && (
         <OwnFoodSheet
           key={`own-${ownSheet.shown.key}`}

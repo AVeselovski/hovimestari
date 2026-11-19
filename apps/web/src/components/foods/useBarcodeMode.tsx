@@ -66,6 +66,7 @@ export function useBarcodeMode({ query, canOpenFood, showFood, onFromLabel }: Ba
   const code = barcodeOf(query);
   const lookup = useBarcodeLookup({
     onFound: (found, foundCode) => {
+      // Reads this render's `canOpenFood` and `code`: useBarcodeLookup calls the latest `onFound` through `onFoundRef`, which a layout effect updates after every render.
       if (!canOpenFood || code !== foundCode) return;
       showFood(found, barcodeRow(found), found.lastAmount);
     },

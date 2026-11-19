@@ -73,6 +73,13 @@
   --color-energy-plan: #e6d3b4;
   --color-protein-plan: #ccd6d9;
 
+  /* Marks drawn over the camera's picture, such as the scanner's band. The
+     picture does not change with the theme, so these do not either: paper
+     and ink, the same in both themes and never overridden below. A mark is
+     drawn in both, side by side, so one of the two stands out on any frame. */
+  --color-on-camera: #fbf6ec;
+  --color-on-camera-edge: #1d2e22;
+
   --color-transparent: transparent;
   --color-current: currentColor;
 

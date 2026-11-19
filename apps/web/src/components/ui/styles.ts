@@ -31,6 +31,62 @@ export const btnPrimary = `${btnShape} ${btnSize} bg-accent text-on-accent hover
 export const btnSecondary = `${btnShape} ${btnSize} border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface`;
 
 /**
+ * The scanner's camera view: the body's width at 4:3, on the surface under
+ * the video, so the box holds its place before the stream shows and after
+ * the camera fails.
+ */
+export const cameraView = "relative aspect-4/3 w-full overflow-hidden rounded-card border border-rule bg-surface";
+
+/**
+ * The scanner's video inside `cameraView`. `object-cover` at the default
+ * centred position is the crop `visibleBand` (`scanner/useCameraStream.ts`)
+ * maps the band through, so what is decoded is what shows in the band. A
+ * change to the fit or the position here changes that mapping, and
+ * `ScannerSheet.test.tsx` fails until both agree.
+ */
+export const cameraVideo = "absolute inset-0 size-full object-cover";
+
+/**
+ * The turning ring drawn over the camera's picture while the scanner starts.
+ * Like a band corner, it is a 3 pixel paper arc round a 3 pixel ink arc, in
+ * the `on-camera` tokens, so one of the two stands out from any frame in
+ * either theme. `cameraBusyRingEdge` is the ink arc inside it.
+ */
+export const cameraBusyRing =
+  "relative size-9 animate-spin rounded-pill border-3 border-transparent border-t-on-camera motion-reduce:animate-none";
+/** The ink arc inside a `cameraBusyRing`, turning with it. */
+export const cameraBusyRingEdge = "absolute inset-0 rounded-pill border-3 border-transparent border-t-on-camera-edge";
+
+/**
+ * A footer with one button, such as the scanner's Type the number: the full
+ * width on a phone, at the end of the row from `md`.
+ */
+export const sheetActionsSingle = "flex flex-col md:flex-row md:justify-end";
+
+/**
+ * One corner of the band the scanner reads, drawn over the camera's picture
+ * as the top-left corner and turned for the others. Its two arms are a paper
+ * stroke on the outside and an ink stroke on the inside, 3 pixels each, in
+ * the `on-camera` tokens that keep their values in both themes. Whatever the
+ * picture shows, one of the two stands out from it by at least 3.6 to 1.
+ */
+export const cameraBandCorner = "absolute size-7 rounded-tl-md border-t-3 border-l-3 border-on-camera";
+/** The ink stroke inside a `cameraBandCorner`. */
+export const cameraBandCornerEdge =
+  "absolute top-0 left-0 size-[calc(100%-3px)] rounded-tl-sm border-t-3 border-l-3 border-on-camera-edge";
+
+/**
+ * A toggle drawn over the camera's picture, such as the scanner's Torch, with
+ * `aria-pressed`. In the `on-camera` tokens, so it reads on any frame in
+ * either theme: paper with an ink edge when off, and the inverse, ink with a
+ * paper edge, when on. The accent changes with the theme and the picture
+ * does not, so it is not used here. The focus ring is drawn inside the
+ * button, on its own fill, so it shows whatever is behind it.
+ */
+export const cameraToggle =
+  "inline-flex h-12 items-center gap-2 rounded-pill border-2 border-on-camera-edge bg-on-camera px-5 text-base font-semibold text-on-camera-edge transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-6 focus-visible:outline-on-camera-edge aria-pressed:border-on-camera aria-pressed:bg-on-camera-edge aria-pressed:text-on-camera aria-pressed:focus-visible:outline-on-camera";
+
+/**
  * Two equal actions side by side at every width, such as "New saved meal"
  * and "Add an estimate". The grid stretches both to the taller one, so a
  * label that wraps to two lines never leaves its neighbour shorter.
