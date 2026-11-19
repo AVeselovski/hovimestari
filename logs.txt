@@ -391,3 +391,5 @@
 [reviewer DONE] (2026-11-18T21:34:27Z) delta review of the designs: foods-page.md builds as is; barcode.md needs three short fixes before slice 1 (what kept means, in-store rules on the 14-digit form and which code is stored, the order of the two budgets) and one before slice 2
 [architect STARTED] (2026-11-18T21:34:27Z) writing the delta review's fixes into barcode.md, foods-page.md and TODO.md
 [architect DONE] (2026-11-18T21:40:57Z) delta review answered: newlyVisible replaces kept, in-store rules on the 14-digit form, a mismatched answer is not_found, both budgets taken in one step, one shared meal delete
+[frontend-engineer STARTED] (2026-11-18T21:53:44Z) barcode slice 3: the local HTTPS runbook, from docs/design/barcode.md
+[frontend-engineer DONE] (2026-11-19T00:54:50Z) the local HTTPS runbook and its Caddyfile: run here with Caddy, mkcert and Chromium over https on both the address and a .local name; the macOS and iPhone steps wait for Artur's first run (197k tokens)
