@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@hovimestari/types": "workspace:*",
+    "@modelcontextprotocol/express": "2.0.2",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "csv-parse": "^6.2.1",
@@ -35,6 +38,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@modelcontextprotocol/client": "2.3.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
