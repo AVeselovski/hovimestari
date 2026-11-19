@@ -30,6 +30,15 @@ export function ownFood(name: string, overrides: Partial<FoodSummary> = {}): Foo
   return fineliFood(name, { source: "user", otherName: null, isOwn: true, ...overrides });
 }
 
+/** A product kept from Open Food Facts, as its detail: read-only, with its barcode. */
+export function offFood(name: string, barcode: string, overrides: Partial<FoodDetail> = {}): FoodDetail {
+  return detailOf(fineliFood(name, { source: "open_food_facts", otherName: null }), {
+    barcode,
+    fineli: null,
+    ...overrides,
+  });
+}
+
 /** A food's detail, from its summary. */
 export function detailOf(food: FoodSummary, overrides: Partial<FoodDetail> = {}): FoodDetail {
   return {

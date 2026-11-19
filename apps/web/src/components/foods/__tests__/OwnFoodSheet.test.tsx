@@ -63,7 +63,7 @@ describe("OwnFoodSheet", () => {
   });
 
   it("opens with every field empty and no placeholder, the name aside when the search typed one", () => {
-    renderSheet({ initialName: "Mummon pulla" });
+    renderSheet({ start: { name: "Mummon pulla" } });
     expect(input("Name")).toHaveValue("Mummon pulla");
     for (const label of ["Energy", "Protein", "Carbohydrates", "Fat", "Barcode (optional)"]) {
       expect(input(label)).toHaveValue("");
