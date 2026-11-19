@@ -71,14 +71,6 @@ export function refusalText(err: AppError): string {
   return notes ? `${err.message} (${notes})` : err.message;
 }
 
-/**
- * Runs one tool body and shapes its answer. An AppError's message is
- * client-safe by the repo's definition, so it goes back as an `isError`
- * result with its code. Anything else is logged with `failureOf` (stack,
- * SQLSTATE, constraint) and answered with a generic message. The tool line
- * names the tool, the connection, the time and the outcome, never the
- * arguments, the key, a name or a figure.
- */
 /** The tool log line: the tool, the connection, the time and the outcome. Never an argument, a key, a name or a figure. */
 export function toolLine(tool: string, connectionId: string, ms: number, outcome: "ok" | "refused" | "error"): string {
   return `mcp tool=${tool} conn=${connectionId} ms=${ms} ${outcome}`;
@@ -108,6 +100,14 @@ export function loggedInput<S extends z.ZodObject>(
   };
 }
 
+/**
+ * Runs one tool body and shapes its answer. An AppError's message is
+ * client-safe by the repo's definition, so it goes back as an `isError`
+ * result with its code. Anything else is logged with `failureOf` (stack,
+ * SQLSTATE, constraint) and answered with a generic message. The tool line
+ * names the tool, the connection, the time and the outcome, never the
+ * arguments, the key, a name or a figure.
+ */
 export async function runTool<S extends z.ZodObject>(
   tool: Tool<S>,
   args: z.output<S>,
