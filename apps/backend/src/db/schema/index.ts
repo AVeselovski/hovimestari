@@ -1,3 +1,4 @@
+export * from "./assistantChanges.js";
 export * from "./assistantConnections.js";
 export * from "./entries.js";
 export * from "./foods.js";

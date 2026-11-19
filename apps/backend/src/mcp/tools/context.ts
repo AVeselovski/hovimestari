@@ -13,12 +13,12 @@ export const getContext = defineTool({
   description:
     "Start here. What this key may do and when it expires, the person's today and time zone, their targets in force today with every change of targets, and the rules for reading every figure.",
   inputSchema: z.strictObject({}),
-  async run(_args, { read, auth, canWrite }) {
-    const { inForce, changes } = await targetsOverview(read);
+  async run(_args, { service, auth, canWrite }) {
+    const { inForce, changes } = await targetsOverview(service);
     return {
       access: { canWrite, expiresAt: auth.expiresAt },
-      today: read.today,
-      timeZone: read.timeZone,
+      today: service.today,
+      timeZone: service.timeZone,
       targets: { inForce, changes },
       rules: appRulesFor(canWrite),
     };

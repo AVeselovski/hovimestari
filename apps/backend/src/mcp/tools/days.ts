@@ -2,7 +2,7 @@ import { IsoDateSchema, weekOf } from "@hovimestari/types";
 import { z } from "zod";
 import { getDay, listDaySummaries } from "../../services/reads/days.js";
 import { targetsOverview } from "../../services/reads/targets.js";
-import { DayDate, DayRange } from "../inputs.js";
+import { dateIn, DayDate, DayRange } from "../inputs.js";
 import { defineTool, type ToolContext } from "../result.js";
 
 // The targets and the days (design d.3), through the services GET /targets,
@@ -10,7 +10,7 @@ import { defineTool, type ToolContext } from "../result.js";
 // A date may be `today`, which reads as the person's today, as the day route
 // reads it. No tool fills a day without targets: the services answer null.
 
-const dateOf = (date: string, { read }: ToolContext): string => (date === "today" ? read.today : date);
+const dateOf = (date: string, { service }: ToolContext): string => dateIn(date, service.today);
 
 export const getTargetsTool = defineTool({
   name: "get_targets",
@@ -19,7 +19,7 @@ export const getTargetsTool = defineTool({
   inputSchema: z.strictObject({ date: DayDate.optional() }),
   async run({ date }, ctx) {
     // `firstRunDue` stays out: it is a screen's routing fact.
-    const overview = await targetsOverview(ctx.read, date === undefined ? undefined : dateOf(date, ctx));
+    const overview = await targetsOverview(ctx.service, date === undefined ? undefined : dateOf(date, ctx));
     return { date: overview.date, today: overview.today, inForce: overview.inForce, changes: overview.changes };
   },
 });
@@ -29,7 +29,7 @@ export const getDayTool = defineTool({
   description:
     "One day as the Day tab shows it: its targets, its two readings (eaten, and withPlan with the planned entries too), each with a position for energy and protein, its counts, and every entry with its figures.",
   inputSchema: z.strictObject({ date: DayDate }),
-  run: ({ date }, ctx) => getDay(ctx.read, dateOf(date, ctx)),
+  run: ({ date }, ctx) => getDay(ctx.service, dateOf(date, ctx)),
 });
 
 /**
@@ -69,13 +69,23 @@ const DaysInput = z
     }
   });
 
+/**
+ * The days `input` names: the week of `weekOf`, or `from` to `to`. The
+ * refinement has already refused an input with neither, so the last case
+ * names the one it can still be.
+ */
+function rangeOf(input: z.output<typeof DaysInput>, ctx: ToolContext): { from: string; to: string } {
+  if (input.weekOf !== undefined) return weekOf(dateOf(input.weekOf, ctx));
+  if (input.from !== undefined && input.to !== undefined) return { from: input.from, to: input.to };
+  throw new Error("get_days reached its run without a range or a week.");
+}
+
 export const getDaysTool = defineTool({
   name: "get_days",
   description:
     "Several days without their entries: each day's targets, its two readings with their positions, and its counts. From from to to, at most 42 days with both ends counted, or the Monday-to-Sunday week holding weekOf.",
   inputSchema: DaysInput,
-  async run({ from, to, weekOf: week }, ctx) {
-    const range = week !== undefined ? weekOf(dateOf(week, ctx)) : { from: from!, to: to! };
-    return { days: await listDaySummaries(ctx.read, range) };
+  async run(input, ctx) {
+    return { days: await listDaySummaries(ctx.service, rangeOf(input, ctx)) };
   },
 });

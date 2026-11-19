@@ -397,7 +397,10 @@
     "connection_limit": "You already have 10 keys that still work. Revoke one first.",
     "connection_not_found": "This connection is already gone.",
     "connect_off": "Connecting an assistant is switched off for now.",
-    "writes_off": "Changes by an assistant are switched off for now."
+    "writes_off": "Changes by an assistant are switched off for now.",
+    "request_key_reused": "This change was already sent once with other details.",
+    "assistant_writes_per_minute": "Your assistant made too many changes in a minute. Wait a minute.",
+    "assistant_changes_per_hour": "Your assistants made 300 changes in the last hour. Make the rest here, or wait."
   },
   "day": {
     "launcher": {

@@ -50,6 +50,12 @@ function summaryOf(ctx: ReadContext, date: string, rows: Entry[], targets: Targe
   };
 }
 
+/** The user's entry `id` as the API shows it, or null when it is not theirs or not there. */
+export async function getEntry(ctx: ReadContext, id: string): Promise<Entry | null> {
+  const [row] = await selectEntries(ctx.db, ctx.userId, eq(entries.id, id));
+  return row ? entryOf(row) : null;
+}
+
 /** One day: its entries in the order added, its two readings, and where each stands against the targets in force. */
 export async function getDay(ctx: ReadContext, date: string): Promise<Day> {
   const [inForce, rows] = await Promise.all([

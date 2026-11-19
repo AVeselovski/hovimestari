@@ -17,7 +17,7 @@ import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { isForeignKeyViolation, isUniqueViolation, pgCodeOf } from "../../lib/pgErrors.js";
 import { basisColumnsOf, entryOf, selectEntries } from "../entryRows.js";
-import { getDay, getDays } from "../reads/days.js";
+import { getDay, getDays, getEntry } from "../reads/days.js";
 import { gramsOf, lockUserForWrite, readFoodForEntry, readMealForEntry, restoreCutoff } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
@@ -28,12 +28,6 @@ import type { WriteContext, WriteOutcome } from "./context.js";
 // Adds and copies take a client-chosen id, so a repeated request applies once.
 
 type EntryInsert = typeof entries.$inferInsert;
-
-/** The user's entry `id` as the API shows it, or null. */
-async function readEntry(ctx: WriteContext, id: string): Promise<Entry | null> {
-  const [row] = await selectEntries(ctx.db, ctx.userId, eq(entries.id, id));
-  return row ? entryOf(row) : null;
-}
 
 /** 400 `entry_eaten_in_future` for an eaten entry dated after the user's today. */
 function refuseEatenInFuture(ctx: WriteContext, date: string, status: EntryStatus | undefined): void {
@@ -99,7 +93,7 @@ export async function addEntry(ctx: WriteContext, body: AddEntryBody): Promise<W
     value: { entry, days: [await getDay(ctx, entry?.date ?? body.date)], outcome: "replayed" },
     outcome: "replayed",
   });
-  const existing = await readEntry(ctx, body.id);
+  const existing = await getEntry(ctx, body.id);
   if (existing) return replayed(existing);
   refuseEatenInFuture(ctx, body.date, body.status);
 
@@ -120,7 +114,7 @@ export async function addEntry(ctx: WriteContext, body: AddEntryBody): Promise<W
     .catch(sourceRefused);
 
   if (written === "removed") return replayed(null);
-  const entry = await readEntry(ctx, body.id);
+  const entry = await getEntry(ctx, body.id);
   if (!entry) throw appError("entry_id_taken", 409);
   if (written === "taken") return replayed(entry);
   return { value: { entry, days: [await getDay(ctx, entry.date)], outcome: "created" }, outcome: "created" };
@@ -173,7 +167,7 @@ export async function updateEntry(
     await tx.update(entries).set(set).where(mine);
     return [row.date, date];
   });
-  const entry = await readEntry(ctx, id);
+  const entry = await getEntry(ctx, id);
   if (!entry) throw appError("entry_not_found", 404);
   return { value: { entry, days: await getDays(ctx, dates), outcome: "changed" }, outcome: "changed" };
 }
@@ -351,7 +345,7 @@ export async function restoreEntry(ctx: WriteContext, id: string): Promise<Write
       return back.rows.length > 0;
     })
     .catch(restoreRefused);
-  const entry = await readEntry(ctx, id);
+  const entry = await getEntry(ctx, id);
   if (!entry) throw appError("entry_not_found", 404);
   const outcome = restored ? "created" : "replayed";
   return { value: { entry, days: [await getDay(ctx, entry.date)], outcome }, outcome };
