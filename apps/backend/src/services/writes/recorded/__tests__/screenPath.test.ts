@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { outOfReachIn } from "../../../../__tests__/support/outOfReach.js";
 import { withoutComments } from "../../../../__tests__/support/withoutComments.js";
 
 // An assistant's write is the screen's write (design g.3, d.4). A file under
@@ -9,7 +10,9 @@ import { withoutComments } from "../../../../__tests__/support/withoutComments.j
 // inserts the record. So no file here writes a row of its own, and every
 // recorded* function calls exactly one write service, once, inside exactly
 // one recordedWrite. Read from the source, since what matters is what the
-// code can do, not what one run of it did.
+// code can do, not what one run of it did. Nor does any file here name a
+// write service out of an assistant's reach (support/outOfReach.ts), so a
+// tool cannot reach one through a recorded wrapper under another name.
 
 const ROOT = join(process.cwd(), "src", "services", "writes", "recorded");
 const SQL_WRITES = [/\.insert\s*\(/, /\.update\s*\(/, /\.delete\s*\(/, /\.execute\s*\(/];
@@ -45,13 +48,17 @@ function recordedFunctions(text: string): { name: string; body: string }[] {
 const callsOf = (body: string, name: string) => body.match(new RegExp(`\\b${name}\\s*\\(`, "g"))?.length ?? 0;
 
 describe("services/writes/recorded", () => {
-  it("holds the recorded entry writes", () => {
-    expect(files).toEqual(expect.arrayContaining(["entries.ts"]));
+  it("holds the recorded writes of every area", () => {
+    expect(files).toEqual(expect.arrayContaining(["entries.ts", "foods.ts", "savedMeals.ts", "targets.ts"]));
   });
 
   it.each(files)("%s writes no row of its own", (file) => {
     const found = SQL_WRITES.filter((pattern) => pattern.test(code(file))).map(String);
     expect(found).toEqual([]);
+  });
+
+  it.each(files)("%s names no write service out of an assistant's reach", (file) => {
+    expect(outOfReachIn(readFileSync(join(ROOT, file), "utf8"))).toEqual([]);
   });
 
   it.each(files)("%s imports every module by name, so the count of write services sees them all", (file) => {

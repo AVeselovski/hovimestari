@@ -288,7 +288,7 @@ describe("/mcp through the MCP client", () => {
       const client = await connect(server.url, WRITE_KEY, era);
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name)).toEqual([...READ_TOOLS, ...WRITE_TOOLS].map((t) => t.name));
-      expect(tools).toHaveLength(20);
+      expect(tools).toHaveLength(30);
       await client.close();
     },
   );
@@ -298,8 +298,18 @@ describe("/mcp through the MCP client", () => {
     const client = await connect(server.url, WRITE_KEY);
     const { tools } = await client.listTools();
     const writes = tools.filter((t) => WRITE_TOOLS.some((w) => w.name === t.name));
-    expect(writes).toHaveLength(8);
-    const destructive = ["update_entry", "set_entries_status", "remove_entries"];
+    expect(writes).toHaveLength(18);
+    const destructive = [
+      "update_entry",
+      "set_entries_status",
+      "remove_entries",
+      "update_own_food",
+      "update_portion",
+      "update_saved_meal",
+      "set_saved_meal_archived",
+      "set_targets",
+      "remove_targets",
+    ];
     for (const tool of writes) {
       expect(tool.annotations).toEqual({
         readOnlyHint: false,

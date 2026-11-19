@@ -15,21 +15,39 @@ jest.unstable_mockModule("../../db/index.js", () => ({ db: {} }));
 jest.unstable_mockModule("../../lib/connectionKeys.js", () => ({ ...OTHER_KEY_EXPORTS, ...keys }));
 // Mocked so a call that got past registration would show here, not as a database error.
 type Fn = (...args: unknown[]) => Promise<unknown>;
-const recorded = {
-  recordedLogFood: jest.fn<Fn>(),
-  recordedLogSavedMeal: jest.fn<Fn>(),
-  recordedLogEstimate: jest.fn<Fn>(),
-  recordedUpdateEntry: jest.fn<Fn>(),
-  recordedSetEntriesStatus: jest.fn<Fn>(),
-  recordedCopyEntries: jest.fn<Fn>(),
-  recordedRemoveEntries: jest.fn<Fn>(),
-  recordedRestoreEntry: jest.fn<Fn>(),
-  replayEntry: jest.fn<Fn>(),
-  replayEntryChange: jest.fn<Fn>(),
-  replayEntryBatch: jest.fn<Fn>(),
-  replayCopies: jest.fn<Fn>(),
+const mocks = (...names: string[]) => Object.fromEntries(names.map((name) => [name, jest.fn<Fn>()]));
+const recordedByFile = {
+  entries: mocks(
+    "recordedLogFood",
+    "recordedLogSavedMeal",
+    "recordedLogEstimate",
+    "recordedUpdateEntry",
+    "recordedSetEntriesStatus",
+    "recordedCopyEntries",
+    "recordedRemoveEntries",
+    "recordedRestoreEntry",
+    "replayEntry",
+    "replayEntryChange",
+    "replayEntryBatch",
+    "replayCopies",
+  ),
+  foods: mocks(
+    "recordedCreateOwnFood",
+    "recordedUpdateOwnFood",
+    "recordedAddPortion",
+    "recordedUpdatePortion",
+    "recordedSetFavourite",
+    "replayFood",
+    "replayPortion",
+  ),
+  savedMeals: mocks("recordedCreateSavedMeal", "recordedUpdateSavedMeal", "recordedSetSavedMealArchived", "replayMeal"),
+  targets: mocks("recordedSetTargets", "recordedRemoveTargets", "replayTargets"),
 };
-jest.unstable_mockModule("../../services/writes/recorded/entries.js", () => recorded);
+jest.unstable_mockModule("../../services/writes/recorded/entries.js", () => recordedByFile.entries);
+jest.unstable_mockModule("../../services/writes/recorded/foods.js", () => recordedByFile.foods);
+jest.unstable_mockModule("../../services/writes/recorded/savedMeals.js", () => recordedByFile.savedMeals);
+jest.unstable_mockModule("../../services/writes/recorded/targets.js", () => recordedByFile.targets);
+const recorded = Object.assign({}, ...Object.values(recordedByFile)) as Record<string, ReturnType<typeof jest.fn>>;
 const findReplay = jest.fn<Fn>(async () => null);
 jest.unstable_mockModule("../../services/writes/changeRecord.js", () => ({
   findReplay,
@@ -75,7 +93,7 @@ describe("MCP_WRITES_ENABLED=false", () => {
   });
 
   it("refuses a direct call of every write tool, and never reaches a recorded write or the record", async () => {
-    expect(WRITE_TOOLS).toHaveLength(8);
+    expect(WRITE_TOOLS).toHaveLength(18);
     for (const tool of WRITE_TOOLS) {
       const result = await writer
         .callTool({ name: tool.name, arguments: { requestKey: "k7Qx2mPa9w" } })

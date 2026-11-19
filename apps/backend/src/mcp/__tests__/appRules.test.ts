@@ -88,7 +88,7 @@ describe("APP_RULES", () => {
     expect(writeNames.filter((name) => APP_RULES.includes(name))).toEqual([]);
     // The write rules do lean on write tools, read from the registry.
     expect(snakeCaseWords(WRITE_RULES).filter((word) => writeNames.includes(word))).toEqual(
-      expect.arrayContaining(["log_estimate", "set_entries_status", "update_entry"]),
+      expect.arrayContaining(["create_own_food", "log_estimate", "set_entries_status", "update_entry"]),
     );
   });
 
@@ -109,11 +109,25 @@ describe("APP_RULES", () => {
   });
 
   it("promises nothing a writing key cannot do yet", () => {
-    // Foods, saved meals, targets and the record's screen come with their own tools and screen.
-    for (const phrase of ["own foods", "favourite", "archive", "Set them", "read it in Settings"]) {
+    // The record's screen comes with its own slice: until then the rules say where nothing is read.
+    for (const phrase of ["read it in Settings", "Activity"]) {
       expect(WRITE_RULES).not.toContain(phrase);
     }
-    expect(WRITE_RULES).toContain("This connection reads them and does not change them.");
+  });
+
+  it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {
+    expect(WRITE_RULES).toContain(
+      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, and change targets.",
+    );
+    expect(WRITE_RULES).toContain("Values the person reads from a label go in with create_own_food.");
+    expect(WRITE_RULES).toContain("Set them only with the numbers the person gave, from the date they gave");
+    expect(WRITE_RULES).not.toContain("does not change them");
+  });
+
+  it("says a retry after a limit is safe with the same request key, as the refusal says", () => {
+    expect(WRITE_RULES).toContain(
+      "wait as it says, then retry with the same requestKey. A change that already landed is not made twice.",
+    );
   });
 
   it("names no deletion tool while no tool can delete", () => {
