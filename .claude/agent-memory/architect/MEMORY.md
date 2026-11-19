@@ -12,5 +12,7 @@
 - [Open Food Facts API facts](reference_open_food_facts_api.md): 15 reads/min/IP, 404 on not found, per-100ml trap, zxing-wasm sizes
 - [Recipes tab and barcode order](project_recipes_tab_and_barcode_order.md): owner order 2026-11-18; page reuses log sheet sheets; local HTTPS
 - [Shared rows leak through answers](project_shared_rows_leak_through_answers.md): per-user flags on shared rows, timing leaks named honestly, xmax=0
-- [Week and copy sheets](project_week_and_copy.md): PR 3d week is a sheet, copy a checklist sheet; toast-under-sheet and dirty-dismissal decided it
 - [Week and copy sheets](project_week_and_copy.md): PR 3d week sheet via text Week button by Log food; measure with real fonts; sheet-owned ids
+- [Connected AI design](project_connected_ai_design.md): record wrapper plus services/writes/recorded, entity ids, writes off by default, per-user limits, reveal store
+- [MCP clients and SDK, 2026-11](reference_mcp_clients_2026_11.md): SDK pins vs npm, which Claude clients take a static key, mcp-remote
+- [Design review round trips](feedback_design_review_round_trips.md): checks to run before review: slice tables, real primitives, no-op outcomes, per-user limits
