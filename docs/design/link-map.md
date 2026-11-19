@@ -159,7 +159,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | `MCP_ENABLED`, `MCP_WRITES_ENABLED`, the switches             | `features/connected-ai.md#the-two-switches`            | `### The two switches`            |
 | key format, key hash, key lookup and its states               | `features/connected-ai.md#keys`                        | `### Keys`                        |
 | the ten-key limit under concurrent creates                    | `features/connected-ai.md#making-and-revoking`         | `### Making and revoking`         |
-| what an assistant reads, `get_context`                        | `features/connected-ai.md#what-an-assistant-reads`     | `### What an assistant reads`     |
+| what an assistant reads, `get_context`, the read tools        | `features/connected-ai.md#what-an-assistant-reads`     | `### What an assistant reads`     |
 | app rules                                                     | `features/connected-ai.md#the-app-rules`               | `### The app rules`               |
 | a refused key, revoked or expired, the refusal texts          | `features/connected-ai.md#when-a-key-stops-working`    | `### When a key stops working`    |
 | the brakes, the request limit, the refused-key limits         | `features/connected-ai.md#limits`                      | `### Limits`                      |

@@ -184,7 +184,8 @@ src/
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
 │   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
-│   ├── localDate.ts            YYYY-MM-DD arithmetic in UTC, formatDay() and formatDayShort() in the device's language, todayIn() and dayLabel()
+│   ├── localDate.ts            YYYY-MM-DD dates in UTC, addDays() from packages/types, formatDay() and formatDayShort() in the device's language, todayIn() and dayLabel()
+│   ├── week.ts                 The Monday to Sunday week: weekOf() from packages/types, stepWeek() and weekDates()
 │   ├── targetFormat.ts         formatTarget(): a target's figure, with no digit grouping
 │   ├── foodFormat.ts           formatKcal(), formatMacroGrams() and formatGrams() for display, and formatDecimalForField() for a saved value as typed
 │   ├── entryFormat.ts          formatCount(): a portion or meal count for display

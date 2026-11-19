@@ -24,7 +24,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Connected AI
 
-- **[Connected AI](features/connected-ai.md)**: named connection keys a person makes to give their own AI assistant access, read only or read and write, each with a lifetime, shown once and revoked at will. Keys are made, listed and revoked through the API. An assistant connects with one over the Model Context Protocol and reads the person's targets and the rules for reading every figure.
+- **[Connected AI](features/connected-ai.md)**: named connection keys a person makes to give their own AI assistant access, read only or read and write, each with a lifetime, shown once and revoked at will. Keys are made, listed and revoked through the API. An assistant connects with one over the Model Context Protocol and reads what the screens show: targets, days with both readings, foods, recent items and saved meals, a barcode lookup, and the rules for reading every figure.
 
 ## The app
 
