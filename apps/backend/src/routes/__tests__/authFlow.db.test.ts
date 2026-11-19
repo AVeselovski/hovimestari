@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, jest } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { testPassword } from "../../__tests__/support/credentials.js";
 import { browserNonce } from "../../__tests__/support/google.js";
@@ -210,7 +211,7 @@ await describeWithDb("authFlow", (suite) => {
     const google = await googleOnlyUser();
     const res = await api()
       .put("/api/v1/users/me/password")
-      .set(bearer(signAccessToken({ sub: google.id })))
+      .set(bearer(signAccessToken({ sub: google.id, fam: randomUUID() })))
       .send({ currentPassword: testPassword(), newPassword: testPassword() });
     expect(res.status).toBe(403);
     expect(res.body.code).toBe("no_password");
@@ -230,7 +231,7 @@ await describeWithDb("authFlow", (suite) => {
   it("adds a password to a Google-only account, then lets it unlink Google", async () => {
     const { signAccessToken } = await import("../../lib/jwt.js");
     const google = await googleOnlyUser();
-    const auth = bearer(signAccessToken({ sub: google.id }));
+    const auth = bearer(signAccessToken({ sub: google.id, fam: randomUUID() }));
 
     const added = await api().post("/api/v1/auth/link/password").set(auth).send({ password: testPassword() });
     expect(added.status).toBe(200);
@@ -271,7 +272,7 @@ await describeWithDb("authFlow", (suite) => {
     const google = await googleOnlyUser();
     const res = await api()
       .delete("/api/v1/users/me")
-      .set(bearer(signAccessToken({ sub: google.id })))
+      .set(bearer(signAccessToken({ sub: google.id, fam: randomUUID() })))
       .send({ email: google.email.toUpperCase() });
     expect(res.status).toBe(204);
   });

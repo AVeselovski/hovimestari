@@ -7,6 +7,7 @@ import type pg from "pg";
  * while the cascade graph reaches a table this list does not name.
  */
 export const SEEDED_TABLES = [
+  "assistant_connections",
   "entries",
   "food_favourites",
   "food_lookups",
@@ -34,6 +35,10 @@ export async function seedOneOfEach(client: pg.Client, userId: string): Promise<
     hash(),
     inAWeek(),
   ]);
+  await client.query(
+    "INSERT INTO assistant_connections (user_id, name, key_hash, access, expires_at) VALUES ($1, 'Cascade key', $2, 'read', $3)",
+    [userId, hash(), inAWeek()],
+  );
   await client.query(
     `INSERT INTO target_changes (user_id, effective_from, energy_kcal_lower, energy_kcal_upper, protein_g_lower, protein_g_upper)
      VALUES ($1, '2026-01-01', 1, 2, 1, 2)`,

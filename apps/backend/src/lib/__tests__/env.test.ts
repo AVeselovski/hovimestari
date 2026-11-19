@@ -93,3 +93,36 @@ describe("EnvSchema, mail", () => {
     expect(env.EMAIL_FROM).toBe("Hovimestari <mail@example.com>");
   });
 });
+
+describe("EnvSchema, the connected AI switches", () => {
+  it("has connected AI on and writing off when neither is set", () => {
+    const env = EnvSchema.parse(BASE);
+    expect(env.MCP_ENABLED).toBe(true);
+    expect(env.MCP_WRITES_ENABLED).toBe(false);
+  });
+
+  it("reads an empty value, as a .env file may have it, as unset", () => {
+    const env = EnvSchema.parse({ ...BASE, MCP_ENABLED: "", MCP_WRITES_ENABLED: "" });
+    expect(env.MCP_ENABLED).toBe(true);
+    expect(env.MCP_WRITES_ENABLED).toBe(false);
+  });
+
+  it("reads the strings true and false both ways", () => {
+    expect(EnvSchema.parse({ ...BASE, MCP_ENABLED: "false", MCP_WRITES_ENABLED: "true" })).toMatchObject({
+      MCP_ENABLED: false,
+      MCP_WRITES_ENABLED: true,
+    });
+    expect(EnvSchema.parse({ ...BASE, MCP_ENABLED: "true", MCP_WRITES_ENABLED: "false" })).toMatchObject({
+      MCP_ENABLED: true,
+      MCP_WRITES_ENABLED: false,
+    });
+  });
+
+  it.each(["MCP_ENABLED", "MCP_WRITES_ENABLED"])("refuses any other value of %s at boot", (key) => {
+    for (const value of ["yes", "1", "TRUE", "off"]) {
+      const result = EnvSchema.safeParse({ ...BASE, [key]: value });
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0].path).toEqual([key]);
+    }
+  });
+});
