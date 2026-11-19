@@ -88,8 +88,12 @@ export function useBarcodeLookup({ onFound }: UseBarcodeLookupOptions): BarcodeL
   const waiting = useRef<{ code: string; format?: BarcodeFormat; ticket: number } | null>(null);
   const tickets = useRef(0);
   const onFoundRef = useRef(onFound);
+  // The held state as last rendered, for `savedOwnFood`, so a caller that kept
+  // an older copy of that function still reads the state of now.
+  const stateRef = useRef(state);
   useLayoutEffect(() => {
     onFoundRef.current = onFound;
+    stateRef.current = state;
   });
 
   const { mutateAsync } = useMutation({
@@ -140,15 +144,18 @@ export function useBarcodeLookup({ onFound }: UseBarcodeLookupOptions): BarcodeL
 
   const savedOwnFood = useCallback(
     (food: FoodDetail): boolean => {
-      if (state === null || state.status === "pending") return false;
-      if (food.barcode === null || !sameBarcode(food.barcode, state.code)) {
+      const held = stateRef.current;
+      if (held === null || held.status === "pending") return false;
+      if (food.barcode === null || !sameBarcode(food.barcode, held.code)) {
         forget(food.id);
         return false;
       }
-      setState({ ...state, status: "answered", answer: { result: "found", food, newlyVisible: false } });
+      const { code, format } = held;
+      const kept = format === undefined ? { code } : { code, format };
+      setState({ ...kept, status: "answered", answer: { result: "found", food, newlyVisible: false } });
       return true;
     },
-    [state, forget],
+    [forget],
   );
 
   return { state, offline, lookUp, drop, forget, savedOwnFood };

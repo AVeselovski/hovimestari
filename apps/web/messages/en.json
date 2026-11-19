@@ -695,6 +695,18 @@
       "offline": "Looking up a barcode needs a connection.",
       "failed": "The lookup did not work."
     },
+    "scan": {
+      "title": "Scan a barcode",
+      "starting": "Starting the camera…",
+      "aim": "Hold the barcode between the corners.",
+      "refused": "Hovimestari cannot use the camera. Allow it in your browser's settings.",
+      "noCamera": "No camera was found. Type the number instead.",
+      "busy": "Another app is using the camera.",
+      "noDecoder": "The scanner did not load. Type the number instead.",
+      "typeNumber": "Type the number",
+      "torch": "Torch",
+      "read": "Barcode read: {code}."
+    },
     "row": {
       "yours": "Yours",
       "favourite": "Favourite",

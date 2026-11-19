@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
           // overlaid by another site. X-Frame-Options covers older browsers.
           { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
           { key: "X-Frame-Options", value: "DENY" },
+          // The camera for this site's own pages, for the barcode scanner, and
+          // no microphone or location for anyone. The headers test pins it.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
         ],
       },
       {
