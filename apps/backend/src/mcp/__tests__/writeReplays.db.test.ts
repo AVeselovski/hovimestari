@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 import type { Client } from "@modelcontextprotocol/client";
+import { randomUUID } from "node:crypto";
 import { daysApi } from "../../__tests__/support/daysApi.js";
 import { serviceHolder } from "../../__tests__/support/holder.js";
 import { sessionApi } from "../../__tests__/support/sessionApi.js";
@@ -192,6 +193,40 @@ await describeWithDb("mcp write replays", (suite) => {
       const args = { requestKey: newRequestKey(), entryId };
       const { answer } = await race("restore_entry", args, (c, via) => recordedRestoreEntry(c, via, entryId));
       expect(answer.data).toMatchObject({ outcome: "replayed", entry: { id: entryId } });
+    });
+  });
+
+  describe("a different call with one key at once, on a tool that changes what is there", () => {
+    it("is refused request_key_reused once the first commits, and only the first change is recorded", async () => {
+      const { recordedRemoveEntries, requestHashOf } = await Promise.all([
+        import("../../services/writes/recorded/entries.js"),
+        import("../../services/writes/changeRecord.js"),
+      ]).then(([recorded, record]) => ({ ...recorded, ...record }));
+      const entryId = (await written(client, "log_food", logArgs(newRequestKey(), 90))).entry.id as string;
+      const held = { requestKey: newRequestKey(), entryIds: [entryId] };
+      const via: AssistantActor = {
+        connectionId: w.connectionId,
+        connectionName: CONNECTION_NAME,
+        requestKey: held.requestKey,
+        requestHash: requestHashOf("remove_entries", held),
+      };
+      const first = await serviceHolder(await d.contextAt(w.user.id), (c) =>
+        recordedRemoveEntries(c, via, { entryIds: [entryId] }),
+      );
+      // The same key with another set of ids: it waits on the first's lock, then finds the entry gone.
+      const second = call(client, "remove_entries", { requestKey: held.requestKey, entryIds: [entryId, randomUUID()] });
+      const waited = await sessions.queuedOnLock(1);
+      await first.commit();
+      const answer = await second;
+
+      expect(waited).toBe(1);
+      expect(answer).toMatchObject({
+        isError: true,
+        text: "This requestKey was already used for a different change. Use a new requestKey. (request_key_reused)",
+      });
+      expect((await records()).filter((r) => r.requestKey === held.requestKey)).toEqual([
+        expect.objectContaining({ action: "entries.removed", entityIds: [entryId] }),
+      ]);
     });
   });
 

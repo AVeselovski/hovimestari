@@ -34,10 +34,16 @@ export interface SlidingWindow {
 
 export function createSlidingWindow(limit: number, windowMs: number): SlidingWindow {
   const calls = new Map<string, number[]>();
+  let sweptAt = -Infinity;
   return {
     admit(key, now) {
-      // Drop the books of keys with no call left in the window, so an idle key holds no memory.
-      for (const [k, at] of calls) if (at[at.length - 1] <= now - windowMs) calls.delete(k);
+      // Drop the books of keys with no call left in the window, so an idle key
+      // holds no memory. Once a window at most, so a call costs one book, not
+      // every person's: an idle book lives at most two windows.
+      if (now - sweptAt >= windowMs) {
+        sweptAt = now;
+        for (const [k, at] of calls) if (at[at.length - 1] <= now - windowMs) calls.delete(k);
+      }
       const recent = (calls.get(key) ?? []).filter((at) => at > now - windowMs);
       if (recent.length >= limit) {
         calls.set(key, recent);
@@ -49,6 +55,7 @@ export function createSlidingWindow(limit: number, windowMs: number): SlidingWin
     },
     reset() {
       calls.clear();
+      sweptAt = -Infinity;
     },
     size() {
       return calls.size;

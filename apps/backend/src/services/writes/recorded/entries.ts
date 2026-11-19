@@ -21,7 +21,7 @@ import type { Tx } from "../../../db/types.js";
 import { entryOf, selectEntries } from "../../entryRows.js";
 import type { ReadContext } from "../../reads/context.js";
 import { getDays, getEntry } from "../../reads/days.js";
-import { recordedWrite, type AssistantActor, type ChangeRecord, type Replay } from "../changeRecord.js";
+import { fieldChanges, recordedWrite, type AssistantActor, type ChangeRecord, type Replay } from "../changeRecord.js";
 import type { WriteContext } from "../context.js";
 import { addEntry, copyEntries, removeEntries, restoreEntry, setEntriesStatus, updateEntry } from "../entries.js";
 
@@ -81,17 +81,14 @@ function amountOf(entry: Entry): AssistantEntryLine["amount"] {
 
 /** What an edit changed, field by field, from the entry before to the entry after. Empty when nothing did. */
 function changesOf(before: Entry, after: Entry): AssistantFieldChange[] {
-  const changes: AssistantFieldChange[] = [];
-  const compare = (field: AssistantFieldChange["field"], from: unknown, to: unknown) => {
-    if (JSON.stringify(from) !== JSON.stringify(to)) changes.push({ field, from, to });
-  };
-  compare("date", before.date, after.date);
-  compare("status", before.status, after.status);
-  compare("amount", amountOf(before), amountOf(after));
-  compare("name", before.name, after.name);
-  compare("figures", before.figures, after.figures);
-  compare("note", before.note, after.note);
-  return changes;
+  return fieldChanges([
+    ["date", before.date, after.date],
+    ["status", before.status, after.status],
+    ["amount", amountOf(before), amountOf(after)],
+    ["name", before.name, after.name],
+    ["figures", before.figures, after.figures],
+    ["note", before.note, after.note],
+  ]);
 }
 
 /**

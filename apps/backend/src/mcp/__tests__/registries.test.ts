@@ -11,7 +11,7 @@ import { WRITE_TOOLS } from "../tools/writes/index.js";
 const isWriteTool = (tool: object) => "destructive" in tool || "replay" in tool;
 
 describe("the tool registries", () => {
-  it("hold the 12 read tools and the 8 entry write tools", () => {
+  it("hold the 12 read tools and the 18 write tools", () => {
     expect(READ_TOOLS).toHaveLength(12);
     expect(WRITE_TOOLS.map((tool) => tool.name)).toEqual([
       "log_food",
@@ -22,6 +22,16 @@ describe("the tool registries", () => {
       "copy_entries",
       "remove_entries",
       "restore_entry",
+      "create_own_food",
+      "update_own_food",
+      "add_portion",
+      "update_portion",
+      "set_favourite",
+      "create_saved_meal",
+      "update_saved_meal",
+      "set_saved_meal_archived",
+      "set_targets",
+      "remove_targets",
     ]);
   });
 

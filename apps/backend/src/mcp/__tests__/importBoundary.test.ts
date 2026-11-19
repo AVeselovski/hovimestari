@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { importsOf } from "../../__tests__/support/importsOf.js";
+import { outOfReachIn } from "../../__tests__/support/outOfReach.js";
 import { withoutComments } from "../../__tests__/support/withoutComments.js";
 
 // What a connection key can reach is decided by what src/mcp imports (design
@@ -47,7 +48,6 @@ const RAW_DATABASE = [
 /** Every `import(` in a file, and whether its argument is one plain string literal. */
 const DYNAMIC_IMPORT = /\bimport\s*\(/g;
 const LITERAL_ARGUMENT = /^\s*(["'])[^"'`$\n]*\1\s*\)/;
-const OUT_OF_REACH = ["deleteOwnFood", "deleteSavedMeal", "removePortion", "removeEntry", "approveDeletion"];
 const WRITE_SERVICES = /\/services\/writes\//;
 const BARCODE = /\/services\/writes\/barcode\.js$/;
 /** What a write tool may import from the write services: the recorded writes and the record. */
@@ -120,7 +120,14 @@ describe("src/mcp import boundary", () => {
 
   it("has write tools, and they import the recorded writes", () => {
     const writeTools = files.filter((file) => file.startsWith("tools/writes/") && !/\/(run|index)\.ts$/.test(file));
-    expect(writeTools).toEqual(expect.arrayContaining(["tools/writes/entries.ts"]));
+    expect(writeTools).toEqual(
+      expect.arrayContaining([
+        "tools/writes/entries.ts",
+        "tools/writes/foods.ts",
+        "tools/writes/meals.ts",
+        "tools/writes/targets.ts",
+      ]),
+    );
     for (const file of writeTools) {
       expect(importsOf(source(file)).filter((path) => /\/services\/writes\/recorded\//.test(path))).not.toEqual([]);
     }
@@ -167,7 +174,6 @@ describe("src/mcp import boundary", () => {
   });
 
   it.each(files)("%s names nothing out of an assistant's reach", (file) => {
-    const named = OUT_OF_REACH.filter((symbol) => new RegExp(`\\b${symbol}\\b`).test(source(file)));
-    expect(named).toEqual([]);
+    expect(outOfReachIn(source(file))).toEqual([]);
   });
 });

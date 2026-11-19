@@ -52,7 +52,7 @@ The web app reads the list once and filters it on the device (`apps/web/src/comp
 
 ### Services
 
-`apps/backend/src/services/reads/savedMeals.ts` has `listSavedMeals` and `getSavedMeal`. `apps/backend/src/services/writes/savedMeals.ts` has `createSavedMeal`, `updateSavedMeal`, `setSavedMealArchived`, `deleteSavedMeal` and `saveAndLog`, which runs `createSavedMeal` then `addEntry` in one transaction. A create carries an id the app chose, so a repeat answers the meal again, also one that arrives while the first is still being written. Its insert skips a conflict on either of the meal's unique keys, the id and the id with the user. The list sorts with `byName`, the `fi-x-icu` order own foods use. The list answers all of the user's active or archived meals at once, with no search or source filter on the server. Another user's meal, and a deleted one, answers 404 `saved_meal_not_found` on every route. A repeated create answers the first meal and ignores the body. Archiving is one update of the meal's own row and takes no user lock. Every other write takes [the user lock](quick-logging.md#locks-and-races) first.
+`apps/backend/src/services/reads/savedMeals.ts` has `listSavedMeals` and `getSavedMeal`. `apps/backend/src/services/writes/savedMeals.ts` has `createSavedMeal`, `updateSavedMeal`, `setSavedMealArchived`, `deleteSavedMeal` and `saveAndLog`, which runs `createSavedMeal` then `addEntry` in one transaction. A create carries an id the app chose, so a repeat answers the meal again, also one that arrives while the first is still being written. Its insert skips a conflict on either of the meal's unique keys, the id and the id with the user. The list sorts with `byName`, the `fi-x-icu` order own foods use. The list answers all of the user's active or archived meals at once, with no search or source filter on the server. Another user's meal, and a deleted one, answers 404 `saved_meal_not_found` on every route. A repeated create answers the first meal and ignores the body. Archiving is one update of the meal's own row and takes no user lock. Every other write takes [the user lock](quick-logging.md#locks-and-races) first. A connected assistant saves, edits and archives meals through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. It cannot delete one.
 
 ### Writes from the web app
 
@@ -86,7 +86,6 @@ A meal has `id`, `name`, `source`, `figures`, `archived` and `lastCount`. A refu
 
 ### Known gaps
 
-- The assistant's tools for saved meals arrive with the connected AI step. Until then the screen and the API reach these services, and an assistant cannot.
 - A first Save and log that reaches the server only after a second press's `PUT` answered 404, and before that press's own request, is replayed by it: the meal and its entry keep the old figures once.
 
 Requirements: FR-MEAL-01 to FR-MEAL-04 (requirements 3.6)

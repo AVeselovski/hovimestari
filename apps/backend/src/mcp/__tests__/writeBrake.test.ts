@@ -47,17 +47,33 @@ describe("createSlidingWindow", () => {
     expect(window.admit("a", 2)).toBe(true);
   });
 
-  it("forgets a key once its calls have all left the window", () => {
+  it("forgets a key once its calls have all left the window, at the next sweep", () => {
     const window = createSlidingWindow(5, 1_000);
     window.admit("a", 0);
     window.admit("b", 400);
     expect(window.size()).toBe(2);
-    // At 1 000 the call at 0 has left the window and the call at 400 has not.
+    // The sweep at 1 000 drops a, whose call at 0 has left the window, and keeps b.
     window.admit("c", 1_000);
     expect(window.size()).toBe(2);
-    // Neither a nor b calls again: their books go anyway.
+    // b's call left the window at 1 400, and the next sweep is due at 2 000.
     window.admit("c", 1_400);
+    expect(window.size()).toBe(2);
+    window.admit("c", 2_000);
     expect(window.size()).toBe(1);
-    expect(window.admit("a", 1_401)).toBe(true);
+    expect(window.admit("a", 2_001)).toBe(true);
+  });
+
+  it("looks at the other books once a window, not on every call", () => {
+    const window = createSlidingWindow(30, 60_000);
+    window.admit("busy", 10_000); // a sweep, the first
+    for (let user = 0; user < 1_000; user++) window.admit(`user ${user}`, 30_000);
+    window.admit("busy", 70_000); // a sweep: every book still has a call in the window
+    expect(window.size()).toBe(1_001);
+    // From 90 000 every user's book is idle, and no sweep is due before 130 000.
+    window.admit("busy", 100_000);
+    expect(window.size()).toBe(1_001);
+    // The next sweep empties the map of every idle book.
+    window.admit("busy", 130_000);
+    expect(window.size()).toBe(1);
   });
 });

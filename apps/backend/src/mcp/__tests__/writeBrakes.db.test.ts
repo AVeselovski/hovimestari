@@ -17,7 +17,8 @@ quietConsole();
 const NOW = Date.parse("2030-01-15T10:00:00.000Z");
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
-const PER_MINUTE = "Too many changes in a minute. Wait a minute, then carry on. (assistant_writes_per_minute)";
+const PER_MINUTE =
+  "Too many changes in a minute. Wait a minute, then send the same call again with the same requestKey. A change that already landed is not made twice. (assistant_writes_per_minute)";
 const PER_HOUR =
   "This account has had 300 changes by assistants in the last hour. Make the rest in the app, or wait. (assistant_changes_per_hour)";
 const NO_SUCH_ENTRY = "99999999-9999-4999-8999-999999999999";

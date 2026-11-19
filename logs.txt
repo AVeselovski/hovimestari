@@ -566,3 +566,13 @@
 [reviewer STARTED] (2026-11-19T17:24:29Z) delta review of the slice 4a fix batch
 [reviewer DONE] (2026-11-19T17:31:03Z) delta review of slice 4a: approve; the race fix holds under READ COMMITTED and reverting it turns four tests red; five nits (carried to slice 4b)
 [documentation-specialist DONE] (2026-11-19T17:31:03Z) write machinery docs: the import boundary said truly, what the record holds, three facts on limits and replay from the code, one home for the entries-only rule; two docs re-stamped (54b4acb)
+[backend-engineer STARTED] (2026-11-19T17:39:30Z) connected AI slice 4b: the ten other write tools (own foods, portions, favourites, saved meals, targets) and the smoke check
+[backend-engineer DONE] (2026-11-19T21:24:24Z) connected AI slice 4b built at 0ebdd4e: ten write tools for own foods, portions, favourites, saved meals and targets, a smoke check in CI, the four items carried from the last review; a writing key lists 30 tools; backend 1224 tests
+[validator STARTED] (2026-11-19T21:24:24Z) slice 4b against the requirements and the design at 0ebdd4e
+[reviewer STARTED] (2026-11-19T21:24:24Z) slice 4b, security first, at 0ebdd4e
+[validator DONE] (2026-11-19T21:33:41Z) slice 4b: pass; thirteen changes through a tool and through the screen's route read identically afterwards; two minors (a stale comment, the smoke check's local-only guard) and four nits
+[reviewer DONE] (2026-11-19T21:33:41Z) slice 4b: approve after fixes; no deadlock cycle among writers of the user row, nothing leaks through a before-read; three minors (the smoke guard, the stale comment, the out-of-reach check stops at src/mcp) (313k tokens)
+[backend-engineer STARTED] (2026-11-19T21:33:41Z) one fix batch for slice 4b from the validator and the reviewer
+[backend-engineer DONE] (2026-11-19T21:44:06Z) slice 4b fix batch: the smoke check runs only on a local database made for it, the out-of-reach check covers the recorded services, the per-minute refusal reads true for a retry, two race tests for removing targets against a screen save; backend 1250 tests (tip 4cc2a33)
+[documentation-specialist STARTED] (2026-11-19T21:44:06Z) the docs of the remaining write tools against the standard
+[documentation-specialist DONE] (2026-11-19T21:45:37Z) remaining write tools docs: targets an assistant sets are the person's own numbers, one line on why removals stay out of reach, what a retry means after the per-minute limit; two docs re-stamped (19e60b2)

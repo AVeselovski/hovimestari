@@ -69,6 +69,18 @@ jobs:
         run: |
           pnpm test
 
+      # The MCP smoke check on a database of its own: migrated, then every read
+      # tool compared with the REST route the screens read, and one write leg.
+      # It signs up its own user and makes every secret it needs at run time,
+      # and reaches nothing outside this machine.
+      - name: MCP smoke check
+        env:
+          DATABASE_URL: postgresql://postgres@localhost:5432/hovimestari_smoke
+        run: |
+          psql postgresql://postgres@localhost:5432/postgres -c "CREATE DATABASE hovimestari_smoke TEMPLATE template0 ENCODING 'UTF8' LOCALE 'C.UTF-8'"
+          pnpm --filter @hovimestari/backend db:migrate
+          pnpm --filter @hovimestari/backend mcp:smoke
+
       - name: Check docs
         run: |
           pnpm docs:check
