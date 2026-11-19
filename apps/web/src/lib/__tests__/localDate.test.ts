@@ -5,6 +5,7 @@ import {
   dayLabel,
   formatDay,
   formatDayShort,
+  formatMomentDay,
   formatWeekRange,
   formatWeekRowDate,
   isIsoDate,
@@ -103,5 +104,21 @@ describe("today and its neighbours", () => {
       spoken: "Monday 16 November",
     });
     expect(formatWeekRowDate("2026-11-16", "en-US").spoken).toBe("Monday, November 16");
+  });
+
+  it("reads a moment as the day it falls on in the zone given, in the language given", () => {
+    // 22.30 UTC on 18 November is already 19 November in Helsinki, and still 18 November in New York.
+    expect(formatMomentDay("2026-11-18T22:30:00.000Z", "Europe/Helsinki", "en-GB")).toBe("19 November 2026");
+    expect(formatMomentDay("2026-11-18T22:30:00.000Z", "America/New_York", "en-GB")).toBe("18 November 2026");
+    expect(formatMomentDay("2026-12-19T08:00:00.000Z", "Europe/Helsinki", "en-US")).toBe("December 19, 2026");
+  });
+
+  it("falls back to the device's own zone for a zone the runtime does not know, rather than throw", () => {
+    const at = "2026-11-18T22:30:00.000Z";
+    const device = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(
+      new Date(at),
+    );
+    expect(formatMomentDay(at, "Not/AZone", "en-GB")).toBe(device);
+    expect(formatMomentDay(at, undefined, "en-GB")).toBe(device);
   });
 });

@@ -2,7 +2,7 @@
 
 Connected AI is how a person gives their own AI assistant access to their Hovimestari data: a named connection key they make, hand to the assistant and revoke whenever they like. The app runs no model of its own and keeps no key to any AI service.
 
-A signed-in person makes, lists and revokes keys through the API. An assistant connects with a key over the Model Context Protocol. It reads what the person's screens show: their targets, their days with both readings, their foods, favourites and recent items, and their saved meals. It can look up a barcode, and it reads the app rules, the text that tells it how to read every figure.
+A signed-in person makes, lists and revokes keys in [Settings](../app/settings.md#connected-ai). An assistant connects with a key over the Model Context Protocol. It reads what the person's screens show: their targets, their days with both readings, their foods, favourites and recent items, and their saved meals. It can look up a barcode, and it reads the app rules, the text that tells it how to read every figure.
 
 ## In detail
 
@@ -17,6 +17,14 @@ A person holds at most 10 working keys at a time. A revoked key and an expired k
 A key can read, or read and make changes. Its access and its lifetime are set when it is made and never change. A key that reads lasts 7, 30 or 90 days, or a year. A key that can make changes lasts 7, 30 or 90 days. A day is 24 hours. A new key lasts 30 days and reads only, unless the person picks otherwise.
 
 Listing the keys gives each one's name, its access, when it expires and when it was last used. Last use is recorded to the nearest five minutes. A key past its expiry stays listed as expired until the person removes it.
+
+### Showing a new key
+
+A new key is shown once, on the device that made it, together with the steps that set an assistant up with it. It stays on screen until the person says they have copied it. Closing gestures leave it where it is, and leaving Settings and coming back shows it again. It lives only in the app's memory on that device: never in the browser's storage, the address, the app's cache of server answers or a log. It is gone once the person says they copied it, when the person signs out or their session ends, when another person signs in on the device, and when the app reloads. A revoke on another device does not reach the screen showing it: the key stops working, and it stays shown until the person says they copied it. A key lost before it was used is replaced by revoking its connection and making a new one.
+
+Making the key does not change the list of connections behind it. The new connection joins the list once the person says they copied it. A read of the list while the key is shown, such as the one when the person comes back to the app, can already hold the new connection.
+
+The setup steps cover Claude Code and Claude Desktop. Claude Code adds the server with one `claude mcp add` command that carries the key as a bearer header. Claude Desktop runs the `mcp-remote` bridge through `npx`, pinned to one version, because the bridge sees the key.
 
 ### Revoking a key
 
@@ -70,7 +78,7 @@ The limits are kept in the memory of the one backend machine, so a restart start
 
 ### Switched off on the server
 
-Whoever runs the server can switch connected AI off, or switch off only keys that make changes. Keys that make changes are off unless the server switches them on. While connected AI is off no key can be made and the endpoint is not there. While changes are off a key that reads can still be made, and a key that makes changes cannot. Listing the keys also says which of the two the server offers.
+Whoever runs the server can switch connected AI off, or switch off only keys that make changes. Keys that make changes are off unless the server switches them on. While connected AI is off no key can be made, and the endpoint is not there, so no key works. While changes are off a key that reads can still be made, and a key that makes changes cannot. Listing the keys also says which of the two the server offers.
 
 ## How it works
 
@@ -200,11 +208,10 @@ The body of a create is `{ name, access, expiresInDays }`. `access` is `read` or
 ### Known gaps
 
 - An assistant cannot make changes. With changes switched on, a key that can make changes gets the rules for making changes and lists no tool that makes one.
-- No screen lists or makes keys yet. The API is in place for the Settings section. The refusal of an expired key, the dead-key limit and the app rules already point the person to Settings.
 
-Requirements: FR-AI-01 to FR-AI-06, FR-AI-13, FR-AI-15, FR-AI-16, NFR-SEC-02, NFR-SEC-04 (requirements 3.10 and 4)
+Requirements: FR-AI-01 to FR-AI-06, FR-AI-13 to FR-AI-16, NFR-SEC-02, NFR-SEC-04 (requirements 3.10 and 4)
 
 ## Where it appears
 
-- [Settings](../app/settings.md): changing the password there revokes every key.
+- [Settings](../app/settings.md#connected-ai): the Connected AI panel lists, makes and revokes keys and shows a new key once. Changing the password there revokes every key.
 - [Sign-in and account pages](../app/auth.md): choosing a new password from a reset link revokes every key.

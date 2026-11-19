@@ -60,6 +60,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | targets sheet, change targets, remove a change          | `app/settings.md#targets`                                               | `### Targets`                                    |
 | food names setting, Finnish or English choice           | `app/settings.md#food-names`                                            | `### Food names`                                 |
 | food data credit in Settings, Fineli attribution        | `app/settings.md#food-data`                                             | `### Food data`                                  |
+| Connected AI panel in Settings, connect an assistant    | `app/settings.md#connected-ai`                                          | `### Connected AI`                               |
 | Day tab, Log food launcher, date bar                    | `app/day.md`                                                            | Doc                                              |
 | the Day tab's header that stays in view, its hairline   | `app/day.md#the-header`                                                 | `### The header`                                 |
 | the remembered day, the Day link, back to today         | `app/day.md#coming-back-to-the-tab`                                     | `### Coming back to the tab`                     |
@@ -155,6 +156,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | connected AI, connected assistant                             | `features/connected-ai.md`                             | Doc                               |
 | connection, connection key, key limit                         | `features/connected-ai.md#connections-and-keys`        | `### Connections and keys`        |
 | access, read only, read and write, key lifetime               | `features/connected-ai.md#access-and-lifetime`         | `### Access and lifetime`         |
+| showing a new key, key reveal, I have copied it               | `features/connected-ai.md#showing-a-new-key`           | `### Showing a new key`           |
 | revoking a key, revoked on a password change                  | `features/connected-ai.md#revoking-a-key`              | `### Revoking a key`              |
 | `MCP_ENABLED`, `MCP_WRITES_ENABLED`, the switches             | `features/connected-ai.md#the-two-switches`            | `### The two switches`            |
 | key format, key hash, key lookup and its states               | `features/connected-ai.md#keys`                        | `### Keys`                        |
@@ -163,6 +165,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | app rules                                                     | `features/connected-ai.md#the-app-rules`               | `### The app rules`               |
 | a refused key, revoked or expired, the refusal texts          | `features/connected-ai.md#when-a-key-stops-working`    | `### When a key stops working`    |
 | the brakes, the request limit, the refused-key limits         | `features/connected-ai.md#limits`                      | `### Limits`                      |
+| switched off on the server, connecting off                    | `features/connected-ai.md#switched-off-on-the-server`  | `### Switched off on the server`  |
 | MCP endpoint, `/mcp`, the router's steps, protocol eras       | `features/connected-ai.md#the-endpoint`                | `### The endpoint`                |
 | key to service context, `AuthInfo.extra`, scopes              | `features/connected-ai.md#from-key-to-service-context` | `### From key to service context` |
 | tools, the result envelope, `defineTool`, the import boundary | `features/connected-ai.md#tools`                       | `### Tools`                       |

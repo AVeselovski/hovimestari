@@ -286,6 +286,21 @@ body {
   }
 }
 
+/* One sheet handing over to another (a form's Create key opening the key's
+   reveal): the backdrop coming in shows at full strength at once, and the one
+   going out goes at once, so the dim behind holds steady instead of thinning
+   while the two would cross-fade. */
+body:has([data-sheet-backdrop]:not([data-sheet-stacked])[data-ending-style])
+  [data-sheet-backdrop]:not([data-sheet-stacked])[data-starting-style],
+body:has([data-sheet-backdrop]:not([data-sheet-stacked])[data-starting-style])
+  [data-sheet-backdrop]:not([data-sheet-stacked])[data-ending-style] {
+  transition-duration: 0ms;
+}
+body:has([data-sheet-backdrop]:not([data-sheet-stacked])[data-ending-style])
+  [data-sheet-backdrop]:not([data-sheet-stacked])[data-starting-style] {
+  opacity: var(--sheet-backdrop-opacity, 1);
+}
+
 @utility sheet-popup-motion {
   transform: translateY(var(--drawer-swipe-movement-y, 0px));
   transition-property: transform, opacity;

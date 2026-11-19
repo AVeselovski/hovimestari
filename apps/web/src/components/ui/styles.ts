@@ -74,6 +74,38 @@ export const linkClass = `rounded-sm font-medium text-ink underline decoration-f
 /** A field: 48px tall, 16px text so iOS Safari never zooms on focus. */
 export const inputClass = `block h-12 w-full rounded-control border border-field-rule bg-surface-raised px-3.5 text-base text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
 
+/**
+ * The select itself: a field's box (48px, 16px text, so iOS Safari never
+ * zooms on focus), with the browser's own arrow drawn away and room on the
+ * right for the app's chevron. `h-12` rather than a minimum height, because
+ * WebKit ignores `min-height` on a select.
+ */
+export const selectFieldClass = `${inputClass} appearance-none pr-11`;
+
+/** Holds the select and its chevron. */
+export const selectFieldWrap = "relative flex w-full";
+
+/** The chevron over the select's right edge. Presses pass through it to the select. */
+export const selectFieldChevron =
+  "pointer-events-none absolute top-1/2 right-3.5 size-5 -translate-y-1/2 text-ink-muted";
+
+/**
+ * Text a person copies by hand, such as a connection key or a setup command:
+ * the monospaced face on the raised surface, inside a hairline box. Long text
+ * wraps at its spaces, and inside a word only where a word is longer than the
+ * line, so it never widens what holds it. Indentation is kept.
+ */
+export const codeBox =
+  "rounded-control border border-rule bg-surface-raised px-3.5 py-3 font-mono text-sm leading-relaxed text-ink wrap-anywhere whitespace-pre-wrap";
+
+/**
+ * A neutral tag beside a name, such as a connection's "Read only" or
+ * "Expired": a small hairline pill, never a hue, because it states a fact and
+ * is not a choice or a status.
+ */
+export const tagClass =
+  "inline-flex items-center rounded-pill border border-rule px-2.5 py-0.5 text-sm font-medium whitespace-nowrap text-ink-muted";
+
 export const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
 /** A label on the left of its field, on the same row (`DecimalField`'s `layout="beside"`). */
