@@ -103,6 +103,8 @@ export function CreateConnectionSheet({
   const agreed = agreedTo === access;
   const expiryOptions: readonly ExpiryDays[] =
     access === "read_write" ? CONNECTION_WRITE_EXPIRY_DAYS : CONNECTION_EXPIRY_DAYS;
+  // `chooseAccess` already moves the lifetime when the access changes. This fallback is for the access changing
+  // under an open sheet, when writing is switched off or on at the server.
   const expiry: ExpiryDays = expiryOptions.includes(chosenExpiry) ? chosenExpiry : LONGEST_WRITE_EXPIRY;
   const canCreate = name.trim() !== "" && agreed;
 

@@ -50,6 +50,9 @@ interface CameraCapabilities extends MediaTrackCapabilities {
   focusMode?: string[];
 }
 
+// The names that mean this page gets no camera, each shown as "no camera": NotFoundError (there is none),
+// OverconstrainedError (none fits; every constraint here is `ideal`, so it should not fire), and NotSupportedError,
+// TypeError and SecurityError (the browser will not give one to this page).
 const NO_CAMERA_FOR_PAGE = ["NotFoundError", "OverconstrainedError", "NotSupportedError", "TypeError", "SecurityError"];
 
 /** Which failure a rejected `getUserMedia` is. */
@@ -288,7 +291,8 @@ export function useCameraStream({ active, onDecoded }: CameraStreamOptions): Cam
   }, [stop]);
 
   useEffect(() => {
-    // Stopped in the event itself, so the camera light goes off as the page goes.
+    // Stopped in the event itself, so the camera light goes off as the page goes. `status` is left as it was
+    // while the page is hidden: nothing paints then, and `start()` sets it to "starting" on the way back.
     const onVisibility = (): void => {
       const isHidden = document.visibilityState === "hidden";
       if (isHidden) stop();
