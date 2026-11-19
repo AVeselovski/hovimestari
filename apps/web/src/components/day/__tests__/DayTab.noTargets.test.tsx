@@ -19,7 +19,7 @@ import { TODAY, foodEntry } from "./support";
 // answers.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
@@ -89,7 +89,7 @@ describe("DayTab, a day without targets", () => {
     const calories = document.querySelector('[data-summary-macro="energy"]')!;
     expect([...calories.querySelectorAll("[data-reading]")].map((r) => r.textContent)).toEqual([
       "Eaten47 kcal",
-      "With plan195 kcal",
+      "Planned195 kcal",
     ]);
   });
 

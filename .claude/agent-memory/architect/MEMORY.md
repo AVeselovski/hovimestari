@@ -12,3 +12,5 @@
 - [Open Food Facts API facts](reference_open_food_facts_api.md): 15 reads/min/IP, 404 on not found, per-100ml trap, zxing-wasm sizes
 - [Recipes tab and barcode order](project_recipes_tab_and_barcode_order.md): owner order 2026-11-18; page reuses log sheet sheets; local HTTPS
 - [Shared rows leak through answers](project_shared_rows_leak_through_answers.md): per-user flags on shared rows, timing leaks named honestly, xmax=0
+- [Week and copy sheets](project_week_and_copy.md): PR 3d week is a sheet, copy a checklist sheet; toast-under-sheet and dirty-dismissal decided it
+- [Week and copy sheets](project_week_and_copy.md): PR 3d week sheet via text Week button by Log food; measure with real fonts; sheet-owned ids

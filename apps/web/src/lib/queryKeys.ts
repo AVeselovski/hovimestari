@@ -37,8 +37,10 @@ export const queryKeys = {
    * changes the key instead of leaving yesterday under a key named today.
    */
   day: (date: string) => ["days", "day", date] as const,
-  /** Every cached range of day summaries (the week view reads under it). */
+  /** Every cached range of day summaries (the week sheet reads under it). */
   dayRanges: () => ["days", "range"] as const,
+  /** The day summaries from `from` to `to`, both included: a week in the week sheet. */
+  dayRange: (from: string, to: string) => ["days", "range", from, to] as const,
   /** Every food detail, for a write that changes what any of them shows, such as a last amount. */
   foodDetails: () => ["foods", "detail"] as const,
   /** Every log read: recent items live under it. */

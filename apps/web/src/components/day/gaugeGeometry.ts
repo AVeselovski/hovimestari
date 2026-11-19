@@ -9,7 +9,8 @@
 // - The band runs from the lower bound to the upper. A band narrower than
 //   2 % of the track (equal bounds included) is drawn 2 % wide from its lower
 //   bound, so the lower bound, the protein floor, is always exact and only
-//   the upper edge is widened.
+//   the upper edge is widened. A shorter track passes a larger minimum
+//   (`minBandPercent`), so its two ticks never meet.
 // - Eaten fills from 0. The plan segment runs from eaten to eaten plus
 //   planned, at least `PLAN_MIN_PX` wide, laid against the track's end when
 //   it would cross it, and starting at 0 with the rounded start when nothing
@@ -23,6 +24,8 @@
 
 /** The narrowest band, in per cent of the track. 2 % of a 288 px track is 5.8 px: two ticks with their edges. */
 export const MIN_BAND_PERCENT = 2;
+/** The narrowest band of a week row's mini gauge. 6 % of its track on a phone keeps its two ticks apart. */
+export const MINI_MIN_BAND_PERCENT = 6;
 /** The narrowest plan segment, so its tint shows between its two borders. */
 export const PLAN_MIN_PX = 4;
 
@@ -60,12 +63,26 @@ export function percentOf(value: number, scale: number): number {
   return (Math.min(Math.max(value, 0), scale) / scale) * 100;
 }
 
-export function gaugeGeometry(range: GaugeRange, eaten: number, withPlan: number): GaugeGeometry {
+export interface GaugeGeometryOptions {
+  /**
+   * The narrowest band, in per cent of the track. `MIN_BAND_PERCENT` suits the
+   * Day's track. A shorter track needs a larger share to keep its two ticks
+   * apart, such as `MINI_MIN_BAND_PERCENT` on a week row's track.
+   */
+  minBandPercent?: number;
+}
+
+export function gaugeGeometry(
+  range: GaugeRange,
+  eaten: number,
+  withPlan: number,
+  { minBandPercent = MIN_BAND_PERCENT }: GaugeGeometryOptions = {},
+): GaugeGeometry {
   const scale = scaleOf(range);
   const p = (v: number) => percentOf(v, scale);
 
   const start = p(range.lower);
-  const end = Math.min(Math.max(p(range.upper), start + MIN_BAND_PERCENT), 100);
+  const end = Math.min(Math.max(p(range.upper), start + minBandPercent), 100);
 
   const eatenEnd = p(eaten);
   const planEnd = p(withPlan);

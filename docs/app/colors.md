@@ -45,14 +45,15 @@ They colour marks such as dots and gauge fills. The figures themselves stay in i
 
 ### The gauge
 
-The Day tab's gauge for calories and protein ([the gauge](day.md#the-gauge)). Its track and band are neutral, and only its fills carry a hue.
+The Day tab's gauge for calories and protein ([the gauge](day.md#the-gauge)), and its small size in the week sheet. Its track and band are neutral, and only its fills carry a hue. A track keeps the same step from what it sits on: the page for the Day, a sheet's surface for the week. Each plan tint is lighter than the band in both themes, so a planned stretch over the band shows by its fill and not by its border alone.
 
-| Token                  | Light     | Dark      | For                                                                 |
-| ---------------------- | --------- | --------- | ------------------------------------------------------------------- |
-| `--color-gauge-track`  | `#efe6d2` | `#1a251e` | The track, the panel colour                                         |
-| `--color-gauge-range`  | `#bfb59d` | `#41463a` | The target band, from the muted ink, never the green ink            |
-| `--color-energy-plan`  | `#e6d3b4` | `#504425` | The planned part of the calories gauge, inside a border of `energy` |
-| `--color-protein-plan` | `#bac6c9` | `#334750` | The planned part of the protein gauge, inside a border of `protein` |
+| Token                            | Light     | Dark      | For                                                                                        |
+| -------------------------------- | --------- | --------- | ------------------------------------------------------------------------------------------ |
+| `--color-gauge-track`            | `#efe6d2` | `#1a251e` | The track on the page, the panel colour                                                    |
+| `--color-gauge-track-on-surface` | `#f6efe1` | `#121a15` | The track on a sheet's surface, the page colour: the week's gauges and their loading frame |
+| `--color-gauge-range`            | `#bfb59d` | `#41463a` | The target band, from the muted ink, never the green ink                                   |
+| `--color-energy-plan`            | `#e6d3b4` | `#6c5933` | The planned part of the calories gauge, inside a border of `energy`                        |
+| `--color-protein-plan`           | `#ccd6d9` | `#485a68` | The planned part of the protein gauge, inside a border of `protein`                        |
 
 What the gauge may colour: the eaten fill in the macro's hue, the planned part's tint and its border in the macro's hue, and the end-cap past the end of the track in the style of the reading that passes. What it may not: the track, the band, the two ticks, the legend and every figure and line of text. Nothing in it changes colour past a bound, and it never uses the accent. The ticks are ink with a 1 pixel edge of the page colour on each side, so a tick reads against the fills and the band alike. An eaten end-cap meets an eaten fill of its own hue, so it carries the same 1 pixel edge of the page colour on its inner side.
 
@@ -66,7 +67,7 @@ Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's ed
 - Text on an accent fill: 6.2 to 1 in light and 6.1 to 1 in dark.
 - The macro hues as marks: in light from 3.6 to 1 (energy on a panel) up to 5.9 to 1, in dark from 5.3 to 1 (carbohydrates on a raised surface) up to 8.3 to 1, against the page, a panel and a raised surface.
 - A field's border, a secondary button's and a segmented control's tray: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
-- The gauge's band against its track: 1.6 to 1 in both themes, enough to find the range on a decoration. The planned part's border, the full hue, against the track: 3.6 to 1 (calories) and 4.9 to 1 (protein) in light, 7.3 to 1 and 6.9 to 1 in dark. A tick against every surface it crosses reaches 3 to 1 through its ink or its page-coloured edge, whichever stands out: at least 3.2 to 1 in light and 7.6 to 1 in dark.
+- A gauge's track against what it sits on: 1.08 to 1 in light and 1.12 to 1 in dark, on the page and on a sheet alike. The band against the track: 1.6 to 1 on the page and 1.8 to 1 on a sheet in both themes, enough to find the range on a decoration. A plan tint against the band: 1.39 to 1 (calories) and 1.38 to 1 (protein) in light, 1.44 to 1 and 1.36 to 1 in dark. The eaten fill against its plan tint: 3.0 to 1 and 4.1 to 1 in light, 3.1 to 1 and 3.1 to 1 in dark. The planned part's border, the full hue, against the track: 3.6 to 1 (calories) and 4.9 to 1 (protein) in light, 7.3 to 1 and 6.9 to 1 in dark. A tick against every surface it crosses reaches 3 to 1 through its ink or its page-coloured edge, whichever stands out: at least 3.2 to 1 in light and 7.6 to 1 in dark.
 - The toast: the page colour on ink, 12.5 to 1 in light and 14.0 to 1 in dark.
 - A text button's underline, the mark that makes the words a button: `--color-field-rule` for an ordinary one, and the accent at 70 % for one that leads to something destructive. The accent's underline reaches 3.3 to 1 on the page and 3.2 to 1 on a panel in light, 3.6 to 1 and 3.3 to 1 in dark. On a raised surface, the field rule reaches 3.9 to 1 in light and 3.2 to 1 in dark, and the accent's underline 3.4 to 1 and 3.1 to 1. Under the pointer or a press, either fills in, to ink or the full accent.
 

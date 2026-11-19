@@ -6,7 +6,7 @@ The first tab, at `/`. It shows one day: what was eaten, what is planned, and wh
 
 ### The header
 
-The date bar and **Log food** stay at the top of the tab while the day scrolls under them, at every width. On a wide screen the summary stays beside the entries too, under the date bar, when the window is tall enough to show all of it. The header has the page's own background. While rows are under it, a thin line in the rule colour marks its bottom edge. At rest at the top there is no line. The header never moves and never changes height: the line, a new day, the launcher's wording, a toast, loading, a failure and an empty day all leave it where it is. Rows under the header cannot be pressed through it, and a row the keyboard moves to stops below it.
+The date bar, **Log food** and **Week** stay at the top of the tab while the day scrolls under them, at every width. On a wide screen the summary stays beside the entries too, under the date bar, when the window is tall enough to show all of it. The header has the page's own background. While rows are under it, a thin line in the rule colour marks its bottom edge. At rest at the top there is no line. The header never moves and never changes height: the line, a new day, the launcher's wording, a toast, loading, a failure, an empty day and the week sheet opening and closing all leave it where it is. Rows under the header cannot be pressed through it, and a row the keyboard moves to stops below it.
 
 ### The date bar
 
@@ -22,9 +22,11 @@ From the keyboard the date is one stop, a button named for the day shown, such a
 
 Under the date bar, a full-width button drawn like a search field, with the search icon and "Log food", or "Add to plan" on a future day. It opens [the log sheet](log-sheet.md) on the day shown, which logs to that day. While the app checks the date with the server it waits, and so does a second tap of a double tap, which opens the sheet once. A food eaten before is logged again in two presses: **Log food**, then its **+**.
 
+**Week** sits after it on the same row, a plain outlined button with the word "Week", 48 pixels tall like the launcher and 12 pixels from it. Its name for a screen reader and voice control is its word, "Week". It reads the same on every day, and waits while the app checks the date, as the launcher does. It opens [the week sheet](#the-week).
+
 ### The summary
 
-The day's figures in two columns, **Eaten** on the left and **With plan** on the right, [the day's two totals](../features/days.md#the-two-totals). No heads name the columns on screen. A screen reader hears each figure's reading, "Eaten" or "With plan", before it. With nothing planned the two columns are the same, and both stay. A future day shows zeros under Eaten and the plan beside them.
+The day's figures in two columns, **Eaten** on the left and **Planned** on the right, [the day's two totals](../features/days.md#the-two-totals). No heads name the columns on screen. A screen reader hears each figure's reading, "Eaten" or "Planned", before it. With nothing planned the two columns are the same, and both stay. A future day shows zeros under Eaten and the plan beside them.
 
 Calories come first, then protein. Each has its label, the person's range for that day ("1900 to 2200 kcal", its figures and unit in the monospaced face and "to" in the body face, as in Settings), a gauge and, in each column, the figure in large type and its distance from the range:
 
@@ -34,7 +36,7 @@ Calories come first, then protein. Each has its label, the person's range for th
 
 The distance is a position. Nothing on the tab calls a day good or bad, and nothing turns red or green past a bound. How a position and a distance are computed is in [where a day stands](../features/days.md#where-a-day-stands).
 
-Carbohydrates and fat follow as a two-row table in the same columns. Each row has its coloured dot and its label, "Carbs" or "Fat", in a lead of fixed width at the start, then the Eaten figure straight after it. The With plan figure starts at its column's start, under the large figure above it. They have no range and no gauge.
+Carbohydrates and fat follow as a two-row table in the same columns. Each row has its coloured dot and its label, "Carbs" or "Fat", in a lead of fixed width at the start, then the Eaten figure straight after it. The Planned figure starts at its column's start, under the large figure above it. They have no range and no gauge.
 
 A day without targets, as [which targets a day uses](../features/targets.md#which-targets-a-day-uses) says, shows the same two readings as figures only. Calories and protein keep their labels and their figures, with no range, no gauge and no distance in either column. Under protein, where the gauges would be, one row:
 
@@ -48,6 +50,18 @@ Two lines close the summary. One says "These totals include an estimate." or, wh
 ### The gauge
 
 One track per macro, the person's range drawn on it as a grey band between two dark ticks. The track runs from zero to a quarter past the upper bound, so the band and the ticks stay where they are all day. The eaten part fills from the left in the macro's colour. The planned part continues it as a lighter tint inside a border of the same colour. A total past the end of the track squares off the track's end with a short cap, solid for eaten and tinted for planned. A very narrow range is drawn a little wider from its lower bound, so the protein floor's tick is always exact. The fills ease to their new width when a figure changes. The colours are in [the gauge's colours](colors.md#the-gauge).
+
+### The week
+
+The week sheet shows the Monday to Sunday week holding the day shown, [the week](../features/days.md#the-week). Its title names the week in the device's own format and order, such as "16 to 22 Nov", "30 Nov to 6 Dec" or "28 Dec 2026 to 3 Jan 2027", with the years only when the week is not in this year. **Previous** and **Next** in its footer step a week back or on. They leave the day behind the sheet as it is.
+
+The table has a row per day. Each row starts with the day: its weekday short, or "Today", over the day of the month. Then, under the heads **Calories** and **Protein (g)**, each with **Eaten** and **Planned**, the day's four figures. Under each macro's two figures sits a small gauge, drawn as [the gauge](#the-gauge) is, on days with targets. A day with nothing on it says "No entries". A figure of a reading with an estimate starts with "≈". Figures stay in ink, and nothing turns a colour past a bound. A screen reader hears each figure's position, such as "in the range" or "below the floor", and on a past day how many planned entries were never marked eaten.
+
+The row of the day shown has a thin bar in the accent at its start, and a screen reader hears it as the current row. A press anywhere on a row shows that day and closes the sheet. A mouse or touch press that ends a drag selecting text on that row picks nothing. A keyboard press always picks, and a selection elsewhere never blocks one.
+
+A day before the first targets change has no gauge. In a week that holds such a day, one line under the table says from when the targets apply, as the summary does. For a person with any targets change, every other week keeps that line's room, empty. For a person with no targets at all, the week shows figures only, with no gauge and no line.
+
+A week that fails to load says "This week did not load." with **Try again**, and offline "This week needs a connection.", over three whole rows, Wednesday to Friday.
 
 ### The entries
 
@@ -98,7 +112,7 @@ The tab writes its `?date=` to `lib/shownDay.ts` whenever it changes, and nothin
 
 ### Layout
 
-On a phone, one column, top to bottom: `DayHeader` with `DateBar` and `DayLauncher`, then `DaySummary` and `EntryList`. The shell shows no title on this tab, so the date bar sits 8 pixels under the status bar. The date bar is one 44 pixel row, 16 pixels over the launcher, which is 48 pixels tall. The header ends 12 pixels under the launcher, where its line shows while the day scrolls under it. At rest the summary starts 24 pixels under the launcher, and the entries follow it 12 pixels apart. The header is 128 pixels tall on a phone. From `md` it keeps 32 pixels above the date bar, so it is 152 pixels tall at 768 by 1024.
+On a phone, one column, top to bottom: `DayHeader` with `DateBar` and `DayLauncher`, then `DaySummary` and `EntryList`. The shell shows no title on this tab, so the date bar sits 8 pixels under the status bar. The date bar is one 44 pixel row, 16 pixels over the launcher, which is 48 pixels tall. The header ends 12 pixels under the launcher, where its line shows while the day scrolls under it. At rest the summary starts 24 pixels under the launcher, and the entries follow it 12 pixels apart. The launcher and **Week** share the launcher's 48 pixel row, so at 320 pixels wide the launcher is 190 pixels and Week 86. The header is 128 pixels tall on a phone. From `md` it keeps 32 pixels above the date bar, so it is 152 pixels tall at 768 by 1024.
 
 `DayHeader` is `position: sticky` at the top of `<main>`, the shell's one scroll container, so the phone's overscroll, the toast's room and the sheets' scroll lock behave as on every tab. The shell's header above it keeps the status bar's room. The page starts flush (`PageContainer untitled`), and the header holds the room above itself and the clearance under the launcher, so it is in the same place at rest and while it stays. Its sizes are the `--day-header-*` tokens in `globals.css`. Its bottom edge is always one pixel, in the page colour at rest and the rule colour once `<main>` is scrolled (`useScrolledUnder`), and that pixel counts in the clearance. It sits at `zPageHeader`, under the shell. The content under it starts 12 pixels lower at rest (`--day-header-rest`), which scrolls away under the header. It carries `under-day-header`, which gives every element a `scroll-margin-top` of `--day-content-top`, the header's height and those 12 pixels, so a focused row stops 24 pixels under the launcher, where the content starts at rest, and its focus ring clears the header. At the bottom a focused row stops 8 pixels short of the tab bar, or of the screen's edge from `md`, so its ring shows whole. The offline line pushes `<main>` down on every tab, and the header moves with `<main>` by the line's 37 pixels, unchanged inside. The page keeps the room of the tallest toast at its end (`PageContainer clearToast`), so a toast never covers the last row's mark.
 
@@ -116,15 +130,17 @@ The entry sheet is as tall as its form, and [holds still](shell.md#the-sheet-pri
 
 In the footer, **Remove entry** sits centred between the footer's line and **Cancel** and **Save**, with its 44 pixel target kept ([the sheet primitives](shell.md#the-sheet-primitives)).
 
-Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as a share of the track's width. `Gauge.tsx` draws it.
+`WeekSheet` and `WeekTable` in `apps/web/src/components/day/` are the week sheet, a `BottomSheet` mounted by `DayTab`. Each day is one `<tbody>` of two rows, the figures over the gauges, and a press anywhere on it picks the day. The week sheet holds still. Every row is 44 pixels tall on a phone and 52 from `md`, loading, loaded, failed or offline, with or without entries, targets or an estimate. The day column is 48 pixels wide on a phone and 80 from `md`, wider than "Today", so no week moves a column. Each figure column keeps the room of its widest figure ("≈8888" and "≈888.8"), and the four share the spare width, so the gauges take it and figures arriving move no column. At 320 the table fits the sheet's 280 pixels with those figures in it. While a week loads, the rows show their dates and empty tracks, and no track on a day the cached targets say has none. The line on targets sits under the table and keeps its room in every week of a person with any targets change, so the height the sheet holds always includes it and the line is never under the footer. The table's head has a stated height, 47 pixels on a phone and 55 from `md`, and the failure and offline notice sits that far down plus two rows, so it covers rows three to five exactly. The title is `text-xl` on a phone, one line for the longest week in British and American English at 320. From `md` the dialog is `md:max-w-lg`.
+
+Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as a share of the track's width. `Gauge.tsx` draws it. The week's gauges are its `mini` size: a 6 pixel track in the on-surface track colour, ticks 10 pixels tall, and a narrowest band of 6 % of the track, so the two ticks stay apart on a short track. `GaugeFrame`, the empty track of the loading frame, reads the same sizes, so a loading row and a loaded row are the same height.
 
 ### Data and refresh
 
-`dayQuery(date)` reads `GET /days/:date`, one cache entry per date, fresh for 30 seconds and read again when the page is shown or the connection returns. The tab reads the days before and after ahead of time. Once its day is on screen it also reads the recent items, the favourites and your foods, so the log sheet opens with them. `useEntryActions` in `apps/web/src/hooks/` holds every write and its undo. [Writes from the web app](../features/quick-logging.md#writes-from-the-web-app) says how each write reaches the cache. While `useToday()` reports `holding`, the marks and the sheet's Save and Remove entry send nothing. The entry sheet's figures are `entryFigures` on the entry's stored basis, the function the server runs, so the figures shown are the ones Save stores.
+`dayQuery(date)` reads `GET /days/:date`, one cache entry per date, fresh for 30 seconds and read again when the page is shown or the connection returns. The tab reads the days before and after ahead of time, and the shown day's week once its day is on screen. The week sheet reads `GET /days?from=&to=` through `dayRangeQuery`, with the same freshness, and reads the weeks before and after ahead. An entry write puts each day it answers into every cached week at once (`putDaysInRanges` in `lib/invalidation.ts`), so a week never shows a day's old figures while its read is out. Once the tab's day is on screen, the tab also reads the recent items, the favourites and your foods, so the log sheet opens with them. `useEntryActions` in `apps/web/src/hooks/` holds every write and its undo. [Writes from the web app](../features/quick-logging.md#writes-from-the-web-app) says how each write reaches the cache. While `useToday()` reports `holding`, the marks and the sheet's Save and Remove entry send nothing. The entry sheet's figures are `entryFigures` on the entry's stored basis, the function the server runs, so the figures shown are the ones Save stores.
 
 ### Focus
 
-A chevron keeps focus when the day changes, and so does the date button. Arriving from the first-run page, back from the page Set targets opened or past the first run of a new account, focus is on the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Log food. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
+A chevron keeps focus when the day changes, and so does the date button. Arriving from the first-run page, back from the page Set targets opened or past the first run of a new account, focus is on the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The week sheet opens with focus on the shown day's row, and Tab goes through the rows, then **Previous** and **Next**. A step keeps focus on the button pressed. A row press, Escape, the backdrop and a swipe return focus to **Week**. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Log food. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
 
 ### Known gaps
 
@@ -134,7 +150,7 @@ A chevron keeps focus when the day changes, and so does the date button. Arrivin
 
 ## Features on this page
 
-- [Days](../features/days.md): the day, its two readings and where each stands.
+- [Days](../features/days.md): the day, its two readings and where each stands, and the week.
 - [Quick logging](../features/quick-logging.md): adding entries through the log sheet, marking, editing, moving and removing them, and their undo.
 - [Targets](../features/targets.md): the ranges the summary measures against, today, and the first run that Set targets opens.
 - [Foods](../features/foods.md): the foods the log sheet finds and logs.

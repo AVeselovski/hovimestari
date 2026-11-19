@@ -27,9 +27,9 @@ function dayReadOnItsWay(client: QueryClient, date: string, later: Day) {
   return { first, fn, unsubscribe };
 }
 
-/** A read under `key` with an observer, counting its fetches. */
+/** A read under `key` with an observer, counting its fetches. A range answers a range's shape, as the app's do. */
 function observed(client: QueryClient, key: QueryKey) {
-  const fn = jest.fn().mockResolvedValue({ key });
+  const fn = jest.fn().mockResolvedValue(key[1] === "range" ? { days: [] } : { key });
   const observer = new QueryObserver(client, { queryKey: key, queryFn: fn, retry: false });
   const unsubscribe = observer.subscribe(() => {});
   return { fn, unsubscribe };
@@ -113,7 +113,7 @@ describe("afterEntryWrite", () => {
   it("refreshes the ranges, recent items, favourites and food details, not other days", async () => {
     const client = registerTestQueryClient(new QueryClient());
     const reads = [
-      queryKeys.dayRanges(),
+      queryKeys.dayRange("2026-11-16", "2026-11-22"),
       ["log", "recents"],
       queryKeys.foodFavourites(),
       queryKeys.foodDetail("x"),

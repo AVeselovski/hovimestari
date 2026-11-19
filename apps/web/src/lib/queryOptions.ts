@@ -1,5 +1,5 @@
 import { getProviders } from "@/lib/api/auth";
-import { getDay } from "@/lib/api/days";
+import { getDay, getDaySummaries } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
 import { getSavedMeals } from "@/lib/api/savedMeals";
@@ -107,6 +107,22 @@ export function dayQuery(date: string) {
       forgetSeen(client, day);
       return day;
     },
+    staleTime: STALE.live,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+}
+
+/**
+ * The day summaries from `from` to `to`, both included, without entries: a
+ * week in the week sheet. Fresh for 30 seconds, and read again when the page
+ * is shown or the connection returns, as a day is. An entry write puts each
+ * day it answers into every cached range at once (`putDaysInRanges`).
+ */
+export function dayRangeQuery(from: string, to: string) {
+  return queryOptions({
+    queryKey: queryKeys.dayRange(from, to),
+    queryFn: ({ signal }) => getDaySummaries(from, to, { signal }),
     staleTime: STALE.live,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,

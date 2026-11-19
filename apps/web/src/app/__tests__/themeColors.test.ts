@@ -140,6 +140,23 @@ describe("token contrast", () => {
     }
   });
 
+  // A planned stretch over the band reads by its fill, not by its border alone (the mini gauge's border is most of its height).
+  it.each(["light", "dark"] as const)("each plan tint steps 1.3 to 1 from the band, %s", (theme) => {
+    for (const tint of ["energy-plan", "protein-plan"]) {
+      expect([tint, contrast(token(theme, tint), token(theme, "gauge-range")) >= 1.3]).toEqual([tint, true]);
+    }
+  });
+
+  // A gauge on a sheet: its track keeps the step from the surface that the Day's track has from the page.
+  it.each(["light", "dark"] as const)(
+    "the on-surface track steps from the sheet as the track does from the page, %s",
+    (theme) => {
+      const onSurface = contrast(token(theme, "gauge-track-on-surface"), token(theme, "surface"));
+      expect(onSurface).toBeGreaterThan(1.05);
+      expect(onSurface).toBeCloseTo(contrast(token(theme, "gauge-track"), token(theme, "bg")), 5);
+    },
+  );
+
   it("pins the light energy plan tint", () => {
     expect(token("light", "energy-plan")).toBe("#e6d3b4");
   });

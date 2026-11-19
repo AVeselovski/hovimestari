@@ -12,8 +12,9 @@ import { useToday } from "@/hooks/useToday";
 import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
 import { restoreFocus } from "@/lib/lastInputModality";
 import { addDays, isIsoDate } from "@/lib/localDate";
-import { dayQuery, prefetchLogLists, targetsQuery } from "@/lib/queryOptions";
+import { dayQuery, dayRangeQuery, prefetchLogLists, targetsQuery } from "@/lib/queryOptions";
 import { rememberShownDay } from "@/lib/shownDay";
+import { weekOf } from "@/lib/week";
 import type { Entry } from "@hovimestari/types";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -25,6 +26,7 @@ import { DayLauncher } from "./DayLauncher";
 import { DaySummary } from "./DaySummary";
 import { EntryList } from "./EntryList";
 import { loadedNoTargets, predictedNoTargets } from "./noTargets";
+import { WeekSheet } from "./WeekSheet";
 
 // ---------------------------------------------------------------------------
 // DayTab: one day. The date bar, the log sheet's launcher, the summary and
@@ -59,6 +61,11 @@ import { loadedNoTargets, predictedNoTargets } from "./noTargets";
 //
 // The day shown by `?date=` is remembered (`lib/shownDay.ts`), so the tab
 // bar's Day link leads back to it from another tab.
+//
+// Week, after the launcher on its row, opens the week sheet on the week
+// holding the day shown. A row there shows its day and puts focus back on
+// Week. The row is 48 px with or without it, so the header keeps its height.
+// The shown day's week is read ahead once the day is on screen.
 // ---------------------------------------------------------------------------
 
 /**
@@ -133,6 +140,13 @@ export function DayTab(): ReactElement {
     prefetchLogLists(client);
   }, [client, dayLoaded]);
 
+  // The shown day's week, read once the day is on screen, so the week sheet usually opens with figures.
+  useEffect(() => {
+    if (!dayLoaded || date === null) return;
+    const week = weekOf(date);
+    void client.prefetchQuery(dayRangeQuery(week.from, week.to));
+  }, [client, dayLoaded, date]);
+
   // Arrived from the first-run page, by leaving it or passing it: focus on
   // the date button, with no ring after a tap, once it can take it (it is disabled while today is not known).
   const firstRun = useFirstRun();
@@ -149,7 +163,11 @@ export function DayTab(): ReactElement {
 
   const actions = useEntryActions(date);
   const sheet = useSheetTarget<Entry>();
+  const week = useSheetTarget<{ date: string }>();
   const launcherRef = useRef<HTMLDivElement>(null);
+  const tw = useTranslations("day.launcher");
+  // Week waits as the launcher does: while today is not known, or while the app asks for it.
+  const weekWaits = actions.holding || date === null;
 
   const past = date !== null && today !== null && date < today;
   const future = date !== null && today !== null && date > today;
@@ -194,8 +212,23 @@ export function DayTab(): ReactElement {
     <PageContainer wide clearToast untitled>
       <DayHeader>
         <DateBar date={date} today={today} onChange={go} labelRef={dateLabelRef} />
-        <div ref={launcherRef}>
-          <DayLauncher date={date} future={future} actions={actions} />
+        <div data-launcher-row="" className="flex gap-3">
+          {/* The launcher alone: an entry removal falls back to its first button. */}
+          <div ref={launcherRef} className="min-w-0 flex-1">
+            <DayLauncher date={date} future={future} actions={actions} />
+          </div>
+          <button
+            type="button"
+            data-week-button=""
+            aria-haspopup="dialog"
+            aria-disabled={weekWaits || undefined}
+            onClick={(e) => {
+              if (!weekWaits && date !== null) week.open(e.currentTarget, { date });
+            }}
+            className={`${btnSecondary} shrink-0`}
+          >
+            {tw("week")}
+          </button>
         </div>
       </DayHeader>
       <div data-day-content="" className={DAY_CONTENT_CLASS}>
@@ -216,6 +249,19 @@ export function DayTab(): ReactElement {
           onOpen={(entry, opener) => sheet.open(opener, entry)}
         />
       </div>
+      {week.shown && (
+        <WeekSheet
+          key={week.shown.key}
+          open={week.isOpen}
+          onClose={week.close}
+          returnFocusTo={week.shown.opener}
+          shownDate={week.shown.value.date}
+          onPick={(picked) => {
+            week.close();
+            go(picked);
+          }}
+        />
+      )}
       {sheet.shown && (
         <EntrySheet
           key={sheet.shown.key}

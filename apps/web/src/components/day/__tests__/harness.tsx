@@ -2,7 +2,7 @@ import { createTestQueryClient, queryWrapper, registerTestQueryClient } from "@/
 import { change, overview } from "@/components/targets/__tests__/support";
 import { TodayProvider } from "@/components/targets/TodayProvider";
 import { ToastProvider, ToastRegion } from "@/components/ui/Toast";
-import { getDay } from "@/lib/api/days";
+import { getDay, getDaySummaries } from "@/lib/api/days";
 import { addEntry, patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
 import { getFavouriteFoods, getOwnFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
@@ -15,12 +15,15 @@ import {
   updateSavedMeal,
 } from "@/lib/api/savedMeals";
 import { getTargets } from "@/lib/api/targets";
+import { daySummaryOf } from "@/lib/daySummary";
+import { addDays } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import {
   entryFigures,
   gramsForPortion,
   type AddEntryBody,
   type Day,
+  type DaySummary,
   type Entry,
   type EntryPatchBody,
   type EntryStatus,
@@ -93,6 +96,13 @@ export class FakeDays {
   day(date: string): Day {
     const on = this.entries.filter((e) => e.date === date).sort((a, b) => a.position - b.position);
     return dayOf(on, date, this.today, overview(this.changes, date, this.today).inForce?.ranges ?? null);
+  }
+
+  /** `GET /days?from=&to=`: every day of the range, each the day's own summary, without its entries. */
+  range(from: string, to: string): { days: DaySummary[] } {
+    const days: DaySummary[] = [];
+    for (let date = from; date <= to; date = addDays(date, 1)) days.push(daySummaryOf(this.day(date)));
+    return { days };
   }
 
   status(ids: readonly string[], status: EntryStatus) {
@@ -322,6 +332,7 @@ export function refused(status: number, code: string): Error {
 /** Puts the fake behind the mocked API functions. Each call's arguments stay on the mocks. */
 export function serve(server: FakeDays): void {
   jest.mocked(getDay).mockImplementation(async (date) => server.day(date));
+  jest.mocked(getDaySummaries).mockImplementation(async (from, to) => server.range(from, to));
   jest.mocked(setEntriesStatus).mockImplementation(async (ids, status) => server.status(ids, status));
   jest.mocked(patchEntry).mockImplementation(async (id, patch) => server.patch(id, patch));
   jest.mocked(removeEntry).mockImplementation(async (id) => server.remove(id));

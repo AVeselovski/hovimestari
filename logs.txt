@@ -393,3 +393,26 @@
 [architect DONE] (2026-11-18T21:40:57Z) delta review answered: newlyVisible replaces kept, in-store rules on the 14-digit form, a mismatched answer is not_found, both budgets taken in one step, one shared meal delete
 [frontend-engineer STARTED] (2026-11-18T21:53:44Z) barcode slice 3: the local HTTPS runbook, from docs/design/barcode.md
 [frontend-engineer DONE] (2026-11-19T00:54:50Z) the local HTTPS runbook and its Caddyfile: run here with Caddy, mkcert and Chromium over https on both the address and a .local name; the macOS and iPhone steps wait for Artur's first run (197k tokens)
+[architect STARTED] (2026-11-18T16:46:07Z) design: the week view and copying between days (PR 3d), on the new targets model
+[architect DONE] (2026-11-18T16:56:13Z) docs/design/week-and-copy.md: the week as a sheet from the date bar, copying through one sheet on the Entries row, two slices; the range read, move and copy already exist on the server
+[reviewer STARTED] (2026-11-18T16:56:13Z) design review of docs/design/week-and-copy.md before implementation
+[reviewer DONE] (2026-11-18T17:05:29Z) design review of the week and copying: ready after fixes; six majors (the table at 320, a range patch that a cancel wipes, a conflict with the targets design, copy ids that expire, a week title that does not fit, an icon-only way in)
+[architect STARTED] (2026-11-18T17:05:29Z) design fixes from the review
+[architect DONE] (2026-11-18T17:12:20Z) week and copy design revised for every review finding: a visible Week button beside the launcher, Eaten and Planned as the two names, one targets line under the table, week arrows in the sheet's footer, copy ids kept by the sheet
+[frontend-engineer STARTED] (2026-11-18T21:00:43Z) slice A of PR 3d: the Week button and the week sheet, from docs/design/week-and-copy.md
+[frontend-engineer DONE] (2026-11-18T21:33:48Z) slice A of PR 3d: Week button, week sheet, range patch, mini gauge, docs. User-visible. Gate clean.
+[frontend-engineer DONE] (2026-11-18T21:35:10Z) slice A built: the Week button, the week sheet, the range patch, tests and docs; 1504 web tests pass; not run in WebKit (401k tokens)
+[validator STARTED] (2026-11-18T21:35:10Z) slice A of PR 3d against the requirements and docs/design/week-and-copy.md
+[ui-validator STARTED] (2026-11-18T21:35:10Z) slice A in Chromium at 320, 375, 390 and 1280, both themes
+[reviewer STARTED] (2026-11-18T21:35:10Z) code review of slice A's diff
+[validator DONE] (2026-11-18T21:41:38Z) slice A passes: no critical or major; four minors (the cancel has no test of its own, a comment gives the wrong reason for it, two sentences in docs/app/day.md) (208k tokens)
+[reviewer DONE] (2026-11-18T21:42:43Z) code review of slice A: approve after fixes; one major (no test guards the old read that lands over the patch on an unobserved range), minors on formatWeekRange in ko-KR, the mini gauge frame, shared test helpers, aria-current (296k tokens)
+[ui-validator DONE] (2026-11-18T22:02:31Z) slice A in Chromium: fail with three majors (the targets line hidden after a step back, the mini gauge's track invisible on the sheet, columns shift 11px from md in today's week) and three minors; header and sheet geometry hold across states (245k tokens)
+[frontend-engineer STARTED] (2026-11-18T22:02:31Z) one fix batch for slice A from the validator, the ui-validator and the reviewer
+[frontend-engineer DONE] (2026-11-19T01:23:00Z) slice A fix batch: all 16 findings fixed with a failing test first; the targets line always holds its place, a gauge track token for surfaces, a fixed day column, the unobserved-range test; 1519 web tests pass (298k tokens)
+[ui-validator STARTED] (2026-11-19T01:23:00Z) delta check of slice A's three majors and the shared gauge tints
+[reviewer STARTED] (2026-11-19T01:23:00Z) delta review of slice A's fix batch
+[reviewer DONE] (2026-11-19T01:36:00Z) delta review of slice A's fixes: approve after two; the selection guard also blocked keyboard presses on a row (142k tokens)
+[frontend-engineer DONE] (2026-11-19T01:36:00Z) slice A delta fixes: the selection guard applies to a pointer press whose selection touches the row, the notice's offset derived from stated head and row heights; 1520 web tests pass
+[ui-validator DONE] (2026-11-19T01:40:50Z) delta check of slice A: pass; the targets line, the track, the fixed columns, the notice, the title and the spare width all hold as single values across states; the Day tab's planned tints read the same or slightly better (219k tokens)
+[frontend-engineer DONE] (2026-11-19T01:40:50Z) the dark planned-calories tint set back to a warm amber at the same luminance; two dark screenshots retaken (334k tokens)

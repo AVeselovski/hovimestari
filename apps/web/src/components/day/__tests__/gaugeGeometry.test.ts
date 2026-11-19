@@ -77,3 +77,19 @@ describe("gaugeGeometry", () => {
     expect(scaleOf({ lower: 0.1, upper: 0.2 })).toBe(1);
   });
 });
+
+describe("gaugeGeometry with a wider narrowest band", () => {
+  it("draws a narrow band at least minBandPercent wide from its exact lower bound, and leaves a wide band as it is", () => {
+    const equal = gaugeGeometry({ lower: 150, upper: 150 }, 0, 0, { minBandPercent: 6 });
+    expect(equal.ticks.lower).toBeCloseTo(80, 5);
+    expect(equal.band.end - equal.band.start).toBeCloseTo(6, 5);
+    const wide = gaugeGeometry({ lower: 1900, upper: 2200 }, 0, 0, { minBandPercent: 6 });
+    expect(wide.band).toEqual(gaugeGeometry({ lower: 1900, upper: 2200 }, 0, 0).band);
+  });
+
+  it("keeps the scale on the targets alone, so the same targets put the ticks at the same place whatever was eaten", () => {
+    const a = gaugeGeometry({ lower: 140, upper: 180 }, 20, 90, { minBandPercent: 6 });
+    const b = gaugeGeometry({ lower: 140, upper: 180 }, 170, 400, { minBandPercent: 6 });
+    expect(a.ticks).toEqual(b.ticks);
+  });
+});

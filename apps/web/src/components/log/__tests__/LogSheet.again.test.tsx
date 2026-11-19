@@ -31,7 +31,7 @@ import {
 // does (components/day/__tests__/harness.tsx).
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),

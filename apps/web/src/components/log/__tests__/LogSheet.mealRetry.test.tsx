@@ -27,7 +27,7 @@ import { favouritesOf, logWorld, openLogSheet, ownFoods, statusLine } from "./lo
 // and a PUT of a meal that never landed answers 404 saved_meal_not_found.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),

@@ -1,6 +1,7 @@
 import { releaseHeldLists } from "@/components/log/heldList";
-import type { Day, FoodDetail, Me, Portion, SavedMeal, TargetChange } from "@hovimestari/types";
+import type { Day, DaySummaryList, FoodDetail, Me, Portion, SavedMeal, TargetChange } from "@hovimestari/types";
 import { matchQuery, onlineManager, type Query, type QueryClient, type QueryKey } from "@tanstack/react-query";
+import { daySummaryOf } from "./daySummary";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
 import { dropMeal, putMeal, putNewMeal, takeMealOutOf } from "./mealCache";
 import { forgetSeen } from "./pendingIds";
@@ -22,9 +23,10 @@ import { putSavedChange } from "./targetsCache";
 
 /**
  * Cancels every read under `keys`, puts the account a write answered in the
- * cache, and reads every key again. The account goes in after the cancel,
- * because a cancel puts back what the cache held before the read started.
- * `edit` makes any other edit at the same moment, for the same reason.
+ * cache, and reads every key again. The account goes in once the cancel has
+ * settled, so no read that left before the write is still out to answer
+ * over it. `edit` makes any other edit at the same moment, for the same
+ * reason.
  */
 async function refresh(client: QueryClient, keys: readonly QueryKey[], me?: Me, edit?: () => void): Promise<void> {
   await Promise.all(keys.map((queryKey) => client.cancelQueries({ queryKey })));
@@ -138,8 +140,9 @@ export async function afterTimeZoneChange(client: QueryClient, me: Me): Promise<
 
 /**
  * Cancels every food read, makes the write's edits to the cache, then reads
- * again what the edits could not settle. The edits go in after the cancel,
- * because a cancel puts back what the cache held before the read started.
+ * again what the edits could not settle. The edits go in once the cancel has
+ * settled, so no read that left before the write is still out to answer
+ * over them.
  */
 async function editFoods(client: QueryClient, edit: () => void, refetch: () => Promise<unknown>): Promise<void> {
   await client.cancelQueries({ queryKey: queryKeys.foods() });
@@ -257,7 +260,9 @@ export async function afterFavourite(client: QueryClient, foodId: string): Promi
  * `today` is older than the app's (`appToday`) was answered before midnight,
  * so its `relation` and `unmarkedCount` are stale: it is read again too. Then
  * the ranges, recent items, saved meals, favourites and food details, whose
- * last amounts follow eaten entries.
+ * last amounts follow eaten entries. Before that, each answered day also goes
+ * into every cached range that holds its date (`putDaysInRanges`), so a week
+ * never shows a day's old figures while its read is out.
  *
  * Resolves once the answered days are in the cache, and gives the reads that
  * follow as `settled`: a write's toast and its row's state never wait for an
@@ -277,6 +282,7 @@ export async function afterEntryWrite(
   if (!oldZone) for (const day of days) client.setQueryData(queryKeys.day(day.date), day);
   // An add whose answer was lost earlier is in one of these days: its id is let go.
   for (const day of days) forgetSeen(client, day);
+  await putDaysInRanges(client, days, oldZone);
   const reread = shownDate !== undefined && !days.some((d) => d.date === shownDate) ? [queryKeys.day(shownDate)] : [];
   const stale = oldZone
     ? days.map((d) => queryKeys.day(d.date))
@@ -293,6 +299,33 @@ export async function afterEntryWrite(
     queryKeys.foodDetails(),
   ]);
   return { settled };
+}
+
+/**
+ * Writes each answered day, without its entries, into every cached range that
+ * holds its date, so a week's row equals that day's own summary from the
+ * moment the write answers.
+ *
+ * It cancels every range read first, so a read that left before the write
+ * cannot answer after the patch and write the older week over it. Invalidate
+ * does not read an unobserved range again (a week read ahead), so that old
+ * answer would then count as fresh. Inside `afterEntryWrite` the refresh's
+ * own cancel follows, but only after this function returns. This cancel
+ * closes that gap, and keeps the function safe when called on its own.
+ *
+ * A range with no data yet is left alone, and its read answers the new state.
+ * With `oldZone` the days belong to the account's old time zone and nothing
+ * is written: the refresh reads the ranges again.
+ */
+export async function putDaysInRanges(client: QueryClient, days: readonly Day[], oldZone = false): Promise<void> {
+  await client.cancelQueries({ queryKey: queryKeys.dayRanges() });
+  if (oldZone || days.length === 0) return;
+  const byDate = new Map(days.map((d) => [d.date, daySummaryOf(d)]));
+  client.setQueriesData<DaySummaryList>({ queryKey: queryKeys.dayRanges() }, (range) => {
+    if (range === undefined) return undefined;
+    if (!range.days.some((d) => byDate.has(d.date))) return range;
+    return { ...range, days: range.days.map((d) => byDate.get(d.date) ?? d) };
+  });
 }
 
 /**
