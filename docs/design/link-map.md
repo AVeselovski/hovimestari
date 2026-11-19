@@ -63,6 +63,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | the remembered day, the Day link, back to today         | `app/day.md#coming-back-to-the-tab`                                     | `### Coming back to the tab`                     |
 | the day summary, the gauge on screen                    | `app/day.md#the-summary`                                                | `### The summary`                                |
 | the gauge's drawing, band, ticks, end-cap               | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
+| the week sheet, the Week button                         | `app/day.md#the-week`                                                   | `### The week`                                   |
 | entry rows, mark eaten, Mark all eaten                  | `app/day.md#the-entries`                                                | `### The entries`                                |
 | entry sheet                                             | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
 | toast, undo toast                                       | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
@@ -116,7 +117,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | ----------------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
 | day, entry, food entry, saved meal entry        | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
 | planned and eaten, unmarked                     | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
-| the two totals, eaten, with plan, rounding      | `features/days.md#the-two-totals`                            | `### The two totals`                   |
+| the two totals, eaten, planned, rounding        | `features/days.md#the-two-totals`                            | `### The two totals`                   |
 | position, distance, where a day stands          | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
 | figures that stay, basis, hidden source         | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
 | the week, a range of days                       | `features/days.md#the-week`                                  | `### The week`                         |

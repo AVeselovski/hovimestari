@@ -1,6 +1,6 @@
 # Days
 
-A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as what the day comes to with the plan, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance.
+A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as everything on the day, eaten or still planned, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance.
 
 ## In detail
 
@@ -18,7 +18,7 @@ On a past day, planned entries were never marked eaten, and the day says how man
 
 ### The two totals
 
-Each day has two readings, each with energy, protein, carbohydrates and fat. Eaten adds up the eaten entries. With plan adds up every entry, planned and eaten. With nothing planned the two are equal.
+Each day has two readings, each with energy, protein, carbohydrates and fat. Eaten adds up the eaten entries. Planned adds up everything on the day, eaten or still planned. With nothing planned the two are equal. The API names the second reading `withPlan`.
 
 An entry's figures are rounded once: kcal to a whole number, grams to one decimal, halves away from zero. Each reading's total is the sum of its rows as rounded, so the rows always add up to the total. A total can differ from the exact sum by at most half a unit per entry.
 
@@ -42,7 +42,9 @@ Deleting an own food or a saved meal that entries use hides it instead. It disap
 
 ### The week
 
-A week or any range of up to 42 days reads every day's two readings and positions without the entries. Each day's figures equal the day's own.
+A week runs Monday to Sunday. The week of a date is the one holding it, so it stays the same while the day inside it changes. A week or any range of up to 42 days reads every day's two readings and positions without the entries. Each day's figures equal the day's own.
+
+The week sheet on [the Day tab](../app/day.md#the-week) shows a week's days side by side: each day's two readings for calories and protein and, on a day with targets, where each stands. It states positions only, as the day does.
 
 ### Estimates
 
@@ -64,7 +66,7 @@ Entry reads go through `selectEntries` in `apps/backend/src/services/entryRows.t
 
 ### Reads
 
-`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other.
+`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
 
 ### API
 
@@ -92,5 +94,5 @@ Requirements: FR-DAY-01 to FR-DAY-04, FR-DAY-06 to FR-DAY-10, FR-DAY-13 to FR-DA
 
 ## Where it appears
 
-- [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries.
+- [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries. Its week sheet shows seven days side by side.
 - [The log sheet](../app/log-sheet.md): the estimates its estimate sheet adds to a day.
