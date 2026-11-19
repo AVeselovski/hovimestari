@@ -36,6 +36,13 @@ export interface FormSheetContract {
   type: () => void;
   /** The field `type` wrote into, for the "value unchanged" checks. */
   typedField: () => HTMLElement;
+  /**
+   * A field that raises the software keyboard, for the keyboard check.
+   * Defaults to `typedField`. Null for a sheet with no such field, such as
+   * one of dates and boxes only: the check then asserts that it holds none,
+   * so no keyboard can rise over its footer.
+   */
+  keyboardField?: (() => HTMLElement) | null;
   /** Fills the form so Save is enabled. */
   fillValid: () => void;
   /** Makes the next save hang until the returned `resolve` is called, or fail at `reject`. */
@@ -321,31 +328,44 @@ export function describeFormSheetContract(c: FormSheetContract): void {
     // The keyboard's height (the visual viewport shorter than the window)
     // reaches the sheet while a field has focus. The iOS behaviour itself is
     // the owner's device check.
-    it("is keyboard-aware: the keyboard's height reaches the sheet while a field is focused", async () => {
-      const keyboard = 300;
-      const viewport = Object.assign(new EventTarget(), {
-        width: window.innerWidth,
-        height: window.innerHeight - keyboard,
-        offsetTop: 0,
-        offsetLeft: 0,
-        pageTop: 0,
-        pageLeft: 0,
-        scale: 1,
-      });
-      Object.defineProperty(window, "visualViewport", { value: viewport, configurable: true });
-      try {
+    const keyboardField = c.keyboardField === undefined ? c.typedField : c.keyboardField;
+    if (keyboardField === null) {
+      it("holds no field that raises the software keyboard, so none can rise over its footer", () => {
         renderOpen();
-        await waitFor(() => expect(c.firstField()).toHaveFocus());
-        // A text field: a date field raises no keyboard.
-        act(() => c.typedField().focus());
-        const sheetViewport = screen.getByRole("dialog").parentElement!;
-        await waitFor(() =>
-          expect(sheetViewport.style.getPropertyValue("--drawer-keyboard-inset")).toBe(`${keyboard}px`),
+        const form = screen.getByRole("dialog").querySelector("[data-sheet-body] form")!;
+        const typed = [...form.querySelectorAll<HTMLElement>("input, textarea, [contenteditable]")].filter(
+          (el) => !(el instanceof HTMLInputElement && (el.hidden || ["date", "checkbox", "radio"].includes(el.type))),
         );
-      } finally {
-        delete (window as { visualViewport?: unknown }).visualViewport;
-      }
-    });
+        expect(typed).toEqual([]);
+      });
+    } else {
+      const textField = keyboardField;
+      it("is keyboard-aware: the keyboard's height reaches the sheet while a field is focused", async () => {
+        const keyboard = 300;
+        const viewport = Object.assign(new EventTarget(), {
+          width: window.innerWidth,
+          height: window.innerHeight - keyboard,
+          offsetTop: 0,
+          offsetLeft: 0,
+          pageTop: 0,
+          pageLeft: 0,
+          scale: 1,
+        });
+        Object.defineProperty(window, "visualViewport", { value: viewport, configurable: true });
+        try {
+          renderOpen();
+          await waitFor(() => expect(c.firstField()).toHaveFocus());
+          // A text field: a date field raises no keyboard.
+          act(() => textField().focus());
+          const sheetViewport = screen.getByRole("dialog").parentElement!;
+          await waitFor(() =>
+            expect(sheetViewport.style.getPropertyValue("--drawer-keyboard-inset")).toBe(`${keyboard}px`),
+          );
+        } finally {
+          delete (window as { visualViewport?: unknown }).visualViewport;
+        }
+      });
+    }
 
     it("at md+ the first field takes focus on open", async () => {
       renderOpen();

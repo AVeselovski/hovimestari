@@ -28,7 +28,7 @@ import {
   seededClient,
   serve,
 } from "./harness";
-import { TODAY, estimateEntry, foodEntry } from "./support";
+import { TODAY, estimateEntry, fakeEntryActions, foodEntry } from "./support";
 
 // The Day tab's writes and undos where they fail, overlap or are held.
 
@@ -429,21 +429,12 @@ describe("DayTab across a time zone change", () => {
 });
 
 describe("EntryList while the app asks for today", () => {
-  function heldActions(): EntryActions {
-    return {
+  const heldActions = (): EntryActions =>
+    fakeEntryActions({
       holding: true,
-      busyIds: new Set(),
-      focusRequest: null,
-      focusDone: jest.fn(),
       markOne: jest.fn().mockResolvedValue(false),
       markAll: jest.fn().mockResolvedValue(false),
-      add: jest.fn(),
-      saveAndLog: jest.fn(),
-      withdrawAdd: jest.fn(),
-      save: jest.fn(),
-      remove: jest.fn(),
-    };
-  }
+    });
 
   it("draws every mark and Mark all eaten unavailable, and a press sends nothing", () => {
     const entries: Entry[] = [
@@ -451,7 +442,7 @@ describe("EntryList while the app asks for today", () => {
       foodEntry("Quark", 250, { status: "planned" }),
     ];
     const actions = heldActions();
-    render(<EntryList entries={entries} future={false} actions={actions} onOpen={jest.fn()} />);
+    render(<EntryList entries={entries} future={false} actions={actions} onOpen={jest.fn()} onCopy={jest.fn()} />);
     const markAll = screen.getByRole("button", { name: "Mark all eaten" });
     expect(markAll).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(markAll);
