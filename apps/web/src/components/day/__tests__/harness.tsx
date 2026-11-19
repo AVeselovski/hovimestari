@@ -3,7 +3,15 @@ import { change, overview } from "@/components/targets/__tests__/support";
 import { TodayProvider } from "@/components/targets/TodayProvider";
 import { ToastProvider, ToastRegion } from "@/components/ui/Toast";
 import { getDay, getDaySummaries } from "@/lib/api/days";
-import { addEntry, patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
+import {
+  addEntry,
+  copyEntries,
+  patchEntry,
+  removeEntries,
+  removeEntry,
+  restoreEntry,
+  setEntriesStatus,
+} from "@/lib/api/entries";
 import { getFavouriteFoods, getOwnFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
 import {
@@ -19,9 +27,12 @@ import { daySummaryOf } from "@/lib/daySummary";
 import { addDays } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import {
+  CopyEntriesBodySchema,
+  EntryRemoveManyBodySchema,
   entryFigures,
   gramsForPortion,
   type AddEntryBody,
+  type CopyEntriesBody,
   type Day,
   type DaySummary,
   type Entry,
@@ -304,6 +315,58 @@ export class FakeDays {
     this.meals.delete(id);
   }
 
+  /**
+   * `POST /entries/copy`, as `copyEntries` on the server: a body the route
+   * refuses (no entries, more than 100, an id twice) answers 400, an id held or
+   * removed is skipped, a missing source answers 404 before anything is
+   * added, and each copy goes after the target day's entries, planned, with
+   * every value of its source but its id and position. It answers the live
+   * entries of the ids sent and the target day.
+   */
+  copy(body: CopyEntriesBody) {
+    if (!CopyEntriesBodySchema.safeParse(body).success) throw refused(400, "invalid_request");
+    const ids = body.entries.map((p) => p.id);
+    const todo = body.entries.filter((p) => !this.entries.some((e) => e.id === p.id) && !this.removed.has(p.id));
+    const sources = todo.map((p) => this.entries.find((e) => e.id === p.sourceId));
+    if (sources.some((s) => s === undefined)) throw notFound();
+    const order = (e: Entry) => [e.date, e.position] as const;
+    const pairs = todo
+      .map((p, i) => ({ p, source: sources[i]! }))
+      .sort((a, b) => {
+        const [da, pa] = order(a.source);
+        const [db, pb] = order(b.source);
+        return da < db ? -1 : da > db ? 1 : pa - pb;
+      });
+    for (const { p, source } of pairs) {
+      const position = Math.max(0, ...this.entries.map((e) => e.position)) + 1;
+      this.entries.push({ ...source, id: p.id, date: body.toDate, position, status: "planned" });
+    }
+    const entries = this.entries.filter((e) => ids.includes(e.id)).map((e) => ({ ...e }));
+    return {
+      entries,
+      days: [this.day(body.toDate)],
+      outcome: todo.length > 0 ? ("created" as const) : ("replayed" as const),
+    };
+  }
+
+  /**
+   * `POST /entries/remove`: a body the route refuses (no ids, more than 100,
+   * an id twice) answers 400. It removes each listed entry still there, skips
+   * the rest, and answers each day it removed from.
+   */
+  removeMany(ids: readonly string[]) {
+    if (!EntryRemoveManyBodySchema.safeParse({ entryIds: ids }).success) throw refused(400, "invalid_request");
+    const gone = this.entries
+      .filter((e) => ids.includes(e.id))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.position - b.position));
+    for (const e of gone) {
+      this.entries = this.entries.filter((x) => x.id !== e.id);
+      this.removed.set(e.id, e);
+    }
+    const dates = [...new Set(gone.map((e) => e.date))].sort();
+    return { removedIds: gone.map((e) => e.id), days: dates.map((d) => this.day(d)) };
+  }
+
   /** A restore of an entry already back answers 200 replayed, as the server does. Past its window, 404. */
   restore(id: string) {
     const back = this.entries.find((x) => x.id === id);
@@ -337,6 +400,11 @@ export function serve(server: FakeDays): void {
   jest.mocked(patchEntry).mockImplementation(async (id, patch) => server.patch(id, patch));
   jest.mocked(removeEntry).mockImplementation(async (id) => server.remove(id));
   jest.mocked(restoreEntry).mockImplementation(async (id) => server.restore(id));
+  // The copy's routes, where the suite mocks them.
+  if (jest.isMockFunction(copyEntries)) jest.mocked(copyEntries).mockImplementation(async (body) => server.copy(body));
+  if (jest.isMockFunction(removeEntries)) {
+    jest.mocked(removeEntries).mockImplementation(async (ids) => server.removeMany(ids));
+  }
   // The log sheet's routes, where the suite mocks them.
   if (jest.isMockFunction(addEntry)) jest.mocked(addEntry).mockImplementation(async (body) => server.add(body));
   if (jest.isMockFunction(getRecents)) jest.mocked(getRecents).mockImplementation(async () => server.recentList());

@@ -1,7 +1,10 @@
 import { api } from "@/lib/api";
 import type {
   AddEntryBody,
+  CopyEntriesBody,
+  CopyEntriesResult,
   EntryPatchBody,
+  EntryRemoveManyResult,
   EntryRemoveResult,
   EntryStatus,
   EntryStatusResult,
@@ -43,5 +46,26 @@ export async function restoreEntry(id: string): Promise<EntryWriteResult> {
  */
 export async function addEntry(body: AddEntryBody): Promise<EntryWriteResult> {
   const res = await api.post<EntryWriteResult>("/entries", body);
+  return res.data;
+}
+
+/**
+ * `POST /entries/copy`: adds a planned copy of each source entry to `toDate`,
+ * under the id the app chose for it, at most 100. Sent again with the same
+ * ids, it adds only what did not land and answers `outcome: "replayed"` when
+ * it added none.
+ */
+export async function copyEntries(body: CopyEntriesBody): Promise<CopyEntriesResult> {
+  const res = await api.post<CopyEntriesResult>("/entries/copy", body);
+  return res.data;
+}
+
+/**
+ * `POST /entries/remove`: removes each listed entry that is still there, at
+ * most 100 distinct ids, each restorable for ten minutes. Ids that are gone
+ * are skipped, so a repeat answers empty lists.
+ */
+export async function removeEntries(entryIds: readonly string[]): Promise<EntryRemoveManyResult> {
+  const res = await api.post<EntryRemoveManyResult>("/entries/remove", { entryIds });
   return res.data;
 }

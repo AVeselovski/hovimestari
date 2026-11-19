@@ -1,9 +1,14 @@
 import { describeFormSheetContract } from "@/__tests__/formSheet";
 import { deferred } from "@/__tests__/helpers/queryClient";
-import { estimateEntry, foodEntry, mealEntry, portionEntry } from "@/components/day/__tests__/support";
+import {
+  estimateEntry,
+  fakeEntryActions,
+  foodEntry,
+  mealEntry,
+  portionEntry,
+} from "@/components/day/__tests__/support";
 import { detailOf, fineliFood, ownPortion } from "@/components/foods/__tests__/support";
 import { refusal } from "@/components/targets/__tests__/support";
-import type { EntryActions } from "@/hooks/useEntryActions";
 import { TodayContext, type TodayState } from "@/hooks/useToday";
 import { getFood } from "@/lib/api/foods";
 import { newId } from "@/lib/newId";
@@ -13,26 +18,9 @@ import { EntrySheet } from "../EntrySheet";
 
 jest.mock("@/lib/api/foods", () => ({ getFood: jest.fn() }));
 
-function fakeActions(overrides: Partial<EntryActions> = {}): EntryActions {
-  return {
-    holding: false,
-    busyIds: new Set(),
-    focusRequest: null,
-    focusDone: jest.fn(),
-    markOne: jest.fn(),
-    markAll: jest.fn(),
-    save: jest.fn().mockResolvedValue("done"),
-    remove: jest.fn().mockResolvedValue("done"),
-    add: jest.fn(),
-    saveAndLog: jest.fn(),
-    withdrawAdd: jest.fn(),
-    ...overrides,
-  };
-}
-
-let actions = fakeActions();
+let actions = fakeEntryActions();
 beforeEach(() => {
-  actions = fakeActions();
+  actions = fakeEntryActions();
   jest
     .mocked(getFood)
     .mockReset()
@@ -287,7 +275,7 @@ describe("EntrySheet", () => {
   });
 
   it("while the app asks for today, Save and Remove entry wait, and Cancel and dismissal stay free", () => {
-    actions = fakeActions({ holding: true });
+    actions = fakeEntryActions({ holding: true });
     const onClose = jest.fn();
     renderSheet(quark, onClose);
     fireEvent.change(amount(), { target: { value: "300" } });

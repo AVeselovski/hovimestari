@@ -26,6 +26,7 @@ import {
   type UndoOptions,
 } from "./entryActions";
 import { useAddActions } from "./useAddActions";
+import { useCopyActions } from "./useCopyActions";
 
 // ---------------------------------------------------------------------------
 // useEntryActions: every write the Day tab makes to an entry, and each one's
@@ -65,12 +66,16 @@ import { useAddActions } from "./useAddActions";
 // - Two writes out at once on one date read that day again once both have
 //   settled (`beginEntryWrite`), so an older answer landing last never
 //   stands.
+// - A copy to another day and its Undo live in `useCopyActions`, composed
+//   here as the adds are.
 // ---------------------------------------------------------------------------
 
 export { OfflineError } from "./entryActions";
 export type {
   AddDone,
   AddRequest,
+  CopyDone,
+  CopyRequest,
   EntryActions,
   FocusRequest,
   SaveAndLogDone,
@@ -390,8 +395,38 @@ export function useEntryActions(shownDate: string | null): EntryActions {
     oneTapFailed,
   });
 
+  const { copy, readDaysAgain } = useCopyActions({ client, toast, t, ready, counted, apply, undo, dayWord });
+
   return useMemo(
-    () => ({ holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove, add, saveAndLog, withdrawAdd }),
-    [holding, busyIds, focusRequest, focusDone, markOne, markAll, save, remove, add, saveAndLog, withdrawAdd],
+    () => ({
+      holding,
+      busyIds,
+      focusRequest,
+      focusDone,
+      markOne,
+      markAll,
+      save,
+      remove,
+      add,
+      saveAndLog,
+      withdrawAdd,
+      copy,
+      readDaysAgain,
+    }),
+    [
+      holding,
+      busyIds,
+      focusRequest,
+      focusDone,
+      markOne,
+      markAll,
+      save,
+      remove,
+      add,
+      saveAndLog,
+      withdrawAdd,
+      copy,
+      readDaysAgain,
+    ],
   );
 }

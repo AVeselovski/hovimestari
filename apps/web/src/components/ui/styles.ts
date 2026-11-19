@@ -122,6 +122,19 @@ export const dayEntriesHeading = "section-label lg:flex lg:min-h-5 lg:items-cent
 export const dayEntriesHeadButton = "lg:items-start";
 
 /**
+ * The group at the end of `dayEntriesHead`: "Mark all eaten", then "Copy"
+ * last, so Copy stays where it is when Mark all eaten leaves.
+ */
+export const dayEntriesActions = "flex gap-4";
+
+/**
+ * "Copy" in `dayEntriesActions`: a 44px target both ways. Its word is
+ * shorter than that, so the target grows leftward into the gap and the word
+ * stays at the row's end.
+ */
+export const dayEntriesCopyButton = `${dayEntriesHeadButton} min-w-11 justify-end`;
+
+/**
  * A block in a `formStack` that starts a section, such as a heading over a
  * group of fields, or that closes the form, such as a note: 16px from the
  * block above it.

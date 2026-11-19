@@ -1,3 +1,4 @@
+import type { EntryActions } from "@/hooks/useEntryActions";
 import {
   entryFigures,
   positionOf,
@@ -122,5 +123,29 @@ export function dayOf(entries: Entry[], date = TODAY, today = TODAY, targets: Ta
     plannedCount: planned,
     unmarkedCount: relation === "past" ? planned : 0,
     entries: entries.map((e) => ({ ...e, date })),
+  };
+}
+
+/**
+ * Entry actions that do nothing, for a component under test on its own. A
+ * mark answers that it sent, a save and a removal "done", and a copy a toast
+ * that is never shown. `overrides` replaces any of them.
+ */
+export function fakeEntryActions(overrides: Partial<EntryActions> = {}): EntryActions {
+  return {
+    holding: false,
+    busyIds: new Set(),
+    focusRequest: null,
+    focusDone: jest.fn(),
+    markOne: jest.fn().mockResolvedValue(true),
+    markAll: jest.fn().mockResolvedValue(true),
+    save: jest.fn().mockResolvedValue("done"),
+    remove: jest.fn().mockResolvedValue("done"),
+    add: jest.fn(),
+    saveAndLog: jest.fn(),
+    withdrawAdd: jest.fn(),
+    copy: jest.fn().mockResolvedValue({ announce: jest.fn() }),
+    readDaysAgain: jest.fn(),
+    ...overrides,
   };
 }

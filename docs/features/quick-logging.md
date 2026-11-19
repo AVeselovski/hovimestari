@@ -18,7 +18,9 @@ Moving an entry changes its date and keeps its place in the order. Moving an eat
 
 ### Copying entries
 
-Copying entries to another day adds them there as planned, with the figures of the entries they copy, in their original order. Up to 100 entries copy at once. A day whose saved meal was deleted since copies too. Each copy carries its own new id, and no two ids in a request may match. A source may repeat, so one request can add the same entry to the day several times.
+Copying entries to another day adds them there as planned, with the figures of the entries they copy, in their original order, after what that day already holds. A copy is planned on every date, today and past days included, so a copy onto a past day counts among its planned entries never marked eaten until it is marked. Up to 100 entries copy at once. A day whose saved meal was deleted since copies too. Each copy carries its own new id, and no two ids in a request may match. A source may repeat, so one request can add the same entry to the day several times.
+
+On screen, the copy sheet copies the ticked entries of the day shown to one date. Each pair of a date and an entry gets one id for as long as the sheet is open, so pressing Copy again after it could not confirm sends the same ids and adds each copy once. A copy sent to a date or for an entry that the person then changes or unticks takes new ids for the new pairs. Once that send succeeds, every copy sent earlier from the same sheet and not sent now is removed, before the line that says the copy is done. Cancel after a copy that could not confirm reads the day it went to again, so whatever landed shows there. Nothing ticked sends nothing.
 
 ### Recent items and the last amount
 
@@ -54,7 +56,7 @@ Every logging action has an inverse:
 - Marking entries eaten is undone by marking exactly the entries it changed as planned.
 - A remove is undone by a restore, within ten minutes. The entry comes back exactly as it was, with its place in the day and its figures, even when its food or meal was deleted since.
 - A move is undone by moving back, eaten again when the move made it planned.
-- A copy is undone by removing its copies, up to 100 in one request. Each copy goes whatever happened to it since, edited, marked eaten or moved. Ids that are gone or not the user's are skipped, and each removed copy can be restored for ten minutes like any removal.
+- A copy is undone by removing its copies, up to 100 in one request. Each copy goes whatever happened to it since, edited, marked eaten or moved. Ids that are gone or not the user's are skipped, and each removed copy can be restored for ten minutes like any removal. On screen, Undo removes every copy the sheet sent, also those of an earlier send to another date.
 
 A restore is exact. The other inverses bring back the entry's date, status, amount and figures, but not when it was eaten. Marking an entry eaten again, after it was eaten and then planned, records the time of that mark. The entry then counts as eaten most recently, so it moves to the front of recent items, and its amount becomes the last amount.
 
@@ -62,7 +64,7 @@ After an add was undone, sending the same add again adds nothing, so a late retr
 
 An amount entered as a count of a portion is undone as that count, weighed at the portion's grams at the time of the undo. When the portion was edited in between, the grams differ from before. When the portion is gone, the amount is undone in grams.
 
-On screen, every mark, save and removal offers Undo for six seconds. Undo sends the inverse of exactly what changed: the ids a mark changed, a restore after a remove, and every field an edit changed, read from the entry before and the entry the server answered, so a move that planned an eaten entry is undone eaten again. Marking all of a day's planned entries eaten offers one Undo for every entry it changed, also when it took a second try.
+On screen, every mark, save, removal and copy offers Undo for six seconds. Undo sends the inverse of exactly what changed: the ids a mark changed, a restore after a remove, and every field an edit changed, read from the entry before and the entry the server answered, so a move that planned an eaten entry is undone eaten again. Marking all of a day's planned entries eaten offers one Undo for every entry it changed, also when it took a second try.
 
 Try again is offered only when the undo may not have landed: the device was offline, there was no answer, it timed out or it met a server fault. Trying again sends the same inverse. An undo the server refused, such as a restore after its ten minutes or an edit's undo on an entry another device removed, says why with no Try again, and the day is read again.
 
@@ -108,6 +110,7 @@ The status batch, the batch remove and the planned rewrite lock the entries they
 - **Save and log.** `useEntryActions.saveAndLog` sends `POST /saved-meals/log` with the meal's and the entry's ids, made when the sheet opened, counted against the date like an add. Its days go into the cache the same way. Its line says "Saved Chicken bowl and logged 1 meal." with **Remove from day**, or "Saved Chicken bowl and added it to the plan." with **Remove from plan**, which removes the entry and keeps the meal. A repeat answers as a replay.
 - **Pending ids.** A one-press add keeps its id in `apps/web/src/lib/pendingIds.ts` under the date, the kind and the food or meal. A second press after a timeout sends the same id, so the server adds one entry. The id is let go at the first of its answer, a read of a day that holds it, or a minute after it was made. After that a press makes a new id, so the same food logged again later is a second entry. For six seconds after an add could not confirm, as long as its line shows at most, the id is kept whatever happens. Pressing "+" again in that time answers "Already logged" for an add that landed, never a second entry. An `entry_id_taken` lets the id go at once, since that id can never succeed. A food's or a meal's log form makes its id as it opens and keeps it until a log is answered, or makes a new one after `entry_id_taken`.
 - **Taking back an add.** `useEntryActions.withdrawAdd` removes an entry an unconfirmed add may have made, with no line. It answers whether it removed one: a 404 means nothing is there yet. The saved meal sheet uses it when a "Save and log" is pressed again with other figures, so [the new figures are logged](saved-meals.md#a-save-that-could-not-confirm).
+- **Copies.** `useEntryActions.copy`, which lives in `useCopyActions` and which `useEntryActions` composes, sends `POST /entries/copy` with the ids the copy sheet chose, 100 at a time, each request counted against the target date. Its answered days go into the cache, so the target day shows its copies with no read. It then removes the ids the sheet sent earlier and did not send now with `POST /entries/remove`. When that fails, the copy still counts as done, and the days those ids went to are read again, so a copy that landed there shows. A source removed on another device answers `entry_not_found`, and the day shown is read again. Like an add, it answers `announce`, which the sheet calls once it has slid out, or as the copy answers when the sheet has left the page. Undo sends `POST /entries/remove` with every id the sheet sent. The ids belong to the copy sheet, one per date and entry for as long as it is open. The read after Cancel is `readDaysAgain`: the send's day, and each cached week that holds it. The same read follows Cancel after a send of more than 100 whose later request failed once an earlier one had landed, and a sheet that leaves the page with such a send behind it.
 - **Replays.** An add the server already had answers it as replayed, and the line says so plainly: "Already logged Rahka." or "Rahka is already in the plan.", with Log another or Plan another, which adds it once more with a new id. A replayed add whose entry was removed since says "This was removed. Log another?". Log another from the line is a one-press write on the day: a failure says so in the line with Try again, which sends the same id.
 
 ### API
@@ -138,12 +141,11 @@ A recent item is `{ kind: "food", food, last }` with a food summary and a last a
 ### Known gaps
 
 - The assistant's tools for logging arrive with the connected AI step. Until then only the API reaches these services.
-- Copying entries has no screen. Only the API reaches it.
 - A Mark all eaten that fails partway, with its failure toast dismissed, leaves the entries its earlier requests marked with no Undo.
 
 Requirements: FR-DAY-05, FR-DAY-10, FR-DAY-11, FR-DAY-12, FR-LOG-01, FR-LOG-02, FR-LOG-03, FR-LOG-04, FR-LOG-05 (requirements 3.3 and 3.4)
 
 ## Where it appears
 
-- [The Day tab](../app/day.md): marking one entry or all of a day's planned entries eaten, editing, moving and removing an entry in the entry sheet, each with Undo.
+- [The Day tab](../app/day.md): marking one entry or all of a day's planned entries eaten, editing, moving and removing an entry in the entry sheet, and copying entries to another day in [the copy sheet](../app/day.md#the-copy-sheet), each with Undo.
 - [The log sheet](../app/log-sheet.md): adding a food, a saved meal or an estimate to a day, saving a new meal and logging it in one action, the recent items, and logging an item again in one press, each with Undo.

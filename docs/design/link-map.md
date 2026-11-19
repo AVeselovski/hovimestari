@@ -68,6 +68,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | the week sheet, the Week button                         | `app/day.md#the-week`                                                   | `### The week`                                   |
 | entry rows, mark eaten, Mark all eaten                  | `app/day.md#the-entries`                                                | `### The entries`                                |
 | entry sheet                                             | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
+| the copy sheet, Copy in the Entries row                 | `app/day.md#the-copy-sheet`                                             | `### The copy sheet`                             |
 | toast, undo toast                                       | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
 | the toast primitive, useToast                           | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
 | gauge colours, plan tints, target band                  | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
