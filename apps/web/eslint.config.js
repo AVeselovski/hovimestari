@@ -81,4 +81,15 @@ export default [
       "no-restricted-syntax": ["error", ...COPY_RESTRICTED_SYNTAX, ...PALETTE_RESTRICTED_SYNTAX],
     },
   },
+  {
+    // The throwaway camera check page lives only on the branch
+    // spike/scan-check, which never merges. Its log lines are diagnostics for
+    // the developer, not product copy, so it skips the catalog. The palette
+    // rule still applies.
+    files: ["src/app/scan-check/**"],
+    rules: {
+      "react/jsx-no-literals": "off",
+      "no-restricted-syntax": ["error", ...PALETTE_RESTRICTED_SYNTAX],
+    },
+  },
 ];

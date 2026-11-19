@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
           // overlaid by another site. X-Frame-Options covers older browsers.
           { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
           { key: "X-Frame-Options", value: "DENY" },
+          // spike/scan-check: the header the scanner slice will ship, so the
+          // phone proves the camera works with it in place.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
         ],
       },
       {

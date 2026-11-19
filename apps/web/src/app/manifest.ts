@@ -8,7 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Hovimestari",
     short_name: "Hovimestari",
     description: "Your food log and planner.",
-    start_url: "/",
+    // spike/scan-check only: the installed app opens the camera check page.
+    start_url: "/scan-check",
     scope: "/",
     display: "standalone",
     background_color: THEME_COLORS.light,
