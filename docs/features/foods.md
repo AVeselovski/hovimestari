@@ -1,8 +1,8 @@
 # Foods
 
-The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release. A barcode lookup finds a product among the user's own foods, then at Open Food Facts, and keeps a product it finds once for every later lookup. Only the API offers the lookup, and no screen uses it.
+The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release. A barcode lookup finds a product among the user's own foods, then at Open Food Facts, and keeps a product it finds once for every later lookup. The log sheet looks up a barcode typed in its search.
 
-In [the log sheet](../app/log-sheet.md), opened from the Day tab, a person searches the catalogue, logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own. [The Recipes tab](../app/recipes.md) lists their own foods to add, edit and delete.
+In [the log sheet](../app/log-sheet.md), opened from the Day tab, a person searches the catalogue, looks a typed barcode up, logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own. [The Recipes tab](../app/recipes.md) lists their own foods to add, edit and delete.
 
 ## In detail
 
@@ -55,6 +55,8 @@ A product Open Food Facts has with a name and all four values is kept once, as a
 
 A found food answers with its detail and a flag saying whether this lookup made it visible to the user, so their earlier searches no longer hold. The flag is true on a user's first lookup of a product, whoever kept it. A kept product is never refreshed. An operator can retire one. Search then stops finding it, its users' days and favourites keep reading it, and a lookup of its barcode answers not found with no call.
 
+A found food is an ordinary food to log. A kept product stays read-only, and **Copy to your foods** makes a food of the user's own from it, with its name, its four values and its barcode, for the user to correct. That own food then wins every later lookup of the barcode. When a lookup finds nothing, finds a shop's own number, or finds a product without four usable values, the user adds the food from its label: the own-food form opens with the barcode, except for a shop's own number, and with the name and every value Open Food Facts had. A value left as it came saves as that figure and takes the same checks as a typed one. The name is checked as a new name.
+
 Calls to Open Food Facts are limited twice: 30 an hour for each user and 10 a minute for the whole server, below the 15 Open Food Facts allows. Only a real call counts. A lookup answered from an own food, a kept product or memory spends nothing. Two lookups of one code at once make one call, and only the lookup that made it spends from the budgets.
 
 ### Food-name language
@@ -70,6 +72,8 @@ The app shows this credit in those words, and every Fineli food names Fineli as 
 ### Open Food Facts
 
 Open Food Facts is an open database of food products, made by its contributors and published under the [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/). Each product's data is under the Database Contents License. Hovimestari converts energy given only in kilojoules to kilocalories and adds the brand to a product's name. Hovimestari is not produced or endorsed by Open Food Facts.
+
+The app shows this credit in Settings, and every Open Food Facts food names Open Food Facts as its source, links to the product's own page there and leads to the credit.
 
 The server calls Open Food Facts, never the browser. A call carries the barcode and a User-Agent naming the app and its version, and nothing of the person. A call follows no redirect.
 
@@ -123,6 +127,8 @@ The tests run on fixtures in `__tests__/fixtures/`: rows of release 18 in its ow
 
 The service checks both budgets and takes one call from each in one synchronous step, so a call spends from both or from neither. The user's empty budget answers 429 `barcode_lookup_limit` and the server's 429 `barcode_lookup_busy`, the user's first. Each error carries `retryAfterSeconds`, 120 and 6, and the error middleware sends it as `Retry-After`. The per-user budgets drop a user whose budget has refilled. Budgets and memory live in the backend process, so a restart or a deploy empties them. An operator retires a kept product by setting its `retired_at`.
 
+In the web app, `useBarcodeLookup` in `apps/web/src/components/foods/` sends the lookup as a mutation on a press, never as a cached query, so no food write sends it again. It sends nothing while the app knows it is offline. The food it finds goes into the cached detail. When `newlyVisible` is true, every cached search is marked stale by `afterBarcodeFound` in `apps/web/src/lib/invalidation.ts`, in the mutation's own `onSuccess`, which runs even after the log sheet has closed. The answer it holds keys on the search field's text. A found food of any source is dropped from it when the food is gone, is deleted, or no longer has that barcode, so the lookup offers itself again rather than a food that is not there. `barcodeOf` in `apps/web/src/lib/barcode.ts` reads the field with the shared `BarcodeSchema`, so the field offers a lookup only for a code the route takes.
+
 `LookupDeps.inFlight` maps each 14-digit form to the call under way for it. A lookup that misses the stored products and the memory waits on that call when there is one. Otherwise it spends from both budgets and starts the call. The entry goes when the call settles. Each waiting lookup records its own lookup and gets its own flag.
 
 A complete product is inserted with `ON CONFLICT DO NOTHING` on `foods_off_barcode_uq`, in a statement of its own, then read back after it committed. `storedFormOf` in `gtin.ts` gives the barcode it is stored under. Two first lookups at once on two machines both call Open Food Facts, the second insert does nothing, and both read the one row. A row refused by a constraint, SQLSTATE class 23, answers `incomplete` with `implausible_values`, is logged without its values, and is cached as that answer. Any other failure of the insert or the read-back goes to the error middleware unchanged, so a busy database answers 503 with `Retry-After: 2`. The cache then holds the parsed product as `fetched`. A lookup that finds it retries only the insert and the read-back, through the in-flight entry, with no call and no budget spent. The user's lookup is then recorded with an upsert on `food_lookups`, whose `xmax = 0` says whether it inserted the row. That is the flag on the answer.
@@ -168,7 +174,7 @@ Every table with `user_id` cascades from `users`, so deleting an account removes
 
 ### Known gaps
 
-- Looking up a barcode exists in the API only. The log sheet does not offer it yet, Settings does not show the Open Food Facts credit yet, and a kept product does not link to its page at Open Food Facts yet.
+- A barcode is looked up only by typing it. No screen scans one with the camera.
 - A drink's figures from Open Food Facts are often per 100 ml. The catalogue shows them as per 100 g.
 - The budgets live in one backend process. A second machine would double the calls the server's budget counts.
 - The web app asks for 200 own foods, so its lists show the first 200 by name.
@@ -179,6 +185,6 @@ Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SCAN-02 to FR-SCAN-06, FR-DAY-07, FR-
 
 ## Where it appears
 
-- [The log sheet](../app/log-sheet.md): the search, a food's view and its figures, favourites, own foods and portions.
+- [The log sheet](../app/log-sheet.md): the search, a typed barcode's lookup, a food's view and its figures, favourites, own foods and portions.
 - [The Recipes tab](../app/recipes.md): the user's own foods, each opening its edit sheet, and a new one.
-- [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's data.
+- [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's and Open Food Facts' data.

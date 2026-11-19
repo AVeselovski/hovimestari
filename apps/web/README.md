@@ -67,17 +67,20 @@ src/
 │   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
 │   │   ├── FoodSheetStack.tsx  The own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
 │   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals"
-│   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure
+│   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure, or the barcode block
+│   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
+│   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
+│   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
 │   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours" unless left out, and a trailing control
-│   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures and portions
+│   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures, portions and Copy to your foods
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
-│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the Fineli credit
+│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the credit and an Open Food Facts product's own page
 │   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
-│   │   ├── OwnFoodSheet.tsx    Add or edit an own food, with its delete
+│   │   ├── OwnFoodSheet.tsx    Add an own food, empty or filled from a start, or edit one with its delete
 │   │   ├── useOwnFoodDelete.ts The one delete of an own food: asks first, takes a food already gone as deleted, drops it from the lists
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
-│   │   └── ownFoodForm.ts      The two forms' fields, their parsing and the shared schemas
+│   │   └── ownFoodForm.ts      The two forms' fields, a new food's start, their parsing and the shared schemas
 │   ├── log/                    Logging in the log sheet, and the saved meal parts the Recipes tab shares:
 │   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
 │   │   ├── CreateActions.tsx   "New saved meal" and "Add an estimate", the first controls while browsing
@@ -133,6 +136,7 @@ src/
 │   │   ├── targetForm.ts       parseTargetFields(): the fields through parseDecimalInput and the shared schema
 │   │   └── targetLines.ts      Which days a save or a removal changes, from the list of changes
 │   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, the fields and the overlays:
+│       ├── ExternalLink.tsx    A link to another site over https, in a new tab, that tells a screen reader so
 │       ├── NativeDateInput.tsx The platform's date field, uncontrolled so iOS's Reset can empty it
 │       ├── Checkbox.tsx        The one checkbox: a real input drawn in the tokens, the accent when ticked, with a dash for some
 │       ├── DecimalField.tsx    A number field with its unit inside: text with an inputMode, never type=number
@@ -172,6 +176,7 @@ src/
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
 │   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts
+│   ├── barcode.ts              barcodeOf() reads a typed barcode with the shared schema, sameBarcode() and openFoodFactsUrl()
 │   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
 │   ├── shownDay.ts             The day the Day tab last showed by its address, where the Day link leads back to
 │   ├── pendingIds.ts           A one-press add's id, kept until its answer, a day that holds it, or a minute, and held while its failure shows

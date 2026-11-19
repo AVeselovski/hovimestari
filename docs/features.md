@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. A barcode lookup, in the API only, finds a product among a user's own foods, then at Open Food Facts, and keeps a product it finds.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. A barcode typed in the log sheet's search is looked up among a user's own foods, then at Open Food Facts. A product found there is kept for every later lookup, and one not found is added from its label.
 
 ## Days and logging
 
@@ -32,7 +32,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 - **[The app shell](app/shell.md)**: the frame every signed-in screen sits in, with the four tabs, the sheets and the toasts.
 - **[Day](app/day.md)**: one day, its two readings against the person's targets, and its entries to mark, change and remove.
 - **[Recipes](app/recipes.md)**: the saved meals and your own foods, to add, edit, archive and delete.
-- **[The log sheet](app/log-sheet.md)**: logging a food, a saved meal or an estimate to a day, logging a recent item again in one press, finding a food or a meal, reading its figures, and keeping foods and saved meals of your own.
+- **[The log sheet](app/log-sheet.md)**: logging a food, a saved meal or an estimate to a day, logging a recent item again in one press, finding a food or a meal, looking up a typed barcode, reading its figures, and keeping foods and saved meals of your own.
 - **[Settings](app/settings.md)**: targets, the language of food names, the theme, sign-in methods, the account and the food data credit.
 - **[First run](app/first-run.md)**: the page that offers a new account its targets, once, before the tabs, and opens again from a day for a user with none.
 - **[Sign-in and account pages](app/auth.md)**: signing in, creating an account and resetting a password.
