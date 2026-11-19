@@ -20,14 +20,14 @@ describe("localDate", () => {
     expect(isIsoDate("16.11.2026")).toBe(false);
   });
 
-  it("moves across months, years and both 2026 daylight-saving switches by whole days", () => {
+  it("re-exports the shared addDays, which packages/types tests", () => {
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+  });
+
+  it("steps back a day across a month, a year and a daylight-saving switch", () => {
     expect(dayBefore("2026-12-01")).toBe("2026-11-30");
     expect(dayBefore("2027-01-01")).toBe("2026-12-31");
-    expect(addDays("2026-03-28", 1)).toBe("2026-03-29");
-    expect(addDays("2026-03-29", 1)).toBe("2026-03-30");
-    expect(addDays("2026-10-25", 1)).toBe("2026-10-26");
     expect(dayBefore("2026-10-26")).toBe("2026-10-25");
-    expect(() => addDays("nope", 1)).toThrow(RangeError);
   });
 
   it("formats a date in the given language, on the calendar day it names whatever the device's zone", () => {
