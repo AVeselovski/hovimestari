@@ -138,6 +138,8 @@ async function findStored(ctx: WriteContext, gtin: string) {
  * Answers whether this lookup inserted the row: their first lookup of it.
  */
 async function recordLookup(ctx: WriteContext, foodId: string): Promise<boolean> {
+  // `xmax = 0` is true for a row this statement inserted and false for one it updated. That is how Postgres
+  // marks row versions, not a documented contract, so barcodeLookup.db.test.ts pins it. targets.ts reads it the same way.
   const [row] = await ctx.db.transaction(async (tx) => {
     await lockUserForWrite(tx, ctx.userId);
     return tx
