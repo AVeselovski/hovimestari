@@ -1,0 +1,1290 @@
+# Design: recipes (build step 5)
+
+Status: design review round 1, the delta review and the pull request review answered (the three "answered" sections at the end). Nineteen product decisions (0.1 to 0.19) and four requirement wordings plus one addition (section 1) wait for Artur. Decision 0.2 goes to him before R3b merges.
+Branch: `docs/recipes-design` (design only). Implementation branches per slice, section j.
+Requested by: the orchestrator, build step 5 of `docs/design/pivot-plan.md`. First case: Artur's Saturday shakshuka brunch, which today can only go in as its ingredients one by one or as a saved meal with typed totals.
+
+A recipe is a dish whose figures the app computes from ingredients that point at foods. It is logged to a day by servings, planned or eaten. A **cook** is one batch made from a recipe on one occasion, with its own changed ingredients and its own yield. Entries on one or more days draw servings from it, and the recipe stays as written. Recipes ship with their assistant tools.
+
+## 0. Product decisions the owner may want to shelve
+
+Nineteen rows, 0.1 to 0.19. The build takes the recommendation in each row. Each is a local flip. Every row is also filed in `TODO.md` by R1a, the first slice, because Artur does not read this file and should see each fork before any slice builds on it.
+
+| #    | Fork                                                                                                                                                                                      | Recommendation, and why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Cost if flipped                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.1  | Does **every** recipe entry point at a cook, or **only** entries logged "as made"?                                                                                                        | **Only as made.** A plain entry points at the recipe and carries the recipe's figures per serving, exactly as a saved meal entry carries the meal's. A cook is made when the person says the batch differed ("Log as made"). Planning a recipe for Saturday, the most common act and the one the gap fill (step 7) will repeat by the dozen, then writes one row, not a cook with a copy of every ingredient. It keeps the two acts as separate on screen as finanssi's template and transaction are, which is what the pivot plan asked for                                                                                                                                                  | Every add of a recipe entry creates a cook and its lines (`addEntry` grows a branch, the gap fill writes N cooks). The cook sheet's "other planned servings" list goes, since every entry already has a cook. About two days                                                                                                                                                                                                                                                       |
+| 0.2  | A change to a cook changes **every entry from it**, eaten and past days included, or only its planned ones from today on                                                                  | **Every entry. Ask Artur before R3b merges** (R3b ships `update_cook` and `PUT /cooks/:id`, the first way anyone can correct a cook; R4b puts it on screen. R3a, which makes and reads cooks, needs no answer). FR-REC-13 says "every entry that comes from that cook, so that a pot eaten over several days is adjusted once". A cook is the record of what was made, so correcting it corrects the days it fed, as editing an entry on a past day already does (FR-DAY-05). A cook edit recomputes from its foods as they are at the moment of the edit (decision 0.15). A recipe or a food edit never touches eaten or past entries (FR-DAY-07). Clarifying FR-DAY-07 wording in section 1 | **Not undoable in the data.** The code flip is one predicate on `rewriteCookBasis` (`status = 'planned' AND date >= today`), but every past entry a cook edit rewrote before the flip keeps its new figures, with no record of the old ones. Hence the question goes to Artur with R3b's pull request, before anyone edits a cook. Attaching an entry to a new cook (R3a) is not this question: it changes only the entries the person names, one by one, as editing an entry does |
+| 0.3  | Copying an entry that comes from a cook: the copy **plans the recipe again**, or it **draws from the same pot**                                                                           | **Plans the recipe again.** The copy sheet copies a day to another day, usually next week, and next week's shakshuka is a new batch. A copy that stayed in the pot would make next week's plan change when this week's cook is corrected, and step 8 would leave it off the grocery list as already cooked. Servings from the same pot on another day are added from the cook sheet ("Add servings on another day"). A copy of a plain recipe entry keeps its figures, as every copy does                                                                                                                                                                                                     | `copyEntries` keeps `cook_id` and the cook's basis, as it keeps every other column today. Drop the detach branch and its test. The cook sheet's add row stays                                                                                                                                                                                                                                                                                                                      |
+| 0.4  | Editing a recipe, or an own food a recipe uses, changes the recipe's **planned entries from today on**, as editing a saved meal does, or none                                             | **Planned from today on.** It is the rule a person already knows from saved meals and own foods (`docs/features/days.md#figures-that-stay`): a plan follows its source, a record does not. Entries from a cook follow their cook and nothing else (decision 0.15)                                                                                                                                                                                                                                                                                                                                                                                                                             | Drop the `recipe` source from `rewritePlannedBasis` and the recipe branch of the own-food rewrite. Planned entries keep the figures they were added with                                                                                                                                                                                                                                                                                                                           |
+| 0.5  | "Last put on a day" (FR-REC-10): the **latest date** the recipe is on, planned or eaten, computed from its entries, or the **moment** of the last add, stored on the recipe               | **The latest date, computed.** It answers "when do I have this next, or when did I last have it", which is what sorting by it and the gap's "used least recently" (FR-GAP-06) want. It needs no extra write point, so an undone add, a removal and a move are right with no code of their own. A planned Saturday shows "Sat 21 Nov" on Thursday                                                                                                                                                                                                                                                                                                                                              | A `last_put_at` column written by `addEntry`, `copyEntries` and the cook writes, and left alone by removals. The sort reads the column. About half a day                                                                                                                                                                                                                                                                                                                           |
+| 0.6  | The Recipes tab: **three segments**, Recipes, Meals and Foods, each with its own action and search field, or one long page with jump links                                                | **Three segments.** The page already holds two lists and was measured at 5.6 screens with 40 meals (`TODO.md`, "A filter on the Recipes tab"). Recipes make it three, each with an action of its own, and three equal buttons do not fit one row at 320 pixels. One segmented control (`segmentedTray`, built) shows one list with its own action and its own search in the same place, whatever the list. The page's two-button row becomes the segment's one action. The segment is in the address (`?show=`), so Back and a reload keep it                                                                                                                                                 | One page with three sections, three actions in a two-row grid, and jump links under them. The search becomes one field over all three. Rewrites `RecipesTab.tsx` and its tests again                                                                                                                                                                                                                                                                                               |
+| 0.7  | Where cover images live: **in Postgres**, or in object storage (Tigris on Fly, or Vercel Blob)                                                                                            | **Postgres, one row per image, about 150 to 400 KB each.** Nothing for Artur to set up, served only to its owner through the API, deleted with the account in the same cascade as everything else (NFR-PRIV-02), and in the database backups with the recipes it belongs to. One person's few hundred recipes stay under about 100 MB. **Ships last**, in its own slice, since no figure depends on it                                                                                                                                                                                                                                                                                        | Object storage: Artur creates a bucket and keys and sets four secrets on Fly. `recipeImages.ts` swaps its three functions for the bucket's, and account deletion gains a bucket delete outside the transaction. About a day, plus Artur's setup                                                                                                                                                                                                                                    |
+| 0.8  | The cover image within an assistant's reach                                                                                                                                               | **Out of reach.** A connected assistant sees `hasImage` and nothing else, and has no tool to set one. A model shown a photo in its chat does not hold the photo's bytes to send on, so a tool taking an upload would not work from the clients Artur uses. FR-AI-07 says "create and edit recipes" and does not name the image, so this is Artur's call                                                                                                                                                                                                                                                                                                                                       | A `set_recipe_image` tool taking base64 JPEG, through the same service as the upload route, recorded as `recipe.changed` with field `image`                                                                                                                                                                                                                                                                                                                                        |
+| 0.9  | An ingredient's cooking amount and unit for display (FR-REC-03): a **fixed list of units** rendered in English, or free text as typed                                                     | **A fixed list**: g, kg, ml, dl, l, tsp, tbsp, piece, clove, slice, can, pack, jar, bunch, pinch, handful. Each renders through the catalog with its plural ("2 cloves"), so copy stays English while a Finnish recipe is entered, and step 8 can tell a countable unit from a measure. An assistant maps "tlk" to can. A unit the list lacks is a list change, not a free-text field                                                                                                                                                                                                                                                                                                         | A `text` column of at most 20 characters, shown as typed. Step 8 then needs its own guess at what counts                                                                                                                                                                                                                                                                                                                                                                           |
+| 0.10 | A pasted ingredient list parsed **in the app** by a plain rule, or **not at all** in this step                                                                                            | **Not at all.** The app calls no model, and the salvage holds no line parser: `amount.ts` only scales and formats. A connected assistant is the import path, and its tools are built for it (section d.6). A plain parser that splits "400 g tomaattimurska" into an amount and a search is a separate small slice once real pasted recipes have been measured against it, as the search rule was                                                                                                                                                                                                                                                                                             | A "Paste ingredients" action in the editor that turns each line into a row still to match, with a leading number and unit split off. About two days with its tests on a sample of real recipes                                                                                                                                                                                                                                                                                     |
+| 0.11 | Recipes join the log sheet: a **Recipes** list, the search, recent items with the last servings, and one press to log again. FR-LOG-03 and FR-LOG-05 name foods and saved meals only      | **Join.** The log sheet is where a day is filled, and a recipe is one of the four kinds of entry (FR-DAY-02). Leaving recipes out would make the Recipes tab the only way to log one, from outside the day. Proposed FR-LOG-03 wording in section 1                                                                                                                                                                                                                                                                                                                                                                                                                                           | The log sheet gains nothing. Recipes are logged from their own page only, and recent items stay foods and meals                                                                                                                                                                                                                                                                                                                                                                    |
+| 0.12 | A recipe's servings and a cook's yield are **whole numbers**, 1 to 100                                                                                                                    | **Whole numbers.** "Serves 4" and "It gave 5" are how people count a batch, and step 8 counts full batches. An entry still takes any number of servings with two decimals, such as 1.5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Allow two decimals: one refinement in `RecipeServingsSchema` and the stepper's step                                                                                                                                                                                                                                                                                                                                                                                                |
+| 0.13 | Whether an entry "differs from its recipe" (FR-REC-14) compares its cook with the recipe **as it is now** or as it was when cooked                                                        | **As it is now.** It is what "save the changed version as a new recipe" needs to know, and it needs no stored copy of the recipe. A recipe later edited to match the cook makes the mark go                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | A copy of the recipe's lines and servings on the cook at the moment it is made, compared instead                                                                                                                                                                                                                                                                                                                                                                                   |
+| 0.14 | In the cook sheet, the other planned servings of the same recipe in the six days from the cook's date: listed **unticked**, or ticked                                                     | **Unticked.** A recipe planned on Monday and on Thursday is often two batches, and a tick nobody noticed would tie Thursday to Monday's pot. One tap each ties in the ones that are leftovers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Ticked by default: one initial value and one test                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 0.15 | When an own food on a cook's line is edited, or a Fineli import changes one: the cook's entries **stay as they are** until the cook itself is edited, or its planned ones follow the food | **Stay.** A cook's figures are computed when the cook is made or edited, from its foods as they are then, and nothing else rewrites them, so every entry from one cook always carries one basis. The consequence: correcting a cook later takes the foods' values as they are at the correction, so a food edit made in between reaches that cook's past entries through the correction, and only then. Clarifying FR-DAY-07 wording in section 1                                                                                                                                                                                                                                             | Per-line values per 100 g stored on `cook_ingredients` at each cook write, so a correction recomputes from the values the cook was made with (a second place figures are read from, rejected in g). Four columns, `recipeBasis` fed from them, and a migration. About a day                                                                                                                                                                                                        |
+| 0.16 | An assistant can preview a recipe's figures before it creates one (`preview_recipe`), where entries have no preview tool                                                                  | **Yes.** An assistant must show the person the dish's figures and grams before asking for a yes, and may not compute them itself. The editor shows the same figures live                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Drop the tool. The assistant then creates first and quotes the answer                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 0.17 | A counted line's amount may be typed as a count of one of the food's portions ("4 × Medium piece"), beside FR-REC-03's written amount                                                     | **Yes.** It is the log block's own control, the fastest way to add an egg, and it lets an assistant pass "2 dl" and leave the grams to the app                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Grams only, plus the written amount. The picker loses its chips, and the assistant must convert volumes itself                                                                                                                                                                                                                                                                                                                                                                     |
+| 0.18 | Per-line figures in the recipe page's and the editor's ingredient lists                                                                                                                   | **None.** Rounded per line they do not add up to the whole (c.3), and the day's rule is that rows add up. The picker shows "For this amount" for the one line being edited                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Show them, with a note that they are rounded one by one                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 0.19 | Reordering ingredient lines                                                                                                                                                               | **Not in this step.** Lines keep the order they were added in. A drag inside a draggable sheet fights the sheet's swipe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | A reorder mode with up and down buttons on each row. About a day                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+## 1. Requirements validation
+
+**Verdict: aligned, with gaps resolved by the decisions above, four requirement wordings and one addition to a wording already proposed.** No requirement conflicts with another or with what is built. FR-DAY-07 and FR-REC-13 read as a conflict at first and are not one: FR-DAY-07 protects a past day from edits to a library source, "a food, recipe or saved meal used on it". A cook is not a library source. It is the day's own record of what was made, as an entry's amount is, and FR-DAY-05 already lets a person edit an entry on any date. Correcting a cook is an edit of the days' own records, which FR-REC-13 asks for by name. The proposed FR-DAY-07 wording below is a clarification, not a fix.
+
+| Requirement          | What it asks                                                                         | How this design meets it                                                                                                                                                                                                                   | Note                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| FR-REC-01            | Name, servings, cooking time, ingredients, instructions, notes, optional cover image | `recipes` row (c.1). One cooking time in minutes, optional. Instructions are steps, one per line in the editor                                                                                                                             | Clear. The image ships last (slice R5)                                                                                  |
+| FR-REC-02            | Each ingredient points at a food with grams, or is not counted                       | `recipe_ingredients` CHECK: a food with grams, or a name with neither                                                                                                                                                                      | Clear. A line not counted has no food (c.1)                                                                             |
+| FR-REC-03            | A cooking amount and unit for display beside the grams                               | Two ways, both optional and both shown beside the grams: the amount typed as a count of one of the food's portions ("2 × Medium piece", the log block's own control), and an "As written" amount and unit from a fixed list (decision 0.9) | The portion route is what lets an assistant pass "2 dl" as a portion count and leave the grams to the app (d.6)         |
+| FR-REC-04            | Figures per serving computed from counted lines, never typed                         | `recipeBasis` in `packages/types/src/recipeFigures.ts`, the one computation (c.3). No body schema has a figures field                                                                                                                      | Clear                                                                                                                   |
+| FR-REC-05            | Per serving and for the whole recipe                                                 | Recipe page, figures card: "Per serving" and "Whole recipe"                                                                                                                                                                                | "Whole" is all its servings, what the day shows when every serving is logged as one entry (c.3)                         |
+| FR-REC-06            | Scaled view, amounts and figures following                                           | A servings stepper on the recipe page. `scaleRecipe` in `packages/types` scales grams, portion counts and written amounts, and the figures come from the same basis                                                                        | Clear                                                                                                                   |
+| FR-REC-07            | Edit, duplicate, archive, delete                                                     | Edit and duplicate open the editor (duplicate as a new recipe filled in). Archive as saved meals. Delete hides a recipe that entries or cooks use, as saved meals                                                                          | Clear                                                                                                                   |
+| FR-REC-08            | Search and filter by name, tag, figures per serving                                  | `filterRecipes` and `sortRecipes` in `packages/types`, run on the device by the screen and in `listRecipes` for the assistant (e.2)                                                                                                        | Clear                                                                                                                   |
+| FR-REC-09            | Own tags, favourites                                                                 | `recipe_tags`, `recipes.favourite_at`                                                                                                                                                                                                      | Clear                                                                                                                   |
+| FR-REC-10            | Record when last put on a day, sort by it                                            | `lastPutOn`, the latest date among its entries (decision 0.5)                                                                                                                                                                              | "Record when" read as a date the app keeps, computed rather than stored                                                 |
+| FR-REC-11            | Log as made: change an amount, leave out, add, swap, change the yield                | The cook (c.2) and the cook sheet (f.6)                                                                                                                                                                                                    | The hard part. Clear                                                                                                    |
+| FR-REC-12            | Cook figures from its changed ingredients, recipe untouched                          | A cook has its own lines and yield, and `recipeBasis` runs over them. Nothing writes the recipe                                                                                                                                            | Clear                                                                                                                   |
+| FR-REC-13            | One cook's changes reach every entry from it                                         | `cook_id` on entries, `rewriteCookBasis` on every cook edit, every status and date (decision 0.2)                                                                                                                                          | An edit of the days' own record, as FR-DAY-05 allows. Ask before R3b merges (0.2)                                       |
+| FR-REC-14            | Show that an entry differs, save the changed version as a new recipe                 | `entry.cook.differs` on the day, "As made" on the row, **Save as a new recipe** in the cook sheet (`saveCookAsRecipe`)                                                                                                                     | "Differs" compares with the recipe as it is now (decision 0.13)                                                         |
+| FR-DAY-02            | A recipe entry with a number of servings                                             | Entry kind `recipe`, column `servings`                                                                                                                                                                                                     | Clear                                                                                                                   |
+| FR-DAY-03, 10 to 13  | Two readings, planned and eaten                                                      | Recipe entries are ordinary entries for every reading and every mark                                                                                                                                                                       | Clear                                                                                                                   |
+| FR-DAY-05            | Add, edit, move, copy, remove                                                        | All work on recipe entries. A copy of a cook's entry plans the recipe again (decision 0.3)                                                                                                                                                 |                                                                                                                         |
+| FR-DAY-07            | A past day keeps its totals when a recipe used on it is edited or deleted            | The basis is written once at add. A recipe or food edit rewrites only planned entries from today on. A recipe delete hides it                                                                                                              | Holds. A cook is the day's record, not a library source (decisions 0.2, 0.15)                                           |
+| FR-DAY-09            | Every figure from stored food values                                                 | A recipe entry's basis comes from its foods through `recipeBasis`                                                                                                                                                                          | Clear                                                                                                                   |
+| FR-LOG-01 to 05      | Quick logging of foods and meals                                                     | Recipes join the log sheet (decision 0.11)                                                                                                                                                                                                 | Goes past the wording, below                                                                                            |
+| FR-AI-06, 07, 08, 17 | Recipes over MCP, create and edit, log as made, deletion by request                  | Section d.6                                                                                                                                                                                                                                | The tools follow the screen, including tags, favourites and archive, as connected AI decision 0.5 already did for foods |
+| FR-GAP-02, 06        | Recipes ranked with figures per serving, least recently used first                   | `listRecipes` answers `perServing` and `lastPutOn` for every recipe                                                                                                                                                                        | Step 7 reads it, section i.2                                                                                            |
+| FR-GROC-01 to 04     | List from planned recipes, whole batches, merged by food, not-counted by name        | Lines point at foods, a not-counted line keeps its name, plain entries count servings per recipe, a cook's entries count against the cook's own lines                                                                                      | Step 8, section i.2                                                                                                     |
+| NFR-AI-01, 02, 03    | No inference, one service, tools with the screen                                     | Every slice that adds a screen action adds its tool (section j)                                                                                                                                                                            |                                                                                                                         |
+| Section 5, Images    | Stored by the app, served only to the owner                                          | Postgres, behind the Bearer token, never in an MCP answer (decision 0.7, 0.8)                                                                                                                                                              |                                                                                                                         |
+
+**The problem, stripped of the proposed mechanism.** Artur wants to put a dish he cooks into his plan with figures he trusts, without retyping it each time, and wants the day to be true when the dish he made was not quite the dish he wrote down, including a pot eaten over several days. The requirements' mechanism (a recipe computed from foods, logged by servings, and a separately logged "cook") passes the workaround test: the cook needs one extra table pair and one extra column on entries, no second mount site, no special-cased empty state. The one place the mechanism did force a choice, copying a cook's entry, is decision 0.3.
+
+**Changes proposed that were not asked for**, each also in section h:
+
+- Recipes in the log sheet's lists and recent items (decision 0.11).
+- The Recipes tab becoming three segments, which also gives saved meals and own foods the search field `TODO.md` lists as a known gap (decision 0.6).
+- A `preview_recipe` read tool, so an assistant can show a recipe's figures and grams before it creates one (d.6, decision 0.16).
+- An ingredient amount typed as a count of a portion, beside FR-REC-03's written amount (decision 0.17).
+
+**Requirements drift, with proposed wording** (Artur decides, `TODO.md` carries each):
+
+1. **FR-DAY-07, a clarification.** Not a conflict (verdict above), but a reader of FR-DAY-07 alone would not expect a correction to a cook, or attaching an eaten entry to a cook, to change last Saturday. Proposed FR-DAY-07: "The system shall keep the totals of a past day unchanged when a food, recipe or saved meal used on it is later edited or deleted. An entry the user attaches to a cook takes that cook's figures, and a correction to a cook recomputes every entry that comes from it, on any day, from its foods as they are then."
+2. **FR-LOG-03.** Saved meals have no favourite. Proposed: "The system shall offer the user's recent foods, saved meals and recipes, their favourite foods and recipes, and their saved meals before they type anything." FR-LOG-05 already says "a recent or favourite item" and needs no change.
+3. **FR-LOG-04** says "the last amount a user logged for a food", and recipes follow it in practice with their last servings. Proposed: "The system shall remember the last amount a user logged for a food, and the last servings for a recipe, and offer it the next time."
+4. **FR-DAY-09** names only a saved meal's and an estimate's typed totals, while CLAUDE.md and FR-FOOD-04 also have a user's own food typed from its label. Not this step's to fix, noted so Artur sees it: "The only figures typed in are a saved meal's and an estimate's totals and a user's own food's values per 100 g."
+5. **FR-AI-07, an addition, not a new wording.** It already has a proposed wording in `TODO.md` that adds archiving and copying. Recipes add "mark recipes as favourites" and "tag recipes" to the same sentence. Proposed addition after "create, edit and archive saved meals and recipes": ", tag recipes and mark them as favourites". It goes into the existing `TODO.md` item on FR-AI-07 as one wording, not a second item. The image stays out (decision 0.8).
+
+## a) Overview
+
+Recipes arrive as a library on the Recipes tab, a page per recipe, an editor in a sheet, and a fourth kind of entry. A recipe has lines: a food with grams, or a line not counted such as salt. Its figures per serving are computed by one shared function from its foods, written into an entry once when a serving is put on a day, and rewritten only by the rules every source already follows. When a batch differs from the recipe, the person logs it as made: a cook holds that batch's own lines and yield, entries on several days draw from it, and correcting it corrects them all. Saving the changed version makes a new recipe. A connected assistant reads, filters, previews, creates and logs recipes and cooks through the same services, and can turn a recipe a person pastes into one in the app by matching each line to a food itself. The shakshuka case works after slice R2a, the third slice.
+
+## b) Components and responsibilities
+
+### What exists and is reused unchanged
+
+- `entryFigures`, `totalOf`, `gramsForPortion` (`packages/types/src/figures.ts`). A recipe entry uses the per-meal arithmetic under a new scale name.
+- `gramsOf` (`services/sourceValues.ts:80`) converts a portion count to grams for an ingredient as it does for an entry.
+- `lockUserForWrite` (`sourceValues.ts:33`), `isUsed` (`:116`), the hide-not-delete pattern of `deleteSavedMeal` (`writes/savedMeals.ts:119`).
+- `recordedWrite` and the `recorded/` contract (`services/writes/changeRecord.ts:103`, connected AI "Slice 4a, as built").
+- Web: `FormSheet`, `BottomSheet` (`size="tall"`, `stacked`), `ConfirmDialog`, `useConfirmedDelete`, `DecimalField`, `NativeDateInput`, `SelectField`, `Checkbox`, `segmentedTray`/`segmentButton`, `tagClass`, `chip`/`chipOn`/`chipOff`, `sheetChipRow`, `StatusLine`, `useBarcodeMode`, `useScanner`, `OwnFoodSheet`, `ScannerSheet`, `useSheetTarget`, `useToday`, `useKnownOffline`, `fold` (`components/log/mealFilter.ts:14`). The log sheet's search and `LogBlock`'s amount controls are not reused as they stand: R2a lifts them into `useFoodFinder` and `AmountField` first (f.3).
+
+### Backend, `apps/backend/src/`
+
+| Component                                                                          | Change                               | Owns                                                                                                                                                                                                                                                  | Depends on                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `db/schema/recipes.ts`                                                             | new (R1a)                            | `recipes`, `recipe_ingredients`, `recipe_tags`                                                                                                                                                                                                        | `users`, `foods`                   |
+| `db/schema/cooks.ts`                                                               | new (R3a)                            | `cooks`, `cook_ingredients`                                                                                                                                                                                                                           | `recipes`, `foods`                 |
+| `db/schema/recipeImages.ts`                                                        | new (R5)                             | `recipe_images`                                                                                                                                                                                                                                       | `recipes`                          |
+| `db/schema/entries.ts`                                                             | modified (R1b, R3a)                  | kind `recipe`, `recipe_id`, `servings` (R1b), `cook_id` (R3a)                                                                                                                                                                                         | the two above                      |
+| `services/recipeValues.ts`                                                         | new (R1a, grows in R1b, R3a and R3b) | `readLineFoods` (a draft's foods, its own foods `FOR SHARE` in id order in a write), `checkLine` (one line's food values and grams, or its refusal), the basis of a recipe or a cook, `readRecipeForEntry`, `rewriteCookBasis` (R3b)                  | `recipeBasis`, `sourceValues.ts`   |
+| `services/reads/recipes.ts`                                                        | new (R1a)                            | `listRecipes`, `getRecipe`, `previewRecipe`, `recipeTags`                                                                                                                                                                                             | `recipeValues.ts`, `filterRecipes` |
+| `services/writes/recipes.ts`                                                       | new (R1a)                            | `createRecipe`, `updateRecipe`, `setRecipeArchived`, `setRecipeFavourite`, `deleteRecipe`                                                                                                                                                             | `recipeValues.ts`                  |
+| `services/reads/cooks.ts`, `services/writes/cooks.ts`                              | new (R3a, grows in R3b)              | `getCook`, `createCook`, `saveCookAsRecipe` (R3a), `updateCook` (R3b)                                                                                                                                                                                 | `recipeValues.ts`, `entries.ts`    |
+| `services/writes/entries.ts`                                                       | modified (R1b, R3a)                  | kind `recipe` in `valuesFor`, `servings` in `updateEntry`, the new keys in `sourceRefused` and `restoreRefused`, the copy rule for a cook's entry, orphan cooks in `purgeExpired`                                                                     | `recipeValues.ts`                  |
+| `services/entryRows.ts`                                                            | modified (R1b, R3a)                  | the recipe and cook joins, `scaleOf` for `recipe`, `cook.differs`                                                                                                                                                                                     |                                    |
+| `services/sourceValues.ts`                                                         | modified (R1a, R1b, R3a)             | `isUsed` asks the ingredient tables for a food (R1a, R3a) and takes a `recipe` source, entries and removed entries only (R1b). `rewritePlannedBasis` becomes lock, then read, then write, with a `recipe` source and the recipes on a food (R1b, e.3) |                                    |
+| `services/writes/foods.ts`, `services/writes/savedMeals.ts`                        | modified (R1b)                       | call `rewritePlannedBasis` without figures, since it reads them after its locks                                                                                                                                                                       | `sourceValues.ts`                  |
+| `services/reads/log.ts`                                                            | modified (R2b)                       | recipes in `listRecents`                                                                                                                                                                                                                              |                                    |
+| `services/recipeImages.ts`, `routes/recipeImages.ts`                               | new (R5)                             | the image store and its routes                                                                                                                                                                                                                        |                                    |
+| `routes/recipes.ts`, `routes/cooks.ts`                                             | new (R1a, R3a, `PUT /cooks/:id` R3b) | REST                                                                                                                                                                                                                                                  | services                           |
+| `services/writes/recorded/recipes.ts`, `recorded/cooks.ts`                         | new (R1a, R1b, R3a, R3b)             | per-tool before-readers, summaries, replay readers                                                                                                                                                                                                    | `changeRecord.ts`                  |
+| `mcp/tools/recipes.ts`, `mcp/tools/writes/recipes.ts`, `mcp/tools/writes/cooks.ts` | new                                  | the tools of d.6                                                                                                                                                                                                                                      | `recorded/`                        |
+| `mcp/appRules.ts`                                                                  | modified (R1a, R3a, R3b)             | section 9 Recipes (new), section 10's sentence on recipes, section 11's opening sentence and rule 6, write rules 8 and 9 (d.6)                                                                                                                        |                                    |
+| `mcp/result.ts`                                                                    | modified (R1a)                       | `refusalText` adds `line: N` when the refusal names a line (d.1)                                                                                                                                                                                      |                                    |
+
+### Shared types, `packages/types/src/`
+
+| File                  | Change                                | Owns                                                                                                                                                                    |
+| --------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `recipes.ts`          | new (R1a)                             | units, limits, line and recipe body schemas, `Recipe`, `RecipeSummary`, `RecipeFilterSchema` (JSON, for the service and the tool), `RecipeQuerySchema` (the REST query) |
+| `recipeFigures.ts`    | new (R1a)                             | `recipeBasis`, `lineFigures`, `scaleRecipe`                                                                                                                             |
+| `recipeFilter.ts`     | new (R1a)                             | `filterRecipes`, `sortRecipes`, `fold` (moved here from `mealFilter.ts`, which imports it)                                                                              |
+| `cooks.ts`            | new (R3a), `CookEditBodySchema` (R3b) | cook schemas, `cookDiff`                                                                                                                                                |
+| `figures.ts`          | modified (R1a)                        | `Scale` gains `{ per: "serving"; count }`                                                                                                                               |
+| `entries.ts`          | modified (R1b, R3a)                   | kind `recipe`, `servings`, `recipe`, `cook` on `EntrySchema`                                                                                                            |
+| `log.ts`              | modified (R2b)                        | `RecentItem` kind `recipe`                                                                                                                                              |
+| `assistantChanges.ts` | modified (R1a, R1b, R3a, R3b)         | the recipe and cook actions and summaries                                                                                                                               |
+| `errors.ts`           | modified                              | the codes of d.5                                                                                                                                                        |
+
+### Web, `apps/web/src/`
+
+| Component                                                                                                                | Change                                | Owns                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/recipes/RecipesTab.tsx`                                                                                      | rewritten (R2a)                       | the segments, one action and one search per segment                                                                                                                                                                       |
+| `components/foods/useFoodFinder.tsx`, `components/log/AmountField.tsx`                                                   | new, lifted out (R2a, first commit)   | the food search as a hook returning three slots (search field, results, stacked sheets), and the amount with its chips and figures, each without logging. `FoodSheet`, `FoodSearchView` and `LogBlock` compose them (f.3) |
+| `components/recipes/RecipeList.tsx`, `RecipeRow.tsx`, `RecipeFilterSheet.tsx`                                            | new (R2a, R2b)                        | the recipes segment                                                                                                                                                                                                       |
+| `app/(app)/recipes/[id]/page.tsx`, `components/recipes/RecipePage.tsx`                                                   | new (R2a)                             | the recipe page                                                                                                                                                                                                           |
+| `components/recipes/RecipeFigures.tsx`                                                                                   | new (R2a)                             | the figures card, shared by the page, the editor and the cook sheet                                                                                                                                                       |
+| `components/recipes/RecipeEditorSheet.tsx`, `IngredientRows.tsx`, `TagField.tsx`, `NotCountedSheet.tsx`                  | new (R2a)                             | the editor                                                                                                                                                                                                                |
+| `components/recipes/IngredientPicker.tsx`                                                                                | new (R2a)                             | the tall stacked sheet: search a food, then its amount                                                                                                                                                                    |
+| `components/recipes/RecipeLogSheet.tsx`                                                                                  | new (R2a)                             | logging from the recipe page                                                                                                                                                                                              |
+| `components/log/RecipeView.tsx`, browse and search changes                                                               | new, modified (R2b)                   | recipes in the log sheet                                                                                                                                                                                                  |
+| `components/day/*` entry rows and entry sheet                                                                            | modified (R1b minimal, R2a, R4a, R4b) | "1 serving", the Servings field, "As made"                                                                                                                                                                                |
+| `components/recipes/CookSheet.tsx`, `SaveCookAsRecipeSheet.tsx`                                                          | new (R4a, R4b)                        | logging as made                                                                                                                                                                                                           |
+| `components/recipes/CoverImage.tsx`, `lib/imagePreprocess.ts`                                                            | new (R5)                              | the image                                                                                                                                                                                                                 |
+| `lib/queryKeys.ts`, `queryOptions.ts`, `invalidation.ts`, `lib/recipeCache.ts`, `lib/api/recipes.ts`, `lib/api/cooks.ts` | new, modified                         | data                                                                                                                                                                                                                      |
+| `messages/en.json`                                                                                                       | modified                              | every string                                                                                                                                                                                                              |
+
+## c) Data model
+
+Text plus CHECK, never `pgEnum`, so a later value is an `ALTER ... CHECK` (the comment at `db/schema/entries.ts:19`). Every new table has `user_id` cascading from `users` and a row in `seedOneOfEach`, so `userCascade.db.test.ts` passes at every merge. Every key into a table reached from `users` cascades (memory: the cascade walk forbids SET NULL).
+
+### c.1 Recipes (slice R1a)
+
+```ts
+// db/schema/recipes.ts
+export const recipes = pgTable(
+  "recipes",
+  {
+    // Chosen by the client, so a repeated create applies once.
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(), // 1 to 120, trimmed
+    servings: integer("servings").notNull(), // 1 to 100
+    timeMinutes: integer("time_minutes"), // 1 to 1440, null when not given
+    /** Steps in order, each 1 to 1000 characters, at most 40. */
+    steps: text("steps")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    notes: text("notes"), // at most 2000, null when blank
+    favouriteAt: timestamp("favourite_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    // Deleted by the user while entries, removed entries or cooks use it. Invisible everywhere but on those.
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("recipes_name_len", sql`char_length(${t.name}) BETWEEN 1 AND 120`),
+    check("recipes_servings", sql`${t.servings} BETWEEN 1 AND 100`),
+    check("recipes_time", sql`${t.timeMinutes} IS NULL OR ${t.timeMinutes} BETWEEN 1 AND 1440`),
+    check("recipes_steps", sql`cardinality(${t.steps}) <= 40`),
+    unique("recipes_id_user_uq").on(t.id, t.userId), // target of entries' and cooks' composite keys
+    index("recipes_user_idx").on(t.userId),
+  ],
+);
+
+export const recipeIngredients = pgTable(
+  "recipe_ingredients",
+  {
+    // Chosen by the client, kept across edits, so a cook's line can name the line it came from.
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id").notNull(),
+    position: integer("position").notNull(), // 0-based, the order on screen
+    // Counted: a food and grams. Not counted: a name and neither.
+    foodId: uuid("food_id").references(() => foods.id, { onDelete: "cascade" }),
+    grams: numeric("grams", { precision: 5, scale: 1, mode: "number" }), // > 0, <= 5000
+    // As entries: typed as a count of a portion. portion_id is a hint with no key, read through the portion rule.
+    portionId: uuid("portion_id"),
+    portionCount: numeric("portion_count", { precision: 5, scale: 2, mode: "number" }),
+    portionUnit: text("portion_unit"),
+    portionName: text("portion_name"),
+    name: text("name"), // a line not counted: 1 to 80
+    // As written in the recipe, for display: "2 cloves". Both or neither.
+    writtenAmount: numeric("written_amount", { precision: 7, scale: 2, mode: "number" }),
+    writtenUnit: text("written_unit"), // INGREDIENT_UNITS
+    note: text("note"), // at most 80: "chopped", "for serving"
+  },
+  (t) => [
+    foreignKey({
+      name: "recipe_ingredients_recipe_fk",
+      columns: [t.recipeId, t.userId],
+      foreignColumns: [recipes.id, recipes.userId],
+    }).onDelete("cascade"),
+    check(
+      "recipe_ingredients_kind",
+      sql`(${t.foodId} IS NULL) = (${t.grams} IS NULL) AND (${t.foodId} IS NULL) = (${t.name} IS NOT NULL)`,
+    ),
+    check("recipe_ingredients_portion" /* the entries_portion rule, verbatim */),
+    check("recipe_ingredients_portion_counted", sql`${t.portionCount} IS NULL OR ${t.foodId} IS NOT NULL`),
+    check("recipe_ingredients_grams", sql`${t.grams} IS NULL OR (${t.grams} > 0 AND ${t.grams} <= 5000)`),
+    check(
+      "recipe_ingredients_written",
+      sql`(${t.writtenAmount} IS NULL) = (${t.writtenUnit} IS NULL) AND (${t.writtenAmount} IS NULL OR ${t.writtenAmount} > 0)`,
+    ),
+    check("recipe_ingredients_written_unit", sql`${t.writtenUnit} IN (${listOf(INGREDIENT_UNITS)})`),
+    uniqueIndex("recipe_ingredients_position_uq").on(t.recipeId, t.position),
+    index("recipe_ingredients_food_idx").on(t.foodId), // the own-food rewrite and isUsed
+  ],
+);
+
+export const recipeTags = pgTable(
+  "recipe_tags",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id").notNull(),
+    tag: text("tag").notNull(), // 1 to 30, trimmed, as typed
+  },
+  (t) => [
+    foreignKey({
+      name: "recipe_tags_recipe_fk",
+      columns: [t.recipeId, t.userId],
+      foreignColumns: [recipes.id, recipes.userId],
+    }).onDelete("cascade"),
+    // The primary key in the migration: (recipe_id, lower(tag)), an expression key written by hand in the SQL,
+    // since Drizzle's primaryKey() takes columns only. The schema declares it as this unique index.
+    uniqueIndex("recipe_tags_uq").on(t.recipeId, sql`lower(${t.tag})`),
+    index("recipe_tags_user_idx").on(t.userId),
+  ],
+);
+```
+
+- **A line's food** is any food the user can see when the line is written: Fineli, a kept Open Food Facts product, or their own food (`visibleFood`, `foodScope.ts`). Reads join the food without the visibility rule, scoped by the recipe's `user_id`, as `selectEntries` does, so a line keeps its food when the food is later hidden or retired.
+- **When the food changes later.** An own food **edited**: the recipe's figures follow at once (they are computed at read), and its planned plain entries from today on are rewritten (decision 0.4). A cook's entries do not follow it: a cook's figures change only when the cook is edited (decision 0.15). An own food **deleted** while a recipe or cook line uses it: hidden, never deleted, because `isUsed` now also asks `recipe_ingredients` (R1a) and `cook_ingredients` (R3a). The line keeps computing with the hidden food's values and shows "This food was deleted.". A Fineli food **retired** by an import: kept and readable, the line shows "No longer in Fineli.". An Open Food Facts food **taken down** (`retired_at`): the same, with "No longer on Open Food Facts.". A Fineli **re-import** that changes a food's values changes the recipe's figures on its page. Entries keep theirs, as for a logged food today, and a cook keeps its figures until it is edited.
+- **Saving a line whose food is now hidden or retired.** `updateRecipe` checks visibility only for a food not already on that recipe, so an edit of the name never fails on an old line. A new line, or a swap, needs a visible food (`food_not_found`).
+- **Limits**: 1 to 60 lines, 0 to 10 tags, 0 to 40 steps. A recipe needs at least one line, of any kind. One serving may come to at most 10 000 kcal and 1 000 g of each macro, the caps a typed figure has, so the basis fits the entry columns (`numeric(7,2)` and `(7,3)`), else `recipe_serving_too_large`.
+- **Ingredient units** (`INGREDIENT_UNITS`, `packages/types/src/recipes.ts`): `g`, `kg`, `ml`, `dl`, `l`, `tsp`, `tbsp`, `piece`, `clove`, `slice`, `can`, `pack`, `jar`, `bunch`, `pinch`, `handful`. `COUNTABLE_UNITS` (`piece` to `bunch`) is exported for step 8.
+
+### c.2 Cooks (slices R3a and R3b)
+
+```ts
+// db/schema/cooks.ts
+export const cooks = pgTable(
+  "cooks",
+  {
+    id: uuid("id").primaryKey(), // client-chosen
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id").notNull(),
+    date: date("date", { mode: "string" }).notNull(), // the day it was made
+    servings: integer("servings").notNull(), // what this batch gave, 1 to 100
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    foreignKey({
+      name: "cooks_recipe_fk",
+      columns: [t.recipeId, t.userId],
+      foreignColumns: [recipes.id, recipes.userId],
+    }).onDelete("cascade"),
+    check("cooks_servings", sql`${t.servings} BETWEEN 1 AND 100`),
+    // Target of the entry's three-column key: an entry's cook is of the entry's recipe and user.
+    unique("cooks_id_recipe_user_uq").on(t.id, t.recipeId, t.userId),
+    index("cooks_recipe_idx").on(t.recipeId),
+  ],
+);
+
+// cook_ingredients: every column of recipe_ingredients with cook_id in place of recipe_id
+// (composite key (cook_id, user_id) to cooks), plus:
+//   fromLineId: uuid("from_line_id") — the recipe line it started as. A hint with no key,
+//   null on a line the cook added. Never read for figures, only by cookDiff.
+```
+
+- **Entries.** R1b adds `recipe_id`, `servings`, `entries_recipe`, `entries_recipe_fields` without its `cook_id` clause, `entries_recipe_user_fk` and `entries_recipe_idx`. R3a adds `cook_id`, the `cook_id IS NULL` clause of `entries_recipe_fields`, `entries_cook_fk` and `entries_cook_idx`:
+
+  ```ts
+  recipeId: uuid("recipe_id"),
+  servings: numeric("servings", { precision: 5, scale: 2, mode: "number" }), // above 0, at most 100
+  cookId: uuid("cook_id"),
+  // CHECKs:
+  //   entries_kind gains 'recipe' (ENTRY_KINDS)
+  //   entries_recipe: (kind = 'recipe') = (recipe_id IS NOT NULL AND servings IS NOT NULL)
+  //   entries_recipe_fields: kind = 'recipe' OR (recipe_id IS NULL AND servings IS NULL AND cook_id IS NULL)
+  //   entries_amounts gains (servings IS NULL OR (servings > 0 AND servings <= 100)), as EntryCountSchema
+  // Keys:
+  //   entries_recipe_user_fk (recipe_id, user_id) -> recipes (id, user_id) ON DELETE CASCADE
+  //   entries_cook_fk (cook_id, recipe_id, user_id) -> cooks (id, recipe_id, user_id) ON DELETE CASCADE
+  //     MATCH SIMPLE: a plain recipe entry (cook_id null) is not checked against cooks.
+  // Indexes: entries_recipe_idx (recipe_id, date), entries_cook_idx (cook_id)
+  ```
+
+  A `removed_entries.row` taken before either migration lacks the new columns and restores with them null, which every CHECK accepts for a food, meal or estimate. The comment at `entries.ts:28` is honoured: nothing is renamed or made NOT NULL.
+
+- **A cook's figures.** A cook's basis is computed when the cook is made (`createCook`) and when it is edited (`updateCook`), from its counted lines and its foods as they are at that moment, and written onto every entry from it. Nothing else writes it: an own-food edit and a Fineli import leave cooks alone (decision 0.15). So every entry from one cook carries one basis, `CookSchema.basis`, at all times. A correction recomputes from the foods as they are then, so a food edit made since reaches the cook's entries through that correction.
+- **A cook's life.** Made by `createCook` with at least one entry. It lives while an entry or a removed entry of the last ten minutes names it. `purgeExpired` (`writes/entries.ts:296`, called today by `removeEntry`, `removeEntries` and `restoreEntry` only) purges the removed rows first, then the orphan cooks, in the pattern `deleteOwnFood` uses (`writes/foods.ts:136`): it selects the user's cooks no entry and no remaining removed row names, `FOR UPDATE SKIP LOCKED`, checks use again in a new statement, and deletes only those still unused. `addEntry` with a `cookId` reads the cook `FOR SHARE`, as it must for the basis, so a purge skips a cook an add holds, and an add that comes after a purge answers `cook_not_found` instead of being cascaded away by `entries_cook_fk`.
+- **A removed entry of a cook, restored after the cook was corrected.** `rewriteCookBasis` also sets the four `basis_*` keys of every `removed_entries.row` that names the cook (`row->>'cook_id'`), in the same transaction, so a restore inside ten minutes brings the entry back with the cook's current basis, and the cook's entries keep one basis.
+- **A recipe in use is never deleted.** `deleteRecipe` locks the recipe `FOR UPDATE`, then asks `isUsed` with the `recipe` source: an entry of it, or a removed entry of it in the last ten minutes (R1b). **Cooks do not count.** Every entry from a cook carries the cook's recipe in `recipe_id` (`entries_cook_fk` is on `(cook_id, recipe_id, user_id)`), and so does its removed row, so a cook that still feeds an entry or an Undo already makes its recipe used through that entry. A cook with neither is an orphan the next purge would delete, and counting it would leave a recipe hidden for ever when the person removed its last entry, let Undo run out and deleted it. In R1a nothing can use a recipe yet, so `deleteRecipe` deletes. Used: `deleted_at`, the favourite cleared, tags kept (a cook's "Save as a new recipe" copies them). Unused: deleted, and its lines, tags, image and orphan cooks go by cascade (`cooks_recipe_fk`). An add with a `cookId` reads the recipe `FOR SHARE` before the cook, so it waits for the delete and then answers `recipe_not_found`. **A food used by a cook's line is different:** `isUsed` for a food counts every `cook_ingredients` row, orphan or not, so an own food on any cook is hidden rather than deleted. Deleting it would cascade away the line under a cook an assistant could still log from, and a hidden own food costs nothing.
+
+### c.3 Figures (slice R1a)
+
+One computation, in `packages/types/src/recipeFigures.ts`, run by the server for every recipe, cook and entry figure and by the web for the editor's and the cook sheet's live figures, so a preview is the figure that is saved:
+
+```ts
+export interface CountedLine {
+  per100g: Figures;
+  grams: number;
+}
+
+/**
+ * The figures of one serving of a batch of `servings`, from its counted lines: the exact sum over
+ * the lines in integers (per 100 g in thousandths times grams in tenths, so millionths of a unit),
+ * divided by the servings and rounded once, halves away from zero, to the precision the entry
+ * columns hold: kcal to two decimals, grams to three. Lines not counted are not passed in.
+ * The largest sum, 60 lines of 5000 g at 1000 kcal per 100 g, is 3 x 10^12, well below 2^53.
+ */
+export function recipeBasis(lines: CountedLine[], servings: number): Figures;
+
+/** The batch scaled: grams, portion counts and written amounts times servings / recipe.servings. */
+export function scaleRecipe<L extends ScalableLine>(lines: L[], from: number, to: number): L[];
+```
+
+- **Per serving** is `entryFigures(basis, { per: "serving", count: 1 })`, and **whole** is `entryFigures(basis, { per: "serving", count: servings })`. "Whole" therefore means all of its servings: exactly what a day shows when all of them are logged **as one entry**, through the same function. Logged as several entries, each row is rounded on its own, and the rows add up to the day's total as the day's rule says, so they may differ from "whole" by the rounding. The worked example set to serve 3, eaten as three one-serving entries over three days, shows 14.5 g of protein on each day, 43.5 g in all, while "Whole batch" says 43.6 g. That is correct, not a bug. **A view scaled to N servings** is `entryFigures(basis, { per: "serving", count: N })`. `{ per: "serving" }` uses the per-meal arithmetic of `amountOf` (`figures.ts`), a new case name for readability.
+- **A recipe entry's basis** is `recipeBasis` of the recipe's counted lines at the moment of the add, or of its cook's lines for a cook's entry. Its figures are `entryFigures(basis, { per: "serving", count: servings })`. So logging one serving shows on the day exactly the recipe page's "Per serving".
+- **No per-line figures in the list views.** Rounded per line, the lines would not add up to the whole (the worked example's protein: 43.5 g from rounded lines against 43.6 g whole), and the day's own rule is that rows add up to their total. The picker's amount view shows "For this amount" for the one line being edited, as the log block does.
+
+**Worked example, pinned as test invariants** (`recipeFigures.test.ts`, invented values per 100 g):
+
+| Line             | Per 100 g (kcal, P, C, F) | Grams |
+| ---------------- | ------------------------- | ----- |
+| Egg              | 143, 12.6, 0.7, 9.5       | 240   |
+| Crushed tomatoes | 24, 1.2, 3.9, 0.2         | 400   |
+| Feta             | 264, 14.2, 4.1, 21.3      | 60    |
+| Olive oil        | 884, 0, 0, 100            | 15    |
+| Salt             | not counted               |       |
+
+Exact sums: 730.2 kcal, 43.56 g protein, 19.74 g carbohydrates, 51.38 g fat. Serves 2.
+
+- Basis per serving: 365.10 kcal, 21.780, 9.870, 25.690.
+- **Per serving shows 365 kcal, 21.8, 9.9, 25.7.** One serving logged on a day shows the same.
+- **Whole shows 730 kcal, 43.6, 19.7, 51.4.** Never 43.5 g protein, the sum of the lines rounded one by one.
+- **Scaled to 3 servings: 1095 kcal, 65.3, 29.6, 77.1.** Never 65.4 g, three times the rounded serving.
+- The same recipe set to serve 3: per serving 243.40 kcal, 14.520 g, so 243 kcal and 14.5 g. Three entries of one serving show 14.5 g each, 43.5 g together, against a whole of 43.6 g (pinned as correct, above).
+
+## d) API interface
+
+All under `/api/v1`, Bearer, refusals `{ message, code }`.
+
+### d.1 Recipes (R1a)
+
+| Method      | Path                                                                                                    | Answers                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET         | `/recipes?archived=&q=&tags=&minProteinG=&maxProteinG=&minEnergyKcal=&maxEnergyKcal=&favourites=&sort=` | 200 `{ recipes: RecipeSummary[] }`. Every filter optional, run by `filterRecipes`. The web sends none and filters on the device                                           |
+| GET         | `/recipes/:id`                                                                                          | 200 `Recipe`, archived or deleted-but-used too, since a day's entry opens it. 404 `recipe_not_found`                                                                      |
+| POST        | `/recipes`                                                                                              | 201 `Recipe`, 200 on a repeat with the same id. Takes `RecipeBody`. 409 `recipe_id_taken`                                                                                 |
+| PUT         | `/recipes/:id`                                                                                          | 200 `Recipe`. Takes `RecipeEditBody`, the whole recipe. 404                                                                                                               |
+| PUT, DELETE | `/recipes/:id/archived`                                                                                 | 204                                                                                                                                                                       |
+| PUT, DELETE | `/recipes/:id/favourite`                                                                                | 204                                                                                                                                                                       |
+| DELETE      | `/recipes/:id`                                                                                          | 204. Hides one in use                                                                                                                                                     |
+| POST        | `/recipes/preview`                                                                                      | 200 `RecipePreview`. Takes `{ servings, lines }`. Writes nothing. Exists for the assistant's `preview_recipe`, and REST has it so the route and the tool stay one service |
+
+```ts
+// packages/types/src/recipes.ts (abridged; limits as c.1)
+export const IngredientLineBodySchema = z.discriminatedUnion("counted", [
+  z.object({
+    counted: z.literal(true),
+    id: z.uuid(),
+    foodId: z.uuid(),
+    amount: FoodAmountSchema, // { grams } or { portionId, count }, as an entry
+    written: WrittenAmountSchema.nullable().default(null), // { amount, unit }
+    note: LineNoteSchema.nullable().default(null),
+  }),
+  z.object({
+    counted: z.literal(false),
+    id: z.uuid(),
+    name: LineNameSchema,
+    written: WrittenAmountSchema.nullable().default(null),
+    note: LineNoteSchema.nullable().default(null),
+  }),
+]);
+
+const recipeFields = {
+  name: NameSchema,
+  servings: RecipeServingsSchema, // int 1..100
+  timeMinutes: z.number().int().min(1).max(1440).nullable(),
+  lines: z.array(IngredientLineBodySchema).min(1).max(60), // ids distinct
+  steps: z.array(StepSchema).max(40),
+  notes: RecipeNotesSchema.nullable(),
+  tags: z.array(TagSchema).max(10), // distinct case-insensitively
+};
+export const RecipeBodySchema = z.object({ id: z.uuid(), ...recipeFields });
+export const RecipeEditBodySchema = z.object(recipeFields);
+
+export const RecipeLineSchema = z.object({
+  id: z.uuid(),
+  position: z.number().int(),
+  counted: z.boolean(),
+  food: z
+    .object({
+      id: z.uuid(),
+      name: z.string(), // in the user's food-name language
+      source: z.enum(FOOD_SOURCES),
+      per100g: FiguresSchema, // so the web computes live figures with recipeBasis
+      retired: z.boolean(),
+      deleted: z.boolean(),
+    })
+    .nullable(),
+  name: z.string().nullable(), // a line not counted
+  grams: z.number().nullable(),
+  portion: EntrySchema.shape.portion, // { id, unit, name, count } | null
+  written: z.object({ amount: z.number(), unit: z.enum(INGREDIENT_UNITS) }).nullable(),
+  note: z.string().nullable(),
+});
+
+export const RecipeSummarySchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  servings: z.number().int(),
+  timeMinutes: z.number().int().nullable(),
+  tags: z.array(z.string()),
+  favourite: z.boolean(),
+  archived: z.boolean(),
+  perServing: FiguresSchema, // rounded, as shown
+  basis: FiguresSchema, // per serving at stored precision, for an entry preview
+  lastPutOn: IsoDateSchema.nullable(),
+  lastServings: z.number().nullable(), // servings of the latest eaten entry (R2b), else null
+  imageId: z.uuid().nullable(), // R5; null before
+  foodsGone: z.boolean(), // a line's food is deleted or retired
+});
+
+export const RecipeSchema = RecipeSummarySchema.extend({
+  deleted: z.boolean(),
+  whole: FiguresSchema,
+  lines: z.array(RecipeLineSchema),
+  steps: z.array(z.string()),
+  notes: z.string().nullable(),
+});
+
+/** What a draft comes to, line by line, written nowhere. Every line is checked, not only the first refused one. */
+export const RecipePreviewSchema = z.object({
+  lines: z.array(
+    z.object({
+      index: z.number().int(), // the line's place in the draft, from 0
+      foodName: z.string().nullable(), // the food as the app reads it, in the user's language; null for a line not counted
+      grams: z.number().nullable(), // what the app stores: the grams sent, or gramsOf's answer for a portion count
+      portion: EntrySchema.shape.portion, // the portion the count was of, with its label
+      refusal: z.enum(ERROR_CODES).nullable(), // food_not_found, portion_not_found, entry_grams_invalid, ...
+    }),
+  ),
+  perServing: FiguresSchema.nullable(), // null while any line is refused
+  whole: FiguresSchema.nullable(),
+  basis: FiguresSchema.nullable(),
+  refusal: z.enum(ERROR_CODES).nullable(), // a refusal of the whole draft, such as recipe_serving_too_large
+});
+
+export const RECIPE_SORTS = ["name", "lastPutOn", "protein", "energy"] as const;
+
+/** A recipe filter as JSON: what `filterRecipes`, `listRecipes` and the `list_recipes` tool take. */
+export const RecipeFilterSchema = z.object({
+  archived: z.boolean().default(false),
+  q: z.string().max(100).optional(), // every word in the name or a tag, folded
+  tags: z.array(TagSchema).max(10).optional(), // all of them
+  minProteinG: z.number().min(0).optional(), // per serving, as shown
+  maxProteinG: z.number().min(0).optional(),
+  minEnergyKcal: z.number().min(0).optional(),
+  maxEnergyKcal: z.number().min(0).optional(),
+  favourites: z.boolean().optional(),
+  sort: z.enum(RECIPE_SORTS).default("name"),
+});
+
+/** A query string flag, as SavedMealsQuerySchema takes `archived`: "true" or "false", never Boolean(value). */
+const queryFlag = z.enum(["true", "false"]).transform((v) => v === "true");
+
+/** The query of `GET /recipes`, as Express hands it over: strings, and a repeated key as an array. Parses to a RecipeFilter. */
+export const RecipeQuerySchema = z.object({
+  archived: queryFlag.default("false"),
+  q: z.string().max(100).optional(),
+  // ?tags=a gives a string, ?tags=a&tags=b an array: both become an array.
+  tags: z
+    .union([TagSchema, z.array(TagSchema).max(10)])
+    .transform((v) => (Array.isArray(v) ? v : [v]))
+    .optional(),
+  minProteinG: z.coerce.number().min(0).optional(),
+  maxProteinG: z.coerce.number().min(0).optional(),
+  minEnergyKcal: z.coerce.number().min(0).optional(),
+  maxEnergyKcal: z.coerce.number().min(0).optional(),
+  favourites: queryFlag.optional(),
+  sort: z.enum(RECIPE_SORTS).default("name"),
+});
+export type RecipeFilter = z.output<typeof RecipeFilterSchema>; // RecipeQuerySchema's output is assignable to it
+```
+
+- **Query flags and repeated keys.** Zod's `z.coerce.boolean()` is `Boolean(value)`, so `"false"` would parse as true. The repository's one boolean query, `SavedMealsQuerySchema.archived` (`packages/types/src/savedMeals.ts:42`), takes the strings `"true"` and `"false"` and transforms them, and `RecipeQuerySchema` does the same through `queryFlag`. `z.stringbool()` (Zod 4, the repository has 4.6.7) would also do, but it accepts "yes", "1" and "on" as well, and the existing pattern is stricter. Express 5's default query parser hands over one `?tags=x` as a string and a repeated key as an array, and no existing query takes a list, so `tags` takes either and normalises to an array. A route test pins both, with `archived=false` (R1a). The `list_recipes` tool takes JSON through `RecipeFilterSchema`, with plain booleans and arrays, as `list_saved_meals` takes `archived` as a boolean (`mcp/tools/meals.ts:7-15`), so neither parsing trap reaches it.
+- **Sorts.** `name`: Finnish order (`localeCompare(..., "fi")`, the order `sortedSources` uses). `lastPutOn`: latest first, never-put last, then by name. `protein`: most per serving first. `energy`: fewest per serving first. Ties by name. A filter on figures compares the figures as shown (rounded), so "at least 30 g" keeps a recipe that shows 30.0 g.
+- **Repeats.** A create with an id the user holds answers that recipe, 200, and ignores the body, as `createSavedMeal` does. Another user's id: 409 `recipe_id_taken`.
+- **Line ids** are kept across edits: an edit sends the ids it read, and a new line takes a new id. A line id held by another recipe, or another user: 409 `ingredient_id_taken`.
+- **One line check for preview and save.** Two functions in `recipeValues.ts`:
+  - `readLineFoods(tx, ctx, foodIds, knownFoodIds, { lock })` reads every distinct food of a draft's counted lines: a food the user can see, or one already on this recipe or cook (`knownFoodIds`, read without the visibility rule). With `lock: true` it first takes the **user's own foods** among them `FOR SHARE`, in one statement ordered by food id (`WHERE id IN (...) AND user_id = ctx.userId`), and then reads every food's values in a second statement, which therefore sees any own-food edit that committed while the lock waited. Fineli foods and kept Open Food Facts products are never locked (e.3, "Shared foods are not locked"). It answers a map from id to the food's values, flags and name. A food it does not return is refused at its line.
+  - `checkLine(tx, ctx, line, foods)` answers a counted line's food values and grams from that map, or its refusal code: the food present, the portion the food's and visible, the grams in range after `gramsOf`.
+  - `previewRecipe` reads with `lock: false` and runs `checkLine` on every line, answering each line's result. `createRecipe`, `updateRecipe`, `createCook` and `updateCook` read with `lock: true`, right after the recipe or cook row lock (e.3, lock order), and throw the first refusal. So a preview that passes is a save that passes.
+  - **Why the writes hold their foods.** A food edit finds the recipes it reaches through their committed lines. Without the share lock, a recipe edit that adds a line on own food F, still uncommitted, is invisible to a concurrent edit of F, and the recipe edit then writes F's old values onto its planned entries: a lost update. A delete of F racing the same add would not see the line either, delete F outright, and the line's insert would fail its foreign key as a 500. With the lock, the food edit or delete waits for the recipe write, or the recipe write waits for it and then reads the food as it is (e.3).
+- **A refusal names its line.** `AppError` gains an optional `line` (the line's index from 0), and the error middleware sends `{ message, code, line }` when it is set. The service sets it from `checkLine`. `parseBody` sets it when the first Zod issue's path starts with `lines` and an index. The `ApiError` interface in `packages/types/src/errors.ts` gains `line?: number`. The web's editor uses it to put the refusal under that ingredient, through a new `getErrorLine(err)` in `apps/web/src/lib/errors.ts` (R2a). Every other web reader keeps reading `code` only (`getErrorCode`, `lib/errors.ts:43`), so `line` changes nothing a screen shows by code, and a test comparing a whole error body still passes because `line` is sent only when set. **The assistant reads it too.** Both tool runners turn an `AppError` into text through `refusalText` (`mcp/result.ts:65`, used at `:129` and by `mcp/tools/writes/run.ts:144`), which today prints the code and `retryAfterSeconds` only. R1a adds `line` to its notes, so a refused `create_recipe` reads "... (food_not_found, line: 3)". An MCP tool's input is refused by the SDK before the handler runs, and the SDK's text names the issue's path, index included (unverified wording, so `preview_recipe` is the path the rules point an assistant at).
+
+### d.2 Recipe entries (R1b)
+
+`AddEntryBodySchema` gains `{ kind: "recipe", recipeId, servings: EntryCountSchema, cookId?: uuid, ...common }`. `EntryPatchBodySchema` gains `servings` (recipe entries only, else `entry_kind_mismatch`). `EntrySchema` gains:
+
+```ts
+servings: z.number().nullable(),
+recipe: z.object({ id: z.uuid(), archived: z.boolean(), deleted: z.boolean() }).nullable(),
+cook: z.object({ id: z.uuid(), date: IsoDateSchema, servings: z.number().int(), differs: z.boolean() }).nullable(), // R3a
+```
+
+`name` is the recipe's name as it is now. `basis` is per serving. `/entries` routes are unchanged, and `copy_entries`, `set_entries_status`, `remove_entries` and `restore_entry` need nothing new.
+
+- **Foreign keys answered by name, never a 500.** `sourceRefused` (`writes/entries.ts:50`) maps `entries_recipe_user_fk` to 404 `recipe_not_found` (R1b) and `entries_cook_fk` to 404 `cook_not_found` (R3a). `restoreRefused` (`:314`) maps both to 404 `entry_not_found`, as it does for a food or meal deleted outright.
+- **A deleted recipe gains no new entry, except by copy.** `addEntry` reads the recipe through `ownRecipe`, which leaves out deleted ones, as `ownMeal` does (`reads/savedMeals.ts:23`), so a new entry on a deleted recipe answers `recipe_not_found`. A copy of an existing entry of it succeeds, as a copy of a deleted saved meal's entry does today, including a cook's entry, which takes the hidden recipe's figures (e.5). This is a rule, pinned by one test each way, so nobody aligns one side with the other.
+- **`cook.differs` on a day read.** `selectEntries` stays one query and joins only the `cooks` row (date, servings). After it, when the entries hold any `cook_id`, one more query reads the lines of those cooks and of their recipes, for the distinct cook ids, and `cookDiff` runs per cook. A week read (`listDaySummaries`) reads no entries' details and skips it. A day with no cook entry runs no extra query.
+
+### d.3 Cooks (R3a, and `PUT /cooks/:id` in R3b)
+
+| Method | Path                | Answers                                                                                                                                                                                               |
+| ------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/cooks/:id`        | 200 `Cook`. 404 `cook_not_found`                                                                                                                                                                      |
+| POST   | `/cooks`            | 201 `{ cook, entries, days, outcome }`, 200 on a repeat. Takes `CookBody`                                                                                                                             |
+| PUT    | `/cooks/:id`        | 200 `{ cook, days, outcome }`, every day that holds one of its entries, the ones it adds included. Takes `CookEditBody`, whose `add` puts new servings from the batch on days in the same transaction |
+| POST   | `/cooks/:id/recipe` | 201 `Recipe`. Takes `{ id, name }`. 200 on a repeat                                                                                                                                                   |
+
+```ts
+export const CookLineBodySchema = IngredientLineBodySchema.and(z.object({ fromLineId: z.uuid().nullable() }));
+/** A new entry from this batch, with its own client-chosen id. */
+const CookAddSchema = z.object({
+  id: z.uuid(),
+  date: IsoDateSchema,
+  status: z.enum(ENTRY_STATUSES),
+  servings: EntryCountSchema,
+});
+const cookFields = {
+  date: IsoDateSchema,
+  servings: RecipeServingsSchema,
+  lines: z.array(CookLineBodySchema).min(1).max(60),
+};
+export const CookBodySchema = z
+  .object({
+    id: z.uuid(),
+    recipeId: z.uuid(),
+    ...cookFields,
+    /** The person's plain entries of this recipe that came from this batch. */
+    attach: z.array(z.uuid()).max(20),
+    /** New entries from this batch, each with its own client-chosen id. */
+    add: z.array(CookAddSchema).max(20),
+    /** A status to set on an attached entry in the same transaction (e.4). Eaten on a future date: entry_eaten_in_future. */
+    attachStatus: z
+      .array(z.object({ id: z.uuid(), status: z.enum(ENTRY_STATUSES) }))
+      .max(20)
+      .default([]),
+  })
+  .refine((b) => b.attach.length + b.add.length >= 1, { error: "cook_entries_required" });
+/** An edit, and any new servings from the batch, in one transaction: the new entries take the edited basis. */
+export const CookEditBodySchema = z.object({ ...cookFields, add: z.array(CookAddSchema).max(20).default([]) });
+
+export const CookSchema = z.object({
+  id: z.uuid(),
+  recipe: z.object({ id: z.uuid(), name: z.string(), servings: z.number().int(), deleted: z.boolean() }),
+  date: IsoDateSchema,
+  servings: z.number().int(),
+  lines: z.array(RecipeLineSchema.extend({ fromLineId: z.uuid().nullable() })),
+  perServing: FiguresSchema,
+  whole: FiguresSchema,
+  basis: FiguresSchema,
+  diff: CookDiffSchema, // below
+  entries: z.array(EntrySchema), // every entry from it, by date and position
+});
+
+export const CookDiffSchema = z.object({
+  servings: z.object({ recipe: z.number().int(), cook: z.number().int() }).nullable(), // null when equal
+  changed: z.array(
+    z.object({
+      lineId: z.uuid(),
+      fromLineId: z.uuid(),
+      fields: z.array(z.enum(["food", "amount", "written", "name"])),
+    }),
+  ),
+  added: z.array(z.uuid()), // cook line ids
+  leftOut: z.array(z.uuid()), // recipe line ids with no cook line
+});
+```
+
+- `cookDiff(recipeLines, recipeServings, cookLines, cookServings)` in `packages/types/src/cooks.ts` is pure. `differs` is "the diff is not empty". A note change alone does not count, since it changes nothing made.
+- `attach` takes entries that are the user's, of kind `recipe`, of this recipe, with no cook. Anything else: 400 `cook_entry_invalid`, nothing written. A plain entry's date need not match.
+- `saveCookAsRecipe` copies the recipe's time, steps, notes and tags, and the cook's lines (with new ids) and servings, under the given name. No image. The cook and its entries keep pointing where they did.
+
+### d.4 Cover image (R5)
+
+| Method | Path                      | Answers                                                                                                                                                                             |
+| ------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PUT    | `/recipes/:id/image`      | 200 `{ imageId }`. Body `image/jpeg`, raw, at most 1 MiB (`express.raw({ type: "image/jpeg", limit: "1mb" })` on this route alone). 400 `image_invalid`, 413 `image_too_large`, 404 |
+| DELETE | `/recipes/:id/image`      | 204, also when it has none                                                                                                                                                          |
+| GET    | `/recipe-images/:imageId` | 200 the bytes, `Content-Type: image/jpeg`, `Cache-Control: private, max-age=31536000, immutable`, `X-Content-Type-Options: nosniff`. 404 for an id that is not the caller's         |
+
+### d.5 Error codes
+
+New, each with an `errors.<code>` line in `en.json`: `recipe_not_found`, `recipe_id_taken`, `ingredient_id_taken`, `recipe_lines_required`, `recipe_lines_too_many`, `recipe_servings_invalid`, `recipe_time_invalid`, `recipe_serving_too_large`, `step_too_long`, `steps_too_many`, `notes_too_long`, `tag_invalid`, `tags_too_many`, `line_name_required`, `line_name_too_long`, `line_note_too_long`, `written_amount_invalid`, `cook_not_found`, `cook_id_taken`, `cook_entries_required`, `cook_entry_invalid`, `image_invalid`, `image_too_large`. Reused: `name_required`, `name_too_long`, `food_not_found`, `portion_not_found`, `entry_grams_invalid`, `entry_count_invalid`, `entry_kind_mismatch`, `entry_eaten_in_future`.
+
+### d.6 The assistant's tools
+
+Inputs are strict zod objects from the shared body schemas, minus the ids the web chooses, plus `requestKey` on writes, as connected AI d.3 sets. A tool selects fields and computes nothing. Every write goes through one `recorded*` function (`recorded/recipes.ts`, `recorded/cooks.ts`) and `recordedWrite`.
+
+| Tool                   | R/W | Service                  | Input                                                                                                                                                                                                                                                          | Answers                                                                                                                                                                                                                          | Slice                                                        |
+| ---------------------- | --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `list_recipes`         | R   | `listRecipes`            | `RecipeFilterSchema`, plus `limit?` 1 to 200                                                                                                                                                                                                                   | `{ recipes }` summaries, filtered and sorted by the shared functions                                                                                                                                                             | R1a                                                          |
+| `get_recipe`           | R   | `getRecipe`              | `recipeId`, `servings?` 1 to 100                                                                                                                                                                                                                               | The recipe with lines and figures. With `servings`, `getRecipe(ctx, id, { servings })` also answers `scaled: { servings, lines, figures }` (from `scaleRecipe` and `entryFigures`, in the service), and the tool only selects it | R1a                                                          |
+| `preview_recipe`       | R   | `previewRecipe`          | `servings`, `lines` (as `create_recipe`)                                                                                                                                                                                                                       | `RecipePreview` (d.1): for every line its index, the food's name as the app reads it, the grams the app will store, the portion, and its refusal or null; then `perServing`, `whole`, or the draft's own refusal. Writes nothing | R1a                                                          |
+| `create_recipe`        | W   | `createRecipe`           | `requestKey`, `name`, `servings`, `timeMinutes?`, `lines` (ids made per call), `steps?`, `notes?`, `tags?`                                                                                                                                                     | `outcome`, `recipe`                                                                                                                                                                                                              | R1a                                                          |
+| `update_recipe`        | W   | `updateRecipe`           | `requestKey`, `recipeId`, the whole recipe. A line keeps its `id` to stay the same line; a line without one is new                                                                                                                                             | `outcome`, `recipe`. Planned entries from today on take the new figures                                                                                                                                                          | R1a                                                          |
+| `set_recipe_archived`  | W   | `setRecipeArchived`      | `requestKey`, `recipeId`, `archived`                                                                                                                                                                                                                           | `outcome`                                                                                                                                                                                                                        | R1a                                                          |
+| `set_recipe_favourite` | W   | `setRecipeFavourite`     | `requestKey`, `recipeId`, `favourite`                                                                                                                                                                                                                          | `outcome`                                                                                                                                                                                                                        | R1a                                                          |
+| `log_recipe`           | W   | `addEntry` kind `recipe` | `requestKey`, `recipeId`, `servings`, `date`, `status`, `cookId?`                                                                                                                                                                                              | `outcome`, `entry`, `days`                                                                                                                                                                                                       | R1b                                                          |
+| `update_entry`         | W   | `updateEntry`            | gains `servings`                                                                                                                                                                                                                                               | as now                                                                                                                                                                                                                           | R1b                                                          |
+| `get_cook`             | R   | `getCook`                | `cookId`                                                                                                                                                                                                                                                       | The cook with its diff and entries                                                                                                                                                                                               | R3a                                                          |
+| `log_cook`             | W   | `createCook`             | `requestKey`, `recipeId`, `date`, `servings`, `lines` (each line from the recipe names its `fromLineId`, the recipe line's `id` from `get_recipe`), `attach`, `attachStatus`, `add`. The tool makes the cook's id, every line's id and every `add` id per call | `outcome`, `cook`, `entries`, `days`                                                                                                                                                                                             | R3a                                                          |
+| `update_cook`          | W   | `updateCook`             | `requestKey`, `cookId`, `date`, `servings`, `lines`, `add?`. A line keeps its `id` from `get_cook` to stay the same line, and the tool makes an id for a line without one and for every `add`                                                                  | `outcome`, `cook`, `days`                                                                                                                                                                                                        | R3b                                                          |
+| `save_cook_as_recipe`  | W   | `saveCookAsRecipe`       | `requestKey`, `cookId`, `name`                                                                                                                                                                                                                                 | `outcome`, `recipe`                                                                                                                                                                                                              | R3a                                                          |
+| `request_deletion`     | W   | `requestDeletion`        | `kind` gains `recipe`                                                                                                                                                                                                                                          | as now                                                                                                                                                                                                                           | R1a if connected AI slice 6 has merged, else slice 6 adds it |
+
+`destructiveHint: true` on `update_recipe`, `set_recipe_archived`, `set_recipe_favourite` (it can unset), `update_cook` and `update_entry`. The rest add. The `registries.test.ts` count and the import boundary follow: `deleteRecipe` joins the forbidden symbols, and `previewRecipe` is a read service.
+
+**Why a preview tool, when entries have none** (connected AI d.3, "No tool previews"). An entry's figures follow from a food's values per 100 g and an amount, both of which the assistant already read. A recipe's do not: the assistant would have to add up lines to show the person the dish's figures before asking for a yes, which rule 2 forbids. The editor shows the same figures live, through `recipeBasis`, so the preview is what the screen already gives.
+
+**Turning a pasted recipe into one in the app, with no parsing by the app.** The assistant reads the text or photo in its own conversation and does the matching there:
+
+1. For each line, `search_foods` with the food's plain name (the canonicalisation rules below), and `get_food` for its portions.
+2. The amount goes in as the recipe gives it when a portion fits: "2 dl" becomes `{ portionId: <the food's DL portion>, count: 2 }`, "4 eggs" `{ portionId: <KPL_M>, count: 4 }`, and the app computes the grams through `gramsOf`. A weight goes in as grams. When nothing fits, the assistant asks the person for the weight.
+3. The recipe's own words for the amount go in `written` ("2 cloves" as `{ amount: 2, unit: "clove" }`), so the recipe reads as it was written.
+4. Water, salt and spices go in as lines not counted.
+5. `preview_recipe` with the draft. It answers every line's grams and food name, and a refusal on the line it belongs to. The proposal to the person lists each line with its food and grams and the figures per serving, all quoted from the preview. Then `create_recipe` on a yes.
+
+**The pasted shakshuka, end to end.** Artur pastes into Claude: "Shakshuka for 2. 4 eggs, 1 can crushed tomatoes (400 g), 60 g feta, 1 tbsp olive oil, 1 onion, salt." The tool calls, in order:
+
+1. `search_foods { q: "kananmuna" }`, `search_foods { q: "tomaattimurska" }`, `search_foods { q: "fetajuusto" }`, `search_foods { q: "oliiviöljy" }`, `search_foods { q: "sipuli" }`. Each answers ranked foods. The assistant picks the plain raw one and says which.
+2. `get_food { foodId: <egg> }` answers its portions, among them `KPL_M` at 60 g. `get_food { foodId: <olive oil> }` answers `RKL` (tablespoon). `get_food { foodId: <onion> }` answers `KPL_M`.
+3. `preview_recipe { servings: 2, lines: [`
+   `{ counted: true, foodId: <egg>, amount: { portionId: <egg KPL_M>, count: 4 }, written: { amount: 4, unit: "piece" } },`
+   `{ counted: true, foodId: <tomatoes>, amount: { grams: 400 }, written: { amount: 1, unit: "can" } },`
+   `{ counted: true, foodId: <feta>, amount: { grams: 60 } },`
+   `{ counted: true, foodId: <oil>, amount: { portionId: <oil RKL>, count: 1 }, written: { amount: 1, unit: "tbsp" } },`
+   `{ counted: true, foodId: <onion>, amount: { portionId: <onion KPL_M>, count: 1 }, written: { amount: 1, unit: "piece" } },`
+   `{ counted: false, name: "Salt" } ] }`.
+   It answers each line's `grams` (240, 400, 60, the tablespoon's grams, the onion's), `refusal: null` on each, and `perServing`. Had the assistant sent the egg's portion id with the onion, line 4 would answer `refusal: "portion_not_found"` and the others their grams.
+4. The assistant shows the six lines with their foods and grams and the figures per serving, all from the answer, and waits.
+5. On a yes, `create_recipe { requestKey, name: "Shakshuka", servings: 2, lines: <the same>, steps: [...as written] }` answers the recipe with its id.
+6. "Plan one for Saturday": `log_recipe { requestKey, recipeId, servings: 1, date: "2026-11-21", status: "planned" }`.
+
+`recipeTools.db.test.ts` runs this sequence against a seeded catalogue, with the portion mistake of step 3, and asserts that the preview's grams and figures equal the created recipe's.
+
+**Change record** (R1a adds the actions to the CHECK by an `ALTER` in its migration, R3a and R3b likewise):
+
+- Actions: `recipe.created`, `recipe.changed`, `recipe.archived`, `recipe.restored`, `recipe.favourite_set`, `recipe.favourite_unset` (R1a), `cook.logged` (R3a), `cook.changed` (R3b). `log_recipe` records `entry.added`. `save_cook_as_recipe` records `recipe.created`.
+- `entity_ids`: the recipe's id; for a cook the cook's id then each entry it added or attached (for `update_cook`, each entry its `add` put on a day), in date and position order. A replay reads `getRecipe` or `getCook` by them, catching exactly `recipe_not_found` or `cook_not_found` as null.
+- Summaries:
+
+  ```ts
+  z.object({ entity: z.literal("recipe"), name: z.string(), changes: z.array(AssistantFieldChangeSchema) }),
+  z.object({
+    entity: z.literal("cook"),
+    recipeName: z.string(),
+    date: IsoDateSchema,
+    servings: z.number().int(),
+    diff: CookDiffSummarySchema, // names, not ids: { changed: [{ name, from, to }], added: [names], leftOut: [names], servings }
+    entries: z.array(AssistantEntryLineSchema),
+    changes: z.array(AssistantFieldChangeSchema), // update_cook only
+  }),
+  ```
+
+  `AssistantFieldChangeSchema.field` gains `servings`, `time`, `lines`, `steps`, `notes`, `tags`. For `lines`, `from` and `to` are lists of `{ name, grams | null }`. `AssistantEntryLineSchema.kind` gains `recipe`, and its amount union gains `{ servings: number, asMade: boolean }`, listed before `{ count }`.
+
+- Connected AI slice 5's `changeText.ts` needs a line per action. Whichever of slice 5 and R1a, R3a or R3b lands second adds the lines.
+
+**The app rules** (`mcp/appRules.ts`). The new read section goes after section 8 ("Names are data") as section 9, and the two sections after it become 10 ("What this connection cannot see or do") and 11 ("Making changes"), so the read sections stay ahead of the write rules. In the renumbered section 10, "The grocery list is not in the app yet." replaces the sentence on recipes, and "targets, days, foods and saved meals" becomes "targets, days, foods, saved meals and recipes". Section 11's opening sentence gains ", create, change, tag, star and archive recipes and log them" in R1a and ", and log a batch as made" in R3a. `appRules.test.ts` names no section numbers today, and any that a test or the record text gains follow the renumbering. New read section, in R1a:
+
+```md
+## 9. Recipes
+
+_(Sources: recipes.md)_
+A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. A recipe page can show the recipe at another number of servings: get_recipe with servings returns the amounts and the figures at that size. A recipe on a day is an entry of kind recipe with a number of servings, planned or eaten like any entry, and its figures are taken when it is added. Editing a recipe changes its planned entries from today on, as with a saved meal. lastPutOn is the latest date the recipe is on, planned or eaten. tags are the person's own words.
+
+A cook is one batch made from a recipe, logged as made: its own lines and the servings it gave, while the recipe stays as written. Every entry from a cook carries its figures. They are worked out when the cook is logged or changed, from its foods as they are then, and changing the cook changes every one of its entries, on any day. Editing a food does not change a cook. An entry whose cook differs from its recipe shows it in cook.differs.
+```
+
+R3a ships the cook paragraph without "or changed" and without "and changing the cook changes every one of its entries, on any day", since no cook can be changed yet. R3b adds both, in the wording Artur's answer to decision 0.2 gives.
+
+New write rules in section 11, numbered after the existing seven, rule 8 in R1a and rule 9 in R3a:
+
+```md
+8. Enter a recipe from its foods. Find each ingredient with search_foods by its plain name, without brand, packaging or preparation, as it is weighed: raw for what goes in raw. Give an amount as one of the food's portions when one fits, else in grams, else ask for the weight. Put the recipe's own words for an amount in written. Keep the lines and steps as written. A line not counted is for water, salt and spices, never for a food you could not find: ask, or add their own food with create_own_food. Call preview_recipe, show each line's food and grams and the figures per serving from its answer, and create on their yes. A refusal names its line by index.
+9. Log a batch that came out different with log_cook, never by editing the recipe. Give each line from the recipe its fromLineId from get_recipe, and none to a line the batch added. Change the recipe only when the person asks.
+```
+
+Rule 6 (deletion) reads "This connection cannot delete foods, saved meals or recipes." from R1a, and "Deleting a food, a saved meal or a recipe needs the person's approval in the app." once `request_deletion` takes `recipe`.
+
+`appRules.test.ts` already bounds the text and forbids advice words. It gains: "never add up the lines yourself" present, rule 8's "never for a food you could not find" and "preview_recipe" present, rule 9's "fromLineId" present (R3a), and every tool named in rules 8 and 9 is a listed tool (the existing snake_case check covers it).
+
+**The length bound stays at 3 500 characters, and the rules are written to fit it.** `appRules.test.ts:69` holds `WRITE_RULES.length <= 3_500`. The bound protects what a model with a write key reads at the start of every session: a short list it follows, not a manual it skims. Measured on the 4b branch (`origin/feat/mcp-write-tools-rest`), `WRITE_RULES` is 2 339 characters. The first draft of rule 8 was 1 029 characters, longer than any existing rule, and with rule 9 would have taken R3a past the bound. The drafts above are the tightened ones: rule 8 is 660 characters, rule 9 is 226, the opening sentence's recipe clause 60 and its cook clause 25, and rule 6's interim wording 9 more. With the newline before each rule, R1a lands at 3 069 and R3a at 3 321, so 179 characters remain. R3b adds nothing to the write rules. Connected AI slice 6's deletion wording replaces rule 6 and measures itself against the same bound. A later step that needs more raises the bound in its own change, with its reason in the test. `APP_RULES` is 5 062 characters on the 4b branch against its 12 000 bound, and section 9 adds about 1 340.
+
+## e) Data flow
+
+### e.1 The shakshuka, planned for Saturday (after R2a)
+
+1. Recipes tab, Recipes segment, **New recipe**. The editor opens empty. Name "Shakshuka", Serves 2.
+2. **Add ingredient** opens the picker over the editor. "kananmuna" finds the egg. A tap opens its amount view with the log block's chips: "Medium piece · 60 g" chosen, 4 typed, "For this amount" shows its figures. **Add** puts the line in the editor, behind the picker, and the picker returns to its empty search with "Added Kananmuna, 4 × Medium piece." on its status line. Three more foods the same way. **Done**. **Add a line not counted**: "Salt".
+3. The editor's figures card follows every line through `recipeBasis` on the device: 365 kcal and 21.8 g protein per serving.
+4. **Save recipe** sends `POST /recipes` with the ids made when the editor opened. `createRecipe` locks the user (`key share`), reads its own foods among the lines' `FOR SHARE` in id order (`readLineFoods`), runs `checkLine` on each line (the food visible, a portion count turned into grams by `gramsOf`), inserts the recipe, its lines and tags, and answers `getRecipe`. The web puts the answer in the list cache and navigates to `/recipes/<id>`.
+5. The page shows the same 365 kcal per serving, from the server. **Log** opens the log sheet for this recipe: Planned, Saturday's date, 1 serving, "For this amount" 365 kcal. **Add to plan** sends `POST /entries` kind `recipe`.
+6. `addEntry` locks the user, reads the recipe `FOR SHARE` with `ownRecipe`, its counted lines, the user's own foods among them `FOR SHARE` in food id order, then every line's food values (`readRecipeForEntry` in `recipeValues.ts`, the same two statements as `readLineFoods`), computes `recipeBasis`, inserts the entry with that basis and `servings: 1`, and answers the entry and Saturday's day. Toast: "Planned Shakshuka for Sat 21 Nov." with **Undo**.
+7. Saturday's day shows "Shakshuka", "1 serving", 365 kcal over 21.8 g.
+
+### e.2 Searching recipes, on screen and for an assistant
+
+The web reads `GET /recipes` once (all active, then the archived list when opened) and runs `filterRecipes` and `sortRecipes` from `packages/types` on every key. `list_recipes` calls `listRecipes`, which reads the same list and runs the same two functions with the tool's query. One person's recipes are a few hundred at most, and one query reads them with their counted lines and foods (`recipe_ingredients_position_uq` and `foods_pkey`), so computing every recipe's figures per read is cheap and never stale. If a list ever grows past 1 000 recipes, cached per-serving columns are the next step (section h).
+
+### e.3 A recipe edit, with entries on days
+
+**One rewriter.** `rewritePlannedBasis` (`sourceValues.ts:133`) stays the one function that rewrites planned entries after a source edit, and changes from "lock, then write the figures it was given" to three steps, so the figures are always computed after the locks:
+
+1. **Lock** every planned entry from today on that the edit reaches, in **one** statement ordered by id, `FOR NO KEY UPDATE`, as today. For a `food` source: the entries of that food, and the plain recipe entries (`cook_id IS NULL`, from R3a) of every recipe with a line on that food (`recipe_id IN (SELECT recipe_id FROM recipe_ingredients WHERE food_id = $1 AND user_id = $2)`). For a `saved_meal` source: as today. For the new `recipe` source: that recipe's plain entries.
+2. **Read**, in a new statement after the locks: the food's or meal's values, and for each distinct recipe among the locked rows its counted lines and their foods' values. A new statement sees every edit that committed while step 1 waited.
+3. **Write**: one `UPDATE` per source of a basis (the food's or meal's values, or each recipe's `recipeBasis`), limited to the locked ids.
+
+`EntrySource` gains `{ kind: "recipe"; id }`. The `figures` parameter goes, since step 2 reads them. `updateOwnFood` and `updateSavedMeal` call it as now, without figures. **Their behaviour does not change.** Each calls the rewrite after its own `UPDATE` of the food or meal row in the same transaction, so step 2 reads the row that transaction has just written, which holds exactly the values that used to be passed in: the body schemas allow no more decimals than the columns store (`Per100gSchema`'s decimals rule for a food, one decimal in `TypedFiguresSchema` for a meal, against `numeric(6,2)`/`(6,3)` and `(6,1)`/`(5,1)`), so nothing is rounded on the way. R1b's list of suites that stay green unchanged pins it. `updateRecipe` calls it with the `recipe` source. Cooks are never a source of it (decision 0.15): `rewriteCookBasis` is the cook's own, called only by `updateCook`.
+
+`updateRecipe`: one transaction. The user lock, the recipe `FOR UPDATE`, the own foods of its counted lines `FOR SHARE` in id order (`readLineFoods`, d.1), `checkLine` on every counted line, replace the lines (delete the ids not sent, upsert the rest by id, positions in the order sent), replace the tags, then `rewritePlannedBasis` with the `recipe` source. Eaten entries, past days and every cook's entries keep theirs. An edit that changes nothing writes nothing and answers `unchanged`.
+
+`updateCook`: the user lock, the cook `FOR UPDATE`, the own foods of its lines `FOR SHARE` in id order (`readLineFoods`), `checkLine`, replace the lines, then `rewriteCookBasis`: every entry from the cook, any status and date, locked in one statement ordered by id, then the lines and foods read, then the write, and the `removed_entries` rows that name the cook (c.2). Then the `add` entries are inserted with the new basis.
+
+**Lock order**, the same in every write: the user row (`key share`), then a recipe or cook row, then foods, then entries.
+
+- **Own foods** are taken `FOR SHARE`, in food id order and in one statement, by every write that reads food values into a basis or a line: `addEntry` (`readRecipeForEntry`), `createRecipe`, `updateRecipe`, `createCook` and `updateCook` (`readLineFoods`). A food edit's `UPDATE` (`FOR NO KEY UPDATE`) and a food delete's `FOR UPDATE` conflict with it, so each waits for such a write or makes it wait. Share locks do not conflict with each other, so two recipe writes on one food never wait for each other.
+- **Shared foods are not locked.** The races these locks close are own-food races: only an own food is edited by a person, and only an own food is ever deleted. A Fineli food or a kept product changes only through the Fineli import or a retirement, and neither rewrites an entry (c.1, "When the food changes later") or deletes a row (retired, never deleted), so a recipe write has nothing to wait for. A lock there would cost: the Fineli import updates thousands of rows in one transaction (`scripts/fineliImport/applyRelease.ts:161`), so a recipe write sharing one of them would wait out the whole import, and one sharing two in id order against an import updating them in another order could deadlock. The existing food add (`readFoodForEntry`, `sourceValues.ts:43`) does share-lock a Fineli row. It holds one row and nothing the import wants, so it can only wait, never deadlock, and it is left as it is.
+- **Entries** are always locked in one id-ordered statement, by the rewriters, `removeEntries` and `setEntriesStatus` (`writes/entries.ts:195, 263`).
+- **No rewrite locks foods or recipes.** A food edit holds only its food before it locks entries, and a recipe write takes its foods before any entry. So a food edit and a recipe write wait for each other on the food or on entries, never on both in opposite orders, and no cycle can form.
+
+The orders, worked through:
+
+- **Two own foods F and G on one recipe, edited at once.** The edit of G locks the recipe's entries and waits behind the edit of F, which holds them. F commits with G's old values. G's lock then returns, its step 2 reads F's new values and G's own, and the entries end with both changes.
+- **A food edit and a recipe edit of the same entries**, F already on the recipe. Whichever locks the entries second reads, after the first commits, the other's committed change (the new food values, or the new lines), so the entries end with both.
+- **A recipe edit that adds a line on own food F, and an edit of F.** Recipe edit first: it holds F `FOR SHARE`, the food edit's `UPDATE` waits, the recipe edit commits with F's old values, and the food edit's step 1, a new statement, then sees the committed line, locks the recipe's entries and writes F's new values. Food edit first: the recipe edit's share lock waits on F, the food edit commits (its step 1 found no line on the recipe), and the recipe edit's step 2 reads F's new values. Either way the entries end with F's new values.
+- **A delete of own food F, and a recipe create or edit that adds a line on F.** Delete first: it holds F `FOR UPDATE`, finds it unused and deletes it. The recipe write's share lock then returns no row, and the line answers 404 `food_not_found` with its `line`. Recipe write first: the delete's `FOR UPDATE` waits, and its `isUsed`, a new statement, then sees the committed line and hides F. Never a foreign-key 500.
+
+The race tests, in `services/__tests__/recipeRaces.db.test.ts` (R1a creates the file with its delete race, below, and R1b adds these five), each holding the first transaction open with `serviceHolder` until `queuedOnLock` sees the second wait, and each run once against a naive order (compute before lock, lock recipe by recipe, or a recipe write that does not hold its foods) to see it fail before the real one passes. The reviewer did not reproduce either race. These tests are written first, to settle it:
+
+1. "two own foods on one recipe, edited at once, both reach its planned entries": fails on compute-before-lock with one food's change lost.
+2. "a food edit and removeEntries over the same entries finish without a deadlock": a batch removal holds the lowest-id entry, the food edit spans two recipes' entries. Fails with `40P01` when the rewrite locks recipe by recipe.
+3. "a recipe edit and an add of its entry, in both orders, leave the entry with the basis of the later commit".
+4. "a food edit and a recipe edit, in both orders, leave entries with both changes".
+5. "a recipe edit that adds a line on an own food, and an edit of that food, in both orders: the entries end with the new values": fails without the `FOR SHARE` in `readLineFoods`, when the food edit commits second and its step 1 never saw the uncommitted line, leaving the entries with the food's old values.
+
+R1a writes one race of its own in the same file, before any rewrite exists: "a delete of an own food and a recipe create or edit that adds a line on it, in both orders: the food is hidden and the line kept, or the save answers `food_not_found` naming its line; never a 500". It fails without the lock with a 500 from the line's foreign key.
+
+### e.4 Logging as made (steps 1 to 5 after R3a and R4a, steps 6 and 7 after R3b and R4b)
+
+1. Saturday's planned "Shakshuka · 1 serving". Its entry sheet has **Log as made**. The cook sheet opens over it: Made on Saturday, It gave 2, the recipe's lines, and under "From this cook" this entry (1 serving, Eaten chosen since it is today).
+2. Feta 60 g becomes 100 g. Olive oil is left out. Spinach 80 g is added. It gave 3, not 2. The figures follow on the device. "Other planned servings of Shakshuka" lists Sunday's planned serving, unticked (decision 0.14), and he ticks it.
+3. **Log as made** sends `POST /cooks` with `attach: [saturday, sunday]` and `attachStatus: [{ id: saturday, status: "eaten" }]`, so Saturday is marked eaten in the same request.
+4. `createCook`: user lock, recipe `FOR SHARE`, the own foods of its lines `FOR SHARE` in id order (`readLineFoods`), `checkLine` on each line, compute the basis from the foods as they are now, insert the cook and its lines, lock the attached entries in id order, check each (`cook_entry_invalid`), set `cook_id` and the cook's basis on them, insert the added ones, answer the cook, its entries and their days.
+5. Both days show "Shakshuka · 1 serving · As made" with the cook's figures. The recipe is unchanged.
+6. On Monday he remembers the feta was 120 g. Sunday's entry, **Edit as made**, 120, **Save**: `updateCook` recomputes from the foods as they are on Monday and rewrites both entries' basis, Saturday's eaten one included (decision 0.2). The toast says "Saved. 2 days changed."
+7. Had he edited his own food "Feta" on Sunday, neither entry would have changed then (decision 0.15). Monday's correction would carry the new feta values onto both.
+
+`CookBody`'s `attachStatus` (d.3) is a status to set on an attached entry in the same transaction, refused on a future date as every eaten mark is. It lets "log as made" also mean "eaten" in one press, which is what the person is doing.
+
+### e.5 Copy, move, mark, remove, restore, recent items
+
+- **Copy** of a plain recipe entry: as every copy, the same basis. Of a cook's entry: a plain planned entry of the recipe, `cook_id` null, basis taken from the recipe now (decision 0.3). `copyEntries` reads the recipe for those rows through `readRecipeForEntry` with `includeDeleted`. A copy of an entry whose recipe was deleted since still works: the hidden recipe is read by id within the user's rows. That makes a copy the one way a deleted recipe gains a new entry, a rule pinned by a test (d.2).
+- **Move, mark, servings edit**: the basis and the cook stay.
+- **Remove and restore**: the row goes to `removed_entries` and back, exactly, except that a cook edit in between has already rewritten the removed row's basis, so it comes back with its cook's current figures (c.2). The cook it names is kept for those ten minutes.
+- **Recent items** (R2b): eaten recipe entries count. A recipe recent item carries the servings of its latest eaten entry, cook or not. Logging it again in one press is a plain entry with those servings: the recipe as written, never a pot. Archived and deleted recipes are left out.
+- **Deleting a recipe** used by any of these: hidden. Its entries keep name and figures, the entry sheet says "This recipe was deleted.", and its page still opens from the entry.
+
+## f) Frontend architecture
+
+Every screen is phone first, measured at 320, 390 and 1280 pixels in both themes. Every string below is a catalog entry. No string calls a recipe or a figure good, light, heavy or healthy. Figures use the macro hues as dots only (`docs/app/colors.md#the-macro-hues`), in the monospaced face, one decimal on grams always. Selection is the accent. Nothing new borrows a macro hue, so the hue allowlist test is widened only by the new files that draw macro dots, on purpose.
+
+### f.1 The Recipes tab (R2a, R2b)
+
+Top to bottom, in `PageContainer`:
+
+1. (Connected AI slice 6, when built) the **Asked to delete** panel, above everything, unchanged except a third kind "Recipe".
+2. **Segments**: `segmentedTray` of three, "Recipes", "Meals", "Foods", equal thirds, at least 44 pixels tall. The chosen one in the accent. `?show=recipes|meals|foods`, default `recipes`, written with `router.replace`.
+3. **The segment's action**, one `btnWide`: **New recipe**, **New saved meal** or **Add a food**. Same place in every segment.
+4. **The segment's search field**: `SearchField`, labelled "Search recipes", "Search meals", "Search your foods". Filters on the device (`filterRecipes`, `mealFilter`, a name fold for foods).
+5. Recipes only: a chip row (`sheetChipRow` behaviour on the page): **Favourites**, each tag the recipes use (Finnish order), then **Filter**, which opens the filter sheet. A chosen chip is `chipOn`. When a figure filter or a sort other than name is in force, **Filter** reads "Filter · 2" (the count of filters and sort set) and stays `chipOn`.
+6. The list, then **Archived recipes** (or meals) as today's archived meals.
+
+A recipe row: name (two lines at most), then "Serves 2 · 25 min" when it has a time, then "365 kcal · 21.8 g protein per serving" with the two dots, and a star at the end of a favourite (the place kept on every row). With `lastPutOn` sort: a third line "On a day Sat 21 Nov" or "Not on a day yet". A row is a link to `/recipes/<id>`. Rows at least 56 pixels.
+
+**The filter sheet** (`RecipeFilterSheet`, a `FormSheet` titled "Filter recipes"): **Sort by** (`SelectField`: "Name", "Last on a day", "Protein per serving, most first", "Calories per serving, fewest first"), then "Per serving" with **Protein at least** and **Protein at most** (g), **Calories at least** and **Calories at most** (kcal), `DecimalField`s two by two (`pairRow`). Footer **Clear** (secondary, start) and **Show recipes**. The sheet holds a draft, so the list under it does not move while typing.
+
+| State                                | Recipes segment shows                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Loading                              | segments, action, search, chip row with **Favourites** and **Filter** only, one empty line's room (48 pixels) |
+| No recipes                           | "Recipes you save appear here." under the action                                                              |
+| Cannot read                          | "Your recipes show here once Hovimestari can reach the server."                                               |
+| A search or filter that matches none | "No recipe matches." and **Clear search and filters** (`btnText`)                                             |
+| Archived list open, none             | "Recipes you archive appear here."                                                                            |
+
+Across-state properties `ui-validator` measures: the segment control, the action and the search field keep their exact positions (a rect diff under 1 pixel) across all three segments, loading to loaded, and every filter change. A tag chip pressed does not move the chip row. The Meals and Foods segments show today's sections unchanged below their search field.
+
+### f.2 The recipe page (R2a)
+
+`/recipes/[id]`, `app/(app)/recipes/[id]/page.tsx`, `tabOf` maps it to the Recipes tab. Reads `GET /recipes/:id`.
+
+1. A top row: **Back** (to the list as it was: `router.back()` when the previous page was the list, else `/recipes`), and **Edit** at its end (`btnSecondary`).
+2. (R5) The cover image, full column width, 4:3, `rounded-card`, when it has one.
+3. The name in the display face (`text-3xl`), the star toggle at its end (marks a favourite at once, as a food's star). Under it "Serves 2 · 25 min", then the tags as `tagClass` chips, then "On a day Sat 21 Nov" when it has been.
+4. **Figures** card (`RecipeFigures`): a **Servings** stepper (− value +, the value a `DecimalField` for whole numbers 1 to 100, buttons 44 pixels), then two columns, "Per serving" and "Whole recipe", or "For 4 servings" once the stepper differs from the recipe's servings, with **Back to 2** (`btnText`) beside the stepper. Each column: calories, protein, carbohydrates, fat, a dot and a figure per row. The card's height is fixed by its content's longest form, so stepping never moves what is below it.
+5. **Log** (`btnPrimary`, full width) until R4a, then **Log** and **Log as made** in an `actionPair`.
+6. **Ingredients**, scaled with the stepper: each line an amount column in the mono face ("4 × Medium piece · 240 g", "2 cloves · 10 g", "400 g") and the food's name with its note muted ("chopped"). A line not counted: its written amount if any, its name, and "Not counted" muted. A food gone: "This food was deleted." or "No longer in Fineli." under it, muted.
+7. **Method**, numbered steps. **Notes**, as typed, line breaks kept. Each heading only when it has content.
+8. At the end, `btnText` stacked: **Duplicate**, **Archive recipe** (or **Restore recipe**), **Delete recipe** (`btnTextDanger`). Delete asks: "Delete Shakshuka?" with "Days it was planned or eaten on keep their figures." and **Delete**. After: back to the list, focus on the next row.
+
+| State                         | Page shows                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| Loading, from the list        | the row's name, servings and per-serving figures from the list cache, the rest in its reserved room |
+| Loading, cold                 | a heading-sized empty line and the figures card's room                                              |
+| Not found or another user's   | "This recipe is no longer available." and **Back to recipes**                                       |
+| Offline, never read           | "This recipe needs a connection."                                                                   |
+| Archived                      | a notice under the name, "Archived. It can still be logged."                                        |
+| Deleted, opened from an entry | "This recipe was deleted. Days it was on keep their figures." and no Edit, Log, Archive or Delete   |
+
+**The log sheet for a recipe** (`RecipeLogSheet`, `FormSheet`, title "Log Shakshuka"): **Eaten or planned** (as the entry sheet, Planned only on a future date), **Date** (`NativeDateInput`, today by default), **Servings** (`DecimalField`, "servings", the last servings or 1), "For this amount" with the four figures. Footer **Cancel** and **Log**, or **Add to plan**. The ids are made when it opens. After: closes, toast "Logged Shakshuka, 1 serving." or "Planned Shakshuka for Sat 21 Nov." with **Undo**.
+
+### f.3 The editor (R2a)
+
+`RecipeEditorSheet`: a `FormSheet` with `size="tall"` (`FormSheet` passes `size` through, `FormSheet.tsx:132`, and is always keyboard-aware), title "New recipe" or "Edit recipe". Opened from **New recipe** (empty), **Edit** (the recipe), and **Duplicate** (the recipe as a new one, title "New recipe", name selected). One mount on the list, one on the page.
+
+Body, in Tab order:
+
+1. **Name**.
+2. **Serves** (servings) and **Time** (min, optional), side by side from `md`, `pairRow`.
+3. **Ingredients**: each line a press target (56 pixels): amount column, name, note. A new line appears at the end. Under the list, **Add ingredient** (`btnWide`) and **Add a line not counted** (`btnText`). With none: "Add at least one ingredient." as the field's line.
+4. **Figures** (`RecipeFigures` without the stepper): "Per serving" and "Whole recipe", computed on the device with `recipeBasis` from each line's food values. While a line's food values are unknown (never, in practice, since the picker and `getRecipe` both carry them), "Figures update when you save.".
+5. **Method**: one `textarea`, "One step per line.". Saved as the non-empty lines.
+6. **Notes**: a `textarea`.
+7. **Tags** (`TagField`): typed text and Enter or a comma make a tag chip with a remove cross. The person's other tags show under it as chips to tap. At most 10.
+8. Edit only, at the end: **Archive recipe** or **Restore recipe**, turning in place, as the saved meal sheet's.
+
+Footer: **Cancel** and **Save recipe**, and on edit **Delete** at the start. The dirty rule, the refusal reveal and the keyboard rules are `FormSheet`'s. A refusal from the server under its field: `name_required` under Name, `recipe_lines_required` under Ingredients, `recipe_serving_too_large` under Figures: "One serving comes to more than 10 000 kcal. Check the weights and the servings.".
+
+**Two pieces lifted out first** (R2a's first commit, with no change to what the log sheet does). The log sheet's search is not reusable as it stands: `FoodSearchView` requires the log sheet's `logging` and `meals` props and renders its create buttons, recent items, log-again buttons and saved meals (`FoodSearchView.tsx:1-25`). The barcode mode, the scanner and the own-food sheet live in `FoodSheet` (`useBarcodeMode`, `FoodSheet.tsx:194`). `LogBlock` takes a `LogForm` for a food or a meal and always renders Eaten or planned (`LogBlock.tsx:65`). Using them as they are would need a "picker mode" that switches parts off, which is the workaround CLAUDE.md names.
+
+**The food search is a hook, not a component**, because its parts live in three slots of the sheet that hosts it. In `FoodSheet` the search field sits in the sheet's fixed `header` (`FoodSheet.tsx:315`), the results in the body (`:438`), and the scanner and the own-food sheet in the `stacked` prop through `FoodSheetStack` (`:349-389`). A child component cannot fill its parent's `header` or `stacked`, and a sheet rendered inside the body would lose `BottomSheet`'s guarantee that a stacked sheet is rendered outside the body, so the host re-rendering never remounts it (`BottomSheet.tsx:261-266`). So:
+
+- **`useFoodFinder`** (`components/foods/useFoodFinder.tsx`) owns the search text and its debounce, `useBarcodeMode`, `useScanner`, the own-food sheet's `useSheetTarget`, and the switch between browse, results and the barcode block. It renders nothing about logging.
+
+  ```ts
+  interface FoodFinderOptions {
+    open: boolean; // the host sheet is open
+    /** The host can show a picked food now: on its search view, with none of its own sheets stacked. */
+    canPick: boolean;
+    inputRef: RefObject<HTMLInputElement | null>; // the host's: its navigation focuses the field on Back
+    contentRef: RefObject<HTMLDivElement | null>; // the host's body, which the scanner returns focus within
+    say: (note: string) => void; // the host's status line
+    /** A food row tapped, or a food found by barcode. `row` is what Back focuses. */
+    onPick: (food: FoodSummary, row: HTMLElement | string | null, last: LastAmount | null | undefined) => void;
+    /** An own food saved from the finder's own-food sheet. `row` is its held barcode row, or null. */
+    onSavedOwnFood: (food: FoodDetail, row: string | null) => void;
+    onOwnFoodDeleted: (id: string) => void;
+    onFoodGone: (id: string) => void;
+  }
+
+  interface FoodFinder {
+    /** The search field with its camera button, for the host's fixed header. */
+    field: ReactElement;
+    /** The body: the barcode block, or the food results, or `browse` while fewer than two characters are typed. */
+    results: (slots: { browse: ReactNode; lead?: ResultsLead; notice: string | null }) => ReactElement;
+    /** The scanner sheet and the own-food sheet, for the host's `stacked` slot. */
+    stacked: ReactElement;
+    query: string;
+    /** One of the finder's sheets is open, so the host's lists hold still. */
+    stackedOpen: boolean;
+    /** The own-food sheet, which the host's food view also opens to edit or copy a food. */
+    ownSheet: SheetTarget<OwnFoodTarget>;
+    /** Empties the field and drops a held barcode answer. */
+    reset: () => void;
+    /** Drops a found barcode answer for a food that is gone. */
+    forget: (foodId: string) => void;
+  }
+
+  /** What a host shows above the food results, and whether the foods then take their own heading. */
+  type ResultsLead = (query: string) => { node: ReactNode; foodsTitled: boolean };
+  ```
+
+  `results` is a function, not an element, because a host's browse lists need the finder's `onPick` and `ownSheet`, which exist only once the hook has returned. `browse` and `lead` are slots for the host's own content, not switches inside the finder: the finder renders the same field, the same food results and the same barcode block for every host.
+
+- **`AmountField`** (`components/log/AmountField.tsx`): the unit chips, the amount field and "For this amount", over a food and its portions, with the value `{ grams } | { portionId, count }` and no state choice.
+
+**What moves, and what `FoodSheet` looks like after.**
+
+- Into `useFoodFinder.tsx`: from `FoodSheet`, the `text` state, `useDebouncedValue`, `typeText`, `useScanner`, `useBarcodeMode`, `ownSheet` and the `SearchField` it renders in the search view's header. From `FoodSearchView`, the food search query, the `Results` list, the barcode-or-browse-or-results switch and the scroll-to-top effect.
+- `FoodSearchView.tsx` keeps the log sheet's own content and exports it: `Browse` (create actions, recent items, favourites, saved meals, own foods), `MealResults`, and `FoodList`, which the picker's browse reuses.
+- `FoodSheet` calls `useFoodFinder` with `canPick: open && view.kind === "search" && !hostStackedOpen` and `onPick: showFood`. Its search view's header is `finder.field`. Its body is `finder.results({ browse: <Browse ... />, lead: mealResultsLead, notice })` inside the same `ListsGuard` and `HeldLists`. Its `stacked` is `<FoodSheetStack ...>` with `finder.stacked` beside the portion, meal and estimate sheets and the confirmations, which stay `FoodSheetStack`'s. `listsFollow` counts `finder.stackedOpen`. `foodGone` and `afterDelete` call `finder.ownSheet.close()`, `finder.forget(id)` and `finder.reset()` where they now touch `ownSheet`, `barcode.forget` and `setText`. `onSavedOwnFood` keeps today's rule: it returns when the food view already shows the saved food, else shows it.
+- `LogBlock` composes `AmountField` with `StateChoice`.
+
+**One hook, two hosts, nothing duplicated.** The log sheet and the ingredient picker each call `useFoodFinder` once and put its three slots in their own three slots: header, body, `stacked`. No control is rendered twice, no host has a second mount site for a piece, and there is no mode flag.
+
+**What must not move.** The suites that must stay green unchanged: every suite under `components/log/__tests__/` and `components/foods/__tests__/`, among them `LogSheet.heldLists.test.tsx` (rows never move while the sheet is open), the three `FoodSheet.barcode*.test.tsx` suites, `FoodSheet.scan.test.tsx`, `ScannerSheet*.test.tsx`, `useBarcodeMode.test.tsx` (the hook is moved, not changed) and `OwnFoodSheet*.test.tsx`. ui-validator measures, before and after, at 390 pixels: the log sheet's search field rect, the barcode block's heading rect, the first row's rect in browse and in results, and the scanner sheet's and the own-food sheet's top edge when stacked on the log sheet. Each stays within 1 pixel.
+
+**The ingredient picker** (`IngredientPicker`): a `BottomSheet` with `size="tall"`, `stacked` on the editor, two views in one sheet so its top edge never moves:
+
+- **Search view**: `StatusLine` ("Adding to Shakshuka", or "Added Feta, 60 g." for six seconds after an add), then the picker's own `useFoodFinder`: `finder.field` in the picker's fixed header under the status line, `finder.results` in its body with `browse` set to the person's favourite foods and own foods (two `FoodList`s, without recent items or log-again buttons, and no `lead`), and `finder.stacked` in the picker's `stacked` prop. `onPick` opens the amount view, and `canPick` is true on the search view. Footer **Done**.
+- **Amount view**, after a tap on a food: **Back**, the food's name. `AmountField`, which opens on grams with the field empty and "Enter an amount to see its figures." (a recipe's amount is not the person's last logged amount, so FR-LOG-04's prefill does not apply), then **As written** (an amount `DecimalField` and a unit `SelectField`, both optional, "For the recipe text, such as 2 cloves."), then **Note**. The amount's line says "Weigh it as it goes into the pot." Footer **Add** for a new line, or **Save** with **Remove ingredient** at the start for an existing one, and a **Change food** text button under the name, which goes to the search view and back with the amount kept.
+- After **Add**, the picker goes back to the search view, empty (`finder.reset()`), focus in the field, and the line is already in the editor behind it. Adding five ingredients is five searches and five amounts with no sheet opening or closing.
+- **Add your own food** from the picker stacks the own-food sheet on the picker through `finder.stacked`, and the picker is stacked on the editor: three sheets deep, and four with the own-food sheet's delete question. The log sheet reaches three today (the own-food sheet stacked on it at `FoodSheet.tsx:349`, and its delete question). A food saved there goes straight to the amount view (`onSavedOwnFood`). h.5 checks this depth on a real phone.
+
+**A line not counted** (`NotCountedSheet`, stacked `FormSheet`, "Line not counted"): **Name** ("Salt"), **As written** (optional), **Note**. "Not counted lines add no figures. Use them for water, salt and spices." Footer **Add** or **Save**, and **Remove** on an existing one.
+
+Reordering lines is not in R2a (section g, out of scope).
+
+### f.4 Logging from the log sheet (R2b)
+
+The search field's placeholder becomes "Search foods, meals and recipes". The browse lists become Recent (foods, meals and recipes), Favourites, **Recipes** (active recipes by name, favourites starred, each with **+**), Saved meals, Your foods. Typed text shows matching recipes under **Recipes** above **Saved meals**, found on the device. A recipe's **+** logs its last servings, else 1, as a meal's does: "Logged Shakshuka, 1 serving.".
+
+**A recipe view** in the sheet (`RecipeView`): **Back**, the name. The log block with **Servings**, "For this amount" and Eaten or planned, **Log** in the footer. Under it "Per serving" (four figures), "Serves 2 · 25 min", **Open recipe** (leaves the sheet for the recipe page, as **About the food data** leaves it) and, from R4a, **Log as made**. A recipe deleted elsewhere returns to the search with "This recipe is no longer available.".
+
+### f.5 The Day tab (R1b minimal, R2a, R4a, R4b)
+
+- **The row**: amount line "1 serving", "1.5 servings", and from R4a "1 serving · As made" when `cook.differs`. The figures as every row.
+- **The entry sheet**: the amount is **Servings** (`DecimalField`, "servings"). Under the figures, **Open recipe** (`btnText`). From R4a: **Log as made** for a plain recipe entry, or for a cook's entry the line "From the batch made on Sat 21 Nov." (plus "It differs from the recipe." when it does). From R4b: **Edit as made** under that line. A deleted recipe: "This recipe was deleted.".
+- R1b ships the amount line and the Servings field only, so a recipe entry an assistant or the REST API adds before R2a renders right.
+
+### f.6 The cook sheet (R4a creates, R4b edits)
+
+`CookSheet`, `FormSheet` `size="tall"`, `stacked` over the sheet it opens from (the entry sheet, the log sheet's recipe view) or top-level on the recipe page. Title "Log Shakshuka as made", or "Shakshuka as made" when editing. Mount sites: the Day tab, the log sheet, the recipe page, each through the same component. R4a ships the sheet for a new cook, items 1 to 5 without their editing parts. R4b adds editing: the title "Shakshuka as made", item 5's read-only rows and add row for an edit, and item 6.
+
+1. **Made on** (`NativeDateInput`), the opening entry's date or the sheet's day.
+2. **It gave** (`DecimalField`, "servings"), the recipe's servings to start, line "The recipe makes 2.".
+3. **Ingredients**: the lines as in the editor, each tap opening the picker's amount view with **Leave out** at the footer's start. A changed line shows "Changed. Recipe: 60 g" muted. A left-out line stays in its place, struck through and muted, with **Put back**. An added line shows "Added". **Add ingredient** under them.
+4. **Figures**: "Per serving" and "Whole batch", live, with "Recipe: 365 kcal · 21.8 g per serving" muted under.
+5. **From this batch**: for a new cook, the opening entry with its Servings and Eaten or planned; then "Other planned servings of Shakshuka", each a `Checkbox` row with its date and servings, unticked (decision 0.14), from the cook's date to six days after; then **Add servings on another day**, which adds a row of date, servings and Eaten or planned. When editing: each entry from it as a read-only row (date, servings, status), and the add row, whose new servings go in the same `PUT /cooks/:id` as the edit (`CookEditBody.add`), so they take the edited figures and the toast counts them.
+6. Edit only, at the end: **Save as a new recipe** opens `SaveCookAsRecipeSheet`, stacked: **Name**, filled with the recipe's own name, the whole text selected so typing replaces it, and the line "A new recipe with this batch's ingredients and servings.". The name is data, so the app appends no English words to it. **Save**. Toast after both close: "Saved Shakshuka to your recipes." with the name as typed. Nothing else changes.
+
+Footer **Cancel** and **Log as made**, or **Save**. After a create: toast "Logged Shakshuka as made." with no Undo (a cook and several entries; the entries each have their Undo through the entry sheet), and after an edit "Saved. 2 days changed." Refusals: `cook_entry_invalid` in the footer line, "One of these servings changed on another device. Close this and open it again.".
+
+| State                                   | Cook sheet                                                                                                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Opened from a planned entry today       | Made on today, the entry with Eaten chosen                                                                                                                      |
+| Opened from the recipe page, no entry   | Made on today. No opening entry: the add row is open with today, 1 serving and Eaten (Planned on a future date). **Log as made** waits until a row has servings |
+| Opened from a future planned entry      | Made on its date, the entry Planned only, "Future days hold planned entries."                                                                                   |
+| No other planned servings in the window | the heading and its list are absent, no empty line                                                                                                              |
+| Recipe deleted since                    | opens, works, and **Save as a new recipe** stays                                                                                                                |
+| Offline                                 | the footer line "You are offline. Changes need a connection." on Save                                                                                           |
+
+Across-state properties: the sheet's top edge and the footer stay put while lines are left out, put back and added (a held-height sheet). Leaving out a line does not move the lines above it, and the struck-through line keeps its height so the lines below do not move either.
+
+### f.7 The cover image (R5)
+
+Editor: **Cover image** after Notes: **Choose a photo** (`<input type="file" accept="image/*">` behind a button), then the image at 4:3 with **Remove photo**. The file is downscaled on the device (`lib/imagePreprocess.ts`, from the salvage, longest side 1600, JPEG at 0.82, at most 1 MiB) and uploaded on **Save recipe** after the recipe's own save. A failed upload keeps the recipe and says "The recipe is saved. The photo did not upload. Try again." with **Try again** in the footer line. Display: `CoverImage` fetches `/recipe-images/<id>` with the Bearer token through `lib/api`, makes an object URL, and caches it under `["recipe-image", id]` with `staleTime: Infinity`, revoked when the query is collected. List rows show no thumbnail in R5 (a 56 pixel row stays text).
+
+### f.8 Data and refresh
+
+Query keys: `["recipes", "list", archived]`, `["recipes", "detail", id]`, `["cooks", id]`. `lib/recipeCache.ts` puts each write's answer into the lists and the detail first, so no row moves under the thumb, then `invalidation.ts` reads again: a recipe edit invalidates the recipe, the lists and the days (planned entries took new figures). An own-food edit (`afterOwnFoodSaved`) also invalidates `["recipes"]`, since figures follow foods. A cook write puts its days in the cache from the answer and invalidates `["cooks", id]`. Writes wait while the app asks the server for today (`useToday().holding`), as on the Day tab.
+
+## g) Constraints and decisions
+
+- `src/mcp/` computes nothing and runs no SQL. Every recipe figure an assistant reads comes from `recipeValues.ts` through the read services.
+- Every write service uses `ctx.db` only, so `recordedWrite` nests it (connected AI memory).
+- The backend uses `.js` relative imports, the web none.
+- `EntrySchema` grows only nullable fields, so every existing reader keeps parsing.
+- One figure function: `recipeBasis` then `entryFigures`. No figure is computed any other way, on any side.
+- One basis write point per entry (memory, step 3): at add. The deliberate rewrites: a recipe or own-food edit (planned plain entries from today, through `rewritePlannedBasis`), a cook edit (every entry from it and its removed rows, through `rewriteCookBasis`), a copy of a cook's entry (the recipe now), an attach to a cook. Nothing else, and an own-food edit never touches a cook's entries.
+
+### Rejected alternatives
+
+| Alternative                                                                         | Why not                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A cook stored as a hidden recipe row (`recipes.kind = 'cook'`)                      | One ingredient table, but every library query, tag, favourite, image, archive and deletion request must then exclude cooks, and a cook has none of those. Two small tables are clearer than a flag every query must remember                                                                                                     |
+| Every recipe entry points at a cook (decision 0.1)                                  | A cook and a copy of every line per planned serving, for the common case that changes nothing                                                                                                                                                                                                                                    |
+| A cook's lines snapshot each food's values per 100 g (decision 0.15's other branch) | A second place figures are read from. A cook recomputes from its foods when it is made or edited, and nothing else writes its entries, so they always share one basis. The cost of not snapshotting is that a correction carries any food edit made since                                                                        |
+| Per-serving figures cached on the recipe row                                        | A second write point that every food edit and every Fineli import must keep true. Computing at read costs one query over a few thousand rows                                                                                                                                                                                     |
+| The whole recipe as the stored basis, with a `{ per: "servings", of }` scale        | Needs more precision than the entry columns hold, and gives a whole that differs from N servings logged. Per serving at stored precision makes "whole" and "N servings on a day" the same number by construction                                                                                                                 |
+| Per-line figures in the recipe page and editor list                                 | They do not add up to the whole after rounding (c.3)                                                                                                                                                                                                                                                                             |
+| Duplicate and "save as new recipe" as server endpoints that copy                    | Duplicate is the editor filled in, saved by the ordinary create, so the assistant's `get_recipe` then `create_recipe` is the same act. "Save as a new recipe" is a server call because the cook sheet opens on the Day tab and the log sheet, where the editor is not mounted: a server copy needs no second mount of the editor |
+| The editor as a page route                                                          | Loses `FormSheet`'s keyboard, dirty and refusal machinery, which every other form has                                                                                                                                                                                                                                            |
+| Drag to reorder lines                                                               | A drag inside a draggable sheet fights the sheet's own swipe. Order is the order added for now                                                                                                                                                                                                                                   |
+| An assistant tool for the image (decision 0.8)                                      | A model cannot send bytes it was only shown                                                                                                                                                                                                                                                                                      |
+| A volume on Fly for images                                                          | Pins the backend to one machine, backups and deletion by hand                                                                                                                                                                                                                                                                    |
+| Vercel Blob                                                                         | Public URLs by default, which section 5 rules out                                                                                                                                                                                                                                                                                |
+
+### Non-questions
+
+- No advice: no recipe is labelled high-protein or light, and no sort is called "best".
+- The image is never sent to an assistant.
+- A recipe is never logged by grams of the cooked dish in this step. Servings only (FR-DAY-02).
+- No prices.
+- An entry's servings take two decimals, the same rule as a meal's count.
+
+### Out of scope
+
+Reordering lines, a pasted-list parser (decision 0.10), sharing a recipe, a cooked weight for a cook, logging by grams of a cooked dish, list thumbnails, the gap's ranking and fill (step 7), the grocery list (step 8).
+
+## h) Open questions and risks
+
+| #    | Question or risk                                                                                                                                                                                                                               | Assumption the build takes                                                                                                                                                                                                                                       | Who decides                            |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| h.1  | The nineteen decisions of section 0, 0.1 to 0.19                                                                                                                                                                                               | As recommended. 0.2 is answered before R3b merges                                                                                                                                                                                                                | Artur, through `TODO.md`               |
+| h.2  | The four wordings and one addition of section 1                                                                                                                                                                                                | The build follows them, the requirements stay as they are                                                                                                                                                                                                        | Artur                                  |
+| h.3  | Recipes joining the log sheet, the segments, the preview tool, portion counts in lines (not asked for)                                                                                                                                         | Built as designed                                                                                                                                                                                                                                                | Artur may veto each, through `TODO.md` |
+| h.4  | **Risk: conflicts with in-flight work.** Connected AI 4b (`tools/writes/index.ts`, `recorded/`, `appRules.ts`, `registries.test.ts`) is being built now. Slice 5 adds `changeText.ts`. Slice 6 changes `RecipesTab.tsx` and the deletion kinds | R1a starts after 4b merges, rebased. Whichever of slice 6 and R2a lands second rebases the panel above the segments. The change-record lines go with whichever lands second (d.6)                                                                                | Orchestrator                           |
+| h.5  | **Risk: the editor in a tall `FormSheet`** has never been built, and the picker makes a three-deep stack (four with the own-food sheet's delete question)                                                                                      | ui-validator drives it on a real iPhone: typing in Method with the keyboard up, Save above it, the picker stacked over it, the own-food sheet over the picker, swipe and back at each depth                                                                      | ui-validator, Artur's phone            |
+| h.6  | **Unverified: Postgres size and Fly backups** for image bytes. Fly's Postgres offering, volume size and snapshot retention were not checked for this design                                                                                    | A few hundred images fit the existing volume. `docs/setup/fly-backend.md` gains a line on the table's size query                                                                                                                                                 | Artur, when he deploys                 |
+| h.7  | **Unverified: iPhone photos.** That `accept="image/*"` hands Safari a JPEG or a HEIC it can draw on a canvas, and that the canvas applies the photo's orientation in an installed PWA                                                          | ui-validator tries a portrait HEIC photo on a real iPhone in R5. If the canvas cannot read HEIC, the line "This photo could not be read. Try a screenshot of it."                                                                                                | ui-validator                           |
+| h.8  | **Unverified: the browser keeps an authorised image response** in its cache with `private, immutable`                                                                                                                                          | The query cache holds the object URL for the session either way, so a miss costs one fetch per image per launch                                                                                                                                                  | Measured in R5                         |
+| h.9  | **Risk: a cook edit changes a past day**, and cannot be undone in the data                                                                                                                                                                     | Asked before R3b merges (decision 0.2). The toast says how many days changed, and the cook's entries say "As made"                                                                                                                                               | Artur                                  |
+| h.10 | **Risk: races between food, recipe and cook edits** writing the same entries, and against the entry batches                                                                                                                                    | One rewriter that locks first in one id-ordered statement, and recipe and cook writes that hold their foods `FOR SHARE` (e.3). One race test in R1a, five in R1b, the purge race in R3a, one in R3b, each seen to fail on the naive order. The tests settle them | Engineers                              |
+| h.11 | Name order in Node and in the browser (`localeCompare(..., "fi")`) could differ on a rare character                                                                                                                                            | Both run the same ICU rules for Finnish. A test pins å, ä, ö after z in the shared sort                                                                                                                                                                          | Engineers                              |
+| h.12 | Should a list past 1 000 recipes cache figures?                                                                                                                                                                                                | No one is near it. `listRecipes` gets a timing test at 500 recipes of 15 lines, under 150 ms on CI                                                                                                                                                               | Later                                  |
+| h.13 | The deletion of a recipe through an assistant needs connected AI slice 6                                                                                                                                                                       | If R1a lands first, FR-AI-17 holds by absence for recipes (no tool deletes one) until slice 6 adds the kind                                                                                                                                                      | Orchestrator                           |
+
+## i) Docs
+
+### i.1 Docs each slice changes
+
+| Doc                                                                        | Change                                                                                                                                                                                                                                                                                         | Slice                               |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `docs/features/recipes.md`                                                 | **new**, from `docs/_templates/feature.md`: a recipe, ingredients and lines not counted, figures (per serving, whole, rounding), scaling, tags and favourites, archiving and deleting, finding a recipe, last on a day, a recipe on a day, logging as made (cooks), the cover image, API, data | R1a creates, R1b, R3a, R3b, R5 grow |
+| `docs/features.md`                                                         | a "Recipes" area line, and the Days, Quick logging and Connected AI lines                                                                                                                                                                                                                      | R1a, then each slice                |
+| `docs/features/days.md`                                                    | four kinds of entry, the recipe basis, figures that stay with the cook exception, the API fields                                                                                                                                                                                               | R1b, R3a, R3b                       |
+| `docs/features/quick-logging.md`                                           | copying a cook's entry, recent recipes, logging again                                                                                                                                                                                                                                          | R1b, R3a, R2b                       |
+| `docs/features/foods.md`                                                   | an own food used by a recipe is hidden, its edit reaches planned recipe entries                                                                                                                                                                                                                | R1a, R1b, R2a, R3a                  |
+| `docs/features/connected-ai.md`                                            | the recipe and cook tools, the change record actions, deletion kind                                                                                                                                                                                                                            | R1a, R1b, R3a, R3b                  |
+| `docs/features/saved-meals.md`                                             | "Where it appears": the Meals segment                                                                                                                                                                                                                                                          | R2a                                 |
+| `docs/app/recipes.md`                                                      | the segments, the recipes list, filter sheet, editor, picker                                                                                                                                                                                                                                   | R2a, R2b, R5                        |
+| `docs/app/recipe.md`                                                       | **new**, from `docs/_templates/page.md`: the recipe page, its log sheet, the cook sheet                                                                                                                                                                                                        | R2a, R4a, R4b, R5                   |
+| `docs/app/day.md`                                                          | the recipe row, the entry sheet's servings and as made                                                                                                                                                                                                                                         | R1b, R2a, R4a, R4b                  |
+| `docs/app/log-sheet.md`                                                    | recipes in browse, search and the recipe view                                                                                                                                                                                                                                                  | R2b, R4a                            |
+| `docs/app/shell.md`                                                        | `/recipes/[id]` belongs to the Recipes tab                                                                                                                                                                                                                                                     | R2a                                 |
+| `docs/app/colors.md`                                                       | the new files allowed to draw macro dots                                                                                                                                                                                                                                                       | R2a                                 |
+| `apps/backend/README.md`, `apps/web/README.md`, `packages/types/README.md` | source trees, the image route's body limit                                                                                                                                                                                                                                                     | each slice                          |
+| `docs/setup/fly-backend.md`                                                | the image table's size check                                                                                                                                                                                                                                                                   | R5                                  |
+| `apps/backend/src/mcp/appRules.ts`                                         | section 9 Recipes, section 10's sentence on recipes, section 11's opening sentence, rule 6 and rules 8 and 9, re-stamps of every changed feature doc                                                                                                                                           | R1a, R1b, R3a, R3b                  |
+| `TODO.md`                                                                  | each decision of section 0 (all filed by R1a) and each wording of section 1 under "Needs a decision from Artur", "A filter on the Recipes tab" deleted (R2a), "seed recipes" item reworded to point at the assistant import, reordering lines under known gaps                                 | the slice that ships each           |
+
+New home headings, each added to `docs/design/link-map.md` under a new `## Recipes` area by the slice that writes the heading: recipe, line, line not counted, recipe figures, per serving, whole recipe, scaling, tags, favourite recipe, archiving a recipe, last on a day, recipe entry, cook (logging as made), differs from its recipe, cover image.
+
+### i.2 What later steps need from this one
+
+- **Step 7, the gap.** Every recipe's `perServing`, `basis` and `lastPutOn` come from `listRecipes`, in one read. A suggestion of N servings previews through `entryFigures(basis, { per: "serving", count: N })`, the figure the entry will carry. Adding it is `log_recipe` and `addEntry` kind `recipe`. Nothing in the model changes.
+- **Step 8, the grocery list.** Plain planned entries in a range count servings per recipe. Full batches are `ceil(servings / recipe.servings)`, and `scaleRecipe` gives the lines for that many servings. Lines merge by `food_id`. Lines not counted stay by `name`. Written amounts keep their unit, and `COUNTABLE_UNITS` tells which round up. Entries from a cook draw from a batch already made and are left off by default. An aisle per food is a new per-user table, and an aisle for a line not counted is a new nullable column, both additive.
+
+## j) Implementation plan
+
+Nine pull requests. Each is shippable alone, carries its own tools, tests and docs, and passes `pnpm build`, `typecheck`, `lint`, `test` and `docs:check`. Each engineer invokes `validator`. On a pass `validator` invokes `ui-validator` for R1b's web part, R2a, R2b, R4a, R4b and R5, and `reviewer` otherwise. After the reviewer passes, the orchestrator invokes `documentation-specialist`, then squashes and opens the PR. Every agent logs to `logs.txt`. Migrations take the next free number at merge time. Every slice updates its own lines in `docs/features.md`, adds the link map rows for the home headings it writes (i.1), and re-stamps the app rules for every feature doc it changes. The docs lists below name the detail docs.
+
+**The shakshuka case works after R2a**, the third slice: make a recipe from foods, see its figures, plan one serving on Saturday.
+
+Order: R1a → R1b → R2a and R3a in parallel → R2b → R4a. R3b follows R3a and merges once Artur has answered decision 0.2, then R4b follows R3b and R4a. R5 may run in parallel with anything after R2a. Nothing but R3b and R4b waits on Artur.
+
+### Slice R1a. The recipe library (backend-engineer)
+
+Needs merged first: connected AI 4b.
+
+- **Files**: `db/schema/recipes.ts`, `db/schema/index.ts`, migration with its `meta` (the three tables, the hand-written key of `recipe_tags`, and the `assistant_changes` action CHECK widened), `db/__tests__/support/seedOneOfEach.ts`, `services/recipeValues.ts` (`readLineFoods`, `checkLine`, the basis of a recipe), `services/reads/recipes.ts`, `services/writes/recipes.ts` (`createRecipe` and `updateRecipe` read their foods `FOR SHARE` through `readLineFoods`, d.1 and e.3; `deleteRecipe` deletes, since nothing can use a recipe yet), `services/sourceValues.ts` (`isUsed` for a `food` also asks `recipe_ingredients`), `lib/errors.ts` and `middleware/error.ts` (the `line` on a refusal), `lib/parseBody.ts` (`line` from a `lines` path), `mcp/result.ts` (`refusalText` adds `line: N`), `routes/recipes.ts`, `routes/index.ts`, `services/writes/recorded/recipes.ts`, `mcp/tools/recipes.ts`, `mcp/tools/writes/recipes.ts`, `mcp/tools/index.ts`, `mcp/tools/writes/index.ts`, `mcp/appRules.ts` (section 9 Recipes, the renumbering, rule 8, section 11's opening sentence, rule 6's interim wording); `packages/types/src/recipes.ts` (with `RecipeFilterSchema` and `RecipeQuerySchema`, d.1), `recipeFigures.ts`, `recipeFilter.ts` (with `fold` moved in, and `apps/web/src/components/log/mealFilter.ts` importing it), `figures.ts`, `assistantChanges.ts`, `errors.ts` (`ApiError.line`), `index.ts`; `apps/web/messages/en.json` (`errors.*` only).
+- **Tools**: `list_recipes`, `get_recipe`, `preview_recipe`, `create_recipe`, `update_recipe`, `set_recipe_archived`, `set_recipe_favourite`, and the `recipe` kind of `request_deletion` if connected AI slice 6 has merged.
+- **Tests**:
+  - `packages/types/src/__tests__/recipeFigures.test.ts`: the worked example of c.3, every pinned figure and both negative assertions. A line not counted adds nothing. The largest sum stays exact. `scaleRecipe` scales grams to one decimal, counts to two, written amounts to two.
+  - `packages/types/src/__tests__/recipes.test.ts`: `RecipeQuerySchema` parses `archived: "false"` as false, `"true"` as true, absent as false, and refuses `"yes"`; the same for `favourites`; `tags: "x"` becomes `["x"]` and `["x", "y"]` stays. Run once against `z.coerce.boolean()` and seen to parse "false" as true.
+  - `recipeFilter.test.ts`: every word in name or tag, folded ("pahkina" finds "Pähkinä"), tags all-of, figure bounds compared as shown (a recipe at 29.95 g, shown 30.0, kept by "at least 30"), each sort with its ties, å ä ö after z.
+  - `routes/__tests__/recipes.db.test.ts`: create, repeat, another user's id 409, a line on another user's own food 404, on a hidden food 404 for a new line and kept for an unchanged one, portion counts become grams, the 61st line and the 11th tag refused, a serving over 10 000 kcal refused, a refused line answers its `line` index (a bad portion on line 3 answers `line: 3`), archive, favourite, delete (cascade of lines and tags). `POST /recipes/preview` answers each line's grams and refusal and writes nothing. `GET /recipes?archived=false` answers the active recipes and not the archived one, `?archived=true` the archived one, `?tags=Brunch` with one tag filters by it, and `?tags=Brunch&tags=Quick` by both.
+  - `services/__tests__/foodWrites.db.test.ts` gains: an own food on a recipe line is hidden, not deleted, by `deleteOwnFood`, and the recipe still computes with it.
+  - `services/__tests__/recipeRaces.db.test.ts` (new): the delete race of e.3, written first: a delete of an own food and a recipe create or edit adding a line on it, in both orders, end with the food hidden and the line kept, or with `food_not_found` and its `line`, never a 500. Run once without the `FOR SHARE` in `readLineFoods` and seen to answer 500. And: a recipe create whose lines hold a Fineli food does not wait for a transaction holding that food `FOR UPDATE` (e.3, "Shared foods are not locked"), while one holding an own food does.
+  - `mcp/__tests__/result.test.ts` gains: a refusal with a `line` reads "(code, line: 3)", and one without reads as today.
+  - `mcp/__tests__/recipeTools.db.test.ts`: each tool on a real database as `entryWrites.db.test.ts` does (record and change in one transaction, replay by `entity_ids`, `unchanged` records nothing, a refused write records nothing). `preview_recipe` answers every line's grams, a refusal on the line it belongs to while the other lines keep theirs, and the same per-serving figures `create_recipe` then stores. The pasted-shakshuka sequence of d.6 (without `log_recipe`, which is R1b's). `list_recipes` with `minProteinG` answers what the web's `filterRecipes` keeps for the same list. `get_recipe` with `servings` answers the service's `scaled`. A `create_recipe` refused after a clean preview, because the food of line 2 was deleted in between, answers an error result whose text names `line: 2`.
+  - `appRules.test.ts` re-stamps, and the new phrases of d.6. `WRITE_RULES` stays within the existing 3 500 bound: about 3 069 characters after R1a (d.6, "The length bound").
+  - Each new test is run against the code without the change once, and fails.
+- **Docs**: `docs/features/recipes.md` (new: model, figures, finding, archiving and deleting, API, data), `docs/features.md`, `docs/features/foods.md`, `docs/features/connected-ai.md`, link map rows, `apps/backend/README.md`, `packages/types/README.md`, `TODO.md` (all of decisions 0.1 to 0.19 under "Needs a decision from Artur", 0.2 marked "answer before R3b merges", and the wordings of section 1).
+
+### Slice R1b. Recipes on days (backend-engineer, then frontend-engineer for the minimal web part)
+
+Needs merged first: R1a.
+
+- **Backend files**: `db/schema/entries.ts` and its migration (kind, `recipe_id`, `servings` with `entries_amounts` bounding it to 100, `entries_recipe`, `entries_recipe_fields` without its `cook_id` clause, `entries_recipe_user_fk`, `entries_recipe_idx`), `services/sourceValues.ts` (`rewritePlannedBasis` in three steps with the `recipe` source and the food source's recipe branch, e.3; `isUsed` with the `recipe` source, entries and removed entries only, c.2), `services/recipeValues.ts` (`readRecipeForEntry`, with the own-food lock of `readLineFoods`), `services/writes/entries.ts` (`valuesFor`, `mismatched`, `updateEntry`, `sourceRefused` and `restoreRefused` with `entries_recipe_user_fk`), `services/writes/recipes.ts` (`updateRecipe` calls the rewrite, `deleteRecipe` hides a used recipe), `services/writes/foods.ts` and `services/writes/savedMeals.ts` (the rewrite without its `figures` argument), `services/entryRows.ts`, `services/reads/recipes.ts` (`lastPutOn` reads `entries_recipe_idx`), `services/writes/recorded/entries.ts` (`log_recipe`), `mcp/tools/writes/entries.ts` (`log_recipe`, `servings` on `update_entry`), `mcp/tools/days.ts` (selects `servings` and `recipe` on entries), `mcp/appRules.ts`; `packages/types/src/entries.ts`, `assistantChanges.ts`.
+- **Web files**: `lib/entryFormat.ts` (the "1 serving" line), the entry sheet's Servings field, `messages/en.json`.
+- **Tests**:
+  - `routes/__tests__/recipeEntries.db.test.ts`: one serving logged shows exactly the recipe's per serving, N servings exactly `entryFigures(basis, N)`, **one entry of all servings** exactly the whole, and three one-serving entries of the recipe served 3 sum to 43.5 g of protein against a whole of 43.6 g (c.3). **FR-DAY-07 pinned**: a recipe edited after an eaten entry today and a planned entry yesterday leaves both unchanged and rewrites a planned entry today and one next week. An own food edited rewrites the planned entry of a recipe using it, and not an eaten one. A plain copy keeps its basis even after the recipe changed. A move and a status change keep the basis. Remove then restore brings the exact row back. A deleted recipe's entry keeps name and figures, and copies. A new entry on a deleted recipe answers `recipe_not_found` (d.2). Delete of a used recipe hides it, readable by id, out of the list. `lastPutOn` moves with an add, back with its removal, forward with a move to a later date. An add on a recipe deleted outright between the read and the insert answers `recipe_not_found`, not a 500. Servings of 100.01 answer `entry_count_invalid`, and a row with servings 100.01 written in SQL fails `entries_amounts`.
+  - `services/__tests__/recipeRaces.db.test.ts` gains the five races of e.3, written first, each run once against the naive order and seen to fail. Race 5 (a recipe edit adding a line on a food, raced with an edit of that food) is run against `updateRecipe` without its `FOR SHARE`.
+  - **Unchanged and green**, guarding the saved-meal and own-food rewrite now that `rewritePlannedBasis` reads its figures instead of taking them (e.3): `routes/__tests__/figuresStay.db.test.ts`, `routes/__tests__/entryBasis.db.test.ts`, `routes/__tests__/savedMeals.db.test.ts`, `routes/__tests__/days.db.test.ts`, `services/__tests__/entryRaces.db.test.ts` (including "a food edit's rewrite of planned entries", `:293`) and `services/__tests__/sourceValues.types.test.ts`, which still holds the new signature to a transaction. None of them is edited.
+  - `mcp/__tests__/recipeTools.db.test.ts` gains `log_recipe` (the last step of the pasted shakshuka), `update_entry` with `servings`, and `get_day` answering `servings` and `recipe`.
+  - Web: the day row and entry sheet suites gain a recipe entry, with the clock pinned.
+- **Docs**: `docs/features/days.md`, `docs/features/quick-logging.md`, `docs/features/recipes.md` (a recipe on a day), `docs/features/foods.md` (an own food's edit reaches planned recipe entries), `docs/app/day.md`, `docs/features/connected-ai.md`, re-stamps.
+
+### Slice R2a. The Recipes tab, the recipe page and the editor (frontend-engineer)
+
+Needs merged first: R1b. Rebase over connected AI slice 6 if it merged first.
+
+- **First commit, the extraction** (f.3): `components/foods/useFoodFinder.tsx` and `components/log/AmountField.tsx` lifted out of `FoodSheet.tsx`, `FoodSearchView.tsx` and `LogBlock.tsx`. `FoodSheet` puts the hook's `field` in its header, its `results` in its body and its `stacked` beside `FoodSheetStack`'s own sheets. `FoodSearchView.tsx` keeps and exports `Browse`, `MealResults` and `FoodList`. No behaviour changes. Every suite under `components/log/__tests__/` and `components/foods/__tests__/` passes unchanged, and ui-validator's before-and-after rects of f.3 hold.
+- **Files**: `components/recipes/RecipesTab.tsx` (rewritten), `RecipeList.tsx`, `RecipeRow.tsx`, `RecipePage.tsx`, `RecipeFigures.tsx`, `RecipeEditorSheet.tsx`, `IngredientRows.tsx`, `IngredientPicker.tsx`, `NotCountedSheet.tsx`, `TagField.tsx`, `RecipeLogSheet.tsx`, `app/(app)/recipes/[id]/page.tsx`, `components/shell/tabs.ts`, `lib/api/recipes.ts`, `lib/queryKeys.ts`, `lib/queryOptions.ts`, `lib/recipeCache.ts`, `lib/invalidation.ts`, `lib/errors.ts` (`getErrorLine`, reading `line` off a refusal), the entry sheet's **Open recipe**, `messages/en.json`, the macro hue allowlist test.
+- **Tests**:
+  - `useFoodFinder.test.tsx`, through a test host that puts the three slots where a sheet puts them (header, body, `stacked`): no log buttons, `browse` while fewer than two characters are typed, results after, the barcode block for a code, a pick calls `onPick`, an own food saved calls `onSavedOwnFood`, `reset` empties the field. `AmountField.test.tsx`: no state choice, the value for grams and for a portion count.
+  - `lib/__tests__/errors.test.ts` gains: `getErrorLine` reads `line` from a refusal and is undefined without one.
+  - `RecipesTab.test.tsx`: segment in the address, each segment's action and search, the empty and failed lines, the archived list, a meal and a food still save, edit and delete from their segments (the existing suites moved, not dropped).
+  - `RecipePage.test.tsx`: figures from the server, the stepper scales lines and figures (the worked example at 3 servings: 1095 kcal, 65.3 g, never 65.4), **Back to 2**, every state in f.2's table, delete asks then leaves.
+  - `RecipeEditorSheet.test.tsx`: `describeFormSheetContract`, live figures equal the server's for the same lines, a line added from the picker appears behind it, Method lines become steps, tags typed and tapped, duplicate opens as new, refusals land under their fields, a refusal with a `line` lands under that ingredient.
+  - `IngredientPicker.test.tsx`: the amount view opens on grams with an empty field, add returns to an empty search with focus and the status line, edit has Save and Remove ingredient, **Change food** keeps the amount.
+  - `RecipeLogSheet.test.tsx`: planned only on a future date, the figures of 1 serving equal the page's per serving, the toast.
+  - Every fixture that names a day pins the clock.
+  - ui-validator, in a real browser at 320, 390, 1280, both themes: the across-state rects of f.1, the stepper never moving what is below the card, the picker's top edge across search and amount views and across five adds, the extraction's before-and-after rects, and on a real iPhone the editor's Save above the keyboard and the three-deep stack (editor, picker, own-food sheet) with its swipe and back gesture.
+- **Docs**: `docs/app/recipes.md`, `docs/app/recipe.md` (new), `docs/app/log-sheet.md` ("How it works": the two components), `docs/app/shell.md`, `docs/app/colors.md`, `docs/features/saved-meals.md`, `docs/features/foods.md` (where it appears), `apps/web/README.md`, `TODO.md` ("A filter on the Recipes tab" deleted).
+
+### Slice R3a. Making and reading cooks (backend-engineer)
+
+Needs merged first: R1b. Runs in parallel with R2a. Needs no answer from Artur: nothing in it corrects a cook. Attaching an entry rewrites only the entries the person names, one by one, as editing an entry does (decision 0.2's cost column, and the FR-DAY-07 wording of section 1).
+
+- **Files**: `db/schema/cooks.ts`, migration (two tables, `entries.cook_id`, the `cook_id` clause of `entries_recipe_fields`, `entries_cook_fk`, `entries_cook_idx`, `cook.logged` in the action CHECK), `seedOneOfEach.ts`, `services/reads/cooks.ts`, `services/writes/cooks.ts` (`createCook` with `attach`, `attachStatus` and `add`, reading its own foods `FOR SHARE` through `readLineFoods`; `saveCookAsRecipe`), `services/recipeValues.ts` (`readRecipeForEntry` for a cook's lines, and with `includeDeleted` for a copy, e.5), `services/sourceValues.ts` (`isUsed` for a food asks `cook_ingredients`, every row; the `recipe` source stays entries and removed entries, c.2; the food source's recipe branch gains `cook_id IS NULL`), `services/writes/entries.ts` (the copy rule, `purgeExpired` purges orphan cooks with the lock and recheck of c.2, `cookId` on a recipe add read `FOR SHARE`, `entries_cook_fk` in `sourceRefused` and `restoreRefused`), `services/entryRows.ts` (the cook join) and `services/reads/days.ts` (the batched `differs` query of d.2), `routes/cooks.ts` (`GET /cooks/:id`, `POST /cooks`, `POST /cooks/:id/recipe`), `recorded/cooks.ts` (`log_cook`, `save_cook_as_recipe`), `mcp/tools/writes/cooks.ts` (`log_cook`, `save_cook_as_recipe`; the tool makes the cook's, the lines' and the adds' ids, d.6), `mcp/tools/writes/entries.ts` (`cookId` on `log_recipe`), `mcp/tools/recipes.ts` (`get_cook`), `mcp/appRules.ts` (the cook paragraph without its sentence on changing a cook, rule 9, section 11's cook clause: `WRITE_RULES` at about 3 321 characters); `packages/types/src/cooks.ts` (all but `CookEditBodySchema`), `entries.ts`, `assistantChanges.ts` (`cook.logged`), `errors.ts`.
+- **Tools**: `get_cook`, `log_cook` (with `attachStatus`), `save_cook_as_recipe`, `cookId` on `log_recipe`.
+- **Tests**:
+  - `routes/__tests__/cooks.db.test.ts`: e.4 steps 1 to 5 end to end (feta, oil left out, spinach added, yield 3: the entries' figures are the cook's per serving, the recipe unchanged). `attach` refuses another recipe's entry, a cook's entry, another user's, and writes nothing. `attachStatus` eaten on a future date is refused. **Attaching an eaten entry on a past day** gives it the cook's basis and changes no other entry of that day (the case the FR-DAY-07 wording names). An own food on the cook's line edited after the cook changes none of its entries (decision 0.15). A copy of a cook's entry is a plain entry with the recipe's figures now and no cook, also when the recipe was deleted since. Remove the last entry, restore it within ten minutes: the cook is there. `differs` false for a cook identical to its recipe, true for a changed yield alone, false again after the recipe is edited to match. `saveCookAsRecipe` makes a recipe with the cook's lines and yield and the recipe's steps and tags. **An orphan cook does not keep its recipe**: log as made, remove the only entry, move the pinned clock past the ten minutes, delete the recipe: it is deleted outright, its cook with it. Run once with `isUsed` counting cooks and seen to hide the recipe instead. An own food on that orphan cook's line, deleted, is hidden, not deleted (c.2).
+  - `services/__tests__/cookPurge.db.test.ts`: an add with a `cookId` and a removal that purges that cook, raced in both orders with `serviceHolder`: either the entry is added and the cook kept, or the add answers `cook_not_found`; never a 201 whose entry is gone. Run once against a purge without the lock and recheck, and seen to fail.
+  - `mcp/__tests__/cookTools.db.test.ts`: the per-tool cases of `get_cook`, `log_cook` and `save_cook_as_recipe`, the record's `entity_ids` (cook, then entries), a replay, and a `log_cook` without `fromLineId` reading as every line added (so the rule matters).
+  - A day read with two cook entries runs one `differs` query, and a week read none (a query count on the test's pool).
+- **Docs**: `docs/features/recipes.md` (logging as made, attaching, one basis per cook), `docs/features/days.md` (the cook as the day's record), `docs/features/quick-logging.md` (copying a cook's entry), `docs/features/foods.md` (an own food on a cook's line is hidden), `docs/features/connected-ai.md`, re-stamps, `apps/backend/README.md`, `packages/types/README.md`.
+
+### Slice R3b. Correcting a cook (backend-engineer)
+
+Needs merged first: R3a. **Before it merges, Artur answers decision 0.2**: `update_cook` and `PUT /cooks/:id` are the first ways a cook can be corrected, and a correction made under 0.2 cannot be undone in the data. The orchestrator sends the question with R3b's pull request. If the answer is "planned only", R3b adds the predicate to `rewriteCookBasis` before merging, and the rules sentence says so.
+
+- **Files**: `services/writes/cooks.ts` (`updateCook` with `add`, reading its own foods `FOR SHARE` through `readLineFoods`), `services/recipeValues.ts` (`rewriteCookBasis`, including the `removed_entries` rows), `routes/cooks.ts` (`PUT /cooks/:id`), `recorded/cooks.ts` (`update_cook`), `mcp/tools/writes/cooks.ts` (`update_cook`; a line keeps its id, the tool makes the rest, d.6), migration (`cook.changed` in the action CHECK), `mcp/appRules.ts` (the cook paragraph's sentence on changing a cook, d.6); `packages/types/src/cooks.ts` (`CookEditBodySchema`), `assistantChanges.ts` (`cook.changed`, its `changes`).
+- **Tools**: `update_cook` (with `add`).
+- **Tests**:
+  - `routes/__tests__/cooks.db.test.ts` gains: e.4 step 6. An edit rewrites every entry from it, eaten and past included, and nothing else. An edit with `add` puts the new entries on their days with the edited basis, in one transaction, and the answer's days include theirs. **One basis per cook**: an own food on the cook edited between the cook and its correction, then the correction gives every entry one basis, from the food's new values (decision 0.15). A removed entry of the cook, restored after a correction, comes back with the corrected basis.
+  - `services/__tests__/recipeRaces.db.test.ts` gains: a cook edit and a `removeEntries` over its entries finish without a deadlock.
+  - `mcp/__tests__/cookTools.db.test.ts` gains `update_cook`: its record's `entity_ids` (the cook, then each entry its `add` put on a day), a replay, `unchanged` for an edit that changes nothing.
+- **Docs**: `docs/features/recipes.md` (correcting a batch), `docs/features/days.md` (a correction reaches every day of the cook), `docs/features/connected-ai.md`, re-stamps, `apps/backend/README.md`.
+
+### Slice R2b. Recipes in the log sheet, recent recipes, the filter sheet (backend-engineer, then frontend-engineer)
+
+Needs merged first: R2a.
+
+- **Backend files**: `services/reads/log.ts` (`listRecents` walks recipe entries), `services/reads/recipes.ts` (`lastServings`), `packages/types/src/log.ts`, `mcp/tools/foods.ts` (`list_recent_items` answers recipes too).
+- **Web files**: `components/log/RecipeView.tsx`, the browse lists, the search results, `againItems.ts`, `useLogAgain.ts`, `components/recipes/RecipeFilterSheet.tsx`, the chip row, `messages/en.json`.
+- **Tests**: recents order with recipes among foods and meals, archived and deleted recipes left out, the last servings remembered from an amount changed while marking eaten. The log sheet's lists keep their order and rows while open (the existing across-state test gains a recipe row). **+** logs the last servings. The filter sheet's draft does not move the list until **Show recipes**.
+- **Docs**: `docs/app/log-sheet.md`, `docs/features/quick-logging.md`, `docs/app/recipes.md`, re-stamps.
+
+### Slice R4a. Logging as made on screen (frontend-engineer)
+
+Needs merged first: R3a and R2b.
+
+- **Files**: `components/recipes/CookSheet.tsx` (a new cook, f.6 items 1 to 5), `lib/api/cooks.ts` (read, create), the entry sheet's **Log as made** and its "From the batch made on ..." line, the day row's "As made", `RecipeView` and `RecipePage`'s **Log as made**, `lib/queryKeys.ts` (`["cooks", id]`), `lib/invalidation.ts`, `messages/en.json`.
+- **Tests**: every state of f.6's table but "Recipe deleted since", the recipe page's opening without an entry included. Leaving out a line keeps the rows above and below in place (heights equal before and after). The figures shown equal the server's answer for the same lines. Attach of a ticked serving, with Eaten set on the opening entry in the same request. "As made" shows only while `differs`. The clock is pinned in every fixture.
+- **Docs**: `docs/app/recipe.md`, `docs/app/day.md`, `docs/app/log-sheet.md`.
+
+### Slice R4b. Editing a cook on screen (frontend-engineer)
+
+Needs merged first: R4a and R3b.
+
+- **Files**: `components/recipes/CookSheet.tsx` (editing: the title, item 5's read-only rows and add row, item 6), `SaveCookAsRecipeSheet.tsx`, `lib/api/cooks.ts` (update, save as a recipe), the entry sheet's **Edit as made**, `lib/invalidation.ts`, `messages/en.json`.
+- **Tests**: an edit's add row sends one `PUT` with `add`, and its toast counts the days changed. The f.6 row "Recipe deleted since": the sheet opens, saves, and keeps **Save as a new recipe**. The save-as-recipe name starts as the recipe's own name, selected. The sheet's top edge and footer stay put across leaving out, putting back and adding lines while editing.
+- **Docs**: `docs/app/recipe.md`, `docs/app/day.md`.
+
+### Slice R5. The cover image (backend-engineer, then frontend-engineer)
+
+Needs merged first: R2a. Decision 0.7 is answered before it starts, because h.6 is unmeasured.
+
+- **Backend files**: `db/schema/recipeImages.ts` (`id` uuid, `user_id`, `recipe_id` unique with key `(recipe_id, user_id)` cascading, `bytes bytea`, `byte_size`, `created_at`), migration, `seedOneOfEach.ts`, `services/recipeImages.ts` (check `FF D8 FF` at the start and `FF D9` at the end, drop the APP1 segments (EXIF, XMP, GPS) and COM, keep APP2 (the ICC profile) and APP14 (Adobe colour), store, read by owner), `routes/recipeImages.ts`, `listRecipes` and `getRecipe` answer `imageId`, `get_recipe` answers `hasImage` only.
+- **Web files**: `lib/imagePreprocess.ts` (from `docs/design/salvage/images/`, ported to Jest, then the salvage copy deleted), `components/recipes/CoverImage.tsx`, the editor's photo field, the page's image.
+- **Tests**: a PNG, an empty body and a truncated JPEG refused, 1 MiB plus one byte refused, EXIF GPS bytes gone from what is stored while an ICC profile stays byte for byte, another user's image id 404, account deletion leaves no image row, `get_recipe` carries no bytes. Web: the upload follows the recipe's save, a failed upload keeps the recipe and says so.
+- **Docs**: `docs/features/recipes.md` (the cover image), `docs/app/recipe.md`, `docs/app/recipes.md`, `docs/setup/fly-backend.md`, `apps/backend/README.md`, `docs/design/salvage/README.md` (rows removed).
+
+### What it costs, and what to cut
+
+About 4 700 backend lines and 4 300 web lines with tests, over nine PRs. If the step must shrink, in this order, each a clean drop: R5 (the image waits), the filter sheet's sort and figure bounds (search and tags stay, FR-REC-08 then partly open), recipes in the log sheet (R2b, decision 0.11), `save_cook_as_recipe` and its button (FR-REC-14 then partly open).
+
+## Resolved defaults (architect, 2026-11-19, revised after review round 1, the delta review and the pull request review, owner may veto)
+
+Every product default is one of the nineteen rows of section 0, 0.1 to 0.19, each with its cost if flipped, and `TODO.md` carries each for Artur. 0.2 is the one to answer before R3b merges. The calls below are design-level and not Artur's to make, listed so a reviewer can veto one without rereading the doc:
+
+- The cook's "Save as a new recipe" prefills the recipe's own name, selected, and appends no English words to it.
+- The picker's amount view opens on grams with an empty field, not on a last logged amount.
+- A refused line is reported by its index from 0, in the error body's `line`.
+- The recipe tags' primary key is `(recipe_id, lower(tag))`, written by hand in the migration.
+- The rules' new read section is section 9, and the two after it are renumbered.
+- Recipe and cook writes share-lock the user's own foods among their lines in one id-ordered statement (`readLineFoods`), every such line's food, not only new ones, so one rule holds for every write. Fineli foods and kept products are not locked (e.3).
+- The write rules' 3 500 character bound stays. Rules 8 and 9 are tightened to fit it.
+- `useFoodFinder`'s `results` is a function of the host's `browse`, `lead` and `notice`, since those need the hook's own handles.
+- `refusalText` prints `line: N` after the code, in the notes it already prints.
+- Query flags take "true" and "false" only, as `SavedMealsQuerySchema` does, not `z.stringbool()`'s wider set.
+- The tool takes `RecipeFilterSchema` (JSON), the route `RecipeQuerySchema` (strings), and both parse to one `RecipeFilter`.
+- A recipe's `isUsed` counts entries and removed entries only. A food's counts every cook line, orphan or not.
+- Cooks ship in two slices, R3a (make, read, attach) and R3b (correct), and the screen in R4a and R4b. Only R3b waits on decision 0.2.
+
+## Review round 1, answered (architect, 2026-11-19)
+
+The review (approve after changes: 0 blockers, 7 majors, 12 minors, 6 nits) and the orchestrator's rulings on the majors. Every code claim the reviewer made was checked against the code before building on it: `FoodSearchView`'s required props, `useBarcodeMode` in `FoodSheet`, `LogBlock` always rendering `StateChoice`, `FormSheet` passing `size`, and `purgeExpired` called by the three removal and restore paths only all hold. The two races were not reproduced by the reviewer, and are now the first tests R1b and R3 write, each seen to fail on the naive order.
+
+| #          | Finding                                                                                                       | Answer                                                                                                                                                                                                                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1          | major: a food edit split a cook's entries across two bases, and a cook edit carried food edits onto past days | Accepted with the orchestrator's ruling. Cooks leave the food rewrite entirely. A cook's figures are computed when it is made or edited, from the foods as they are then, and nothing else writes them (c.2, e.3, e.4 step 7). New decision 0.15. The clarifying FR-DAY-07 wording says so. R3 tests it |
+| 2          | major: the food rewrite computed before locking and locked recipe by recipe                                   | Accepted. `rewritePlannedBasis` becomes the one rewriter in three steps (lock every entry in one id-ordered statement, then read, then write), with a `recipe` source. `rewriteRecipeBasis` and `rewriteForFood` are gone. Four race tests named in e.3, written first and run against the naive order  |
+| 3          | major: purging an orphan cook could cascade away an entry added at that moment                                | Accepted. The purge locks `FOR UPDATE SKIP LOCKED` and rechecks, as `deleteOwnFood` does, and an add with a `cookId` holds the cook `FOR SHARE` (c.2). The purging writes are named. `cookPurge.db.test.ts` in R3                                                                                       |
+| 4          | major: the picker is not "the same component" as the log sheet's search                                       | Accepted. R2a's first commit lifts `FoodFinder` and `AmountField`, with the suites that stay green and the rects that must not move (f.3). The amount view opens on grams, empty. The three-deep stack joins the device check                                                                           |
+| 5          | major: `preview_recipe` gave no grams and no line for a refusal                                               | Accepted. `RecipePreview` answers every line's grams, portion and refusal. Saves name the refused line in `line`. One `checkLine` serves preview and save. The pasted shakshuka is walked with its tool calls (d.6)                                                                                     |
+| 6          | major: the cook sheet's edit mode had an add row the body could not carry                                     | Accepted, the reviewer's first option. `CookEditBody.add`, and `update_cook` takes it (d.3, f.6)                                                                                                                                                                                                        |
+| 7          | major: decision 0.2 cannot be undone in the data                                                              | Accepted with the orchestrator's ruling, moved to R3: `update_cook` and `PUT /cooks/:id` ship there, before any screen. Row 0.2, R3's and R4's entries, and `TODO.md` say so                                                                                                                            |
+| 8          | minor: "whole" equals the day only for one entry                                                              | Accepted. c.3 states it with the 43.5 against 43.6 example as correct, and R1b pins both                                                                                                                                                                                                                |
+| 9          | minor: R1a cannot test a used recipe's delete                                                                 | Accepted. R1a's `deleteRecipe` deletes. The `recipe` source of `isUsed` moves to R1b, and its cook branch to R3                                                                                                                                                                                         |
+| 10         | minor: the foreign-key maps need the new keys                                                                 | Accepted (d.2, R1b, R3)                                                                                                                                                                                                                                                                                 |
+| 11         | minor: a restore after a cook edit brought back a stale basis                                                 | Accepted. `rewriteCookBasis` rewrites the cook's rows in `removed_entries` too (c.2). R3 tests it                                                                                                                                                                                                       |
+| 12         | minor: `cook.differs` had no query plan                                                                       | Accepted. One batched query after `selectEntries`, skipped by week reads and by days without cook entries (d.2)                                                                                                                                                                                         |
+| 13         | minor: `log_cook` lacked `attachStatus`, and the rules did not ask for `fromLineId`                           | Accepted (d.6 table, rule 9)                                                                                                                                                                                                                                                                            |
+| 14         | minor: "one line per ingredient, both amounts added" asked for arithmetic                                     | Accepted. Dropped. Lines stay as the recipe writes them                                                                                                                                                                                                                                                 |
+| 15         | minor: the FR-LOG-03 wording promised favourite saved meals                                                   | Accepted. Reworded, FR-LOG-04 added, and FR-AI-07 goes into the existing `TODO.md` item (section 1)                                                                                                                                                                                                     |
+| 16         | minor: the cook sheet from the recipe page had no state                                                       | Accepted. A row in f.6's table                                                                                                                                                                                                                                                                          |
+| 17         | minor: R1b named the wrong file for `lastPutOn` and left out the day tool                                     | Accepted. R1b's list fixed, and the `cook_id` parts of the CHECK and the rewrite are marked R3's (c.2, R1b, R3)                                                                                                                                                                                         |
+| 18         | minor: stripping APP2 and APP14 shifts colours                                                                | Accepted. APP1 and COM only, with a test that an ICC profile survives                                                                                                                                                                                                                                   |
+| 19         | minor: a copy is the one way a deleted recipe gains an entry                                                  | Accepted as a stated rule with a test each way (d.2, e.5)                                                                                                                                                                                                                                               |
+| 20         | nit: `FormSheet` already passes `size`                                                                        | Accepted. The hedge and the R2a file entry are gone                                                                                                                                                                                                                                                     |
+| 21         | nit: e.4 read as if Sunday started ticked                                                                     | Accepted. Rewritten, and step 3 says `attachStatus` plainly                                                                                                                                                                                                                                             |
+| 22         | nit: two lists of decisions                                                                                   | Accepted. One table, 0.1 to 0.19. The footer keeps only design-level calls                                                                                                                                                                                                                              |
+| 23         | nit: where the rules' recipes section goes                                                                    | Accepted. Section 9, with 10 and 11 renumbered and section 11's opening sentence extended (d.6)                                                                                                                                                                                                         |
+| 24         | nit: the scaled recipe must come from the service                                                             | Accepted. `getRecipe(ctx, id, { servings })` answers `scaled` (d.6)                                                                                                                                                                                                                                     |
+| 25         | nit: "Shakshuka (as made)" appends English to data                                                            | Accepted. The prefill is the recipe's own name, selected (f.6)                                                                                                                                                                                                                                          |
+| By the way | `recipe_tags` has no primary key                                                                              | Accepted. `(recipe_id, lower(tag))` (c.1)                                                                                                                                                                                                                                                               |
+| By the way | Split the segments rewrite into its own slice after the page and editor                                       | Rejected. The segments are where **New recipe** and the list mount. Shipping the page and the editor first would need a temporary mount on today's two-section page, built and then removed, and the shakshuka case would still wait for it. The rebase over slice 6 is one panel above the segments    |
+| By the way | Settle 0.7 before R5 starts                                                                                   | Accepted. R5's entry says so                                                                                                                                                                                                                                                                            |
+
+## Delta review, answered (architect, 2026-11-19)
+
+The delta review (approve after changes: 2 majors, 3 minors, 2 nits). Each finding was checked against the code before building on it. `updateOwnFood` takes no lock on the food before its `UPDATE` and `deleteOwnFood` takes `FOR UPDATE` then asks `isUsed` (`writes/foods.ts:96-150`). `rewritePlannedBasis` finds entries through committed rows only (`sourceValues.ts:133`). `FoodSheet`'s field, results and stacked sheets sit in three slots (`FoodSheet.tsx:315, 349-389, 438`). `refusalText` prints only the code and `retryAfterSeconds` (`mcp/result.ts:65`). `WRITE_RULES` is 2 339 characters on the 4b branch. All hold. Round 1's answers stand, and its row 2 ("four race tests") is history: R1b now has five, and R1a one.
+
+| #   | Finding                                                                                      | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | major: recipe writes no longer locked their foods, so a food edit or delete raced a new line | Accepted. `readLineFoods` (d.1) reads every counted line's food in one id-ordered statement, `FOR SHARE` in `createRecipe`, `updateRecipe`, `createCook` and `updateCook`, right after the recipe or cook lock. The lock order (e.3) now names every food holder, and the two new orders are worked through: the lost update and the delete that answered 500. No cycle: a food edit holds only its food before entries, a recipe write takes its foods before any entry, and share locks do not conflict. e.1 step 4, e.3 `updateRecipe` and `updateCook`, e.4 step 4, b, h.10, R1a, R1b and R3 say so. Race 5 joins R1b's list, run against `updateRecipe` without the lock. The delete race goes to R1a, where `createRecipe` and `deleteOwnFood` first meet, in a `recipeRaces.db.test.ts` that R1a creates |
+| D2  | major: `FoodFinder` cannot fill three slots of its host                                      | Accepted. `useFoodFinder` returns `field`, `results` and `stacked`, plus `query`, `stackedOpen`, `ownSheet`, `reset` and `forget`, which `FoodSheet`'s gone and delete paths and its food view's edit and copy need today (f.3, with its option and return types). `results` is a function of the host's `browse`, `lead` and `notice`, because the log sheet's browse lists need the hook's handles. f.3 says what moves, what `FoodSheet` looks like after, the suites that stay green by name and the rects that must not move, now with the stacked sheets' top edge. One hook, two hosts, no mode flag, no control rendered twice. R2a's first commit and tests follow                                                                                                                                     |
+| D3  | minor: MCP refusals dropped `line`                                                           | Accepted. `refusalText` adds `line: N` to its notes, in R1a (`mcp/result.ts` in b and R1a's files). `result.test.ts` and `recipeTools.db.test.ts` test it. The web reads `code` only through `getErrorCode`, and R2a adds `getErrorLine` in `lib/errors.ts` for the editor (d.1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| D4  | minor: the write rules would break their length test                                         | Tightened, bound kept at 3 500. Rule 8 goes from 1 029 to 660 characters and rule 9 from 313 to 226. R1a lands at 3 069 and R3 at 3 321, leaving 179. The reason and the counts are in d.6 under "The length bound". The test phrases follow the new wording                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| D5  | minor: name the suites guarding the saved-meal and own-food rewrite                          | Accepted. R1b lists six suites that stay green unedited, `savedMeals.db.test.ts` added to the reviewer's five. e.3 says why the values are identical: each caller's `UPDATE` precedes the rewrite in the same transaction, and the body schemas allow no more decimals than the columns store                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| D6  | nit: stale lines                                                                             | Accepted. The reused list in b names what is reused unchanged and points at f.3. The `appRules.ts` rows in b and i.1 name section 9, section 10's sentence and section 11. The FR-REC-05 note says "as one entry". Section 0 says R1a files every decision in `TODO.md`, and i.1 and R1a agree                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| D7  | nit: ids in the cook tools, and `lib/errors.ts` in R2a                                       | Accepted. `log_cook` makes the cook's, every line's and every add's id. `update_cook` keeps a line's id from `get_cook` and makes the rest (d.6, R3). R2a lists `lib/errors.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+
+Nothing was rejected. One addition beyond the findings: rule 6's interim wording ("cannot delete foods, saved meals or recipes") from R1a until slice 6, counted in D4's figures.
+
+## Pull request review, answered (architect, 2026-11-19)
+
+The pull request review (approve after small fixes, no blocker). Each point was checked first. `z.coerce.boolean()` appears nowhere in the code, and the one boolean query, `SavedMealsQuerySchema.archived`, takes `"true"` and `"false"` (`packages/types/src/savedMeals.ts:42`). Zod is 4.6.7 and Express 5. `purgeExpired` runs only from the removals and the restore (`writes/entries.ts:236, 260, 336`). The Fineli import is one transaction (`scripts/fineliImport/applyRelease.ts:161`). `entries_amounts` checks only `> 0` today, and `EntryCountSchema` caps a count at 100. All hold.
+
+| #   | Point                                                                   | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `z.coerce.boolean()` parses "false" as true, `tags` breaks on one value | Accepted. d.1 splits the shape: `RecipeFilterSchema` in JSON for the service and `list_recipes`, and `RecipeQuerySchema` for `GET /recipes`, whose flags take "true" or "false" as the saved meals query does and whose `tags` takes a string or an array and gives an array. The tool takes JSON and is unaffected. R1a tests the schema and the route with `archived=false`, `archived=true`, one tag and two                                                                                                                                                                                                                                                                                |
+| 2   | The counts disagree                                                     | Nineteen decisions, 0.1 to 0.19, now stated in the status line, section 0's lead, h.1 and the footer. Section 1 now lists four new requirement wordings, FR-DAY-07, FR-LOG-03, FR-LOG-04 and FR-DAY-09, and one addition to the FR-AI-07 wording already proposed in `TODO.md`. The status line, the verdict and h.2 say so. `TODO.md`'s item carries three of the four and leaves out FR-DAY-09. The orchestrator corrects it                                                                                                                                                                                                                                                                 |
+| 3   | R3's gate also holds back creating a cook                               | Accepted, split. R3a makes and reads cooks, with attach, the purge, the copy rule, `differs`, `log_cook`, `get_cook` and `save_cook_as_recipe`, and needs no answer. R3b corrects a cook: `updateCook`, `rewriteCookBasis`, `PUT /cooks/:id`, `update_cook`, behind decision 0.2. R4a ships the cook sheet for a new cook after R3a and R2b. R4b ships editing after R4a and R3b. Every R3 and R4 mark in b to i is repointed, the rules' sentence on changing a cook moves to R3b, and the order in j says only R3b and R4b wait on Artur. Attach stays in R3a, because it rewrites only entries the person names one by one, as editing an entry does, and the FR-DAY-07 wording names it    |
+| 4   | An orphan cook keeps its recipe used for ever                           | The second way. A recipe's `isUsed` drops cooks altogether, since every entry from a cook carries the recipe's id, so a cook in use already counts through its entry or removed row (c.2). It needs no new lock: `deleteRecipe` keeps user, then recipe `FOR UPDATE`, and an unused recipe cascades away its orphan cooks. Running the purge from `deleteRecipe` would add a second purge path and lock cooks under a recipe lock for nothing. A food's `isUsed` still counts every cook line, so the food is hidden, because deleting it would cascade a line out from under a cook. Test: "An orphan cook does not keep its recipe" in R3a's `cooks.db.test.ts`, run once with cooks counted |
+| 5   | `FOR SHARE` on shared Fineli rows                                       | Restricted to the user's own foods. `readLineFoods` and `readRecipeForEntry` lock own foods in one id-ordered statement, then read every food in a second. The races are own-food races. Fineli and kept rows are never deleted and their changes rewrite no entry, and a share lock on them would make a recipe write wait out a whole Fineli import, with a deadlock possible across two rows (e.3, "Shared foods are not locked"). R1a tests that a Fineli row held `FOR UPDATE` does not block a recipe create. The existing single-row lock in `readFoodForEntry` is left as it is, since it cannot deadlock                                                                              |
+| 6   | `servings` bound                                                        | `entries_amounts` gains `servings > 0 AND servings <= 100`, as `EntryCountSchema` (c.2). R1b tests 100.01 in the API and in SQL                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 7   | Attach rewrites past eaten entries, unnamed in FR-DAY-07                | Accepted. The proposed FR-DAY-07 now reads: "The system shall keep the totals of a past day unchanged when a food, recipe or saved meal used on it is later edited or deleted. An entry the user attaches to a cook takes that cook's figures, and a correction to a cook recomputes every entry that comes from it, on any day, from its foods as they are then." R3a tests the attach of a past eaten entry                                                                                                                                                                                                                                                                                  |
+| 8   | The slice list was not reviewed                                         | Read end to end against b to i after these changes. Fixed: `docs/features/foods.md` in R1b's and R3a's docs and i.1's row, `POST /recipes/preview` in R1a's route test, `readRecipeForEntry`'s `includeDeleted` in R3a, `lib/queryKeys.ts` in R4a, and one sentence in j's lead on catalog lines, link map rows and re-stamps for every slice. Nine pull requests now, not seven                                                                                                                                                                                                                                                                                                               |
+
+Earlier answers that name R3 or R4 alone (round 1 rows 7, 9, 10, 11 and 17, delta D4 and D7) record what was decided then. Read R3 there as R3a, except the correction parts, which are R3b.
