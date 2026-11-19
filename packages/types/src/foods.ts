@@ -53,20 +53,36 @@ export const MAX_MACRO_SUM_G = 100;
 export const MACRO_SUM_ROUNDING_G = 1.5;
 
 /**
- * An own food's values: the shared shape, and its three macros together at
- * most 100 g with the rounding allowance, so 101.5 is accepted and 101.501
- * refused. The sum is taken in thousandths, the macros' stored precision, so
- * floating point cannot tip it (30.1 + 34.2 + 37.2 adds to 101.50000000000001).
- * Reported on fat, the last macro, as a range reports on its upper bound.
- * It runs only once each macro passed its own check. Reads keep
- * `Per100gSchema`, so a food stored with a larger sum still reads.
+ * Whether protein, carbohydrates and fat together are at most 100 g with the
+ * rounding allowance, so 101.5 passes and 101.501 does not. The sum is taken
+ * in thousandths, the macros' stored precision, so floating point cannot tip
+ * it (30.1 + 34.2 + 37.2 adds to 101.50000000000001). The own-food body and
+ * the barcode lookup's check of an Open Food Facts product both call it.
  */
-const OwnFoodPer100gSchema = Per100gSchema.refine(
-  (v) =>
+export function macroSumWithinLimit(v: { proteinG: number; carbsG: number; fatG: number }): boolean {
+  return (
     Math.round(v.proteinG * 1000) + Math.round(v.carbsG * 1000) + Math.round(v.fatG * 1000) <=
-    (MAX_MACRO_SUM_G + MACRO_SUM_ROUNDING_G) * 1000,
-  { error: "food_macro_sum_too_high", path: ["fatG"], when: (payload) => payload.issues.length === 0 },
-);
+    (MAX_MACRO_SUM_G + MACRO_SUM_ROUNDING_G) * 1000
+  );
+}
+
+/**
+ * An own food's values: the shared shape, and its three macros within
+ * `macroSumWithinLimit`. Reported on fat, the last macro, as a range reports
+ * on its upper bound. It runs only once each macro passed its own check.
+ * Reads keep `Per100gSchema`, so a food stored with a larger sum still reads.
+ */
+const OwnFoodPer100gSchema = Per100gSchema.refine(macroSumWithinLimit, {
+  error: "food_macro_sum_too_high",
+  path: ["fatG"],
+  when: (payload) => payload.issues.length === 0,
+});
+
+/** A barcode as typed or scanned: spaces removed, 8 to 14 digits. The own-food body and the lookup read it one way. */
+export const BarcodeSchema = z
+  .string({ error: "barcode_invalid" })
+  .transform((s) => s.replace(/\s+/g, ""))
+  .pipe(z.string().regex(/^[0-9]{8,14}$/, { error: "barcode_invalid" }));
 
 /** A food as a list shows it. `name` is in the user's food-name language. */
 export const FoodSummarySchema = z.object({
@@ -108,7 +124,7 @@ export const LastAmountSchema = z.object({
 });
 
 export const FoodDetailSchema = FoodSummarySchema.extend({
-  /** Only ever set on the user's own food. */
+  /** Set on an own food that has one and on every Open Food Facts food. */
   barcode: z.string().nullable(),
   fineli: z.object({ id: z.number().int(), type: z.string(), process: z.string() }).nullable(),
   /** Fineli's first in a fixed unit order, then the user's by name. */
@@ -158,12 +174,7 @@ const OwnFoodNameSchema = z
 export const OwnFoodUpdateBodySchema = z.object({
   name: OwnFoodNameSchema,
   per100g: OwnFoodPer100gSchema,
-  barcode: z
-    .string({ error: "barcode_invalid" })
-    .trim()
-    .regex(/^[0-9]{8,14}$/, { error: "barcode_invalid" })
-    .nullable()
-    .default(null),
+  barcode: BarcodeSchema.nullable().default(null),
 });
 
 /** The body of `POST /foods`: a new name must hold a word search can find. */

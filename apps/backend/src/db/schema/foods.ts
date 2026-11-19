@@ -44,7 +44,8 @@ export const foods = pgTable(
     // Fineli's FOODTYPE (FOOD or DISH) and PROCESS code (RAW, BOIL, ...). Null elsewhere.
     fineliType: text("fineli_type"),
     fineliProcess: text("fineli_process"),
-    // Set when a Fineli food is absent from the latest release. Hidden from search, still readable.
+    // Set when a Fineli food is absent from the latest release, or when an operator takes down an
+    // Open Food Facts food. Hidden from search, still readable. A lookup answers not found for it.
     retiredAt: timestamp("retired_at", { withTimezone: true }),
     // Deleted by its owner while entries use it. Every food read leaves it out (visibleTo).
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -68,6 +69,12 @@ export const foods = pgTable(
     uniqueIndex("foods_user_barcode_uq")
       .on(t.userId, t.barcode)
       .where(sql`${t.source} = 'user' AND ${t.barcode} IS NOT NULL`),
+    // Every Open Food Facts food is kept for its barcode, once per product.
+    // Padding to 14 digits makes a UPC-A and its 13-digit form one product.
+    check("foods_off_has_barcode", sql`${t.source} <> 'open_food_facts' OR ${t.barcode} IS NOT NULL`),
+    uniqueIndex("foods_off_barcode_uq")
+      .on(sql`lpad(${t.barcode}, 14, '0')`)
+      .where(sql`${t.source} = 'open_food_facts'`),
     index("foods_user_id_idx").on(t.userId),
     index("foods_search_all_trgm").using("gin", t.searchAll.op("gin_trgm_ops")),
   ],
@@ -124,4 +131,24 @@ export const foodFavourites = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.foodId] }), index("food_favourites_food_id_idx").on(t.foodId)],
+);
+
+/**
+ * The Open Food Facts foods a user has looked up. Only these show in that
+ * user's reads (visibleTo). A row goes only with its user or its food, by
+ * the two cascades: no code deletes one, or the user's favourites and
+ * recents of that food would vanish from their reads.
+ */
+export const foodLookups = pgTable(
+  "food_lookups",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    foodId: uuid("food_id")
+      .notNull()
+      .references(() => foods.id, { onDelete: "cascade" }),
+    lookedUpAt: timestamp("looked_up_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.foodId] }), index("food_lookups_food_id_idx").on(t.foodId)],
 );

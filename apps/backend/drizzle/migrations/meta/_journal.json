@@ -43,6 +43,13 @@
       "when": 1795019863415,
       "tag": "0005_first_run_done",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795039176132,
+      "tag": "0006_off_lookups",
+      "breakpoints": true
     }
   ]
 }

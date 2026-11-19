@@ -35,6 +35,10 @@ export const EnvSchema = z
     /** Sends mail through Resend. Without it, development and test write mail to the console. */
     RESEND_API_KEY: optional(z.string()),
     EMAIL_FROM: optional(z.string()),
+    /** Where barcode lookups go. Defaults to https://world.openfoodfacts.org. */
+    OFF_BASE_URL: optional(z.url()),
+    /** The User-Agent of barcode lookups. Defaults to `Hovimestari/<version>`. Not a secret. */
+    OFF_USER_AGENT: optional(z.string().trim().min(1).max(200)),
   })
   .superRefine((env, ctx) => {
     const setGoogle = GOOGLE_KEYS.filter((key) => env[key] !== undefined);
