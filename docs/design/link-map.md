@@ -73,11 +73,13 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | toast, undo toast                                       | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
 | the toast primitive, useToast                           | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
 | gauge colours, plan tints, target band                  | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
+| marks over the camera, on-camera tokens                 | `app/colors.md#over-the-camera`                                         | `### Over the camera`                            |
 | log sheet page, food search screen                      | `app/log-sheet.md`                                                      | Doc                                              |
 | food search results, browse lists, no results           | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
 | food view, per 100 g figures, favourite star            | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
 | own-food sheet, add a food, edit food                   | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
 | typed barcode in the log sheet, the barcode block       | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
+| the scanner sheet, the camera button, Type the number   | `app/log-sheet.md#scanning-a-barcode`                                   | `### Scanning a barcode`                         |
 | portion sheet, add a portion                            | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
 | the log sheet's status line                             | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
 | "+", logging again on screen                            | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |
@@ -104,19 +106,20 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Foods
 
-| Concept                                   | Home                                     | Heading                    |
-| ----------------------------------------- | ---------------------------------------- | -------------------------- |
-| food catalogue, food source, retired food | `features/foods.md#the-food-catalogue`   | `### The food catalogue`   |
-| food search, search ranking               | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
-| own food                                  | `features/foods.md#your-own-foods`       | `### Your own foods`       |
-| portions, household measures              | `features/foods.md#portions`             | `### Portions`             |
-| favourites                                | `features/foods.md#favourites`           | `### Favourites`           |
-| food-name language                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
-| Fineli, its credit and licence            | `features/foods.md#fineli`               | `### Fineli`               |
-| Fineli import, Fineli release             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
-| barcode lookup, Open Food Facts product   | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
-| Open Food Facts, its credit and licence   | `features/foods.md#open-food-facts`      | `### Open Food Facts`      |
-| food visibility, food scope               | `features/foods.md#visibility`           | `### Visibility`           |
+| Concept                                                   | Home                                     | Heading                    |
+| --------------------------------------------------------- | ---------------------------------------- | -------------------------- |
+| food catalogue, food source, retired food                 | `features/foods.md#the-food-catalogue`   | `### The food catalogue`   |
+| food search, search ranking                               | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
+| own food                                                  | `features/foods.md#your-own-foods`       | `### Your own foods`       |
+| portions, household measures                              | `features/foods.md#portions`             | `### Portions`             |
+| favourites                                                | `features/foods.md#favourites`           | `### Favourites`           |
+| scanning a barcode, a read, the camera stops, the decoder | `features/foods.md#scanning-a-barcode`   | `### Scanning a barcode`   |
+| food-name language                                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
+| Fineli, its credit and licence                            | `features/foods.md#fineli`               | `### Fineli`               |
+| Fineli import, Fineli release                             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
+| barcode lookup, Open Food Facts product                   | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
+| Open Food Facts, its credit and licence                   | `features/foods.md#open-food-facts`      | `### Open Food Facts`      |
+| food visibility, food scope                               | `features/foods.md#visibility`           | `### Visibility`           |
 
 ## Days and logging
 

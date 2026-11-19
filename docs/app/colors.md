@@ -57,6 +57,15 @@ The Day tab's gauge for calories and protein ([the gauge](day.md#the-gauge)), an
 
 What the gauge may colour: the eaten fill in the macro's hue, the planned part's tint and its border in the macro's hue, and the end-cap past the end of the track in the style of the reading that passes. What it may not: the track, the band, the two ticks, the legend and every figure and line of text. Nothing in it changes colour past a bound, and it never uses the accent. The ticks are ink with a 1 pixel edge of the page colour on each side, so a tick reads against the fills and the band alike. An eaten end-cap meets an eaten fill of its own hue, so it carries the same 1 pixel edge of the page colour on its inner side.
 
+### Over the camera
+
+The scanner draws its band's corners, its **Torch** button and the ring that turns while it starts on the camera's picture. The picture looks the same in both themes, so these marks use two tokens that keep their values in both: paper and ink. Every mark carries both, side by side, so one of the two stands out from whatever the camera shows. A corner is a 3 pixel paper stroke round a 3 pixel ink stroke, and the ring is a 3 pixel paper arc round a 3 pixel ink arc. **Torch** is paper with a 2 pixel ink edge while off, and ink with a paper edge while on. Its focus ring is drawn inside it, on its own fill. The accent changes with the theme, so it is not used over the picture. These two tokens are for marks over the camera's picture alone. Every other surface follows the theme.
+
+| Token                    | Both themes | For                                       |
+| ------------------------ | ----------- | ----------------------------------------- |
+| `--color-on-camera`      | `#fbf6ec`   | The paper part of a mark over the picture |
+| `--color-on-camera-edge` | `#1d2e22`   | The ink part of a mark over the picture   |
+
 ### Contrast
 
 Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's edge meets 3 to 1. The ratios, from the token values:
@@ -68,10 +77,11 @@ Text meets 4.5 to 1 against the surface it sits on, and a mark or a control's ed
 - The macro hues as marks: in light from 3.6 to 1 (energy on a panel) up to 5.9 to 1, in dark from 5.3 to 1 (carbohydrates on a raised surface) up to 8.3 to 1, against the page, a panel and a raised surface.
 - A field's border, a secondary button's and a segmented control's tray: 3.7 to 1 on the page and 3.4 to 1 on a panel in light, 4.1 to 1 and 3.7 to 1 in dark. A control's edge needs 3 to 1. A panel's border is decoration and needs none.
 - A gauge's track against what it sits on: 1.08 to 1 in light and 1.12 to 1 in dark, on the page and on a sheet alike. The band against the track: 1.6 to 1 on the page and 1.8 to 1 on a sheet in both themes, enough to find the range on a decoration. A plan tint against the band: 1.39 to 1 (calories) and 1.38 to 1 (protein) in light, 1.44 to 1 and 1.36 to 1 in dark. The eaten fill against its plan tint: 3.0 to 1 and 4.1 to 1 in light, 3.1 to 1 and 3.1 to 1 in dark. The planned part's border, the full hue, against the track: 3.6 to 1 (calories) and 4.9 to 1 (protein) in light, 7.3 to 1 and 6.9 to 1 in dark. A tick against every surface it crosses reaches 3 to 1 through its ink or its page-coloured edge, whichever stands out: at least 3.2 to 1 in light and 7.6 to 1 in dark.
+- A mark over the camera's picture, through its paper or its ink, whichever stands out: at least 3.6 to 1 against any grey a frame can hold, measured on screen as 19.5 to 1 on black, 14.3 to 1 on white and 3.7 to 1 on mid grey in both themes, for the corners and the starting ring alike. Paper and ink against each other: 13.3 to 1.
 - The toast: the page colour on ink, 12.5 to 1 in light and 14.0 to 1 in dark.
 - A text button's underline, the mark that makes the words a button: `--color-field-rule` for an ordinary one, and the accent at 70 % for one that leads to something destructive. The accent's underline reaches 3.3 to 1 on the page and 3.2 to 1 on a panel in light, 3.6 to 1 and 3.3 to 1 in dark. On a raised surface, the field rule reaches 3.9 to 1 in light and 3.2 to 1 in dark, and the accent's underline 3.4 to 1 and 3.1 to 1. Under the pointer or a press, either fills in, to ink or the full accent.
 
-`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, a text button's underline, accent text, text on an accent fill or muted text drops under its line, when a macro hue drops under 3 to 1 on any surface, when the gauge's band drops under 1.5 to 1 against its track, when a planned part's border drops under 3 to 1 against the track, and when a tick falls under 3 to 1 on a fill, a tint or the band.
+`src/app/__tests__/themeColors.test.ts` reads the tokens from `globals.css` and fails when a field border, a text button's underline, accent text, text on an accent fill or muted text drops under its line, when a macro hue drops under 3 to 1 on any surface, when the gauge's band drops under 1.5 to 1 against its track, when a planned part's border drops under 3 to 1 against the track, and when a tick falls under 3 to 1 on a fill, a tint or the band. It also fails when the two tokens over the camera are given a value of their own in the dark theme, or when the pair falls under 3 to 1 against any grey.
 
 ### Motion
 

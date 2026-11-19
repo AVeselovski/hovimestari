@@ -537,3 +537,22 @@
 [documentation-specialist DONE] (2026-11-19T16:26:54Z) slice 3 brought onto master: seven doc conflicts resolved so the feature doc reads as one, connected-ai.md re-stamped
 [frontend-engineer STARTED] (2026-11-19T16:26:54Z) the last small fixes for slice 3 from the two delta checks
 [frontend-engineer DONE] (2026-11-19T16:53:09Z) slice 3 last fixes: focus goes straight to the new row, the no-op flushSync is gone, the docs say what the list does behind the reveal; the screen proven against the real /mcp endpoint with a key it made (12 tools, get_day equal to the Day tab, last use shown, a revoked key refused); web 1811 tests (tip 9744afe)
+[frontend-engineer DONE] (2026-11-19T11:13:25Z) spike/scan-check: a throwaway page that proves the camera and the decoder on a real phone; with a fake camera in Chromium the first EAN-13 read came about 0.2 s after the stream started (164k tokens)
+[frontend-engineer STARTED] (2026-11-19T11:13:25Z) barcode slice 4b: the camera scan (ScannerSheet, the camera stream, the decoder, the camera button in the search field)
+[frontend-engineer DONE] (2026-11-19T12:10:40Z) barcode slice 4b built at d9017cc: the scanner sheet, the camera stream that every way out stops, the self-hosted decoder, the camera button in the search field's one slot; web 1789 tests
+[validator STARTED] (2026-11-19T12:10:40Z) slice 4b against the requirements and the design at d9017cc
+[ui-validator STARTED] (2026-11-19T12:10:40Z) slice 4b in Chromium with a fake camera at 320, 375, 390 and 1280, light and dark
+[reviewer STARTED] (2026-11-19T12:10:40Z) slice 4b at d9017cc
+[validator DONE] (2026-11-19T12:35:32Z) slice 4b: the code passes every check and mutation; fail on one page doc line that still says an add-on code is no read
+[reviewer DONE] (2026-11-19T12:35:32Z) slice 4b: approve after fixes; no stream leak in any interleaving; six minors (the stale doc line, a raw scrollIntoView, two untested paths, the decoder retry, two real-clock waits, an unverified iOS claim) (160k tokens)
+[ui-validator DONE] (2026-11-19T12:35:32Z) slice 4b in Chromium with a fake camera: pass with findings; one major (the band's corners vanish over the picture, 1.2:1), minors on the busy and immediate-failure layouts and the decoded area (237k tokens)
+[frontend-engineer STARTED] (2026-11-19T12:35:32Z) one fix batch for slice 4b from the validator, the reviewer and the ui-validator
+[frontend-engineer DONE] (2026-11-19T16:13:54Z) slice 4b fix batch: the band's corners hold 3.7:1 or better over any frame, the sheet is one size in every state, only the band is decoded, the stale doc line and the reviewer's six minors; web 1812 tests (fb56128..85470b6)
+[ui-validator STARTED] (2026-11-19T16:13:54Z) delta check of slice 4b's fixes at 85470b6
+[reviewer STARTED] (2026-11-19T16:13:54Z) delta review of slice 4b's fix batch at 85470b6
+[reviewer DONE] (2026-11-19T16:32:47Z) delta review of slice 4b: approve; three new guards broken by hand each turn a test red; one minor (purge the failed decoder before clearing the load) and three nits (221k tokens)
+[ui-validator DONE] (2026-11-19T16:32:47Z) delta check of slice 4b: pass with findings; corners, the one-size sheet and the band-only decode measured at four sizes in both themes; two new minors (the hint does not mention the corners, the starting ring is faint over the picture) (286k tokens)
+[frontend-engineer STARTED] (2026-11-19T16:32:47Z) the last small fixes for slice 4b from the two delta checks, after a rebase onto master
+[frontend-engineer DONE] (2026-11-19T16:52:23Z) slice 4b last fixes: the decoder purge runs before the load is released, the starting ring holds 3.6:1 over any frame, the hint names the corners, foods.md re-stamped; web 1810 tests (tip f884b12)
+[documentation-specialist STARTED] (2026-11-19T16:52:23Z) the docs of the camera scan against the standard
+[documentation-specialist DONE] (2026-11-19T16:54:47Z) camera scan docs: the phone list in the foods doc's known gaps, the page doc links the rules it had restated, the on-camera tokens' test said plainly; foods.md re-stamped (579c958)

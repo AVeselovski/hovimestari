@@ -1,8 +1,8 @@
 # Foods
 
-The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release. A barcode lookup finds a product among the user's own foods, then at Open Food Facts, and keeps a product it finds once for every later lookup. The log sheet looks up a barcode typed in its search.
+The food catalogue: the foods a user picks from, each with energy, protein, carbohydrates and fat per 100 g. It holds shared foods, such as Fineli's, and each user's own foods, with portions, favourites and one search that finds a food by any part of its Finnish or English name. Fineli's foods and household measures arrive through a repeatable import that retires, never deletes, a food that leaves a release. A barcode lookup finds a product among the user's own foods, then at Open Food Facts, and keeps a product it finds once for every later lookup. The log sheet looks up a barcode typed in its search or read by the camera.
 
-In [the log sheet](../app/log-sheet.md), opened from the Day tab, a person searches the catalogue, looks a typed barcode up, logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own. [The Recipes tab](../app/recipes.md) lists their own foods to add, edit and delete.
+In [the log sheet](../app/log-sheet.md), opened from the Day tab, a person searches the catalogue, looks a barcode up by typing it or by [scanning it](#scanning-a-barcode), logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own. [The Recipes tab](../app/recipes.md) lists their own foods to add, edit and delete.
 
 ## In detail
 
@@ -58,6 +58,18 @@ A found food answers with its detail and a flag saying whether this lookup made 
 A found food is an ordinary food to log. A kept product stays read-only, and **Copy to your foods** makes a food of the user's own from it, with its name, its four values and its barcode, for the user to correct. That own food then wins every later lookup of the barcode. When a lookup finds nothing, finds a shop's own number, or finds a product without four usable values, the user adds the food from its label: the own-food form opens with the barcode, except for a shop's own number, and with the name and every value Open Food Facts had. A value left as it came saves as that figure and takes the same checks as a typed one. The name is checked as a new name.
 
 Calls to Open Food Facts are limited twice: 30 an hour for each user and 10 a minute for the whole server, below the 15 Open Food Facts allows. Only a real call counts. A lookup answered from an own food, a kept product or memory spends nothing. Two lookups of one code at once make one call, and only the lookup that made it spends from the budgets. A person's [connected assistant](connected-ai.md#what-an-assistant-reads) looks a barcode up through the same lookup and spends from the same 30 an hour as the person's own lookups in the app.
+
+### Scanning a barcode
+
+A scan is a way to type a barcode. The camera reads the code on the device and the lookup runs on the number alone, as [looking up a barcode](#looking-up-a-barcode) says.
+
+- **Where the camera button shows.** At the end of the log sheet's search field while it is empty, in the place the clear cross takes once something is typed. Only where the browser can ask for a camera, which needs a secure page. Over plain http on a home network the field shows no camera button, and typing works.
+- **What it reads.** EAN-13, EAN-8, UPC-A and UPC-E, the codes on retail products, inside the band the scanner marks on its picture. The decoder sees only what shows inside the band. A code with some of its bars inside can read, and a code wholly outside it does not. The decoder checks each code's check digit. An add-on beside the code, the two or five digits on a magazine or a book, is left out, so what it reads is the product's own code.
+- **What counts as a read.** A code the search field would take as typed: 8 to 14 digits. Anything else is no read. Nothing is sent, the field is not touched, and the camera keeps looking. The first read wins.
+- **What a read does.** The field holds the code, and the lookup runs at once, as if **Look up** were pressed. The log sheet [says so on its status line](../app/log-sheet.md#scanning-a-barcode).
+- **What is sent.** The number, and for an EAN-8 or a UPC-E the format, which settles how an 8-digit code reads. No picture leaves the device. The decoder is part of the app and comes from the app's own server, never from a third party, so it also works offline once it has loaded.
+- **When the camera stops.** On every way out: a read, **Type the number**, a swipe, a tap above the scanner or Escape, the page hidden, and the log sheet closing. A camera that answers after the scanner has closed, such as after the browser's prompt, is stopped at once and never shown. A frame decoded after the scanner closed is dropped. Shown again with the scanner open, the camera starts again.
+- **When the camera cannot run.** Refused, missing, busy, or a decoder that did not load: the scanner says so, and **Type the number** is always there. A busy camera can be tried again.
 
 ### Food-name language
 
@@ -129,6 +141,8 @@ The service checks both budgets and takes one call from each in one synchronous 
 
 In the web app, `useBarcodeLookup` in `apps/web/src/components/foods/` sends the lookup as a mutation on a press, never as a cached query, so no food write sends it again. It sends nothing while the app knows it is offline. The food it finds goes into the cached detail. When `newlyVisible` is true, every cached search is marked stale by `afterBarcodeFound` in `apps/web/src/lib/invalidation.ts`, in the mutation's own `onSuccess`, which runs even after the log sheet has closed. The answer it holds keys on the search field's text. A found food of any source is dropped from it when the food is gone, is deleted, or no longer has that barcode, so the lookup offers itself again rather than a food that is not there. `barcodeOf` in `apps/web/src/lib/barcode.ts` reads the field with the shared `BarcodeSchema`, so the field offers a lookup only for a code the route takes.
 
+The scanner is `ScannerSheet` in the same folder, with its parts in `scanner/`. `decoder.ts` is the one file that imports `zxing-wasm`, pinned at 3.1.7. It loads the reader when the scanner opens and hands it the URL of `zxing_reader.wasm` before the first read, through `locateFile`, because the library would otherwise fetch the file from jsDelivr. The bundler emits the file under `/_next/static/media/`, served as `application/wasm`, and the service worker caches that path first. `formatOf` maps the decoder's `EAN8` and `UPCE` to the route's `ean_8` and `upc_e`. ZXing reports a UPC-A as a 13-digit EAN-13 and a UPC-E expanded to 13 digits, so in practice only an EAN-8 reaches the route as 8 digits. `useCameraStream` asks for the rear camera at 1280 by 720 with no sound, and decodes the part of each frame under the band about every 150 ms. `visibleBand` finds that part by laying the band's box over the frame as the video's `object-fit: cover` crops it, so a portrait frame's rows above and below the picture and a landscape frame's sides are never read. The part is drawn at most 960 pixels wide, on one canvas for each start, resized only when the band's size changes. Each start takes a session number and each stop moves it on, so a stream or a decode that belongs to an ended session is stopped or dropped. `useScanner` puts the code in the field and closes the scanner in one commit, then calls the lookup with the format, so the answer always meets the text it belongs to. The app's `Permissions-Policy` header lets its own pages use the camera and nothing else of the device: `camera=(self), microphone=(), geolocation=()`, in `apps/web/next.config.ts`.
+
 `LookupDeps.inFlight` maps each 14-digit form to the call under way for it. A lookup that misses the stored products and the memory waits on that call when there is one. Otherwise it spends from both budgets and starts the call. The entry goes when the call settles. Each waiting lookup records its own lookup and gets its own flag.
 
 A complete product is inserted with `ON CONFLICT DO NOTHING` on `foods_off_barcode_uq`, in a statement of its own, then read back after it committed. `storedFormOf` in `gtin.ts` gives the barcode it is stored under. Two first lookups at once on two machines both call Open Food Facts, the second insert does nothing, and both read the one row. A row refused by a constraint, SQLSTATE class 23, answers `incomplete` with `implausible_values`, is logged without its values, and is cached as that answer. Any other failure of the insert or the read-back goes to the error middleware unchanged, so a busy database answers 503 with `Retry-After: 2`. The cache then holds the parsed product as `fetched`. A lookup that finds it retries only the insert and the read-back, through the in-flight entry, with no call and no budget spent. The user's lookup is then recorded with an upsert on `food_lookups`, whose `xmax = 0` says whether it inserted the row. That is the flag on the answer.
@@ -174,17 +188,18 @@ Every table with `user_id` cascades from `users`, so deleting an account removes
 
 ### Known gaps
 
-- A barcode is looked up only by typing it. No screen scans one with the camera.
+- The scanner has been checked in Chromium with a fake camera only. A real phone has yet to show the camera prompt, a read of a real product, whether **Torch** shows, the camera light going off on every way out, a swipe over the playing picture and the keyboard after **Type the number**.
+- Added to an iPhone's Home Screen, the app may ask for the camera again on each launch. WebKit lists this as a known bug, and a phone has yet to show whether it happens.
 - A drink's figures from Open Food Facts are often per 100 ml. The catalogue shows them as per 100 g.
 - The budgets live in one backend process. A second machine would double the calls the server's budget counts.
 - The web app asks for 200 own foods, so its lists show the first 200 by name.
 - The search scan for a two-character word was measured on Fineli foods alone. Every kept Open Food Facts product adds to the rows it scans.
 - The import is tested on Fineli release 18 only. A newer release may name its files or columns differently, and the import then stops and names what it did not find.
 
-Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SCAN-02 to FR-SCAN-06, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC-01, NFR-PRIV-01, NFR-PERF-01, NFR-DATA-01 (requirements 3.2, 3.3, 3.4, 3.12, 4 and 5)
+Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SCAN-01 to FR-SCAN-06, FR-DAY-07, FR-LOG-04, FR-SET-01, NFR-SEC-01, NFR-PRIV-01, NFR-PERF-01, NFR-DATA-01 (requirements 3.2, 3.3, 3.4, 3.12, 4 and 5)
 
 ## Where it appears
 
-- [The log sheet](../app/log-sheet.md): the search, a typed barcode's lookup, a food's view and its figures, favourites, own foods and portions.
+- [The log sheet](../app/log-sheet.md): the search, a barcode's lookup, typed or [scanned](../app/log-sheet.md#scanning-a-barcode), a food's view and its figures, favourites, own foods and portions.
 - [The Recipes tab](../app/recipes.md): the user's own foods, each opening its edit sheet, and a new one.
 - [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's and Open Food Facts' data.
