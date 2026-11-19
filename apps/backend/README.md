@@ -7,7 +7,7 @@ The REST API behind the web app: Node.js and Express 5 in TypeScript, Drizzle OR
 ```text
 src/
 ├── index.ts                    Entry point: the last-resort handlers, the HTTP server, its keep-alive timeouts and the stats log
-├── app.ts                      The Express app: CORS, the JSON parser, Google when configured, /livez, /health, the routes, the error handler
+├── app.ts                      The Express app: the request log, /mcp while MCP_ENABLED, CORS, the JSON parser, Google when configured, /livez, /health, the routes, the error handler
 ├── db/
 │   ├── index.ts                Drizzle client, the pg pool and its settings, poolStats()
 │   ├── types.ts                Db, the database or a transaction, and Tx, a transaction only, for code that holds a lock
@@ -53,6 +53,16 @@ src/
 │       ├── product.ts          Parses a product and decides what is kept: names, the four values, incomplete or implausible
 │       ├── limiter.ts          Token buckets for the two call budgets, on an injected clock
 │       └── cache.ts            Answers not stored, held 10 minutes, on an injected clock
+├── mcp/                        Connected AI's endpoint: an assistant's key in, the read services out
+│   ├── router.ts               /mcp in order: the Origin refusal, the brakes, the body parser, the key check, the request limit per user, last use, the protocol handler
+│   ├── auth.ts                 verifyConnectionKey and requireConnectionKey: a key to AuthInfo for its user, or a 401 saying why
+│   ├── server.ts               The server built per request: instructions, the tools, the app rules resource, and contextForUser per call
+│   ├── result.ts               defineTool, runTool, the answer envelope, refusals with their code, the tool log line
+│   ├── inputs.ts               DayDate and DayRange, the REST routes' own schemas for tool inputs
+│   ├── appRules.ts             The app rules text, the write rules, appRulesFor and APP_RULES_SOURCES, the feature docs' stamps
+│   └── tools/
+│       ├── index.ts            READ_TOOLS, the tools every key lists
+│       └── context.ts          get_context: the key's access, today, the targets and the rules
 ├── middleware/
 │   ├── authenticate.ts         Bearer access token check, sets req.user
 │   ├── requireBff.ts           The relay secret check and the relayed client address rules
@@ -71,7 +81,7 @@ src/
 │   ├── auth.ts                 Sign-up, sign-in, refresh, sign-out, password reset, password link, unlink
 │   ├── authGoogle.ts           Google sign-in and linking, and their code exchanges
 │   └── users.ts                The signed-in user: read, change settings, pass the first run, change password, delete the account
-├── services/                   What a route does, without Express. The assistant's tools will call the same functions
+├── services/                   What a route does, without Express. The assistant's tools call the same functions
 │   ├── reads/context.ts        ReadContext: the user, the database, now, the time zone and today
 │   ├── reads/targets.ts        targetsOn, the in-force rule (null before the first change), inForceOn, its pure form, and targetsOverview, with firstRunDue
 │   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
@@ -105,7 +115,7 @@ src/
 
 ## Endpoints
 
-Every route is under `/api/v1`. The feature docs list them with who may call each: [authentication](../../docs/features/authentication.md#api), [targets](../../docs/features/targets.md#api), [foods](../../docs/features/foods.md#api), [days](../../docs/features/days.md#api), [quick logging](../../docs/features/quick-logging.md#api), [saved meals](../../docs/features/saved-meals.md#api) and [connected AI](../../docs/features/connected-ai.md#api). A route parses its input, builds the service context with `contextFor(req)`, calls one service in `src/services/` and sends the answer. It holds no SQL. Two more routes live outside it, with no auth:
+Every route but `/mcp`, `/livez` and `/health` is under `/api/v1`. The feature docs list them with who may call each: [authentication](../../docs/features/authentication.md#api), [targets](../../docs/features/targets.md#api), [foods](../../docs/features/foods.md#api), [days](../../docs/features/days.md#api), [quick logging](../../docs/features/quick-logging.md#api), [saved meals](../../docs/features/saved-meals.md#api) and [connected AI](../../docs/features/connected-ai.md#api). A route parses its input, builds the service context with `contextFor(req)`, calls one service in `src/services/` and sends the answer. It holds no SQL. Two more routes live outside it, with no auth:
 
 - `GET /livez` answers 200 while the process serves HTTP. It never touches the database, so Fly's routing check cannot fail on a busy pool.
 - `GET /health` answers 200 when the database answers `SELECT 1`, and 503 otherwise. It is for monitoring.
@@ -121,9 +131,15 @@ A known error answers `{ message, code }`, and the codes are `ERROR_CODES` in `@
 
 The two call budgets and the answers held in memory live in the process, so the backend runs on one machine. How the lookup works is in [the foods feature doc](../../docs/features/foods.md#looking-up-a-barcode).
 
+### The MCP endpoint
+
+`POST /mcp` is where a connected assistant calls, with `Authorization: Bearer` and a connection key. It is outside `/api/v1`, mounted after the request log and before CORS and the JSON parser, so it sends no CORS headers and parses its own body with a 100 kB limit. Any request with an `Origin` header answers 403. A connection key opens nothing under `/api/v1`, and an access token opens nothing at `/mcp`. The router's steps, its limits and what a request must carry in each protocol revision are in [the connected AI feature doc](../../docs/features/connected-ai.md#the-endpoint). The limits live in process memory, like the other rate limits.
+
+A tool in `src/mcp/tools/` calls the read service its REST route calls and selects fields. `src/mcp/__tests__/importBoundary.test.ts` fails when a file under `src/mcp/` imports a route, middleware, the database module, `drizzle-orm` or a database driver, imports a module by a computed path or through `createRequire`, imports a `lib/` module that is not on its allow-list, or reaches the database client or builds SQL. A change to any `docs/features/*.md` re-reads the app rules section that names it in `src/mcp/appRules.ts` and re-stamps it in `APP_RULES_SOURCES`. `src/mcp/__tests__/appRules.test.ts` fails until then, printing the doc's new hash.
+
 ### The connected AI switches
 
-`MCP_ENABLED` and `MCP_WRITES_ENABLED` are the operator's switches for connected AI, each `true` or `false`, neither a secret. `MCP_ENABLED` is `true` by default and `MCP_WRITES_ENABLED` is `false`. Unset or empty takes the default, and any other value stops the server at start-up. A change takes a restart. While `MCP_ENABLED` is off no connection key can be made, and while `MCP_WRITES_ENABLED` is off no key that makes changes can. What each does is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-two-switches).
+`MCP_ENABLED` and `MCP_WRITES_ENABLED` are the operator's switches for connected AI, each `true` or `false`, neither a secret. `MCP_ENABLED` is `true` by default and `MCP_WRITES_ENABLED` is `false`. Unset or empty takes the default, and any other value stops the server at start-up. A change takes a restart. While `MCP_ENABLED` is off no connection key can be made and `/mcp` answers 404. While `MCP_WRITES_ENABLED` is off no key that makes changes can be made, and a key that can make changes reads only. What each does is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-two-switches).
 
 ### The relay secret
 
@@ -200,6 +216,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. `nameCase.test.ts` pins how a name written in capitals is stored, and `fineliImportCase.db.test.ts` imports a release in capitals over stored names. `support/capitalRelease.ts` makes that release as a temp copy of a fixture. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
 - `src/routes/__tests__/connections.db.test.ts` makes, lists and revokes connection keys on the real database, with the two switches set on the parsed `env`. It holds the user's row on its own connection to show a create waits and counts the key added meanwhile, and races six creates for the tenth place. `src/routes/__tests__/connectionsRevoke.db.test.ts` changes and resets passwords, and fails their transactions at commit with a deferred trigger to show a failed change revokes no key. `src/routes/__tests__/connectionsSession.db.test.ts` shows that only a live session makes a key. `src/lib/__tests__/connectionKeys.test.ts` renders the lookup's and the last-use write's SQL with drizzle's own dialect.
+- `src/mcp/__tests__/` tests the endpoint. `harness.ts` makes every key at start-up, stands in for the key lookup, runs the app on a real port for the real MCP client, and freezes `Date` alone with `freezeDate`, so the limiters and the services read one fixed instant. `router.test.ts` covers the refusals, the Origin guard, the bodies, the `Host` header and the tool list in both protocol revisions. `deadKeyBrake`, `refusedKeyBrake`, `brakeAfterBody` and `rateLimit` run the limiters in order on one address, and move the frozen clock past a window to show it refill. `disabled.test.ts` starts the app with `MCP_ENABLED=false`. `server.db.test.ts` calls `get_context` with a key made through the API and compares it with `GET /targets` on a real database. `importBoundary.test.ts` reads every file under `src/mcp/` with `importsOf` from `src/__tests__/support/importsOf.ts`.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment

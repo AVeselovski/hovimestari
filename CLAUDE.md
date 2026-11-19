@@ -61,6 +61,7 @@ Docs are only useful while they are true. A stale doc is worse than none, becaus
 - **Before changing code, read the feature doc and the page doc for what you touch (find them through `docs/features.md`). Update them in the same change, and run `pnpm docs:check` on the docs you changed.**
 - **Keep the catalog current.** Work that adds, removes or changes a feature's behaviour updates its detail doc and its line in `docs/features.md`, in the same change. A new feature means a new detail doc and a new catalog line.
 - **Keep the link map current.** Every concept has one home heading, listed in `docs/design/link-map.md`. A new home heading adds its row in the same change. A renamed one repoints every link to it in the same change.
+- **Re-stamp the app rules.** A change to a `docs/features/*.md` also re-reviews every section of `apps/backend/src/mcp/appRules.ts` that names it in a `*(Sources: …)*` line, the text a connected AI assistant reads, and re-stamps the doc in `APP_RULES_SOURCES`. `apps/backend/src/mcp/__tests__/appRules.test.ts` fails until then, naming the file and printing its new hash.
 - This is part of the implementation, like tests. It is never a follow-up.
 
 ## Repository layout
