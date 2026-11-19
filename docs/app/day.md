@@ -75,6 +75,8 @@ The mark says the entry's state:
 
 **Mark all eaten** in the "Entries" row marks every planned entry on the day. It shows on today and past days while anything is planned.
 
+**Copy** sits last in the same row, a text button like Mark all eaten, on any day with entries, future days included. It opens [the copy sheet](#the-copy-sheet). It stays where it is when Mark all eaten leaves the row. While the app checks the date with the server it waits, as the marks do.
+
 A tap on the rest of a row opens the entry sheet.
 
 ### The entry sheet
@@ -88,9 +90,18 @@ Titled with the entry's name, two lines at most. The fields come in this order, 
 
 **Save** stores every change in one go, the amount and Eaten included. **Remove entry** takes the entry off the day. While the keyboard is open, the row of **Remove entry** makes way for it, so **Save** stays above the keyboard. A refusal under a field goes away as soon as the field changes, and a refused save scrolls to the field it refused, its line in sight. A save or a removal that fails says why in the line above the buttons, which stays in sight, and keeps what was typed. A food that was deleted since says "This food is no longer in your foods." and a deleted saved meal "This saved meal was deleted.". Both can still be changed. [Adding and changing an entry](../features/quick-logging.md#adding-and-changing-an-entry) has the rules a save follows.
 
+### The copy sheet
+
+Titled "Copy entries". It copies entries of the day shown to another day, as planned entries after what that day holds, by [copying entries](../features/quick-logging.md#copying-entries).
+
+1. **To**, the phone's own date field. It opens on the day after the day shown, or on today when the day shown is past. Its line says "Each copy is a planned entry.", or why a date is refused.
+2. **All entries**, a box that ticks or clears every entry, and shows a dash when only some are ticked. Under it, the day's entries in the day's order, each with its box, its name, its amount line as its row shows it, and its calories. A name takes two lines at most, as in the day's list. Every entry is ticked when the sheet opens. A row is one press target, box and words alike.
+
+**Copy** sends the ticked entries and closes the sheet, and the line above the tab bar then says "Copied 3 entries to tomorrow." with **Undo**. Nothing ticked says "Choose at least one entry." in the line above the buttons, marks All entries and moves focus there, and sends nothing. The next tick clears the line. An entry removed on another device says "This entry is no longer there." in the same line, and the list shows what is left. Offline, Copy says "You are offline. Changes need a connection." there. A copy that got no answer says "Could not confirm. Check your connection and try again.". What Copy again, a changed date or selection, and Cancel do after that line is in [copying entries](../features/quick-logging.md#copying-entries). A changed date or selection keeps a stray swipe from closing the sheet, as in every form sheet.
+
 ### Undo
 
-Every log, mark, save and removal shows a line above the tab bar with **Undo** for six seconds: "Logged Rahka, 250 g.", "Added Rahka to the plan.", "Marked Rahka eaten.", "Marked 3 entries eaten.", "Marked Rahka planned.", "Moved Rahka to tomorrow.", "Saved Rahka." or "Removed Rahka.". A log's line shows once the log sheet has slid out. Undo puts back exactly what changed, by [quick logging's undo](../features/quick-logging.md#undo). An undo that could not be confirmed says "Could not undo." with **Try again**. One the server refused says why, with no action.
+Every log, mark, save and removal shows a line above the tab bar with **Undo** for six seconds: "Logged Rahka, 250 g.", "Added Rahka to the plan.", "Marked Rahka eaten.", "Marked 3 entries eaten.", "Marked Rahka planned.", "Moved Rahka to tomorrow.", "Copied 3 entries to tomorrow.", "Saved Rahka." or "Removed Rahka.". A log's line and a copy's line show once their sheet has slid out. Undo puts back exactly what changed, by [quick logging's undo](../features/quick-logging.md#undo). An undo that could not be confirmed says "Could not undo." with **Try again**. One the server refused says why, with no action.
 
 ### Without a connection
 
@@ -130,6 +141,8 @@ The entry sheet is as tall as its form, and [holds still](shell.md#the-sheet-pri
 
 In the footer, **Remove entry** sits centred between the footer's line and **Cancel** and **Save**, with its 44 pixel target kept ([the sheet primitives](shell.md#the-sheet-primitives)).
 
+`CopyEntriesSheet` from `apps/web/src/components/entries/` is the copy sheet, a `FormSheet` mounted by `DayTab`. It reads the day it copies from through `dayQuery`, so its list follows that day. Its boxes are the shared `Checkbox` in `apps/web/src/components/ui/`, in the accent when ticked. Each row is its name over its amount line, so a long list scrolls inside the sheet's body while the title and the buttons stay. The list is a `fieldset` that may shrink below its widest name (`min-w-0`), so a long name wraps and every row keeps its calories in the sheet. The refusal for nothing ticked is the form sheet's own footer line, so nothing in the body moves when it shows or clears. The sheet holds no field that raises the keyboard. **Copy** in the Entries row is last in its group (`dayEntriesActions` in `styles.ts`), so it keeps its place when Mark all eaten leaves. Its 44 pixel target grows leftward from its word (`dayEntriesCopyButton`).
+
 `WeekSheet` and `WeekTable` in `apps/web/src/components/day/` are the week sheet, a `BottomSheet` mounted by `DayTab`. Each day is one `<tbody>` of two rows, the figures over the gauges, and a press anywhere on it picks the day. The week sheet holds still. Every row is 44 pixels tall on a phone and 52 from `md`, loading, loaded, failed or offline, with or without entries, targets or an estimate. The day column is 48 pixels wide on a phone and 80 from `md`, wider than "Today", so no week moves a column. Each figure column keeps the room of its widest figure ("≈8888" and "≈888.8"), and the four share the spare width, so the gauges take it and figures arriving move no column. At 320 the table fits the sheet's 280 pixels with those figures in it. While a week loads, the rows show their dates and empty tracks, and no track on a day the cached targets say has none. The line on targets sits under the table and keeps its room in every week of a person with any targets change, so the height the sheet holds always includes it and the line is never under the footer. The table's head has a stated height, 47 pixels on a phone and 55 from `md`, and the failure and offline notice sits that far down plus two rows, so it covers rows three to five exactly. The title is `text-xl` on a phone, one line for the longest week in British and American English at 320. From `md` the dialog is `md:max-w-lg`.
 
 Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as a share of the track's width. `Gauge.tsx` draws it. The week's gauges are its `mini` size: a 6 pixel track in the on-surface track colour, ticks 10 pixels tall, and a narrowest band of 6 % of the track, so the two ticks stay apart on a short track. `GaugeFrame`, the empty track of the loading frame, reads the same sizes, so a loading row and a loaded row are the same height.
@@ -140,7 +153,7 @@ Every position on the gauge comes from `gaugeGeometry` in `gaugeGeometry.ts`, as
 
 ### Focus
 
-A chevron keeps focus when the day changes, and so does the date button. Arriving from the first-run page, back from the page Set targets opened or past the first run of a new account, focus is on the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The week sheet opens with focus on the shown day's row, and Tab goes through the rows, then **Previous** and **Next**. A step keeps focus on the button pressed. A row press, Escape, the backdrop and a swipe return focus to **Week**. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Log food. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
+A chevron keeps focus when the day changes, and so does the date button. Arriving from the first-run page, back from the page Set targets opened or past the first run of a new account, focus is on the date button. A mark sent from the keyboard moves focus to the row once the check replaces the circle, and Mark all eaten to the first row. The week sheet opens with focus on the shown day's row, and Tab goes through the rows, then **Previous** and **Next**. A step keeps focus on the button pressed. A row press, Escape, the backdrop and a swipe return focus to **Week**. The entry sheet returns focus to its row, and after a removal to the next row, else the row before, else Log food. The copy sheet returns focus to **Copy**. From `md` it opens with focus on To, and on a phone on its body. A toast never takes focus. F6 reaches it. An Undo pressed from the keyboard puts focus on the main button of the row it changed. When the row is on screen, such as after a mark or a save, focus moves there as Undo is pressed, before the toast hides. A removed entry's row, or a moved one, takes focus once it is back. A row takes focus for one Undo only once, so the row shown again later, after a change of day, leaves focus where it is. An Undo pressed with a pointer leaves focus where it is.
 
 ### Known gaps
 
@@ -151,6 +164,6 @@ A chevron keeps focus when the day changes, and so does the date button. Arrivin
 ## Features on this page
 
 - [Days](../features/days.md): the day, its two readings and where each stands, and the week.
-- [Quick logging](../features/quick-logging.md): adding entries through the log sheet, marking, editing, moving and removing them, and their undo.
+- [Quick logging](../features/quick-logging.md): adding entries through the log sheet, marking, editing, moving, copying and removing them, and their undo.
 - [Targets](../features/targets.md): the ranges the summary measures against, today, and the first run that Set targets opens.
 - [Foods](../features/foods.md): the foods the log sheet finds and logs.

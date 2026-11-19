@@ -38,7 +38,7 @@ src/
 │   ├── AuthGuard.tsx           Renders the app when signed in, or offline on a device with a known session, else the guest side or sign-in
 │   ├── account/                SignOutButton, DeleteAccountButton and DeleteAccountSheet, for Settings
 │   ├── day/                    The Day tab:
-│   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry sheet's mount
+│   │   ├── DayTab.tsx          One day: the date from ?date= or today, the state frame, the entry, week and copy sheets' mounts
 │   │   ├── DayHeader.tsx       The date bar and the launcher, kept at the top while the day scrolls under them, with the hairline
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
 │   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
@@ -46,11 +46,13 @@ src/
 │   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, with Set targets or from which date
 │   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
 │   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
-│   │   ├── EntryList.tsx       "Entries", Mark all eaten, the rows and the empty line
+│   │   ├── EntryList.tsx       "Entries", Mark all eaten and Copy, the rows and the empty line
 │   │   ├── EntryRow.tsx        One entry: its state mark and the button that opens the entry sheet
+│   │   ├── entryMeta.ts        An entry's amount line, shared by its row and the copy sheet
 │   │   └── MarkEatenButton.tsx The 44px state mark: the circle that marks, the check, the dashed circle
-│   ├── entries/                The entry sheet and its fields:
+│   ├── entries/                The entry sheet, the copy sheet and their fields:
 │   │   ├── EntrySheet.tsx      A FormSheet on one entry: Eaten or Planned, the amount, its figures, the date, Remove entry
+│   │   ├── CopyEntriesSheet.tsx  A FormSheet that copies ticked entries of a day to another date, with its own ids for the open
 │   │   ├── AmountField.tsx     A food's amount: the unit chips and one number field
 │   │   ├── MealCount.tsx       A saved meal entry's count of meals
 │   │   ├── EstimateFields.tsx  An estimate's name, four figures and note
@@ -132,6 +134,7 @@ src/
 │   │   └── targetLines.ts      Which days a save or a removal changes, from the list of changes
 │   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, the fields and the overlays:
 │       ├── NativeDateInput.tsx The platform's date field, uncontrolled so iOS's Reset can empty it
+│       ├── Checkbox.tsx        The one checkbox: a real input drawn in the tokens, the accent when ticked, with a dash for some
 │       ├── DecimalField.tsx    A number field with its unit inside: text with an inputMode, never type=number
 │       ├── BottomSheet.tsx     The one sheet and dialog primitive, on Base UI's Drawer
 │       ├── closingSheet.ts     A closing sheet swallows presses: every one until its exit ends, then one near the closing press for 500 ms
@@ -149,6 +152,7 @@ src/
 │   ├── useEntryActions.ts      Every write to an entry from the Day tab and the log sheet, its cache update, its toast and its undo
 │   ├── entryActions.ts         The types and plain helpers useEntryActions shares
 │   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, their toasts and undo
+│   ├── useCopyActions.ts       Copying entries, composed into useEntryActions: the send, the removal of superseded ids, its toast and undo
 │   ├── useKnownOffline.ts      Whether the app knows it is offline: no network, or the server out of reach
 │   ├── useFailureLine.ts       The line for a failed write, in a form or on the log sheet's status line
 │   ├── useSubmitGuard.ts       A form's in-flight guard: a submit is refused while the last one's promise is pending
@@ -244,7 +248,7 @@ To add a form sheet, such as the estimate sheet:
    - `{ label, busy, submit }` for a second submit of the same form, such as "Save meal" beside "Save and log". `onSubmit` receives `submit` as its mode. Save and Enter call it with no mode.
 3. In the caller, keep it mounted with `useSheetTarget`: render it while `shown` is set, with `key={shown.key}`, `open={isOpen}` and `returnFocusTo={shown.opener}`. A sheet that opens on something takes it as `useSheetTarget<T>()`, `open(opener, value)` and `shown.value`.
 4. Pass `held` while the sheet's writes must wait, such as while `useToday()` reports `holding`. Save and the secondary action then ignore a press, and Cancel and every dismissal stay free.
-5. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test.
+5. Run `describeFormSheetContract` from `src/__tests__/formSheet.tsx` in its test. A sheet with no field that raises the keyboard, such as one of a date and boxes, passes `keyboardField: null`, and the contract then checks that it holds none.
 
 A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons. On a phone the footer keeps no room for it: it grows upward when a refusal shows, with the buttons where they were, and the field that holds focus comes back into view if the taller footer covers it. From `md` the footer keeps two lines of room for it, because the dialog grows downward and would move the buttons. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
 

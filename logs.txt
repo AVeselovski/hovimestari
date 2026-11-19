@@ -442,3 +442,17 @@
 [documentation-specialist DONE] (2026-11-19T02:25:03Z) the catalog, the foods, Recipes and shell docs and TODO.md trued up after the week sheet, the barcode lookup and the Recipes tab (246k tokens)
 [reviewer DONE] (2026-11-19T02:25:03Z) delta review of the Recipes tab page's fixes: approve after one; a food's edit sheet could open on stale cached values and save them over a newer edit (235k tokens)
 [frontend-engineer DONE] (2026-11-19T02:25:03Z) a food opens at once only from fresh cached detail and reads first otherwise; archived rows described; a late food-gone answer still drops the row; 1566 web tests pass (373k tokens)
+[frontend-engineer STARTED] (2026-11-19T01:49:23Z) slice B of PR 3d: the Copy button on the Entries row and the copy sheet, from docs/design/week-and-copy.md
+[frontend-engineer DONE] (2026-11-19T02:16:42Z) slice B built: Copy on the Entries row and the copy sheet, ids kept per open, cleanup before the toast, Undo by batch remove; 1574 web tests pass; not run in WebKit (453k tokens)
+[validator STARTED] (2026-11-19T02:16:42Z) slice B of PR 3d against the requirements and docs/design/week-and-copy.md
+[ui-validator STARTED] (2026-11-19T02:16:42Z) slice B in Chromium at 320, 375, 390 and 1280, both themes
+[reviewer STARTED] (2026-11-19T02:16:42Z) code review of slice B's diff
+[validator DONE] (2026-11-19T02:22:24Z) slice B: fail on one major (the list moves up 26px under the finger when the refusal line clears on a tick); the id rules, the planned copies and Undo hold under six mutations; four minors
+[reviewer DONE] (2026-11-19T02:23:54Z) code review of slice B: approve after fixes; the copy's state machine is sound; minors on a toast test that passes when the toast shows at once, untested chunks, a re-read of every cached week, and a send lost when the sheet unmounts
+[ui-validator DONE] (2026-11-19T05:54:01Z) slice B in Chromium: fail; critical: one long entry name pushes every row's calories off the sheet and the body scrolls sideways (a fieldset's min-content width); major: the refusal line moves pressable things; the Day tab's geometry equals master's, copies arrive planned, no doubles on a retry
+[frontend-engineer STARTED] (2026-11-19T05:54:01Z) one fix batch for slice B from the validator, the ui-validator and the reviewer
+[frontend-engineer DONE] (2026-11-19T06:14:07Z) slice B fix batch: long names wrap and the sheet no longer scrolls sideways, the refusal shows in the footer line, a copy survives leaving the page, chunks and Undo tested at 101 entries; 1631 web tests pass (307k tokens)
+[ui-validator STARTED] (2026-11-19T06:14:07Z) delta check of slice B's critical and major fixes
+[reviewer STARTED] (2026-11-19T06:14:07Z) delta review of slice B's fix batch
+[reviewer DONE] (2026-11-19T06:19:15Z) delta review of slice B's fixes: approve; every earlier gap is closed and each mutation now fails one test; three docs and test tidy-ups (202k tokens)
+[ui-validator DONE] (2026-11-19T06:27:03Z) delta check of slice B: pass; long names wrap and nothing scrolls sideways, the refusal moves nothing, Copy is 44 by 44, a copy survives leaving the page (272k tokens)

@@ -487,3 +487,32 @@ Each agent logs STARTED and DONE to `logs.txt`.
 - Undo through a new `POST /entries/remove`. Veto cost: the route, the service and the toast's action.
 - Answered days go into cached ranges at once. Veto cost: one call.
 - Three parts: B-backend now, A after targets slice 2, B-web after A. Veto cost: none.
+
+## B-web as built (frontend-engineer, 2026-11-19)
+
+Departures from section f and j, each measured or argued in the engineer's report, as amended by the fix round after ui-validator, validator and reviewer:
+
+- **"Nothing ticked" is the form sheet's footer line.** It was first a line under All entries with no room of its own, which moved the list 26 px down when it showed and 26 px back up under the finger when a tick cleared it, and from `md` grew the dialog and moved Copy under the pointer. It is now `setFormError({ line, cause: null })`, a live region, with `aria-invalid` and focus on All entries, cleared by the next tick. On a phone the footer grows upward and the buttons stay. From `md` the footer keeps two lines of room, so nothing moves.
+- **Rows are 53 px, not 44**, and 77 px for a name on two lines. Name over the amount line, calories at the amount line's end. A name takes two lines at most (`line-clamp-2 break-words`, as `EntryRow`).
+- **The list's `fieldset` carries `min-w-0`.** A fieldset's `min-inline-size` is `min-content` by default, so one long single-line name made the list as wide as the name, pushed every row's calories off the sheet and scrolled the body sideways. The two other fieldsets in the app (`TargetRangeFields`, `OwnFoodSheet`) already carry it.
+- **`describeFormSheetContract` gained `keyboardField`.** The copy sheet holds a date and boxes only, and Base UI raises no keyboard inset for a date input, so the contract's keyboard check could not run. With `keyboardField: null` the contract asserts the form holds no keyboard field. "The footer rides the keyboard over To" therefore does not arise.
+- **The sheet reads its day through `dayQuery(fromDate)`**, not a prop, so midnight changing the tab's date cannot swap the list. It ticks the entries once, when the day first arrives. An entry another device adds while the sheet is open appears unticked, and All entries shows a dash.
+- **`readDaysAgain`** reads the given days again, and each cached week that holds one of them, inactive ones included (only those with a `queryFn`), so a read-ahead target day or week shows a landed copy at once. A week that holds none of the dates is left alone. `entry_not_found` calls it for the day copied from.
+- **Cancel reads every unsure date of the open**, not only the day of the last send. A date is unsure after a send that could not confirm, and after a send of more than 100 whose later request failed once an earlier one had landed (`onLanded` on `CopyRequest`).
+- **Leaving the page mid-send.** The copy's `announce` runs once the sheet has slid out, as the sheet unmounts mid-slide, or as the copy answers when the sheet has already left the page. A sheet that leaves the page reads its unsure dates again.
+- **`WeekSheet.tsx` gained a comment**, outside the slice's file list.
+- **Copy in the Entries row** is `dayEntriesCopyButton`, a 44 by 44 target that grows leftward from its word, in the `dayEntriesActions` group.
+- **A refused box borders in the accent**, as every refused field does (`inputClass`). In this app the accent is also the colour of what went wrong (`docs/app/colors.md`).
+
+Measured on a production build in Chromium, both themes, with a day of four entries holding a 60-character name and an unbroken 30-character word:
+
+| Width       | Sheet body scroll width to width | Calories' right edge | Two-line name row | Copy in the Entries row             |
+| ----------- | -------------------------------- | -------------------- | ----------------- | ----------------------------------- |
+| 320 by 568  | 320 to 320                       | 300                  | 77                | x 260, 44 by 44, word ends at 304   |
+| 390 by 844  | 390 to 390                       | 370                  | 77                | x 330, 44 by 44, word ends at 374   |
+| 1280 by 800 | 446 to 446 (dialog 416 to 864)   | 839                  | 77                | x 1204, 44 by 44, word ends at 1248 |
+
+- Copy's x is the same on a day with Mark all eaten and on a day where every entry is eaten, at every width. The gap between the two targets is 16.
+- The Day tab's header is the same before, during and after the sheet: [16, 0, 288, 128] at 320, [16, 0, 358, 128] at 390, [256, 0, 992, 92] at 1280.
+- Across open, all cleared, refused and ticked again, All entries, the first two rows and the Copy button keep the same place at every width. On a phone the footer grows 28 px upward while the refusal shows. From `md` the footer does not change.
+- With twelve entries at 390 by 844 the body scrolls 833 in 676 and nothing scrolls sideways.
