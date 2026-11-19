@@ -1,0 +1,28 @@
+# Local HTTPS for a phone on the same network. Run it from the repository
+# root, as docs/setup/local-https.md says:
+#
+#   caddy run --config tools/local-https/Caddyfile
+#
+# Each site answers for every name the certificate holds. The certificate and
+# its key come from mkcert and live in tools/local-https/certs/, which git
+# ignores. Caddy keeps the browser's Host header and sets X-Forwarded-Proto
+# to https, which the web app's same-origin guard reads.
+{
+	auto_https off
+}
+
+# The web app.
+https://:3443 {
+	tls tools/local-https/certs/dev.pem tools/local-https/certs/dev-key.pem
+	reverse_proxy localhost:3000 {
+		# The phone's own address, so the sign-in relay keys its rate limits
+		# on the phone rather than on this machine.
+		header_up X-Real-IP {remote_host}
+	}
+}
+
+# The backend API, which the page calls directly.
+https://:3444 {
+	tls tools/local-https/certs/dev.pem tools/local-https/certs/dev-key.pem
+	reverse_proxy localhost:3001
+}
