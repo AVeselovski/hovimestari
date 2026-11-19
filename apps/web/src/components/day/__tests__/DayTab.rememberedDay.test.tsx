@@ -18,7 +18,7 @@ import { foodEntry } from "./support";
 // is 2026-11-16 (Helsinki), with the clock pinned 30 seconds before its end.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),

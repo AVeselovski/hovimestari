@@ -24,7 +24,7 @@ import { favouritesOf, logWorld, openLogSheet, plus, statusLine, timeout, type L
 // place. The next open shows what was read.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn(),

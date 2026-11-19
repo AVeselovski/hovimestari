@@ -1,4 +1,5 @@
 import { TEST_USER, fakeAuth } from "@/__tests__/helpers/auth";
+import { clockFrom } from "@/__tests__/helpers/clock";
 import { deferred } from "@/__tests__/helpers/queryClient";
 import { TodayProvider } from "@/components/targets/TodayProvider";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -32,7 +33,7 @@ import { TODAY, estimateEntry, foodEntry } from "./support";
 // The Day tab's writes and undos where they fail, overlap or are held.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
@@ -379,15 +380,6 @@ describe("DayTab while the app asks for today", () => {
     expect(removeEntry).not.toHaveBeenCalled();
   });
 });
-
-/** The real clock, taken before any test replaces `Date.now`, so a second `clockFrom` does not read the first. */
-const realNow = Date.now.bind(Date);
-
-/** The device's clock reads from `iso` on, and keeps running. */
-function clockFrom(iso: string): void {
-  const start = realNow();
-  jest.spyOn(Date, "now").mockImplementation(() => Date.parse(iso) + (realNow() - start));
-}
 
 describe("DayTab across a time zone change", () => {
   afterEach(() => jest.restoreAllMocks());

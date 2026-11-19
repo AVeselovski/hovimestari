@@ -106,7 +106,7 @@ describe("DaySummary", () => {
     expect(withPlan).toBe(eaten);
     expect(spokenCells("energy")).toEqual([
       "Eaten148 kcal1752 kcal below the range",
-      "With plan148 kcal1752 kcal below the range",
+      "Planned148 kcal1752 kcal below the range",
     ]);
     expect(cells("protein")[0]).toBe(cells("protein")[1]);
     expect(part("energy", "plan")).toBeNull();
@@ -118,7 +118,7 @@ describe("DaySummary", () => {
     render(<DaySummary date={tomorrow} day={dayOf([planned], tomorrow)} past={false} />);
     expect(cells("energy")).toEqual(["0 kcal1900 kcal below the range", "148 kcal1752 kcal below the range"]);
     expect(cells("carbs")).toEqual(["0 g", "9 g"]);
-    expect(spokenCells("carbs")).toEqual(["Eaten 0 g", "With plan 9 g"]);
+    expect(spokenCells("carbs")).toEqual(["Eaten 0 g", "Planned 9 g"]);
     expect(part("energy", "eaten")).toBeNull();
     expect(part("energy", "plan")).toHaveClass("rounded-l-pill");
   });
@@ -149,7 +149,7 @@ describe("DaySummary", () => {
     ]);
     expect(spokenCells("energy")).toEqual([
       "Eaten2000 kcalIn the range, 200 kcal to the upper bound",
-      "With plan2000 kcalIn the range, 200 kcal to the upper bound",
+      "Planned2000 kcalIn the range, 200 kcal to the upper bound",
     ]);
     expect(spokenCells("protein")[0]).toBe("Eaten150 gIn the range, 30 g to the upper bound");
     rerender(<DaySummary date={TODAY} day={dayOf([at(2300, 200.4)])} past={false} />);
@@ -166,7 +166,7 @@ describe("DaySummary", () => {
     render(<DaySummary date={TODAY} day={dayOf([dinner])} past={false} />);
     const calories = screen.getByRole("region", { name: "Calories" });
     expect(spokenText(calories)).toBe(
-      "Calories1900 to 2200 kcalEatenestimated 900 kcal1000 kcal below the rangeWith planestimated 900 kcal1000 kcal below the range",
+      "Calories1900 to 2200 kcalEatenestimated 900 kcal1000 kcal below the rangePlannedestimated 900 kcal1000 kcal below the range",
     );
     expect(shownText(calories)).toBe(
       "Calories1900 to 2200 kcal≈900 kcal1000 kcal below the range≈900 kcal1000 kcal below the range",
@@ -220,7 +220,7 @@ describe("DaySummary", () => {
     expect(screen.queryByText(/to 2200 kcal/)).toBeNull();
     expect(RANGES.energyKcal.upper).toBe(2200);
     expect(cells("energy")).toEqual(["", ""]);
-    expect(spokenCells("energy")).toEqual(["Eaten", "With plan"]);
+    expect(spokenCells("energy")).toEqual(["Eaten", "Planned"]);
   });
 
   it("shows carbohydrates and fat as a two-row table in the two columns, with both readings in every row", () => {
@@ -243,7 +243,7 @@ describe("DaySummary", () => {
     // The label shows short and reads in full.
     expect(shownText(rows[0]!.querySelector("dt")!)).toBe("Carbs");
     expect(spokenText(rows[0]!.querySelector("dt")!)).toBe("Carbohydrates");
-    expect(spokenText(rows[0]!)).toBe("CarbohydratesEaten 9 gWith plan 19.8 g");
+    expect(spokenText(rows[0]!)).toBe("CarbohydratesEaten 9 gPlanned 19.8 g");
     expect(cells("carbs")).toEqual(["9 g", "19.8 g"]);
     expect(cells("fat")).toEqual(["0.5 g", "1.1 g"]);
 
@@ -267,7 +267,7 @@ describe("DaySummary", () => {
     expect(summary).not.toHaveAttribute("aria-busy");
   });
 
-  it("starts each small figure in its column: after the label's lead under Eaten, at the column's start under With plan", () => {
+  it("starts each small figure in its column: after the label's lead under Eaten, at the column's start under Planned", () => {
     render(<DaySummary date={TODAY} day={dayOf([foodEntry("Quark", 250)])} past={false} />);
     const [eaten, withPlan] = readings("carbs");
     expect(eaten.className.split(" ")).toEqual(expect.arrayContaining(["col-start-1", "ml-16", "justify-self-start"]));
@@ -280,9 +280,9 @@ describe("DaySummary", () => {
     const later = foodEntry("Rahka", 200, { status: "planned" });
     const { container } = render(<DaySummary date={TODAY} day={dayOf([quark, later])} past={false} />);
     const summary = container.querySelector<HTMLElement>("[data-day-summary]")!;
-    // Every "Eaten" and "With plan" on the summary is screen reader text: nothing visible says them.
+    // Every "Eaten" and "Planned" on the summary is screen reader text: nothing visible says them.
     const visible = [...summary.querySelectorAll<HTMLElement>("*")].filter(
-      (el) => el.children.length === 0 && /^(Eaten|With plan)$/.test(el.textContent!.trim()),
+      (el) => el.children.length === 0 && /^(Eaten|Planned)$/.test(el.textContent!.trim()),
     );
     expect(visible.length).toBeGreaterThan(0);
     for (const el of visible) expect(el.closest(".sr-only")).not.toBeNull();
@@ -295,6 +295,6 @@ describe("DaySummary", () => {
       "eaten",
       "withPlan",
     ]);
-    expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual(["Eaten", "With plan"]);
+    expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual(["Eaten", "Planned"]);
   });
 });

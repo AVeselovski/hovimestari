@@ -21,7 +21,7 @@ import { TODAY, favouritesOf, logWorld, loosely, openLogSheet, ownFoods, plus, t
 // the fake server of components/day/__tests__/harness.tsx.
 
 jest.mock("@/contexts/AuthContext");
-jest.mock("@/lib/api/days", () => ({ getDay: jest.fn() }));
+jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
@@ -192,14 +192,12 @@ describe("The log sheet's food view", () => {
   });
 
   it("sends a new id with the next Log after entry_id_taken, which the same id can never get past", async () => {
-    jest
-      .mocked(addEntry)
-      .mockRejectedValueOnce(
-        Object.assign(new Error("409"), {
-          isAxiosError: true,
-          response: { status: 409, data: { code: "entry_id_taken" } },
-        }),
-      );
+    jest.mocked(addEntry).mockRejectedValueOnce(
+      Object.assign(new Error("409"), {
+        isAxiosError: true,
+        response: { status: 409, data: { code: "entry_id_taken" } },
+      }),
+    );
     renderDay();
     await openLogSheet();
     await openRow("Recent", "Quark");
