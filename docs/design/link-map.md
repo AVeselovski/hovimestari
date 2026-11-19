@@ -109,6 +109,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | food-name language                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
 | Fineli, its credit and licence            | `features/foods.md#fineli`               | `### Fineli`               |
 | Fineli import, Fineli release             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
+| barcode lookup, Open Food Facts product   | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
+| Open Food Facts, its credit and licence   | `features/foods.md#open-food-facts`      | `### Open Food Facts`      |
 | food visibility, food scope               | `features/foods.md#visibility`           | `### Visibility`           |
 
 ## Days and logging

@@ -20,7 +20,7 @@ This runbook serves the local web app and backend over https on your home networ
    scutil --get LocalHostName
    ```
 
-   The first prints the address, such as `192.168.1.23`. If it prints nothing, Wi-Fi is on another interface, so run `ipconfig getifaddr en1`. The second prints the name, such as `Arturs-MacBook-Pro`. The local name is that name with `.local` after it. The steps below write `<address>` and `<name>.local` for the two.
+   The first prints the address, such as `192.168.1.23`. If it prints nothing, Wi-Fi is on another interface, so run `ipconfig getifaddr en1`. If that prints nothing too, `ifconfig | grep "inet "` lists every address, and the one that starts like your router's is the Mac's. The second prints the name, such as `Arturs-MacBook-Pro`. The local name is that name with `.local` after it. The steps below write `<address>` and `<name>.local` for the two.
 
 3. Make the certificate. From the repository root:
 

@@ -11,6 +11,8 @@ import type { ErrorCode } from "@hovimestari/types";
 export class AppError extends Error {
   /** The stable code the web app renders its copy by. */
   public readonly code?: ErrorCode;
+  /** When to try again, in seconds. The error middleware sends it as `Retry-After`. */
+  public readonly retryAfterSeconds?: number;
 
   constructor(
     public override readonly message: string,
@@ -21,11 +23,12 @@ export class AppError extends Error {
      * a failed write). The error middleware never returns the cause to the
      * client: it is for logs and debuggers.
      */
-    options: { code?: ErrorCode; cause?: unknown } = {},
+    options: { code?: ErrorCode; cause?: unknown; retryAfterSeconds?: number } = {},
   ) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "AppError";
     this.code = options.code;
+    this.retryAfterSeconds = options.retryAfterSeconds;
   }
 }
 
@@ -81,6 +84,9 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   food_macro_sum_too_high: "Protein, carbohydrates and fat add up to more than 100 g per 100 g.",
   barcode_invalid: "A barcode has 8 to 14 digits.",
   barcode_taken: "One of your foods already has this barcode.",
+  barcode_lookup_limit: "You have looked up many barcodes this hour. Try again later.",
+  barcode_lookup_busy: "Too many lookups at once. Try again in a minute.",
+  barcode_lookup_unavailable: "Open Food Facts did not answer.",
   portion_not_found: "This portion is no longer available.",
   portion_read_only: "Only your own portions can be changed.",
   portion_name_required: "Give the portion a name.",
@@ -103,6 +109,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   meal_source_too_long: "Use at most 40 characters.",
 };
 
-/** An AppError for `code`, with the code's fixed message. */
-export const appError = (code: ErrorCode, status: number): AppError =>
-  new AppError(ERROR_MESSAGES[code], status, { code });
+/** An AppError for `code`, with the code's fixed message, and when to try again if that is known. */
+export const appError = (code: ErrorCode, status: number, retryAfterSeconds?: number): AppError =>
+  new AppError(ERROR_MESSAGES[code], status, { code, retryAfterSeconds });

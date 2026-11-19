@@ -9,6 +9,7 @@ import type pg from "pg";
 export const SEEDED_TABLES = [
   "entries",
   "food_favourites",
+  "food_lookups",
   "food_portions",
   "foods",
   "password_reset_tokens",
@@ -49,6 +50,13 @@ export async function seedOneOfEach(client: pg.Client, userId: string): Promise<
     userId,
   ]);
   await client.query("INSERT INTO food_favourites (user_id, food_id) VALUES ($1, $2)", [userId, foodId]);
+  // A stored Open Food Facts product has no owner. The user's lookup of it is theirs.
+  const off = await client.query(
+    `INSERT INTO foods (source, name, energy_kcal, protein_g, carbs_g, fat_g, barcode)
+     VALUES ('open_food_facts', 'Cascade product', 1, 1, 1, 1, $1) RETURNING id`,
+    [String(randomBytes(6).readUIntBE(0, 6)).padStart(13, "9").slice(0, 13)],
+  );
+  await client.query("INSERT INTO food_lookups (user_id, food_id) VALUES ($1, $2)", [userId, off.rows[0].id]);
   // One saved meal and one entry of it: the deletion test expects one row per table per user.
   const meal = await client.query(
     `INSERT INTO saved_meals (user_id, name, energy_kcal, protein_g, carbs_g, fat_g)

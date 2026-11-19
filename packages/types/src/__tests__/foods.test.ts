@@ -57,6 +57,12 @@ describe("OwnFoodBodySchema", () => {
   it("accepts a barcode of 8 to 14 digits", () => {
     expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
   });
+
+  it("stores a barcode typed with spaces without them, as a lookup reads it", () => {
+    expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: " 6 408430 000012 " }).barcode).toBe(
+      "6408430000012",
+    );
+  });
 });
 
 describe("OwnFoodUpdateBodySchema", () => {

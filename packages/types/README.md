@@ -23,12 +23,13 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 
 ```text
 auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
+barcode.ts     The barcode lookup's body with its optional scan format, and its four answers: found, incomplete, not found, a shop's own
 dates.ts       IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
 days.ts        A day, its readings and summary, and the day and range queries
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry
 errors.ts      ERROR_CODES, ErrorCode, ApiError and isErrorCode
 figures.ts     Figures, positions, and the one figure computation: entryFigures, totalOf, positionOf, gramsForPortion
-foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, and hasSearchableWord
+foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, BarcodeSchema, macroSumWithinLimit and hasSearchableWord
 log.ts         A recent item and the recents query
 results.ts     What each entry write and save-and-log answers: the entry or entries, the days they changed, and the outcome
 savedMeals.ts  A saved meal, its bodies, the list query and the save-and-log body

@@ -3,7 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { randomUUID } from "node:crypto";
 import { format } from "node:util";
 import request from "supertest";
-import { AppError } from "../../lib/errors.js";
+import { AppError, appError, ERROR_MESSAGES } from "../../lib/errors.js";
 import { errorHandler } from "../error.js";
 
 function mockRes() {
@@ -49,6 +49,17 @@ describe("errorHandler", () => {
     );
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "Invalid email or password.", code: "invalid_credentials" });
+  });
+
+  it("sends an AppError's retryAfterSeconds as Retry-After, and no header without one", () => {
+    const res = mockRes();
+    errorHandler(appError("barcode_lookup_busy", 429, 6), req, res as unknown as Response, next);
+    expect(res.set).toHaveBeenCalledWith("Retry-After", "6");
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.json).toHaveBeenCalledWith({ message: ERROR_MESSAGES.barcode_lookup_busy, code: "barcode_lookup_busy" });
+    const plain = mockRes();
+    errorHandler(appError("food_not_found", 404), req, plain as unknown as Response, next);
+    expect(plain.set).not.toHaveBeenCalled();
   });
 
   it.each([

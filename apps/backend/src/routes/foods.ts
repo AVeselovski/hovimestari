@@ -1,4 +1,5 @@
 import {
+  BarcodeLookupBodySchema,
   FoodListQuerySchema,
   FoodSearchQuerySchema,
   OwnFoodBodySchema,
@@ -10,6 +11,7 @@ import { parseBody, parseQuery } from "../lib/parseBody.js";
 import { contextFor } from "../lib/requestContext.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { getFood, listFavouriteFoods, listOwnFoods, searchFoods } from "../services/reads/foods.js";
+import { lookupBarcode, sharedLookupDeps } from "../services/writes/barcode.js";
 import {
   addPortion,
   createOwnFood,
@@ -39,6 +41,15 @@ foodsRouter.get("/favourites", async (req, res) => {
 foodsRouter.get("/own", async (req, res) => {
   const query = parseQuery(FoodListQuerySchema, req.query);
   res.status(200).json(await listOwnFoods(await contextFor(req), query));
+});
+
+// A POST, because a lookup may store a product. The barcode is in the body,
+// so no URL and no request log line holds it. A 429 carries its own
+// `Retry-After`, which the error middleware sends.
+foodsRouter.post("/lookup", async (req, res) => {
+  const body = parseBody(BarcodeLookupBodySchema, req.body);
+  const { value } = await lookupBarcode(await contextFor(req), body, sharedLookupDeps());
+  res.status(200).json(value);
 });
 
 foodsRouter.get("/:id", async (req, res) => {

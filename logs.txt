@@ -416,3 +416,14 @@
 [frontend-engineer DONE] (2026-11-19T01:36:00Z) slice A delta fixes: the selection guard applies to a pointer press whose selection touches the row, the notice's offset derived from stated head and row heights; 1520 web tests pass
 [ui-validator DONE] (2026-11-19T01:40:50Z) delta check of slice A: pass; the targets line, the track, the fixed columns, the notice, the title and the spare width all hold as single values across states; the Day tab's planned tints read the same or slightly better (219k tokens)
 [frontend-engineer DONE] (2026-11-19T01:40:50Z) the dark planned-calories tint set back to a warm amber at the same luminance; two dark screenshots retaken (334k tokens)
+[backend-engineer STARTED] (2026-11-18T21:53:43Z) barcode slice 1: POST /foods/lookup, from docs/design/barcode.md
+[backend-engineer DONE] (2026-11-19T01:09:01Z) barcode slice 1: POST /foods/lookup, gtinOf with the GS1 gate passed against the General Specifications, per-user visibility through food_lookups, two budgets, migration 0006; 765 backend tests pass three times (386k tokens)
+[validator STARTED] (2026-11-19T01:09:01Z) barcode slice 1 against the requirements and docs/design/barcode.md
+[reviewer STARTED] (2026-11-19T01:09:01Z) code and security review of barcode slice 1
+[reviewer DONE] (2026-11-19T01:16:35Z) barcode slice 1: approve after fixes; two majors (the answer's top-level code is compared where the product's own must be, so another product can be stored under the asked barcode; a NUL in a product name throws on every lookup and drains the shared budget), minors on redirects, the format hint with 12 to 14 digits, 14-digit pack codes, concurrent calls for one code
+[validator DONE] (2026-11-19T01:19:44Z) barcode slice 1: the code meets the requirements and visibility holds on every path; fail on one major, a test that does not catch a user's call being lost to the server's empty bucket; five minors (208k tokens)
+[backend-engineer STARTED] (2026-11-19T01:19:44Z) one fix batch for barcode slice 1 from the reviewer and the validator
+[backend-engineer DONE] (2026-11-19T01:35:10Z) barcode slice 1 fix batch: all 12 findings fixed with a failing test first; only the product's own code is compared, control characters stripped, redirects refused, one outgoing call per code at once, a kept GTIN-8 stored as 8 digits; 785 backend tests pass three times
+[reviewer STARTED] (2026-11-19T01:35:10Z) delta review of barcode slice 1's fix batch
+[reviewer DONE] (2026-11-19T01:45:58Z) delta review of barcode slice 1's fixes: approve after one; a storing failure was cached as unavailable for ten minutes (217k tokens)
+[backend-engineer DONE] (2026-11-19T01:45:58Z) the lookup caches the fetched product and retries only the insert; a storing failure answers the app's ordinary server error; 787 backend tests pass twice (253k tokens)
