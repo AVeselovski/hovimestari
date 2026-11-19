@@ -23,7 +23,7 @@ const lineOf = (label: string) => document.getElementById(`${input(label).id}-li
 const save = () => fireEvent.click(within(dialog()).getByRole("button", { name: "Save" }));
 
 function renderSheet(props: Partial<PortionSheetProps> = {}) {
-  const handlers = { onClose: jest.fn(), onSaved: jest.fn(), onDeleted: jest.fn() };
+  const handlers = { onClose: jest.fn(), onSaved: jest.fn() };
   render(<PortionSheet open returnFocusTo={null} foodId={FOOD} {...handlers} {...props} />);
   return handlers;
 }
@@ -80,8 +80,8 @@ describe("PortionSheet", () => {
     expect(addPortion).not.toHaveBeenCalled();
   });
 
-  it("edits the user's own portion and deletes it after asking", async () => {
-    const { onDeleted } = renderSheet({ portion: tub });
+  it("edits the user's own portion, deletes it after asking, and closes itself", async () => {
+    const { onClose } = renderSheet({ portion: tub });
     expect(screen.getByRole("dialog", { name: "Edit portion" })).toBeInTheDocument();
     expect(input("Name")).toHaveValue("Purkki");
     expect(input("Weight")).toHaveValue("200");
@@ -91,7 +91,7 @@ describe("PortionSheet", () => {
     await confirmArmed();
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(deletePortion).toHaveBeenCalledWith(FOOD, tub.id));
-    await waitFor(() => expect(onDeleted).toHaveBeenCalled());
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
   it("ignores Delete while a save runs", async () => {

@@ -4,7 +4,7 @@ import type { SaveAndLogDone } from "@/hooks/entryActions";
 import { createSavedMeal, updateSavedMeal } from "@/lib/api/savedMeals";
 import type { SaveAndLogBody, SavedMeal } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { SavedMealSheet, type SavedMealSheetProps } from "../SavedMealSheet";
+import { SavedMealSheet } from "../SavedMealSheet";
 
 // The saved meal sheet on its own: its fields, what each of its two submits
 // sends, and the form sheet contract. The log sheet suites run it stacked
@@ -23,10 +23,19 @@ const bowl: SavedMeal = {
 };
 
 function actions(saveAndLog: jest.Mock = jest.fn()) {
-  return { saveAndLog, withdrawAdd: jest.fn(), holding: false };
+  return { saveAndLog, withdrawAdd: jest.fn() };
 }
 
-function renderSheet(props: Partial<SavedMealSheetProps> = {}) {
+/**
+ * The sheet as the log sheet stacks it: a new meal with `logging` for DATE,
+ * built from `sheetActions`, or with `meal` the edit of that meal.
+ */
+function renderSheet({
+  actions: sheetActions = actions(),
+  meal,
+  initialName = "",
+  sources = ["Foodora", "Wolt"],
+}: { actions?: ReturnType<typeof actions>; meal?: SavedMeal; initialName?: string; sources?: string[] } = {}) {
   const handlers = {
     onClose: jest.fn(),
     onSaved: jest.fn(),
@@ -34,16 +43,16 @@ function renderSheet(props: Partial<SavedMealSheetProps> = {}) {
     onSavedMeal: jest.fn(),
     onGone: jest.fn(),
   };
+  const { onLogged, onGone, ...sheetHandlers } = handlers;
   render(
     <SavedMealSheet
       open
       returnFocusTo={null}
-      initialName=""
-      date={DATE}
-      sources={["Foodora", "Wolt"]}
-      actions={actions()}
-      {...handlers}
-      {...props}
+      sources={sources}
+      {...sheetHandlers}
+      {...(meal
+        ? { kind: "edit" as const, meal, onGone }
+        : { kind: "new" as const, initialName, logging: { date: DATE, actions: sheetActions, onLogged } })}
     />,
   );
   return handlers;
@@ -79,13 +88,15 @@ describe("SavedMealSheet, new", () => {
     renderSheet: (p) => (
       <SavedMealSheet
         {...p}
+        kind="new"
         initialName=""
-        date={DATE}
         sources={[]}
-        actions={{ saveAndLog: (r) => contractSaveAndLog(r), withdrawAdd: jest.fn(), holding: false }}
-        onLogged={jest.fn()}
+        logging={{
+          date: DATE,
+          actions: { saveAndLog: (r) => contractSaveAndLog(r), withdrawAdd: jest.fn() },
+          onLogged: jest.fn(),
+        }}
         onSavedMeal={jest.fn()}
-        onGone={jest.fn()}
       />
     ),
     type: () => type("Name", "Bowl"),
