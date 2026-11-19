@@ -151,7 +151,7 @@ The check digit is GS1's mod 10: from the right, the digits before the check dig
 
 `apps/backend/src/lib/openFoodFacts/client.ts`, `fetchProduct(gtin, deps)`:
 
-- `GET {OFF_BASE_URL}/api/v2/product/{code}?fields=code,product_name,product_name_fi,product_name_en,brands,nutriments,nutrition_data_per,no_nutrition_data`. `OFF_BASE_URL` defaults to `https://world.openfoodfacts.org`. `{code}` is the 14-digit form less its leading zero when it has one, so the 13-digit form Open Food Facts answers under.
+- `GET {OFF_BASE_URL}/api/v2/product/{code}?fields=code,product_name,product_name_fi,product_name_en,brands,nutriments,no_nutrition_data`. `nutrition_data_per` is not asked for until the per 100 ml question in `TODO.md` is settled, because nothing reads it. `OFF_BASE_URL` defaults to `https://world.openfoodfacts.org`. `{code}` is the 14-digit form less its leading zero when it has one, so the 13-digit form Open Food Facts answers under.
 - Header `User-Agent: {OFF_USER_AGENT}`. The default is `Hovimestari/<backend package version>`, with no address, no account id and no email. Open Food Facts asks for a contact. Artur may set `OFF_USER_AGENT` on Fly to add one of his choosing (in `TODO.md`). The code never builds it from user data.
 - A 5-second timeout (`AbortSignal.timeout`), one attempt, no retry. The body is read up to 512 KB. A longer body counts as unavailable.
 - The body is parsed with a Zod schema in `product.ts`. A field of the wrong type counts as missing, and a numeric string is coerced to its number.
@@ -179,7 +179,7 @@ Both count only calls that would reach Open Food Facts. A lookup answered from t
 
 | Field         | Rule                                                                                                                                                                                                                                                                                                                                                     |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `barcode`     | The requested code's 14-digit form less its leading zero when it has one, the form sent to Open Food Facts. `product.code` is only compared: when its 14-digit form differs from the requested one, the answer is `not_found` (see below)                                                                                                                |
+| `barcode`     | The requested code's GTIN: a GTIN-8 as its 8 digits, any other as its 14-digit form less its leading zero (`storedFormOf`). The unique index pads every form to 14 digits, so each form finds it. `product.code` is only compared: when its 14-digit form differs from the requested one, the answer is `not_found` (see below)                          |
 | `name`        | `product_name_fi`, else `product_name`, else `product_name_en`, trimmed, runs of spaces to one. The first entry of `brands` is added after a comma and a space, unless the name already holds it, compared with case and accents folded: "Eila laktoositon kevytmaitojuoma, Valio". Cut at a word boundary to 120 characters. No name at all: incomplete |
 | `name_en`     | `product_name_en`, when present and different from `name` before the brand. The brand is added the same way, and it is cut to 120 the same way                                                                                                                                                                                                           |
 | `energy_kcal` | `energy-kcal_100g`, else `energy-kj_100g` divided by 4.184, as the Fineli import converts. Rounded to two decimals                                                                                                                                                                                                                                       |
@@ -195,8 +195,9 @@ The sum check is one exported function, `macroSumWithinLimit(per100g)` in `packa
 A complete product becomes one row: `source = 'open_food_facts'`, `user_id` null, `fineli_id` null, `name`, `name_en`, the four values, `barcode`. Nobody edits it (FR-FOOD-05). `created_at` is when it was fetched, since a stored product is never refreshed: a later refresh rule keys on it. The row is visible to a user once that user has a `food_lookups` row for it. Search then finds it by name, ranked with "anything else" at step 3 of the search rule.
 
 - **Duplicates.** One stored row per product, by a unique index on the barcode padded to 14 digits, so `012000161155` and `0012000161155` are one product. The insert is `ON CONFLICT DO NOTHING` on `foods_off_barcode_uq`, in its own transaction. The read-back by the requested GTIN is a new statement after that transaction has committed, at the default READ COMMITTED level, never inside a REPEATABLE READ snapshot taken before the insert.
-- **Two first lookups at once.** Two users, or two devices, look up a product nobody has stored. Both pass steps 1 to 5 and both call Open Food Facts, so the product costs two calls once. The second insert waits on the unique index until the first commits, then does nothing. Both read the same row back, and each records its own lookup. Each user's `food_lookups` row is written before that user's `getFood`, so each answer is visible to the user who asked.
-- **The stored code is the requested one.** Open Food Facts can answer under a code other than the one asked for, such as a product merged into another. When the answer's `code`, padded to 14, differs from the requested 14-digit form, the lookup answers `not_found`, caches it and stores nothing. Storing the answer under the requested code would put another product's figures under that barcode, in a shared row that is never refreshed, and every later lookup of that code by any user would find it. Storing it under the answer's code would leave the read-back empty, and every later lookup would call again. Answering `not_found` keeps the index true at the cost of one product the person adds from its label. The two forms of one code, such as a UPC-A answered under its 13-digit form, pad to the same 14 digits and are not a difference.
+- **Two first lookups at once.** Within one process, `LookupDeps.inFlight` makes them one call: the lookup that starts it spends the budgets, the other waits on the same promise, and each records its own lookup. On two machines, both call Open Food Facts, so the product costs two calls once. The second insert waits on the unique index until the first commits, then does nothing. Both read the same row back, and each records its own lookup. Each user's `food_lookups` row is written before that user's `getFood`, so each answer is visible to the user who asked.
+- **Storing fails after a call.** A row refused by a constraint (class 23) answers `incomplete` with `implausible_values` and is cached as that. Any other failure, class 22 included, goes to the error middleware unchanged, and the cache keeps the parsed product as `{ kind: "fetched" }`. The next lookup retries only the insert and the read-back, through the in-flight entry, with no call and no budget spent. `barcode_lookup_unavailable` means only that Open Food Facts did not answer.
+- **The stored code is the requested one.** Open Food Facts can answer under a code other than the one asked for, such as a product merged into another. When the answer's `product.code`, padded to 14, differs from the requested 14-digit form, or is missing, the lookup answers `not_found`, caches it and stores nothing. Storing the answer under the requested code would put another product's figures under that barcode, in a shared row that is never refreshed, and every later lookup of that code by any user would find it. Storing it under the answer's code would leave the read-back empty, and every later lookup would call again. Answering `not_found` keeps the index true at the cost of one product the person adds from its label. The two forms of one code, such as a UPC-A answered under its 13-digit form, pad to the same 14 digits and are not a difference.
 - **Later changes at Open Food Facts.** The stored row is not refreshed. FR-SCAN-04 asks that the next lookup needs no call, and entries keep their own figures anyway. A person who finds the figures wrong uses **Copy to your foods** (0.4).
 - **Taking one down.** An operator sets `retired_at` on the row, as the Fineli import does for a food that left a release. Search stops finding it for everyone, and entries and favourites that point at it keep reading it. A lookup that meets a retired stored row answers `not_found` and calls nothing, so the person adds the food from its label, and their own food wins from then on. Unretiring is clearing `retired_at`. The statement goes into `docs/features/foods.md`, How it works. A row is never deleted, because entries cascade from their food (`entries.ts:53`).
 - **Own foods with the same barcode.** Each user may have one own food per barcode, whatever is stored. The lookup takes the own food first. Own-food matching pads both sides to 14 digits too, and takes the most recently updated when two match, which only two forms of one code can cause.
@@ -479,7 +480,7 @@ The phone loads the dev server over plain `http://<address>:3000`. That is not a
 3. Make the certificate into the repository's ignored folder: `mkcert -cert-file tools/local-https/certs/dev.pem -key-file tools/local-https/certs/dev-key.pem <address> localhost 127.0.0.1`.
 4. Trust the root on the iPhone: `open "$(mkcert -CAROOT)"`, AirDrop `rootCA.pem` (never `rootCA-key.pem`) to the phone, then Settings, General, VPN & Device Management, the downloaded profile, Install. Then Settings, General, About, Certificate Trust Settings, turn on full trust for the mkcert root.
 5. Point the apps at the https addresses. In `apps/web/.env.local`: `NEXT_PUBLIC_API_URL=https://<address>:3444/api/v1` and `NEXT_DEV_ORIGINS=<address>`. In `apps/backend/.env`: add `https://<address>:3443` to `CORS_ORIGIN`. `BACKEND_URL` stays `http://localhost:3001`, since the web server talks to the backend on the machine.
-6. Start the two servers as in the local development runbook, then Caddy from the repository root: `LAN_ADDRESS=<address> caddy run --config tools/local-https/Caddyfile`. Allow incoming connections when macOS asks.
+6. Start the two servers as in the local development runbook, then Caddy from the repository root: `caddy run --config tools/local-https/Caddyfile`. Allow incoming connections when macOS asks.
 7. Open `https://<address>:3443` on the phone. Check: no certificate warning, and signing in with an email and a password works. In Safari's Web Inspector from the Mac, `window.isSecureContext` reads `true`. The camera button is checked in slice 4, once it exists.
 8. To undo: stop Caddy, set the env values back, and on the phone delete the profile in VPN & Device Management.
 
@@ -490,21 +491,21 @@ The runbook also says, in plain words:
 - **The installed app** needs a production build, since the development server registers no service worker. `NEXT_PUBLIC_*` values are built in, so build after step 5, then start with `LOCAL_PRODUCTION_RELAY=1` as `apps/web/README.md`, "Running a production build locally", says. The production cookie is `Secure`, which holds over https.
 - **mkcert's root key** on the Mac can make certificates the phone trusts. It stays on the Mac, and the profile comes off the phone when testing ends.
 
-Committed with the runbook: `tools/local-https/Caddyfile`, and `tools/local-https/certs/` in `.gitignore`.
+Committed with the runbook: `tools/local-https/Caddyfile`, and `tools/local-https/certs/` in `.gitignore`. The sites name no host, so each answers for every name the certificate holds, the file needs no address of its own, and a new address needs only a new certificate. Caddy then answers any `Host` that reaches the port, which is the reach the two dev servers already have on the network.
 
 ```caddyfile
 {
 	auto_https off
 }
 
-https://{$LAN_ADDRESS}:3443 {
+https://:3443 {
 	tls tools/local-https/certs/dev.pem tools/local-https/certs/dev-key.pem
 	reverse_proxy localhost:3000 {
 		header_up X-Real-IP {remote_host}
 	}
 }
 
-https://{$LAN_ADDRESS}:3444 {
+https://:3444 {
 	tls tools/local-https/certs/dev.pem tools/local-https/certs/dev-key.pem
 	reverse_proxy localhost:3001
 }

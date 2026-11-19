@@ -15,7 +15,7 @@ src/
 │       ├── index.ts            Re-exports every table
 │       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs, the food-name language, the time zone and when the first run was passed
 │       ├── targets.ts          target_changes: one row per dated change of a user's targets
-│       ├── foods.ts            foods, food_portions and food_favourites, with the generated search columns
+│       ├── foods.ts            foods, food_portions, food_favourites and food_lookups, with the generated search columns
 │       ├── savedMeals.ts       saved_meals: a user's meal with its figures for one meal, archived or hidden
 │       ├── entries.ts          entries: one row per entry on a day, its basis and amount, with the CHECKs per kind
 │       ├── removedEntries.ts   removed_entries: a removed entry's whole row, kept ten minutes for a restore
@@ -44,7 +44,13 @@ src/
 │   ├── oneTimeCodes.ts         Single-use, one-minute codes that finish Google sign-in and linking, in process
 │   ├── email.ts                The mailer: Resend, or the console without a key, and the reset mail
 │   ├── pgErrors.ts             Reads a Postgres error: its SQLSTATE, and unique, check and foreign-key violations on a named constraint
-│   └── isUuid.ts               Whether a path id is a UUID, before Postgres sees it
+│   ├── isUuid.ts               Whether a path id is a UUID, before Postgres sees it
+│   └── openFoodFacts/          The barcode lookup's helpers, each tested on its own
+│       ├── gtin.ts             Reads a barcode by the GS1 rules: check digit, UPC-E, the shop's own numbers
+│       ├── client.ts           The one call to Open Food Facts: timeout, body cap, a User-Agent with nothing personal
+│       ├── product.ts          Parses a product and decides what is kept: names, the four values, incomplete or implausible
+│       ├── limiter.ts          Token buckets for the two call budgets, on an injected clock
+│       └── cache.ts            Answers not stored, held 10 minutes, on an injected clock
 ├── middleware/
 │   ├── authenticate.ts         Bearer access token check, sets req.user
 │   ├── requireBff.ts           The relay secret check and the relayed client address rules
@@ -54,7 +60,7 @@ src/
 ├── routes/
 │   ├── index.ts                Mounts /auth, /users, /targets, /foods, /days, /entries, /saved-meals and /log
 │   ├── targets.ts              Targets: the overview for a date, set a dated change, remove one
-│   ├── foods.ts                Food search, favourites, own foods, one food, own food writes, portions, favourite toggles
+│   ├── foods.ts                Food search, favourites, own foods, the barcode lookup, one food, own food writes, portions, favourite toggles
 │   ├── days.ts                 One day, or a range of days without their entries
 │   ├── entries.ts              Add, change, mark, copy, remove one or several, and restore entries
 │   ├── savedMeals.ts           Saved meals: list, read, create, save and log, edit, archive, delete
@@ -72,6 +78,7 @@ src/
 │   ├── writes/context.ts       WriteContext and WriteOutcome
 │   ├── writes/targets.ts       setTargets, and removeTargetChange, which also marks the first run passed
 │   ├── writes/foods.ts         Own foods, portions and favourites
+│   ├── writes/barcode.ts       lookupBarcode, and the process's budgets and memory for it
 │   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, removeEntries, restoreEntry, copyEntries
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/settings.ts      updateSettings: the food-name language and the time zone. finishFirstRun and markFirstRunDone
@@ -98,7 +105,16 @@ Every route is under `/api/v1`. The feature docs list them with who may call eac
 - `GET /livez` answers 200 while the process serves HTTP. It never touches the database, so Fly's routing check cannot fail on a busy pool.
 - `GET /health` answers 200 when the database answers `SELECT 1`, and 503 otherwise. It is for monitoring.
 
-A known error answers `{ message, code }`, and the codes are `ERROR_CODES` in `@hovimestari/types`. A busy database answers 503 with `Retry-After: 2`, and an unexpected error answers 500. Both carry a `message` and no code.
+A known error answers `{ message, code }`, and the codes are `ERROR_CODES` in `@hovimestari/types`. A known error that says when to try again, such as a barcode lookup over its budget, also sends `Retry-After`. A busy database answers 503 with `Retry-After: 2`, and an unexpected error answers 500. Both carry a `message` and no code.
+
+### The barcode lookup
+
+`POST /foods/lookup` calls Open Food Facts from the server. Two env values steer it, both optional and neither a secret:
+
+- `OFF_BASE_URL`: where the calls go. `https://world.openfoodfacts.org` by default.
+- `OFF_USER_AGENT`: the User-Agent of every call. `Hovimestari/<version of this package>` by default. Open Food Facts asks for a contact in it, which a deployment may add, such as `Hovimestari/1.0 (an address you choose)`. Nothing builds it from user data.
+
+The two call budgets and the answers held in memory live in the process, so the backend runs on one machine. How the lookup works is in [the foods feature doc](../../docs/features/foods.md#looking-up-a-barcode).
 
 ### The relay secret
 
@@ -150,6 +166,8 @@ Migration `0004_days_and_logging.sql` adds `saved_meals`, `entries`, `removed_en
 
 Migration `0005_first_run_done.sql` adds the nullable `users.first_run_done_at`, with no backfill. An existing account with a targets change has no first run due by the rule, and one without still has it due.
 
+Migration `0006_off_lookups.sql` adds `food_lookups`, the CHECK `foods_off_has_barcode` and the unique index `foods_off_barcode_uq` on an Open Food Facts food's barcode padded to 14 digits. No stored row is an Open Food Facts food before it, so both apply to an empty set.
+
 A migration that adds, renames, drops or retypes a column of `entries`, or tightens one of its CHECKs, also rewrites or clears `removed_entries.row`. A restore puts that row back by column name, so a row removed before such a migration lacks the new column or keeps the old name. A restore that the table then refuses answers `entry_not_found`, and the entry cannot come back.
 
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
@@ -167,6 +185,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - `src/services/__tests__/foodWrites.db.test.ts` changes a row's owner between a write's check and the write itself, and proves the write still touches only the caller's rows.
 - `src/routes/__tests__/sessionRenewal.db.test.ts` renews sessions on the real database: lost answers, races of renewals, reuse and every way a session ends. `src/routes/__tests__/sessionLocks.db.test.ts` holds a user's row lock on its own connection and reads `pg_locks` to see requests queue behind it, so no test waits on a sleep. Both use `sessionApi(suite)` in `src/__tests__/support/sessionApi.ts`. `src/db/__tests__/refreshTokenFamilies.db.test.ts` runs the token family migration over sessions stored before it. `src/db/__tests__/firstRunDone.db.test.ts` runs the first-run migration over accounts made before it. `src/routes/__tests__/firstRun.db.test.ts` passes the first run and reads `firstRunDue` after every way there.
 - `src/services/__tests__/entryRaces.db.test.ts` runs the races the entry locks close on two connections: deleting or editing a food while an add is in flight, the user lock taken before the food, a repeated add or copy that meets the first one uncommitted, and the status batch and the planned rewrite locking rows in id order. `src/services/__tests__/deletionRaces.db.test.ts` races writes against an account deletion. `src/services/__tests__/firstRunDueRace.db.test.ts` commits a removal of the last change between the reads of one targets overview, in both orders, and checks the overview never answers the first run due. `src/services/__tests__/savedMealRaces.db.test.ts` repeats a saved meal create and a save-and-log while the first is in flight, held open or released together with others from the user's row lock. Each holds one side open with `sqlHolder` or `serviceHolder` in `src/__tests__/support/holder.ts`: raw SQL on a connection of its own, or a real service call in a transaction held until it commits. The `days`, `entries`, `entryReplays`, `figuresStay` and `savedMeals` suites in `src/routes/__tests__/` drive the routes through `daysApi(suite)` in `src/__tests__/support/daysApi.ts`, which also builds a service context at a fixed instant for the cases that need a clock.
+- The barcode lookup never reaches Open Food Facts in a test. `src/lib/openFoodFacts/__tests__/` tests each helper, the client against a local `node:http` server, on answers recorded once by hand in `fixtures/` and credited in the README there. `src/services/__tests__/barcodeLookup.db.test.ts` runs the service and `src/routes/__tests__/barcodeVisibility.db.test.ts` the route and who sees a stored product. Both pass `offStub()` from `src/__tests__/support/offStub.ts` as `fetch`, which counts every call, and a fake clock. The route suite swaps the route's budgets with `setSharedLookupDepsForTests`.
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. `nameCase.test.ts` pins how a name written in capitals is stored, and `fineliImportCase.db.test.ts` imports a release in capitals over stored names. `support/capitalRelease.ts` makes that release as a temp copy of a fixture. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
