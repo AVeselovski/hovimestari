@@ -1,8 +1,10 @@
+import { FOOD_SOURCES } from "@hovimestari/types";
 import { describe, expect, it } from "@jest/globals";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { APP_RULES, APP_RULES_SOURCES, appRulesFor, WRITE_RULES } from "../appRules.js";
+import { READ_TOOLS } from "../tools/index.js";
 
 // Lifted from finanssiappisV2, with Hovimestari's phrases. The app rules are
 // hand-written from docs/features/*.md (design d.6): a base text every key
@@ -20,6 +22,11 @@ const ADD_STAMP =
 const catalogLinks = [...readFileSync(`${DOCS}features.md`, "utf8").matchAll(/\]\(features\/([a-z0-9-]+\.md)\)/g)]
   .map((m) => m[1])
   .sort();
+
+/** Every snake_case word in `text`: a tool name, or a value such as a food's source. */
+const snakeCaseWords = (text: string): string[] => [...new Set(text.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? [])].sort();
+/** The snake_case words the rules may use that name no tool: the values of a food's source. */
+const FIELD_VALUES: readonly string[] = FOOD_SOURCES.filter((source) => source.includes("_"));
 
 const DISCLAIMER = "Nothing the app returns is nutrition or medical advice.";
 const ADVICE_WORDS = /you should|recommend|advice|healthy|too much|too little|on track/;
@@ -76,8 +83,8 @@ describe("APP_RULES", () => {
   });
 
   it("never tells every connection that it changes nothing", () => {
-    const said = APP_RULES.match(/changes nothing/g) ?? [];
-    const saidOfReadOnly = APP_RULES.match(/A read-only connection changes nothing/g) ?? [];
+    const said = APP_RULES.match(/changes (nothing|none of)/g) ?? [];
+    const saidOfReadOnly = APP_RULES.match(/A read-only connection changes none of the person's data/g) ?? [];
     expect(said.length).toBe(saidOfReadOnly.length);
     expect(saidOfReadOnly).toHaveLength(1);
   });
@@ -88,6 +95,18 @@ describe("APP_RULES", () => {
       expect(APP_RULES).not.toContain(tool);
     }
   });
+
+  it("names only tools a read key lists", () => {
+    const named = snakeCaseWords(appRulesFor(false));
+    const listed = READ_TOOLS.map((tool) => tool.name);
+    expect(named.filter((word) => !listed.includes(word) && !FIELD_VALUES.includes(word))).toEqual([]);
+    // The words are really read: the tools the rules lean on are among them, and no value is a tool's name.
+    expect(named).toEqual(expect.arrayContaining(["get_context", "get_day", "get_days", "search_foods"]));
+    expect(FIELD_VALUES.filter((value) => listed.includes(value))).toEqual([]);
+  });
+
+  // From slice 4a: the same case for appRulesFor(true), every snake_case word of
+  // WRITE_RULES checked against the write registry beside READ_TOOLS.
 
   it("names no deletion tool while no tool can delete", () => {
     expect(`${APP_RULES}${WRITE_RULES}`).not.toContain("request_deletion");

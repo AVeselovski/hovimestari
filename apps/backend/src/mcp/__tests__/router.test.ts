@@ -33,6 +33,7 @@ const { env } = await import("../../lib/env.js");
 const { APP_RULES, WRITE_RULES } = await import("../appRules.js");
 const { signAccessToken } = await import("../../lib/jwt.js");
 const { AUTH_FAILURE_LIMIT } = await import("../router.js");
+const { READ_TOOLS } = await import("../tools/index.js");
 
 const initialize = {
   jsonrpc: "2.0",
@@ -271,10 +272,11 @@ describe("/mcp through the MCP client", () => {
     env.MCP_WRITES_ENABLED = false;
   });
 
-  it.each(["legacy", "modern"] as const)("lists exactly get_context (%s era)", async (era) => {
+  it.each(["legacy", "modern"] as const)("lists exactly the read tools (%s era)", async (era) => {
     const client = await connect(server.url, READ_KEY, era);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(["get_context"]);
+    expect(tools.map((t) => t.name)).toEqual(READ_TOOLS.map((t) => t.name));
+    expect(tools).toHaveLength(12);
     await client.close();
   });
 
@@ -282,7 +284,7 @@ describe("/mcp through the MCP client", () => {
     env.MCP_WRITES_ENABLED = true;
     const client = await connect(server.url, WRITE_KEY);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(["get_context"]);
+    expect(tools.map((t) => t.name)).toEqual(READ_TOOLS.map((t) => t.name));
     await client.close();
   });
 
@@ -290,9 +292,41 @@ describe("/mcp through the MCP client", () => {
     const client = await connect(server.url, READ_KEY);
     const { tools } = await client.listTools();
     for (const tool of tools) {
-      expect(tool.annotations).toMatchObject({ readOnlyHint: true, idempotentHint: true, openWorldHint: false });
+      // Only the barcode lookup reaches outside the app, to Open Food Facts.
+      const openWorldHint = tool.name === "look_up_barcode";
+      expect(tool.annotations).toEqual({ readOnlyHint: true, idempotentHint: true, openWorldHint });
       expect(Object.keys(tool.inputSchema.properties ?? {}).join(" ")).not.toMatch(/user/i);
     }
+    await client.close();
+  });
+
+  it.each(["legacy", "modern"] as const)(
+    "logs a refused input in the tool log, as refused and without its arguments (%s era)",
+    async (era) => {
+      const client = await connect(server.url, READ_KEY, era);
+      const log = jest.mocked(console.log);
+      log.mockClear();
+      const result = await client.callTool({
+        name: "get_days",
+        arguments: { from: "2026-11-16", weekOf: "private-argument" },
+      });
+      expect(result.isError).toBe(true);
+      const lines = log.mock.calls.map((call) => String(call[0])).filter((line) => line.startsWith("mcp tool="));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toMatch(new RegExp(`^mcp tool=get_days conn=${CONNECTION_ID} ms=\\d+ refused$`));
+      expect(JSON.stringify(log.mock.calls)).not.toContain("private-argument");
+      await client.close();
+    },
+  );
+
+  it("says plainly that the barcode lookup keeps a product the person then finds in search", async () => {
+    // Some clients run a read-only tool without asking, so its one lasting effect is said in its description.
+    const client = await connect(server.url, READ_KEY);
+    const { tools } = await client.listTools();
+    const lookup = tools.find((t) => t.name === "look_up_barcode");
+    expect(lookup?.description).toContain(
+      "A product found on Open Food Facts is kept, and from then on the person finds it in their food search: newlyVisible is true when this lookup did that.",
+    );
     await client.close();
   });
 

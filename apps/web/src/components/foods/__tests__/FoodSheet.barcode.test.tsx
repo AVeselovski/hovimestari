@@ -283,7 +283,7 @@ const states: Array<[string, () => void, string, string[]]> = [
   [
     "too many lookups for the server",
     () => failWith(CODE, refusal(429, "barcode_lookup_busy")),
-    "Too many lookups at once. Try again in a minute.",
+    "Too many lookups at once. Try again in a few seconds.",
     ["Try again", "Add it from the label"],
   ],
   [

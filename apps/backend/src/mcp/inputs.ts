@@ -12,5 +12,7 @@ export const DayDate = DayParamSchema.describe(
   "A date, YYYY-MM-DD, or today for the person's today in their time zone.",
 );
 
-/** A run of days as `GET /days?from=&to=` takes it: from and to, at most 42 days. */
-export const DayRange = DayRangeQuerySchema.describe("From and to, YYYY-MM-DD, at most 42 days, from on or before to.");
+/** A run of days as `GET /days?from=&to=` takes it: from and to, at most 42 days with both ends counted. */
+export const DayRange = DayRangeQuerySchema.describe(
+  "From and to, YYYY-MM-DD, from on or before to, at most 42 days with both ends counted.",
+);

@@ -1,4 +1,6 @@
-import { DEFAULT_TIME_ZONE, canonicalTimeZone } from "@hovimestari/types";
+import { DEFAULT_TIME_ZONE, addDays, canonicalTimeZone } from "@hovimestari/types";
+
+export { addDays } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
 // Calendar dates as the API sends them, `YYYY-MM-DD` strings with no time and
@@ -23,14 +25,6 @@ function utcMidnight(date: string): Date | null {
 /** Whether `date` is a `YYYY-MM-DD` that exists. */
 export function isIsoDate(date: string): boolean {
   return utcMidnight(date) !== null;
-}
-
-/** `date` moved by `days`, which may be negative. */
-export function addDays(date: string, days: number): string {
-  const at = utcMidnight(date);
-  if (!at) throw new RangeError(`Not a date: ${date}`);
-  at.setUTCDate(at.getUTCDate() + days);
-  return at.toISOString().slice(0, 10);
 }
 
 /** The day before `date`. */

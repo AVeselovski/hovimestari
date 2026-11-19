@@ -1,25 +1,14 @@
-import { addDays } from "./localDate";
+import { addDays, WEEK_LENGTH } from "@hovimestari/types";
+
+export { WEEK_LENGTH, WEEK_START, weekOf } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
 // The week the week sheet shows: Monday to Sunday, holding a date. Finland's
 // week, and the week a plan is made for. It stays put while the day inside
-// it changes. Dates are `YYYY-MM-DD`, with arithmetic in UTC as everywhere in
-// lib/localDate.ts, so no daylight-saving switch can move a week.
+// it changes. `weekOf`, `WEEK_START` and `WEEK_LENGTH` live in the shared
+// package, where the assistant's get_days reads the same week, and are
+// re-exported here so the web keeps one import path.
 // ---------------------------------------------------------------------------
-
-/** The first day of a week, as `Date.prototype.getUTCDay` numbers it: Monday. */
-export const WEEK_START = 1;
-
-/** How many days a week holds. */
-export const WEEK_LENGTH = 7;
-
-/** The week holding `date`: its first and its last day, both included. */
-export function weekOf(date: string): { from: string; to: string } {
-  const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
-  if (Number.isNaN(weekday)) throw new RangeError(`Not a date: ${date}`);
-  const from = addDays(date, -((weekday - WEEK_START + WEEK_LENGTH) % WEEK_LENGTH));
-  return { from, to: addDays(from, WEEK_LENGTH - 1) };
-}
 
 /** The first day of the week `n` weeks from the week starting `from`. `n` may be negative. */
 export function stepWeek(from: string, n: number): string {

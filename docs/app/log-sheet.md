@@ -44,7 +44,7 @@ Text of 8 to 14 digits, its spaces left out, is a barcode, not a name. The sheet
 - "No food has the barcode 6408430000258." with **Add it from the label**.
 - "This barcode is the shop's own. It changes with the weight or the price, so it cannot find a product." with **Add it from the label**, which leaves the barcode out.
 - "Open Food Facts has Eila without all four values." or "Open Food Facts has figures for Eila that cannot all be right.", saying "this product" when it has no name, with **Complete it from the label**.
-- "Open Food Facts did not answer." or "Too many lookups at once. Try again in a minute." with **Try again** and **Add it from the label**.
+- "Open Food Facts did not answer." or "Too many lookups at once. Try again in a few seconds." with **Try again** and **Add it from the label**.
 - "You have looked up many barcodes this hour. Try again later." with **Add it from the label**.
 - "The lookup did not work." with **Try again**, when no answer came or the server failed.
 - "Looking up a barcode needs a connection." while the app knows it is offline, with no button, in place of **Look up** or a failure. **Look up** is back as soon as the connection is.

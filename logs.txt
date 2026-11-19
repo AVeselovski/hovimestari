@@ -508,3 +508,15 @@
 [backend-engineer DONE] (2026-11-19T12:08:27Z) slice 2a: the lib allow-list, createRequire refused, a string-aware comment stripper, the dead-key cap's window pinned; backend 1017 tests (tip 3b78d23)
 [documentation-specialist STARTED] (2026-11-19T12:08:27Z) the docs of the /mcp endpoint against the standard
 [documentation-specialist DONE] (2026-11-19T12:11:54Z) /mcp endpoint docs: the logs line, where a key can appear, the import boundary as the test has it, known gaps for the rules that run ahead of their tools; two docs re-stamped (3637410)
+[backend-engineer STARTED] (2026-11-19T12:23:02Z) connected AI slice 2b: the read tools for days, foods and saved meals, and the week helpers in the shared package
+[backend-engineer DONE] (2026-11-19T12:41:47Z) connected AI slice 2b built at e266ae2: 11 read tools over the services the routes call, each equal to its route field for field; weekOf and addDays in the shared package; backend 1050 tests
+[validator STARTED] (2026-11-19T12:41:47Z) slice 2b against the requirements and the design at e266ae2
+[reviewer STARTED] (2026-11-19T12:41:47Z) slice 2b at e266ae2
+[validator DONE] (2026-11-19T12:52:25Z) slice 2b: pass; 20 tool answers equal their routes field for field on a live database; two minors (a bad-input refusal leaves no tool log line, one doc line) and four nits (171k tokens for the reviewer, see next)
+[reviewer DONE] (2026-11-19T12:52:25Z) slice 2b: approve after fixes; scoping sound, names travel as data; four minors (get_days counts its 42 days one off, the barcode tool should say it keeps a product, two missing tool-level tests, one doc line)
+[backend-engineer STARTED] (2026-11-19T12:52:25Z) one fix batch for slice 2b from the validator and the reviewer
+[backend-engineer DONE] (2026-11-19T16:03:15Z) slice 2b fix batch: get_days counts its 42 days truly, the barcode tool says it keeps a product, tool-level tests for what a person cannot see, a bad input leaves its refused line in the tool log; backend 1057 tests (tip 33e0fe5)
+[reviewer STARTED] (2026-11-19T16:03:15Z) delta review of the slice 2b fix batch at 33e0fe5
+[documentation-specialist STARTED] (2026-11-19T16:03:15Z) the docs of the read tools against the standard
+[reviewer DONE] (2026-11-19T16:08:19Z) delta review of slice 2b: approve; every earlier finding fixed, both suites green, two nits
+[documentation-specialist DONE] (2026-11-19T16:08:19Z) read tools docs: how a refused input reads, the lookup budget, the one-machine sentence, the web README's week line; connected-ai.md re-stamped (88846a7)

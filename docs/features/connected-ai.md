@@ -2,7 +2,7 @@
 
 Connected AI is how a person gives their own AI assistant access to their Hovimestari data: a named connection key they make, hand to the assistant and revoke whenever they like. The app runs no model of its own and keeps no key to any AI service.
 
-A signed-in person makes, lists and revokes keys through the API. An assistant connects with a key over the Model Context Protocol. It reads the person's targets and the app rules, the text that tells it how to read every figure.
+A signed-in person makes, lists and revokes keys through the API. An assistant connects with a key over the Model Context Protocol. It reads what the person's screens show: their targets, their days with both readings, their foods, favourites and recent items, and their saved meals. It can look up a barcode, and it reads the app rules, the text that tells it how to read every figure.
 
 ## In detail
 
@@ -28,9 +28,23 @@ Only a [session](authentication.md#staying-signed-in) that is still signed in ca
 
 ### What an assistant reads
 
-An assistant connects to the app's endpoint with its key. It starts with one call, `get_context`, which answers what the key may do and when it expires, the person's today and time zone, the targets in force today with every change of targets, and the app rules. They come from the same read the app's own screens use. A person with no targets gets none, and no figure is filled in for them.
+An assistant connects to the app's endpoint with its key. It starts with one call, `get_context`, which answers what the key may do and when it expires, the person's today and time zone, the targets in force today with every change of targets, and the app rules.
 
-The assistant reads only the data of the person who made the key. Nothing it sends can name another person.
+Then it can read the rest, each from the same read the app's own screens use:
+
+- `get_targets`: the targets in force on any date, with every change of targets.
+- `get_day`: one day as the Day tab shows it, with its entries, its two readings and where each stands against the targets.
+- `get_days`: up to 42 days side by side without their entries, or the Monday to Sunday week that holds a date, as the week sheet shows it.
+- `search_foods` and `get_food`: the search the log sheet runs, and one food with its portions and the amount last eaten.
+- `list_favourite_foods`, `list_own_foods` and `list_recent_items`: the favourites, the person's own foods, and what they logged lately with the amount of the last time.
+- `list_saved_meals` and `get_saved_meal`: the saved meals, active or archived, and one of them.
+- `look_up_barcode`: the [barcode lookup](foods.md#looking-up-a-barcode) the log sheet runs. It may call Open Food Facts, and it spends the person's own budget of lookups, shared with their own lookups in the app. A product it finds there is kept, and from then on it turns up in the person's food search. The answer says when this lookup did that. It changes none of the person's data.
+
+Every day an assistant reads carries both readings, what was eaten and what the day comes to with the plan. A day before the first change of targets, or of a person with none, answers no targets and no positions, and its figures stand alone. No figure is filled in from a nearby change. A date may be `today`, which is the person's today in their time zone.
+
+The assistant reads only the data of the person who made the key. Nothing it sends can name another person. Names of foods and meals come back as data, exactly as typed.
+
+A call with an input the tool does not take is refused, and the refusal names the field and what is wrong with it, such as a date that does not exist or a range longer than 42 days. A refusal from the app itself, such as a food that is not there, gives the app's own message and its code.
 
 ### The app rules
 
@@ -46,9 +60,13 @@ A revoked key or an expired key is refused on its very next request. The answer 
 
 All the keys of one person share a limit of 120 requests a minute. Past it, the app answers that there were too many requests and to try again in a minute.
 
+A barcode lookup that reaches Open Food Facts spends from the person's 30 lookups an hour, the same budget their own lookups in the app spend. Past it, the refusal says how many seconds to wait.
+
 Requests with a key the app refuses are limited per computer, so nobody can guess keys at speed. A computer that keeps sending an old revoked key does not lock out a new key used from the same computer.
 
 The endpoint takes no request from a web page. Any request that names a web page as its origin is refused.
+
+The limits are kept in the memory of the one backend machine, so a restart starts them afresh.
 
 ### Switched off on the server
 
@@ -102,7 +120,7 @@ The four `@modelcontextprotocol` packages are pinned to exact versions in `apps/
 8. The record of last use, through `touchLastUsed`, only when the lookup says one is due. A failure is logged and the request goes on.
 9. The protocol handler.
 
-Steps 2, 3 and 5 run before the user is known, so they count per address, and steps 3 and 5 per address and the first 13 characters of the key presented. That prefix is 24 random bits, no secret, and lives only in the limiters' memory. Only a refused key counts toward steps 2 and 5. A known revoked or expired key counts toward step 3 instead, so a stale client is not taken for a guesser. All four limits live in process memory, which suits the one backend machine. The address is `Fly-Client-IP` in production, else the socket's.
+Steps 2, 3 and 5 run before the user is known, so they count per address, and steps 3 and 5 per address and the first 13 characters of the key presented. That prefix is 24 random bits, no secret, and lives only in the limiters' memory. Only a refused key counts toward steps 2 and 5. A known revoked or expired key counts toward step 3 instead, so a stale client is not taken for a guesser. All four limits live in process memory, as do the barcode lookup's budgets. The backend runs on one machine. A second machine would keep its own count, and give every budget twice. The address is `Fly-Client-IP` in production, else the socket's.
 
 ### From key to service context
 
@@ -112,17 +130,30 @@ Steps 2, 3 and 5 run before the user is known, so they count per address, and st
 
 ### Tools
 
-`mcp/result.ts` defines a tool with `defineTool` and runs it with `runTool`. Every answer is one text block of compact JSON: `{ today, timeZone, units, data }`, where `data` is the service's answer with its fields named as the REST answer names them. A tool selects fields and computes nothing. A refusal from a service comes back as an error result, its message followed by its code. Anything unexpected is logged and answered with a general error.
+`mcp/result.ts` defines a tool with `defineTool` and runs it with `runTool`. Every answer is one text block of compact JSON: `{ today, timeZone, units, data }`, where `data` is the service's answer with its fields named as the REST answer names them. A tool selects fields and computes nothing. A refusal from a service comes back as an error result, its message followed by its code, and for a limit the seconds to wait, such as `(barcode_lookup_limit, retryAfterSeconds: 120)`. A tool never answers with an HTTP 429. An input a tool's schema refuses comes back as an error result too, which reads `Input validation error: Invalid arguments for tool <name>: <field>: <issue>`, such as `from: invalid_date`. Anything unexpected is logged and answered with a general error. A name a person typed is a string in that JSON and nothing else.
 
-The tools a key lists are in `mcp/tools/index.ts`. Every tool is marked read-only and takes no user id.
+The tools a key lists are `READ_TOOLS` in `mcp/tools/index.ts`, defined in `tools/context.ts`, `tools/days.ts`, `tools/foods.ts` and `tools/meals.ts`. Every tool is marked read-only and idempotent and takes no user id. For `look_up_barcode`, read-only means it changes none of the person's data: it can keep a product and make it findable in their search. Every tool but `look_up_barcode` is also marked as reaching nothing outside the app. Each input is a strict object, built from the query schema its route parses, so a field a tool does not take is refused.
 
-| Tool          | Input | Answers                                                                                                                                                           |
-| ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_context` | none  | `access` (`canWrite`, `expiresAt`), `today`, `timeZone`, `targets` (`inForce` and `changes`, as `GET /targets` answers them on today) and `rules` (the app rules) |
+| Tool                   | Service and route                                             | Input                                                                  | Answers                                                                                               |
+| ---------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `get_context`          | `targetsOverview`, `GET /targets`                             | none                                                                   | `access` (`canWrite`, `expiresAt`), `today`, `timeZone`, `targets` (`inForce`, `changes`) and `rules` |
+| `get_targets`          | `targetsOverview`, `GET /targets`                             | `date`, a date or `today`, today when left out                         | `{ date, today, inForce, changes }`                                                                   |
+| `get_day`              | `getDay`, `GET /days/:date`                                   | `date`, a date or `today`                                              | the day, field for field                                                                              |
+| `get_days`             | `listDaySummaries`, `GET /days`                               | `from` and `to`, at most 42 days, or `weekOf` alone, a date or `today` | `{ days }`                                                                                            |
+| `search_foods`         | `searchFoods`, `GET /foods/search`                            | `q`, 1 to 100 characters, and `limit`, 1 to 50, 30 by default          | `{ foods }`                                                                                           |
+| `get_food`             | `getFood`, `GET /foods/:id`                                   | `foodId`                                                               | the food, its portions and `lastAmount`. A food the person cannot see answers `food_not_found`        |
+| `list_favourite_foods` | `listFavouriteFoods`, `GET /foods/favourites`                 | `limit`, 1 to 200, 100 by default                                      | `{ foods }`, each with `lastAmount`                                                                   |
+| `list_own_foods`       | `listOwnFoods`, `GET /foods/own`                              | `limit`, 1 to 200, 100 by default                                      | `{ foods }`                                                                                           |
+| `list_recent_items`    | `listRecents`, `GET /log/recents`                             | `limit`, 1 to 30, 12 by default                                        | `{ items }`                                                                                           |
+| `list_saved_meals`     | `listSavedMeals`, `GET /saved-meals`                          | `archived`, `true` or `false`, `false` by default                      | `{ meals }`                                                                                           |
+| `get_saved_meal`       | `getSavedMeal`, `GET /saved-meals/:id`                        | `savedMealId`                                                          | the meal, archived or not. Another person's answers `saved_meal_not_found`                            |
+| `look_up_barcode`      | `lookupBarcode` with the shared budgets, `POST /foods/lookup` | `barcode`, 8 to 14 digits, spaces dropped                              | `found` with `food` and `newlyVisible`, `incomplete`, `not_found` or `in_store`, as the route answers |
+
+`get_targets` and `get_context` leave out the route's `firstRunDue`, which only routes a screen. `get_days` reads a `weekOf` date's week through `weekOf` in `packages/types/src/dates.ts`, the function the web's week sheet uses, so an assistant never works out Monday itself. `list_saved_meals` takes `archived` as a boolean, where the route's query takes the text `true` or `false`.
 
 The app rules are also the resource `hovimestari://app-rules`, as `text/markdown`.
 
-`apps/backend/src/mcp/__tests__/importBoundary.test.ts` pins what the tools can reach. No file under `src/mcp/` imports a route, middleware, the database module, `drizzle-orm` or a database driver, so every query stays in the services. No file there reaches the database client a context carries, builds SQL or loads a module by a computed path or through `createRequire`. Of the backend's `lib/` modules, a file there imports only the ones on an allow-list in the test, and none of them makes a session. Only files under `tools/writes/`, and `tools/foods.ts` for the barcode lookup, may import a write service, and none of them exists. No file there names `deleteOwnFood`, `deleteSavedMeal`, `removePortion`, `removeEntry` or `approveDeletion`.
+`apps/backend/src/mcp/__tests__/importBoundary.test.ts` pins what the tools can reach. No file under `src/mcp/` imports a route, middleware, the database module, `drizzle-orm` or a database driver, so every query stays in the services. No file there reaches the database client a context carries, builds SQL or loads a module by a computed path or through `createRequire`. Of the backend's `lib/` modules, a file there imports only the ones on an allow-list in the test, and none of them makes a session. Only files under `tools/writes/`, and `tools/foods.ts` for the barcode lookup, may import a write service. No file under `tools/writes/` exists. No file there names `deleteOwnFood`, `deleteSavedMeal`, `removePortion`, `removeEntry` or `approveDeletion`.
 
 ### The app rules text
 
@@ -130,7 +161,7 @@ The app rules are also the resource `hovimestari://app-rules`, as `text/markdown
 
 ### Logs
 
-The request log has one line per request, such as `[req] POST /mcp 200 14ms`. Each tool call adds `mcp tool=<name> conn=<connection id> ms=<n> <outcome>`, where the outcome is `ok`, `refused` or `error`. No line holds a key, an argument, a name or a figure. An unexpected error logs its stack and database error code. A failed key lookup logs them under `[mcp] key lookup failed`.
+The request log has one line per request, such as `[req] POST /mcp 200 14ms`. Each tool call adds `mcp tool=<name> conn=<connection id> ms=<n> <outcome>`, where the outcome is `ok`, `refused` or `error`. A call whose input the schema refuses logs its line as `refused` too. No line holds a key, an argument, a name or a figure. An unexpected error logs its stack and database error code. A failed key lookup logs them under `[mcp] key lookup failed`.
 
 ### The two switches
 
@@ -168,11 +199,10 @@ The body of a create is `{ name, access, expiresInDays }`. `access` is `read` or
 
 ### Known gaps
 
-- An assistant reads the targets and the app rules only. It cannot read days, foods or saved meals, and it cannot make changes.
-- The app rules name the read tools for days and foods, which a key does not list yet. With changes switched on, a key that can make changes gets the rules for making changes and lists no tool that makes one.
+- An assistant cannot make changes. With changes switched on, a key that can make changes gets the rules for making changes and lists no tool that makes one.
 - No screen lists or makes keys yet. The API is in place for the Settings section. The refusal of an expired key, the dead-key limit and the app rules already point the person to Settings.
 
-Requirements: FR-AI-01 to FR-AI-05, FR-AI-13, FR-AI-15, FR-AI-16, NFR-SEC-02, NFR-SEC-04 (requirements 3.10 and 4)
+Requirements: FR-AI-01 to FR-AI-06, FR-AI-13, FR-AI-15, FR-AI-16, NFR-SEC-02, NFR-SEC-04 (requirements 3.10 and 4)
 
 ## Where it appears
 
