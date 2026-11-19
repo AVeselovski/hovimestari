@@ -234,11 +234,20 @@ describe("The log sheet's food view", () => {
         .getAllByRole("listitem")
         .map((li) => li.querySelector("button")!.textContent);
     const before = recentRows();
+    jest.mocked(setFavourite).mockImplementation(async (id, on) => {
+      world.server.recents = world.server.recents.map((item) =>
+        item.kind === "food" && item.food.id === id ? { ...item, food: { ...item.food, isFavourite: on } } : item,
+      );
+    });
     await openRow("Recent", "Quark");
     fireEvent.click(within(dialog()).getByRole("button", { name: "Favourite" }));
     await waitFor(() => expect(setFavourite).toHaveBeenCalledWith(world.quark.id, true));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Back" }));
     await within(dialog()).findByRole("region", { name: "Recent" });
+    // The list reads the server again when it comes back on screen, and that read can land before or after the
+    // rows are read here. So the server answers the mark it was sent, as the real one does: with a server that
+    // forgot it, this passed or failed by which came first.
+    await waitFor(() => expect(recentRows()[0]).toContain("Favourite"));
     const after = recentRows();
     expect(after.map((t) => t?.replace("Favourite", ""))).toEqual(before);
     expect(after[0]).toContain("Favourite");
