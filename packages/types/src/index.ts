@@ -1,5 +1,6 @@
 export * from "./auth.js";
 export * from "./barcode.js";
+export * from "./connections.js";
 export * from "./dates.js";
 export * from "./days.js";
 export * from "./entries.js";

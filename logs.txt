@@ -482,3 +482,16 @@
 [ui-validator DONE] (2026-11-19T10:55:13Z) delta check of barcode slice 2: pass; one minor filed in TODO.md (a busy button reads as disabled, app-wide), one phone-only note added to the keyboard-tap item
 [documentation-specialist STARTED] (2026-11-19T10:57:50Z) the docs of the typed barcode lookup on the web against the standard
 [documentation-specialist DONE] (2026-11-19T10:59:35Z) barcode lookup web docs: the web README's source tree, the food detail's two links in the log sheet page, the Foods catalog line (b774b10)
+[backend-engineer STARTED] (2026-11-19T06:56:56Z) connected AI slice 1: connection keys, from docs/design/connected-ai.md
+[backend-engineer DONE] (2026-11-19T07:13:50Z) connected AI slice 1: connection keys, their routes and services, the two switches, keys revoked on a password change or reset, migration 0007; 842 backend tests pass three times
+[validator STARTED] (2026-11-19T07:13:50Z) connected AI slice 1 against the requirements and docs/design/connected-ai.md
+[reviewer STARTED] (2026-11-19T07:13:50Z) code and security review of connected AI slice 1
+[reviewer DONE] (2026-11-19T07:19:53Z) connected AI slice 1: approve after fixes; one security major (an access token from before a password change can still make a key, which then lives on), minors on a missing test for revocation failing inside the transaction, lifetimes counted in the database's time zone, and control characters in a key's name
+[validator DONE] (2026-11-19T07:26:27Z) connected AI slice 1 passes: every status and body matched the design by hand, each mutation fails a test, the migration applies over data; three minors (198k tokens)
+[backend-engineer STARTED] (2026-11-19T07:26:27Z) one fix batch for connected AI slice 1 from the reviewer and the validator
+[backend-engineer DONE] (2026-11-19T10:57:13Z) connection keys fix batch: all 8 items; only a live session makes a key (the access token carries its session family), a failed revocation leaves the password unchanged, lifetimes in exact days, names refuse control and format characters, last use without an extra round trip (237k tokens after resume)
+[reviewer STARTED] (2026-11-19T10:57:13Z) delta review of the connection keys fix batch at 8923a5f
+[reviewer DONE] (2026-11-19T11:07:28Z) delta review of the connection keys fix batch: approve after four small fixes; the live-session rule held against every attempt to break it (218k tokens)
+[backend-engineer DONE] (2026-11-19T11:07:28Z) the four delta-review fixes: a test that the session check runs under the user lock, the name rule lets joiners and flag characters in and requires one visible character, fam required when signing, the feature doc states the rule as built (tip 4c5e4a2)
+[documentation-specialist STARTED] (2026-11-19T11:07:28Z) the docs of connection keys against the standard
+[documentation-specialist DONE] (2026-11-19T11:09:30Z) connection keys docs: the feature doc no longer says an assistant can connect today, the catalog line follows it, the backend README names the session suite (3eac23f)

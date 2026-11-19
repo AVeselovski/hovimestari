@@ -11,6 +11,7 @@ import { endAllSessions, meOf } from "../lib/sessions.js";
 import { findUser } from "../lib/users.js";
 import { authenticate } from "../middleware/authenticate.js";
 import { changePasswordRateLimit, deleteAccountRateLimit } from "../middleware/authRateLimits.js";
+import { revokeAllConnections } from "../services/writes/connections.js";
 import { finishFirstRun, updateSettings } from "../services/writes/settings.js";
 
 export const usersRouter: IRouter = Router();
@@ -35,7 +36,7 @@ usersRouter.put("/me/first-run", authenticate, async (req, res) => {
   res.status(204).send();
 });
 
-// PUT /me/password. Ends every session: the web app signs this device back in with the new password.
+// PUT /me/password. Ends every session and revokes every connection key: the web app signs this device back in with the new password.
 usersRouter.put("/me/password", authenticate, changePasswordRateLimit, async (req, res) => {
   const { currentPassword, newPassword } = parseBody(ChangePasswordBodySchema, req.body);
   const userId = req.user!.id;
@@ -48,8 +49,9 @@ usersRouter.put("/me/password", authenticate, changePasswordRateLimit, async (re
   const passwordHash = await hashPassword(newPassword);
   await db.transaction(async (tx) => {
     await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
-    // A stolen refresh token cannot outlive the password it was issued under.
+    // A stolen refresh token or connection key cannot outlive the password it was issued under.
     await endAllSessions(tx, userId);
+    await revokeAllConnections(tx, userId);
   });
 
   res.status(204).send();

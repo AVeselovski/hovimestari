@@ -46,7 +46,7 @@ const run = await realDatabaseAvailable("firstRunDone");
       const dueFor = async (id: string) => {
         const res = await request(app)
           .get("/api/v1/targets")
-          .set({ Authorization: `Bearer ${signAccessToken({ sub: id })}` });
+          .set({ Authorization: `Bearer ${signAccessToken({ sub: id, fam: randomUUID() })}` });
         expect(res.status).toBe(200);
         return res.body.firstRunDue as unknown;
       };

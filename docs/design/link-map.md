@@ -148,6 +148,18 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | saving and logging a meal, editing a meal       | `features/saved-meals.md#saving-and-logging-a-meal`          | `### Saving and logging a meal`        |
 | saved meal writes from the web, the meal cache  | `features/saved-meals.md#writes-from-the-web-app`            | `### Writes from the web app`          |
 
+## Connected AI
+
+| Concept                                           | Home                                            | Heading                    |
+| ------------------------------------------------- | ----------------------------------------------- | -------------------------- |
+| connected AI, connected assistant                 | `features/connected-ai.md`                      | Doc                        |
+| connection, connection key, key limit             | `features/connected-ai.md#connections-and-keys` | `### Connections and keys` |
+| access, read only, read and write, key lifetime   | `features/connected-ai.md#access-and-lifetime`  | `### Access and lifetime`  |
+| revoking a key, revoked on a password change      | `features/connected-ai.md#revoking-a-key`       | `### Revoking a key`       |
+| `MCP_ENABLED`, `MCP_WRITES_ENABLED`, the switches | `features/connected-ai.md#the-two-switches`     | `### The two switches`     |
+| key format, key hash, key lookup and its states   | `features/connected-ai.md#keys`                 | `### Keys`                 |
+| the ten-key limit under concurrent creates        | `features/connected-ai.md#making-and-revoking`  | `### Making and revoking`  |
+
 ## Example area
 
 | Concept                      | Home                                             | Heading                         |

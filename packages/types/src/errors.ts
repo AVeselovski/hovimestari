@@ -76,6 +76,15 @@ export const ERROR_CODES = [
   "saved_meal_not_found",
   "saved_meal_id_taken",
   "meal_source_too_long",
+  "connection_name_required",
+  "connection_name_too_long",
+  "connection_name_invalid",
+  "connection_expiry_invalid",
+  "connection_write_expiry_too_long",
+  "connection_limit",
+  "connection_not_found",
+  "connect_off",
+  "writes_off",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

@@ -1,5 +1,6 @@
 import { jest } from "@jest/globals";
 import jwt from "jsonwebtoken";
+import { accessTokenWithoutFamily } from "../../__tests__/support/sessionApi.js";
 import { env } from "../env.js";
 import {
   hashToken,
@@ -17,13 +18,21 @@ const TEST_FAMILY_ID = "f1e2d3c4-b5a6-4789-8abc-def012345678";
 
 describe("signAccessToken / verifyAccessToken", () => {
   it("produces a token that verifies with the correct payload", () => {
-    const token = signAccessToken({ sub: TEST_USER_ID });
+    const token = signAccessToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
     const payload = verifyAccessToken(token);
     expect(payload.sub).toBe(TEST_USER_ID);
   });
 
+  it("carries the session's family, and answers none for a token that names none", () => {
+    expect(verifyAccessToken(signAccessToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID }))).toEqual({
+      sub: TEST_USER_ID,
+      fam: TEST_FAMILY_ID,
+    });
+    expect(verifyAccessToken(accessTokenWithoutFamily(TEST_USER_ID))).toEqual({ sub: TEST_USER_ID });
+  });
+
   it("throws on a tampered token", () => {
-    const token = signAccessToken({ sub: TEST_USER_ID });
+    const token = signAccessToken({ sub: TEST_USER_ID, fam: TEST_FAMILY_ID });
     expect(() => verifyAccessToken(token + "x")).toThrow();
   });
 

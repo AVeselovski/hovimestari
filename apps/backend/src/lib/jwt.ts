@@ -5,7 +5,14 @@ import { env } from "./env.js";
 /** Tokens are signed with HS256 only. Verifying pins it, so no token signed another way, or unsigned, passes. */
 const VERIFY: jwt.VerifyOptions = { algorithms: ["HS256"] };
 
-export function signAccessToken(payload: { sub: string }): string {
+/**
+ * `fam` names the session the token was issued to, the family of the refresh
+ * token issued beside it. Every token the server issues carries it, so the
+ * type requires it. A route
+ * that must know the session is still live, such as making a connection key,
+ * checks that family's refresh rows.
+ */
+export function signAccessToken(payload: { sub: string; fam: string }): string {
   return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
     expiresIn: env.JWT_ACCESS_EXPIRES_IN as jwt.SignOptions["expiresIn"],
   });
@@ -21,12 +28,13 @@ export function signRefreshToken(payload: { sub: string; fam: string }): string 
   });
 }
 
-export function verifyAccessToken(token: string): { sub: string } {
+/** The token's user, and its session's family when it names one. */
+export function verifyAccessToken(token: string): { sub: string; fam?: string } {
   const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET, VERIFY) as jwt.JwtPayload;
   if (typeof decoded.sub !== "string") {
     throw new Error("Invalid token payload");
   }
-  return { sub: decoded.sub };
+  return typeof decoded.fam === "string" ? { sub: decoded.sub, fam: decoded.fam } : { sub: decoded.sub };
 }
 
 /** The token's user and family. A token signed before families existed has no `fam`. */

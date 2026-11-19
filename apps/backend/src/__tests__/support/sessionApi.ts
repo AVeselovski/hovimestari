@@ -28,6 +28,10 @@ export const familyOf = (token: string): string | undefined =>
 export const tokenWithoutFamily = (sub: string): string =>
   jwt.sign({ sub }, process.env.JWT_REFRESH_SECRET!, { expiresIn: "7d", jwtid: `${Date.now()}-${++n}` });
 
+/** An access token signed with the runtime secret that names no session, as access tokens were signed before they named one. */
+export const accessTokenWithoutFamily = (sub: string): string =>
+  jwt.sign({ sub }, process.env.JWT_ACCESS_SECRET!, { expiresIn: "15m" });
+
 /** How long a test waits for requests to queue on a lock. Under the pool's 3 s `lock_timeout`. */
 const QUEUE_WAIT_MS = 2_000;
 

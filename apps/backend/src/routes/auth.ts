@@ -30,6 +30,7 @@ import {
   registerRateLimit,
 } from "../middleware/authRateLimits.js";
 import { requireBff } from "../middleware/requireBff.js";
+import { revokeAllConnections } from "../services/writes/connections.js";
 import { googleRouter } from "./authGoogle.js";
 
 export const authRouter: IRouter = Router();
@@ -138,7 +139,7 @@ async function sendResetLink(userId: string, email: string): Promise<void> {
   await sendPasswordResetEmail(email, `${env.FRONTEND_URL}/auth/reset-password?token=${rawToken}`);
 }
 
-// POST /reset-password. Sets the password and ends every session.
+// POST /reset-password. Sets the password, ends every session and revokes every connection key.
 authRouter.post("/reset-password", async (req, res) => {
   const { token, newPassword } = parseBody(ResetPasswordBodySchema, req.body);
   const tokenHash = hashToken(token);
@@ -173,6 +174,7 @@ authRouter.post("/reset-password", async (req, res) => {
     await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, found.userId));
     await tx.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, found.userId));
     await endAllSessions(tx, found.userId);
+    await revokeAllConnections(tx, found.userId);
   });
 
   res.status(204).send();

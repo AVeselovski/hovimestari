@@ -22,6 +22,10 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 - **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Marking eaten, editing, moving and removing, each with Undo, are on the Day tab. Adding a food, a saved meal or an estimate, saving a new meal and logging it in one action, and logging a recent item again in one press are in the log sheet. Copying entries to another day, with Undo, is on the Day tab.
 - **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. The log sheet lists them with a filter by source and logs them, and the log sheet and the Recipes tab both save, edit, archive, restore and delete them.
 
+## Connected AI
+
+- **[Connected AI](features/connected-ai.md)**: named connection keys a person makes to give their own AI assistant access, read only or read and write, each with a lifetime, shown once and revoked at will. Keys can be made, listed and revoked through the API, and no assistant can use one yet.
+
 ## The app
 
 - **[Appearance](features/appearance.md)**: a light theme, a dark theme, or following the device, chosen in Settings and kept on each device. The first frame is already in the chosen theme.

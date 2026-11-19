@@ -1,5 +1,6 @@
 import { Router, type Router as IRouter } from "express";
 import { authRouter } from "./auth.js";
+import { connectionsRouter } from "./connections.js";
 import { daysRouter } from "./days.js";
 import { entriesRouter } from "./entries.js";
 import { foodsRouter } from "./foods.js";
@@ -17,3 +18,4 @@ router.use("/days", daysRouter);
 router.use("/entries", entriesRouter);
 router.use("/saved-meals", savedMealsRouter);
 router.use("/log", logRouter);
+router.use("/connections", connectionsRouter);

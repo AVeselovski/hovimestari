@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import request from "supertest";
 import { testPassword } from "../../__tests__/support/credentials.js";
 import { relayHeaders } from "../../__tests__/support/relay.js";
@@ -257,7 +257,7 @@ describe("routes behind a bearer", () => {
   it("DELETE /auth/unlink/:method answers 400 invalid_method for another method", async () => {
     const res = await request(app)
       .delete("/api/v1/auth/unlink/facebook")
-      .set("Authorization", `Bearer ${signAccessToken({ sub: USER.id })}`);
+      .set("Authorization", `Bearer ${signAccessToken({ sub: USER.id, fam: randomUUID() })}`);
     expect(res.status).toBe(400);
     expect(res.body.code).toBe("invalid_method");
   });
@@ -282,7 +282,7 @@ describe("Google, switched off", () => {
   it("POST /auth/link/google/start answers 404 google_unavailable", async () => {
     const res = await request(app)
       .post("/api/v1/auth/link/google/start")
-      .set("Authorization", `Bearer ${signAccessToken({ sub: USER.id })}`)
+      .set("Authorization", `Bearer ${signAccessToken({ sub: USER.id, fam: randomUUID() })}`)
       .set(relayHeaders())
       .send({ bind: "a".repeat(64) });
     expect(res.status).toBe(404);

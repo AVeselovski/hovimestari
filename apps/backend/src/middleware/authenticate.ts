@@ -14,7 +14,7 @@ export const authenticate: RequestHandler = (req, res, next) => {
   const token = authHeader.slice(7);
   try {
     const payload = verifyAccessToken(token);
-    req.user = { id: payload.sub };
+    req.user = payload.fam === undefined ? { id: payload.sub } : { id: payload.sub, sessionFamily: payload.fam };
     next();
   } catch {
     res.status(401).json(UNAUTHORIZED);
