@@ -78,7 +78,7 @@ An add that could not confirm reads its day and the recent items again at once, 
 
 ### Writes
 
-`apps/backend/src/services/writes/entries.ts` has `addEntry`, `updateEntry`, `setEntriesStatus`, `copyEntries`, `removeEntry`, `removeEntries` and `restoreEntry`. Each runs in one transaction and answers the days it changed, read through `getDay` after the write. `addEntry` is the only write that reads a basis from a source. A PATCH of an estimate's figures replaces the estimate's own basis. `setEntriesStatus` answers the ids it changed, in day and position order, so an undo can change exactly those back. `removeEntries` answers the ids it removed in the same order. `copyEntries` copies every column of the source entry but its id and position, so a copy of an entry whose source is hidden still works.
+`apps/backend/src/services/writes/entries.ts` has `addEntry`, `updateEntry`, `setEntriesStatus`, `copyEntries`, `removeEntry`, `removeEntries` and `restoreEntry`. Each runs in one transaction and answers the days it changed, read through `getDay` after the write. `addEntry` is the only write that reads a basis from a source. A PATCH of an estimate's figures replaces the estimate's own basis. `setEntriesStatus` answers the ids it changed, in day and position order, so an undo can change exactly those back. `removeEntries` answers the ids it removed in the same order. `copyEntries` copies every column of the source entry but its id and position, so a copy of an entry whose source is hidden still works. A connected assistant logs, changes, marks, copies, removes and restores entries through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. A screen write records nothing.
 
 ### Replays and restores
 
@@ -140,7 +140,6 @@ A recent item is `{ kind: "food", food, last }` with a food summary and a last a
 
 ### Known gaps
 
-- The assistant's tools for logging arrive with the connected AI step. Until then only the API reaches these services.
 - A Mark all eaten that fails partway, with its failure toast dismissed, leaves the entries its earlier requests marked with no Undo.
 
 Requirements: FR-DAY-05, FR-DAY-10, FR-DAY-11, FR-DAY-12, FR-LOG-01, FR-LOG-02, FR-LOG-03, FR-LOG-04, FR-LOG-05 (requirements 3.3 and 3.4)

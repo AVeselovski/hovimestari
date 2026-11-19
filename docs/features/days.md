@@ -66,7 +66,7 @@ Entry reads go through `selectEntries` in `apps/backend/src/services/entryRows.t
 
 ### Reads
 
-`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
+`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. `getEntry` there reads one entry by its id, as the entry writes answer it. A connected assistant reads days through these same services, as [what an assistant reads](connected-ai.md#what-an-assistant-reads) describes. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
 
 ### API
 
@@ -85,10 +85,6 @@ A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, 
 - `entries_saved_meal_user_fk` points `(saved_meal_id, user_id)` at the meal's `(id, user_id)`, so an entry's meal is always its user's own. `food_id` cascades from `foods`.
 
 Every table cascades from `users`, so deleting an account removes its entries and keeps every shared food.
-
-### Known gaps
-
-- The assistant's tools for days arrive with the connected AI step. Until then only the API reaches these services.
 
 Requirements: FR-DAY-01 to FR-DAY-04, FR-DAY-06 to FR-DAY-10, FR-DAY-13 to FR-DAY-15, FR-GAP-01 (positions only), NFR-ADV-01, NFR-SEC-01 (requirements 3.3, 3.8 and 4)
 

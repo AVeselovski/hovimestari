@@ -14,6 +14,7 @@ src/
 │   └── schema/
 │       ├── index.ts            Re-exports every table
 │       ├── assistantConnections.ts  assistant_connections: a user's connection keys, stored as hashes, with access, expiry, last use and revocation
+│       ├── assistantChanges.ts  assistant_changes: the record of an assistant's changes, with the ids it touched and the request key
 │       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs, the food-name language, the time zone and when the first run was passed
 │       ├── targets.ts          target_changes: one row per dated change of a user's targets
 │       ├── foods.ts            foods, food_portions, food_favourites and food_lookups, with the generated search columns
@@ -53,19 +54,24 @@ src/
 │       ├── product.ts          Parses a product and decides what is kept: names, the four values, incomplete or implausible
 │       ├── limiter.ts          Token buckets for the two call budgets, on an injected clock
 │       └── cache.ts            Answers not stored, held 10 minutes, on an injected clock
-├── mcp/                        Connected AI's endpoint: an assistant's key in, the read services out
+├── mcp/                        Connected AI's endpoint: an assistant's key in, the read services and the recorded writes out
 │   ├── router.ts               /mcp in order: the Origin refusal, the brakes, the body parser, the key check, the request limit per user, last use, the protocol handler
 │   ├── auth.ts                 verifyConnectionKey and requireConnectionKey: a key to AuthInfo for its user, or a 401 saying why
 │   ├── server.ts               The server built per request: instructions, the tools, the app rules resource, and contextForUser per call
 │   ├── result.ts               defineTool, runTool, the answer envelope, refusals with their code and seconds to wait, the tool log line
-│   ├── inputs.ts               DayDate and DayRange, the REST routes' own schemas for tool inputs
+│   ├── inputs.ts               DayDate, DayRange and RequestKey for tool inputs, and dateIn, which reads today as the person's today
+│   ├── writeBrake.ts           The per-minute window on write calls, keyed by user, and the hourly limit's numbers
 │   ├── appRules.ts             The app rules text, the write rules, appRulesFor and APP_RULES_SOURCES, the feature docs' stamps
 │   └── tools/
 │       ├── index.ts            READ_TOOLS, the 12 tools every key lists
 │       ├── context.ts          get_context: the key's access, today, the targets and the rules
 │       ├── days.ts             get_targets, get_day and get_days, a range or the week of a date
 │       ├── foods.ts            search_foods, get_food, the favourite, own and recent lists, and look_up_barcode
-│       └── meals.ts            list_saved_meals and get_saved_meal
+│       ├── meals.ts            list_saved_meals and get_saved_meal
+│       └── writes/
+│           ├── index.ts        WRITE_TOOLS, listed only to a key that can write while writing is on
+│           ├── run.ts          defineWriteTool and runWriteTool: the brakes, the request hash, the replay, the recorded write, the note
+│           └── entries.ts      The eight entry write tools: log_food, log_saved_meal, log_estimate, update_entry, set_entries_status, copy_entries, remove_entries, restore_entry
 ├── middleware/
 │   ├── authenticate.ts         Bearer access token check, sets req.user
 │   ├── requireBff.ts           The relay secret check and the relayed client address rules
@@ -88,7 +94,7 @@ src/
 │   ├── reads/context.ts        ReadContext: the user, the database, now, the time zone and today
 │   ├── reads/targets.ts        targetsOn, the in-force rule (null before the first change), inForceOn, its pure form, and targetsOverview, with firstRunDue
 │   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
-│   ├── reads/days.ts           getDay and listDaySummaries: the two readings and their positions
+│   ├── reads/days.ts           getDay and listDaySummaries: the two readings and their positions. getEntry, one entry by its id
 │   ├── reads/log.ts            listRecents and lastAmountsOf, from eaten entries
 │   ├── reads/savedMeals.ts     listSavedMeals and getSavedMeal
 │   ├── reads/connections.ts    listConnections and connectionAvailability, the two switches as the server holds them now
@@ -100,6 +106,8 @@ src/
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/settings.ts      updateSettings: the food-name language and the time zone. finishFirstRun and markFirstRunDone
 │   ├── writes/connections.ts   createConnection for a live session under the user lock and the ten-key limit, revokeConnection, revokeAllConnections
+│   ├── writes/changeRecord.ts  recordedWrite, which runs an assistant's write and its record row in one transaction, findReplay, replayAfterConflict, requestHashOf, countRecentChanges
+│   ├── writes/recorded/entries.ts  One function per entry write tool: its before-read, the one screen write it calls, its record, and its replay reader
 │   ├── entryRows.ts            The selection every entry read answers with, and an entry's figures
 │   ├── sourceValues.ts         Reads an entry's basis from its source, takes the user lock, checks a source's use and rewrites planned entries
 │   ├── foodScope.ts            visibleTo and portionVisibleTo, the only place the visibility rules are written
@@ -142,7 +150,7 @@ A tool in `src/mcp/tools/` calls the read service its REST route calls and selec
 
 ### The connected AI switches
 
-`MCP_ENABLED` and `MCP_WRITES_ENABLED` are the operator's switches for connected AI, each `true` or `false`, neither a secret. `MCP_ENABLED` is `true` by default and `MCP_WRITES_ENABLED` is `false`. Unset or empty takes the default, and any other value stops the server at start-up. A change takes a restart. While `MCP_ENABLED` is off no connection key can be made and `/mcp` answers 404. While `MCP_WRITES_ENABLED` is off no key that makes changes can be made, and a key that can make changes reads only. What each does is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-two-switches).
+`MCP_ENABLED` and `MCP_WRITES_ENABLED` are the operator's switches for connected AI, each `true` or `false`, neither a secret. `MCP_ENABLED` is `true` by default and `MCP_WRITES_ENABLED` is `false`. Unset or empty takes the default, and any other value stops the server at start-up. A change takes a restart. While `MCP_ENABLED` is off no connection key can be made and `/mcp` answers 404. While `MCP_WRITES_ENABLED` is on, a key that can make changes also lists the write tools. While it is off no key that makes changes can be made, and a key that can make changes reads only. What each does is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-two-switches).
 
 ### The relay secret
 
@@ -198,6 +206,8 @@ Migration `0006_off_lookups.sql` adds `food_lookups`, the CHECK `foods_off_has_b
 
 Migration `0007_assistant_connections.sql` adds the empty table `assistant_connections`, so it touches no stored row.
 
+Migration `0008_assistant_changes.sql` adds the empty table `assistant_changes`, so it touches no stored row either. Its CHECK names every action the record knows, so a later tool that records a new kind of change needs no migration.
+
 A migration that adds, renames, drops or retypes a column of `entries`, or tightens one of its CHECKs, also rewrites or clears `removed_entries.row`. A restore puts that row back by column name, so a row removed before such a migration lacks the new column or keeps the old name. A restore that the table then refuses answers `entry_not_found`, and the entry cannot come back.
 
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
@@ -219,7 +229,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. `nameCase.test.ts` pins how a name written in capitals is stored, and `fineliImportCase.db.test.ts` imports a release in capitals over stored names. `support/capitalRelease.ts` makes that release as a temp copy of a fixture. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
 - `src/routes/__tests__/connections.db.test.ts` makes, lists and revokes connection keys on the real database, with the two switches set on the parsed `env`. It holds the user's row on its own connection to show a create waits and counts the key added meanwhile, and races six creates for the tenth place. `src/routes/__tests__/connectionsRevoke.db.test.ts` changes and resets passwords, and fails their transactions at commit with a deferred trigger to show a failed change revokes no key. `src/routes/__tests__/connectionsSession.db.test.ts` shows that only a live session makes a key. `src/lib/__tests__/connectionKeys.test.ts` renders the lookup's and the last-use write's SQL with drizzle's own dialect.
-- `src/mcp/__tests__/` tests the endpoint. `harness.ts` makes every key at start-up, stands in for the key lookup, runs the app on a real port for the real MCP client, and freezes `Date` alone with `freezeDate`, so the limiters and the services read one fixed instant. `router.test.ts` covers the refusals, the Origin guard, the bodies, the `Host` header and the tool list in both protocol revisions. `deadKeyBrake`, `refusedKeyBrake`, `brakeAfterBody` and `rateLimit` run the limiters in order on one address, and move the frozen clock past a window to show it refill. `disabled.test.ts` starts the app with `MCP_ENABLED=false`. `server.db.test.ts` calls `get_context` with a key made through the API and compares it with `GET /targets` on a real database. `readTools.db.test.ts` does the same for every other read tool against its route on one frozen clock, and runs `look_up_barcode` against the `offStub` stand-in for Open Food Facts. `importBoundary.test.ts` reads every file under `src/mcp/` with `importsOf` from `src/__tests__/support/importsOf.ts`.
+- `src/mcp/__tests__/` tests the endpoint. `harness.ts` makes every key at start-up, stands in for the key lookup, runs the app on a real port for the real MCP client, and freezes `Date` alone with `freezeDate`, so the limiters and the services read one fixed instant. `router.test.ts` covers the refusals, the Origin guard, the bodies, the `Host` header and the tool list in both protocol revisions. `deadKeyBrake`, `refusedKeyBrake`, `brakeAfterBody` and `rateLimit` run the limiters in order on one address, and move the frozen clock past a window to show it refill. `disabled.test.ts` starts the app with `MCP_ENABLED=false`. `server.db.test.ts` calls `get_context` with a key made through the API and compares it with `GET /targets` on a real database. `readTools.db.test.ts` does the same for every other read tool against its route on one frozen clock, and runs `look_up_barcode` against the `offStub` stand-in for Open Food Facts. `importBoundary.test.ts` reads every file under `src/mcp/` with `importsOf` from `src/__tests__/support/importsOf.ts` and `withoutComments` from `src/__tests__/support/withoutComments.ts`. `registries.test.ts` keeps every write tool out of `READ_TOOLS`, and `writesOff.test.ts` starts the endpoint with `MCP_WRITES_ENABLED=false`. `entryWrites.db.test.ts` runs every entry write tool on a real database with a key made through the API: its change, its record row and its replay. `writeReplays.db.test.ts` holds a first call open with `serviceHolder` to race a second with the same request key, for a tool that adds and for each tool that changes what is there, and forces a failure after the service to show the change and its record go together. `writeBrakes.db.test.ts` runs both write limits for two keys of one person on a frozen clock, on both sides of each window. They share `writeSupport.ts`. `src/services/writes/recorded/__tests__/screenPath.test.ts` reads the recorded writes and fails on a row written there, a namespace or run-time import, or a function that calls other than one write service.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment
