@@ -161,3 +161,23 @@ describe("token contrast", () => {
     expect(token("light", "energy-plan")).toBe("#e6d3b4");
   });
 });
+
+// Marks over the camera's picture (the scanner's band and Torch, docs/app/colors.md "Over the camera").
+describe("the marks over the camera's picture", () => {
+  it("keep their values in both themes, because the picture does not change with the theme", () => {
+    expect(() => token("dark", "on-camera")).toThrow();
+    expect(() => token("dark", "on-camera-edge")).toThrow();
+  });
+
+  it("stand out by 3 to 1 or more from any grey a frame can hold, through one of the pair", () => {
+    const [mark, edge] = [token("light", "on-camera"), token("light", "on-camera-edge")];
+    let worst = Infinity;
+    for (let v = 0; v <= 255; v += 1) {
+      const grey = `#${v.toString(16).padStart(2, "0").repeat(3)}`;
+      worst = Math.min(worst, Math.max(contrast(mark, grey), contrast(edge, grey)));
+    }
+    expect(worst).toBeGreaterThanOrEqual(3);
+    // And the pair against each other, so the mark keeps its shape where the frame matches one of them.
+    expect(contrast(mark, edge)).toBeGreaterThanOrEqual(9);
+  });
+});

@@ -204,6 +204,26 @@ describe("useBarcodeLookup", () => {
       expect(lookupBarcode).toHaveBeenCalledTimes(1);
     });
 
+    it("reads the state of now through a savedOwnFood kept from an earlier render", async () => {
+      const { hook } = setup();
+      // A host that kept the function from before the lookup, as a callback captured once would.
+      const kept = hook.result.current.savedOwnFood;
+      await act(async () => hook.result.current.lookUp("012000161155", "upc_e"));
+      await act(async () => sent[0].answer.resolve({ result: "not_found", barcode: "0012000161155" }));
+      const saved = detailOf(ownFood("Pulla"), { barcode: "0012000161155" });
+      let turned = false;
+      act(() => {
+        turned = kept(saved);
+      });
+      expect(turned).toBe(true);
+      expect(hook.result.current.state).toEqual({
+        code: "012000161155",
+        format: "upc_e",
+        status: "answered",
+        answer: { result: "found", food: saved, newlyVisible: false },
+      });
+    });
+
     it.each([
       ["another barcode", "6408430000258"],
       ["no barcode", null],
