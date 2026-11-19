@@ -520,3 +520,20 @@
 [documentation-specialist STARTED] (2026-11-19T16:03:15Z) the docs of the read tools against the standard
 [reviewer DONE] (2026-11-19T16:08:19Z) delta review of slice 2b: approve; every earlier finding fixed, both suites green, two nits
 [documentation-specialist DONE] (2026-11-19T16:08:19Z) read tools docs: how a refused input reads, the lookup budget, the one-machine sentence, the web README's week line; connected-ai.md re-stamped (88846a7)
+[frontend-engineer STARTED] (2026-11-19T11:20:46Z) connected AI slice 3: the Connected AI section in Settings and the key reveal
+[frontend-engineer DONE] (2026-11-19T11:52:15Z) connected AI slice 3 built at 8746eea: the Connected AI section in Settings, the create sheet, the one-time key reveal held in memory only, setup steps for two assistants; web 1785 tests
+[validator STARTED] (2026-11-19T11:52:15Z) slice 3 against the requirements and the design at 8746eea
+[ui-validator STARTED] (2026-11-19T11:52:15Z) slice 3 in Chromium at 320, 390 and 1280, light and dark
+[reviewer STARTED] (2026-11-19T11:52:15Z) slice 3, the key in the browser first
+[validator DONE] (2026-11-19T12:13:52Z) slice 3: pass; two copy minors (lines that promise writing and Activity ahead of their slices) and one test gap (the reveal's clear on close)
+[reviewer DONE] (2026-11-19T12:13:52Z) slice 3: approve after fixes; the key leaks nowhere; one major (the expiry select should be the shared select field), minors on invalidation, focus and dead code (202k tokens)
+[ui-validator DONE] (2026-11-19T12:13:52Z) slice 3 in Chromium: pass with findings; one major (the page jumps after I have copied it and the focused new row is off screen), minors on the clipboard fallback, two buttons named Copy, the switched-off state and the limit (247k tokens)
+[frontend-engineer STARTED] (2026-11-19T12:13:52Z) one fix batch for slice 3 from the validator, the reviewer and the ui-validator
+[frontend-engineer DONE] (2026-11-19T15:59:55Z) slice 3 fix batch: all 14 items; the page no longer moves behind the reveal and the new row lands in view and focused, the expiry select is the shared SelectField, copy follows what is switched on, the limit and switched-off states say so; web 1812 tests (427d3be..af1c46b)
+[ui-validator STARTED] (2026-11-19T15:59:55Z) delta check of slice 3's fixes at af1c46b
+[reviewer STARTED] (2026-11-19T15:59:55Z) delta review of slice 3's fix batch at af1c46b
+[reviewer DONE] (2026-11-19T16:12:40Z) delta review of slice 3: approve after minor fixes (a flushSync that does nothing, a comment on the scroll lock's clamp, two doc sentences) (262k tokens)
+[ui-validator DONE] (2026-11-19T16:12:40Z) delta check of slice 3: pass with findings; every first-round finding fixed and measured; one new minor (focus hops through Connect an assistant before the new row) and three nits
+[documentation-specialist DONE] (2026-11-19T16:26:54Z) slice 3 brought onto master: seven doc conflicts resolved so the feature doc reads as one, connected-ai.md re-stamped
+[frontend-engineer STARTED] (2026-11-19T16:26:54Z) the last small fixes for slice 3 from the two delta checks
+[frontend-engineer DONE] (2026-11-19T16:53:09Z) slice 3 last fixes: focus goes straight to the new row, the no-op flushSync is gone, the docs say what the list does behind the reveal; the screen proven against the real /mcp endpoint with a key it made (12 tools, get_day equal to the Day tab, last use shown, a revoked key refused); web 1811 tests (tip 9744afe)
