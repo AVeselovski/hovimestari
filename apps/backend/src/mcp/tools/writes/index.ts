@@ -8,7 +8,10 @@ import {
   setEntriesStatusTool,
   updateEntryTool,
 } from "./entries.js";
+import { addPortionTool, createOwnFoodTool, setFavouriteTool, updateOwnFoodTool, updatePortionTool } from "./foods.js";
+import { createSavedMealTool, setSavedMealArchivedTool, updateSavedMealTool } from "./meals.js";
 import type { WriteTool } from "./run.js";
+import { removeTargetsTool, setTargetsTool } from "./targets.js";
 
 // The write tools, listed only to a key that can write while writing is
 // switched on (server.ts). One file per area under tools/writes/, each tool
@@ -27,4 +30,14 @@ export const WRITE_TOOLS: readonly AnyWriteTool[] = [
   copyEntriesTool,
   removeEntriesTool,
   restoreEntryTool,
+  createOwnFoodTool,
+  updateOwnFoodTool,
+  addPortionTool,
+  updatePortionTool,
+  setFavouriteTool,
+  createSavedMealTool,
+  updateSavedMealTool,
+  setSavedMealArchivedTool,
+  setTargetsTool,
+  removeTargetsTool,
 ];

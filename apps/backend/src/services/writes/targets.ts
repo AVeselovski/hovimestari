@@ -11,12 +11,14 @@ import { markFirstRunDone } from "./settings.js";
  * Saves the targets in force from `effectiveFrom`. A second save on the same
  * date overwrites that change, so a date holds one change at most. Days
  * before `effectiveFrom` keep what they had: an earlier change, or none.
+ * Beside the outcome it answers the change's row id, which the API never
+ * shows and the record of an assistant's change keeps.
  */
 export async function setTargets(
   ctx: WriteContext,
   effectiveFrom: string,
   ranges: TargetRanges,
-): Promise<WriteOutcome<TargetChange>> {
+): Promise<WriteOutcome<TargetChange> & { id: string }> {
   const values = {
     energyKcalLower: ranges.energyKcal.lower,
     energyKcalUpper: ranges.energyKcal.upper,
@@ -42,7 +44,7 @@ export async function setTargets(
   });
   if (written) {
     const { inserted, ...row } = written;
-    return { value: targetChangeOf(row), outcome: inserted ? "created" : "changed" };
+    return { value: targetChangeOf(row), outcome: inserted ? "created" : "changed", id: row.id };
   }
   const [kept] = await ctx.db
     .select()
@@ -50,7 +52,7 @@ export async function setTargets(
     .where(and(eq(t.userId, ctx.userId), eq(t.effectiveFrom, effectiveFrom)));
   // A removal between the save and this read leaves nothing to answer with.
   if (!kept) throw appError("target_change_not_found", 404);
-  return { value: targetChangeOf(kept), outcome: "unchanged" };
+  return { value: targetChangeOf(kept), outcome: "unchanged", id: kept.id };
 }
 
 /**

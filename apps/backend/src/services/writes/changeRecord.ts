@@ -1,9 +1,14 @@
-import type { AssistantChangeAction, AssistantChangeSummary } from "@hovimestari/types";
+import type {
+  AssistantChangeAction,
+  AssistantChangeSummary,
+  AssistantFieldChange,
+  ErrorCode,
+} from "@hovimestari/types";
 import { and, count, eq, gt } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { assistantChanges, users } from "../../db/schema/index.js";
 import type { Tx } from "../../db/types.js";
-import { appError } from "../../lib/errors.js";
+import { AppError, appError } from "../../lib/errors.js";
 import { isUniqueViolation } from "../../lib/pgErrors.js";
 import type { ReadContext } from "../reads/context.js";
 import { lockUserForWrite } from "../sourceValues.js";
@@ -181,8 +186,37 @@ export async function replayAfterConflict(
   taken: RequestKeyTaken,
 ): Promise<Replay> {
   const replay = await findReplay(ctx, via);
-  if (!replay) throw taken.cause ?? taken;
-  return replay;
+  if (replay) return replay;
+  // Only a lost insert carries a cause. Without one, the write saw the key's
+  // row and it is gone now, which only the connection's own removal can do.
+  throw taken.cause ?? new Error("A write saw this request key's record row, and the row is gone.");
+}
+
+/**
+ * The fields a change set, each from its value before to its value after,
+ * in the order given. A field whose two values are equal is left out, so an
+ * edit to the same values answers an empty list.
+ */
+export function fieldChanges(
+  pairs: [field: AssistantFieldChange["field"], from: unknown, to: unknown][],
+): AssistantFieldChange[] {
+  return pairs
+    .filter(([, from, to]) => JSON.stringify(from) !== JSON.stringify(to))
+    .map(([field, from, to]) => ({ field, from, to }));
+}
+
+/**
+ * What a replay reader answers for a row gone since: `read`'s value, or null
+ * when it refuses with `code`, the read service's own way of saying the row
+ * is not there. Any other failure goes up.
+ */
+export async function goneAsNull<T>(code: ErrorCode, read: Promise<T>): Promise<T | null> {
+  try {
+    return await read;
+  } catch (err) {
+    if (err instanceof AppError && err.code === code) return null;
+    throw err;
+  }
 }
 
 /** The changes recorded for the user since `since`, across every connection. */

@@ -1,4 +1,4 @@
-import { DayParamSchema, DayRangeQuerySchema } from "@hovimestari/types";
+import { DayParamSchema, DayRangeQuerySchema, MAX_ENTRY_BATCH } from "@hovimestari/types";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -28,3 +28,22 @@ export const RequestKey = z
     "A new random string for every change, for example k7Qx2mPa9. Send the same key again only to retry this exact call " +
       "after an error or no answer: the app then answers what the first call did and writes nothing new.",
   );
+
+/** A write tool's input: a strict object of `fields`, and the request key every write takes. */
+export const writeInput = <F extends z.ZodRawShape>(fields: F) => z.strictObject({ requestKey: RequestKey, ...fields });
+
+/** The one sentence a write tool answers for an entry id given twice. */
+export const REPEATED_ID = "Give each entry id once.";
+
+/**
+ * A set of entry ids, from get_day: 1 to 100, each once. Ids compare
+ * without case, as Postgres compares uuids, so a repeat in other letters is
+ * refused too.
+ */
+export const EntryIdSet = (what: string) =>
+  z
+    .array(z.uuid())
+    .min(1)
+    .max(MAX_ENTRY_BATCH)
+    .refine((ids) => new Set(ids.map((id) => id.toLowerCase())).size === ids.length, { error: REPEATED_ID })
+    .describe(`${what}, from get_day: 1 to ${MAX_ENTRY_BATCH} entry ids, each once.`);

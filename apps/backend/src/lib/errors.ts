@@ -117,7 +117,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   connect_off: "Connecting an AI assistant is switched off on this server.",
   writes_off: "Keys that can make changes are switched off on this server.",
   request_key_reused: "This requestKey was already used for a different change. Use a new requestKey.",
-  assistant_writes_per_minute: "Too many changes in a minute. Wait a minute, then carry on.",
+  assistant_writes_per_minute:
+    "Too many changes in a minute. Wait a minute, then send the same call again with the same requestKey. A change that already landed is not made twice.",
   assistant_changes_per_hour:
     "This account has had 300 changes by assistants in the last hour. Make the rest in the app, or wait.",
 };

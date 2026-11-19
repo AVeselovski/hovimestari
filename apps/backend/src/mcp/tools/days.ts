@@ -1,4 +1,4 @@
-import { IsoDateSchema, weekOf } from "@hovimestari/types";
+import { IsoDateSchema, weekOf, type TargetsOverview } from "@hovimestari/types";
 import { z } from "zod";
 import { getDay, listDaySummaries } from "../../services/reads/days.js";
 import { targetsOverview } from "../../services/reads/targets.js";
@@ -12,15 +12,21 @@ import { defineTool, type ToolContext } from "../result.js";
 
 const dateOf = (date: string, { service }: ToolContext): string => dateIn(date, service.today);
 
+/** The targets as an assistant reads them: the overview without `firstRunDue`, a screen's routing fact. */
+export const targetsAsRead = ({ date, today, inForce, changes }: TargetsOverview) => ({
+  date,
+  today,
+  inForce,
+  changes,
+});
+
 export const getTargetsTool = defineTool({
   name: "get_targets",
   description:
     "The person's targets in force on a date (today when left out), with every change of targets. inForce is null on a date before the first change, and changes is empty for a person with no targets.",
   inputSchema: z.strictObject({ date: DayDate.optional() }),
   async run({ date }, ctx) {
-    // `firstRunDue` stays out: it is a screen's routing fact.
-    const overview = await targetsOverview(ctx.service, date === undefined ? undefined : dateOf(date, ctx));
-    return { date: overview.date, today: overview.today, inForce: overview.inForce, changes: overview.changes };
+    return targetsAsRead(await targetsOverview(ctx.service, date === undefined ? undefined : dateOf(date, ctx)));
   },
 });
 

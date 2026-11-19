@@ -37,13 +37,16 @@ export interface WriteToolData {
   data: Record<string, unknown>;
 }
 
+/** A write tool's validated arguments without its request key, which runWriteTool alone reads. */
+export type WriteArgs<S extends z.ZodObject> = Omit<z.output<S>, "requestKey">;
+
 export interface WriteTool<S extends z.ZodObject = z.ZodObject> {
   name: string;
   description: string;
   inputSchema: S;
   /** The spec's destructiveHint: true for a tool that may change or remove what is there, false for one that only adds. */
   destructive: boolean;
-  run: (args: z.output<S>, ctx: WriteToolContext) => Promise<WriteToolData>;
+  run: (args: WriteArgs<S>, ctx: WriteToolContext) => Promise<WriteToolData>;
   /** What a retry answers: the thing as it is now, read by the record's ids through read services. */
   replay: (service: ToolContext["service"], replay: Replay) => Promise<Record<string, unknown>>;
 }
@@ -80,10 +83,13 @@ async function brakePerHour(ctx: ToolContext): Promise<void> {
   }
 }
 
-/** A replay as the model reads it: what the first call recorded, and the thing as it is now. */
+/** The arguments a tool's body gets: every one but the request key. */
+const withoutKey = <A extends { requestKey: string }>({ requestKey: _key, ...rest }: A): Omit<A, "requestKey"> => rest;
+
 /** The answer's data before its note. */
 type Answer = { outcome: RecordedOutcome | "replayed" } & Record<string, unknown>;
 
+/** A replay as the model reads it: what the first call recorded, and the thing as it is now. */
 async function replayed(tool: WriteTool, ctx: ToolContext, replay: Replay): Promise<Answer> {
   return {
     outcome: "replayed" as const,
@@ -127,7 +133,7 @@ export async function runWriteTool<S extends z.ZodObject>(
     } else {
       await brakePerHour(ctx);
       try {
-        const done = await tool.run(args, { service: ctx.service, via });
+        const done = await tool.run(withoutKey(args), { service: ctx.service, via });
         data = { outcome: done.outcome, ...done.data };
       } catch (err) {
         // Another call with this key committed while this one ran, and this one rolled back.
