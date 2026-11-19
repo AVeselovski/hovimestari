@@ -19,6 +19,28 @@ describe("useMainScrollLock", () => {
     expect(main.scrollTop).toBe(300);
   });
 
+  // The browser's scroll anchoring keeps the page still behind a sheet when a
+  // row is added above what shows: it moves scrollTop by the row's height and
+  // fires a scroll event, as Chrome does. Putting back the scrollTop from
+  // before would then move the page by that row once the sheet closes.
+  it("puts back the scrollTop the browser moved it to while held, so the page does not jump on release", () => {
+    const { rerender } = renderHook(({ on }) => useMainScrollLock(on), { initialProps: { on: true } });
+    main.scrollTop = 460;
+    main.dispatchEvent(new Event("scroll"));
+    rerender({ on: false });
+    expect(main.scrollTop).toBe(460);
+  });
+
+  it("follows <main> afresh under a lock taken after an earlier one let go", () => {
+    const { rerender } = renderHook(({ on }) => useMainScrollLock(on), { initialProps: { on: true } });
+    rerender({ on: false });
+    const again = renderHook(() => useMainScrollLock(true));
+    main.scrollTop = 120;
+    main.dispatchEvent(new Event("scroll"));
+    again.unmount();
+    expect(main.scrollTop).toBe(120);
+  });
+
   it("does nothing while inactive", () => {
     renderHook(() => useMainScrollLock(false));
     expect(main.style.overflow).toBe("auto");
