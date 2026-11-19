@@ -64,6 +64,42 @@ export interface SaveAndLogRequest {
   again: () => AddRequest;
 }
 
+/** An id a copy was sent under, and the date it was sent to. */
+export interface SentCopy {
+  id: string;
+  date: string;
+}
+
+/**
+ * One press of the copy sheet's Copy. The sheet owns the ids: one per ticked
+ * entry and date, the same ids again on a resend, so a retry never doubles a
+ * copy (components/entries/CopyEntriesSheet.tsx).
+ */
+export interface CopyRequest {
+  /** The day the entries are on, read again when one of them is gone. */
+  fromDate: string;
+  toDate: string;
+  /** The ticked entries in day order, each with the id its copy takes. */
+  entries: { sourceId: string; id: string }[];
+  /**
+   * Ids sent earlier in this open and not in this send, such as copies to a
+   * date since changed. Removed once this send succeeds, before its toast.
+   */
+  stale: SentCopy[];
+  /** Every id sent in this open, this send's included: what Undo removes. */
+  sent: SentCopy[];
+  /**
+   * Called as each request of the send lands. A send of more than 100 goes
+   * in several, so one that fails may have left copies on `toDate`.
+   */
+  onLanded?: () => void;
+}
+
+/** A copy the server answered: its toast, shown once the sheet has closed. */
+export interface CopyDone {
+  announce: () => void;
+}
+
 /** A "Save and log" the server answered: the meal as saved, and the add's toast. */
 export interface SaveAndLogDone extends AddDone {
   meal: SavedMeal;
@@ -100,12 +136,21 @@ export interface EntryActions {
    * on any other failure.
    */
   withdrawAdd: (id: string, date: string) => Promise<boolean>;
+  /**
+   * Copies entries to another day as planned entries, in chunks of 100, then
+   * removes the stale ids. Answers "held" without sending while the app asks
+   * for today, throws `OfflineError` while known offline, and throws the
+   * request's own error on a failure. The toast waits for `announce`.
+   */
+  copy: (request: CopyRequest) => Promise<CopyDone | "held">;
+  /** Reads `dates` again, such as the day a copy that could not confirm was sent to. */
+  readDaysAgain: (dates: readonly string[]) => void;
 }
 
-/** `ids` in chunks of at most `MAX_ENTRY_BATCH`. */
-export function chunksOf(ids: readonly string[]): string[][] {
-  const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += MAX_ENTRY_BATCH) chunks.push(ids.slice(i, i + MAX_ENTRY_BATCH));
+/** `items` in chunks of at most `MAX_ENTRY_BATCH`, in their order. */
+export function chunksOf<T>(items: readonly T[]): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += MAX_ENTRY_BATCH) chunks.push(items.slice(i, i + MAX_ENTRY_BATCH));
   return chunks;
 }
 

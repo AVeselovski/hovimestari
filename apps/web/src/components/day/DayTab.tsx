@@ -1,5 +1,6 @@
 "use client";
 
+import { CopyEntriesSheet } from "@/components/entries/CopyEntriesSheet";
 import { EntrySheet } from "@/components/entries/EntrySheet";
 import { useFirstRun } from "@/components/targets/TargetsGate";
 import { PageContainer } from "@/components/ui/PageContainer";
@@ -66,6 +67,9 @@ import { WeekSheet } from "./WeekSheet";
 // holding the day shown. A row there shows its day and puts focus back on
 // Week. The row is 48 px with or without it, so the header keeps its height.
 // The shown day's week is read ahead once the day is on screen.
+//
+// Copy, in the Entries row, opens the copy sheet on the day shown. Focus
+// comes back to Copy when it closes.
 // ---------------------------------------------------------------------------
 
 /**
@@ -164,6 +168,7 @@ export function DayTab(): ReactElement {
   const actions = useEntryActions(date);
   const sheet = useSheetTarget<Entry>();
   const week = useSheetTarget<{ date: string }>();
+  const copy = useSheetTarget<{ date: string }>();
   const launcherRef = useRef<HTMLDivElement>(null);
   const tw = useTranslations("day.launcher");
   // Week waits as the launcher does: while today is not known, or while the app asks for it.
@@ -247,6 +252,9 @@ export function DayTab(): ReactElement {
           future={future}
           actions={actions}
           onOpen={(entry, opener) => sheet.open(opener, entry)}
+          onCopy={(opener) => {
+            if (date !== null) copy.open(opener, { date });
+          }}
         />
       </div>
       {week.shown && (
@@ -260,6 +268,16 @@ export function DayTab(): ReactElement {
             week.close();
             go(picked);
           }}
+        />
+      )}
+      {copy.shown && (
+        <CopyEntriesSheet
+          key={copy.shown.key}
+          open={copy.isOpen}
+          onClose={copy.close}
+          returnFocusTo={copy.shown.opener}
+          fromDate={copy.shown.value.date}
+          actions={actions}
         />
       )}
       {sheet.shown && (

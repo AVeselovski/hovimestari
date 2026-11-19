@@ -1,13 +1,12 @@
 "use client";
 
-import { usePortionChipLabel } from "@/components/entries/portionLabel";
 import { MacroDot } from "@/components/figures/MacroDot";
 import { focusRing } from "@/components/ui/styles";
-import { formatCount } from "@/lib/entryFormat";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
 import type { Entry } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, type ReactElement } from "react";
+import { useEntryMeta } from "./entryMeta";
 import { MarkEatenButton, type MarkKind } from "./MarkEatenButton";
 
 // ---------------------------------------------------------------------------
@@ -34,23 +33,6 @@ export interface EntryRowProps {
   onOpen: (entry: Entry, opener: HTMLElement) => void;
 }
 
-function useMeta(): (entry: Entry) => string {
-  const t = useTranslations("day.row");
-  const portionLabel = usePortionChipLabel();
-  return (entry) => {
-    if (entry.kind === "estimate") return t("estimate");
-    if (entry.kind === "saved_meal") {
-      const amount = t("meals", { count: entry.count ?? 0 });
-      const source = entry.savedMeal?.source;
-      return source ? t("withSource", { amount, source }) : amount;
-    }
-    const grams = formatGrams(entry.grams ?? 0);
-    return entry.portion
-      ? t("portion", { count: formatCount(entry.portion.count), portion: portionLabel(entry.portion), grams })
-      : t("grams", { grams });
-  };
-}
-
 export function EntryRow({
   entry,
   future,
@@ -62,7 +44,7 @@ export function EntryRow({
   onOpen,
 }: EntryRowProps): ReactElement {
   const t = useTranslations("day.row");
-  const meta = useMeta();
+  const meta = useEntryMeta();
   const mainRef = useRef<HTMLButtonElement>(null);
   // A mark sent from the keyboard: once it lands and the circle becomes the
   // check, focus moves to the row's main button instead of falling to <body>.

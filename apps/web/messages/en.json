@@ -341,7 +341,8 @@
       "title": "Entries",
       "markAll": "Mark all eaten",
       "emptyLogged": "Nothing logged yet.",
-      "emptyPlanned": "Nothing planned yet."
+      "emptyPlanned": "Nothing planned yet.",
+      "copy": "Copy"
     },
     "row": {
       "mark": "Mark {name} eaten",
@@ -399,6 +400,16 @@
       "foodGone": "This food is no longer in your foods.",
       "mealGone": "This saved meal was deleted.",
       "figuresOnSave": "Figures update when you save."
+    },
+    "copy": {
+      "title": "Copy entries",
+      "to": "To",
+      "toHint": "Each copy is a planned entry.",
+      "list": "Entries",
+      "all": "All entries",
+      "none": "Choose at least one entry.",
+      "submit": "Copy",
+      "busy": "Copying…"
     },
     "amount": {
       "grams": "g",
@@ -518,6 +529,7 @@
     "markedMany": "Marked {count, plural, one {# entry} other {# entries}} eaten.",
     "plannedOne": "Marked {name} planned.",
     "moved": "Moved {name} to {day}.",
+    "copied": "Copied {count, plural, one {# entry} other {# entries}} to {day}.",
     "saved": "Saved {name}.",
     "removed": "Removed {name}.",
     "undo": "Undo",

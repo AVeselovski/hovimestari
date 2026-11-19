@@ -67,6 +67,9 @@ export function WeekSheet({ open, onClose, returnFocusTo, shownDate, onPick }: W
     }
   }, [client, from]);
 
+  // Today is known here: the Week button waits while the date is null, and
+  // the date is today's own until it is known. The fallback only satisfies
+  // the type, and would show a year only for a week outside `from`'s year.
   const title = formatWeekRange(from, to, today ?? from, t("to"));
   const days = query.data?.days ?? null;
 
