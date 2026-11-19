@@ -6,7 +6,8 @@
     "delete": "Delete",
     "deleting": "Deleting…",
     "offline": "You are offline. Changes need a connection.",
-    "unconfirmed": "Could not confirm. Check your connection and try again."
+    "unconfirmed": "Could not confirm. Check your connection and try again.",
+    "opensInNewTab": "(opens in a new tab)"
   },
   "components": {
     "fullPageSpinner": {
@@ -81,7 +82,8 @@
     },
     "foodData": {
       "title": "Food data",
-      "body": "Food composition data comes from <fineli>Fineli</fineli>, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the <licence>Creative Commons Attribution 4.0</licence> licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL."
+      "body": "Food composition data comes from <fineli>Fineli</fineli>, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the <licence>Creative Commons Attribution 4.0</licence> licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL.",
+      "openFoodFacts": "Product data comes from <off>Open Food Facts</off>, available under the <licence>Open Database License</licence>. Hovimestari is not produced or endorsed by Open Food Facts."
     },
     "foodNames": {
       "title": "Food names",
@@ -572,6 +574,23 @@
       "resultCount": "{count, plural, =0 {No foods found.} one {# food found.} other {# foods found.}}",
       "gone": "This food is no longer available."
     },
+    "barcode": {
+      "heading": "Barcode <digits>{code}</digits>",
+      "lookUpHint": "Finds it among your foods and on Open Food Facts.",
+      "lookUp": "Look up",
+      "lookingUp": "Looking up…",
+      "found": "Found {name}.",
+      "notFound": "No food has the barcode {code}.",
+      "inStore": "This barcode is the shop's own. It changes with the weight or the price, so it cannot find a product.",
+      "missingValues": "Open Food Facts has {name} without all four values.",
+      "missingValuesNoName": "Open Food Facts has this product without all four values.",
+      "implausibleValues": "Open Food Facts has figures for {name} that cannot all be right.",
+      "implausibleValuesNoName": "Open Food Facts has figures for this product that cannot all be right.",
+      "addFromLabel": "Add it from the label",
+      "completeFromLabel": "Complete it from the label",
+      "offline": "Looking up a barcode needs a connection.",
+      "failed": "The lookup did not work."
+    },
     "row": {
       "yours": "Yours",
       "favourite": "Favourite",
@@ -586,6 +605,7 @@
       "aboutData": "About the food data",
       "sourceOwn": "Your own food",
       "sourceOpenFoodFacts": "From Open Food Facts",
+      "seeOnOpenFoodFacts": "See it on Open Food Facts",
       "retired": "This food is no longer in Fineli. Its figures are from an earlier release.",
       "portions": "Portions",
       "noPortions": "No portions yet.",
@@ -595,7 +615,8 @@
       "edit": "Edit food",
       "delete": "Delete food",
       "deleteTitle": "Delete {name}?",
-      "deleteBody": "This removes the food and its portions."
+      "deleteBody": "This removes the food and its portions.",
+      "copyToOwn": "Copy to your foods"
     },
     "portionUnits": {
       "KPL_S": "Small piece",
@@ -615,6 +636,7 @@
       "name": "Name",
       "per100g": "Per 100 g",
       "hint": "Copy the values from the label.",
+      "checkProduct": "Check each value against the label. Some came from Open Food Facts.",
       "energy": "Energy",
       "protein": "Protein",
       "carbs": "Carbohydrates",

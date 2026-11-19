@@ -43,44 +43,81 @@ export function emptyOwnFood(name = ""): OwnFoodValues {
   return { name, energy: "", protein: "", carbs: "", fat: "", barcode: "" };
 }
 
-/** An own food's form, from its detail: what was saved, as it would be typed. */
-export function ownFoodValuesOf(food: FoodDetail): OwnFoodValues {
-  return {
-    name: food.name,
-    energy: formatDecimalForField(food.per100g.energyKcal),
-    protein: formatDecimalForField(food.per100g.proteinG),
-    carbs: formatDecimalForField(food.per100g.carbsG),
-    fat: formatDecimalForField(food.per100g.fatG),
-    barcode: food.barcode ?? "",
-  };
+/** What Open Food Facts gave for a value: a number, or null when it had none. */
+type StartPer100g = Partial<Record<(typeof VALUES)[ValueField]["key"], number | null>>;
+
+/**
+ * What a new own food's form starts from: a name typed in the search, or what
+ * a barcode lookup or a kept product brought back (the barcode, the product's
+ * name, any value that is a number). Every part is optional. `fromProduct`
+ * says some of it came from Open Food Facts, so the form asks to check it.
+ */
+export interface OwnFoodStart {
+  name?: string;
+  barcode?: string;
+  per100g?: StartPer100g;
+  fromProduct?: boolean;
 }
 
 export type Parsed<B, E> = { ok: true; body: B } | { ok: false; errors: E };
 
-/** What an edit started from: the form as it opened, and the food's saved figures. */
-export interface SavedOwnFood {
+/**
+ * What the form opened on: the form as it opened, the figures its values
+ * stand for, and whether its name is a saved food's (an edit) or a start's.
+ */
+export interface OwnFoodBaseline {
   values: OwnFoodValues;
-  per100g: FoodDetail["per100g"];
+  per100g: Partial<FoodDetail["per100g"]>;
+  nameSaved: boolean;
 }
 
 /**
- * Parses the form. `saved` is what an edit opened on.
- *
- * A value left as it opened keeps its saved figure and is not parsed. A
- * figure with three decimals, such as one an assistant saved, reads like a
- * thousands group when typed, and an edit of something else must not fail
- * on it.
- *
- * A name left as saved is not checked for search, as the server checks only
- * a changed one, so an edit of the values never fails on the name it has.
+ * What a form opens on, from a start: each value that is a number, as it
+ * would be typed, and the rest empty, with the figures `parseOwnFood` reads
+ * an untouched value from, so 3.125 g saves as 3.125 g. A start's name is a
+ * new name.
  */
-export function parseOwnFood(values: OwnFoodValues, saved?: SavedOwnFood): Parsed<OwnFoodBody, OwnFoodErrors> {
+export function startOf(start: OwnFoodStart = {}): OwnFoodBaseline {
+  const values = { ...emptyOwnFood(start.name ?? ""), barcode: start.barcode ?? "" };
+  const per100g: OwnFoodBaseline["per100g"] = {};
+  for (const field of VALUE_FIELDS) {
+    const value = start.per100g?.[VALUES[field].key];
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    values[field] = formatDecimalForField(value);
+    per100g[VALUES[field].key] = value;
+  }
+  return { values, per100g, nameSaved: false };
+}
+
+/** An edit's baseline: the food as saved, built as a start is, with its name kept as saved. */
+export function savedBaselineOf(food: FoodDetail): OwnFoodBaseline {
+  return {
+    ...startOf({ name: food.name, barcode: food.barcode ?? undefined, per100g: food.per100g }),
+    nameSaved: true,
+  };
+}
+
+/**
+ * Parses the form against what it opened on.
+ *
+ * A value left as it opened keeps the figure it stands for and is not
+ * parsed. A figure with three decimals, such as one an assistant saved or
+ * one Open Food Facts gave, reads like a thousands group when typed, and a
+ * save must not fail on a value the person never touched. The figure then
+ * takes the same ranges and sum as a typed one.
+ *
+ * A saved name left as it was is not checked for search, as the server
+ * checks only a changed one, so an edit of the values never fails on the
+ * name it has. A start's name is a new name and is always checked.
+ */
+export function parseOwnFood(values: OwnFoodValues, baseline?: OwnFoodBaseline): Parsed<OwnFoodBody, OwnFoodErrors> {
   const errors: OwnFoodErrors = {};
   const per100g: Partial<Record<(typeof VALUES)[ValueField]["key"], number>> = {};
   for (const field of VALUE_FIELDS) {
     const { key, decimals, invalid } = VALUES[field];
-    if (saved && values[field] === saved.values[field]) {
-      per100g[key] = saved.per100g[key];
+    const kept = baseline?.per100g[key];
+    if (baseline && kept !== undefined && values[field] === baseline.values[field]) {
+      per100g[key] = kept;
       continue;
     }
     const parsed = parseDecimalInput(values[field], { maxDecimals: decimals });
@@ -90,7 +127,7 @@ export function parseOwnFood(values: OwnFoodValues, saved?: SavedOwnFood): Parse
     else per100g[key] = parsed.value;
   }
   const barcode = values.barcode.trim();
-  const keptName = saved !== undefined && values.name.trim() === saved.values.name.trim();
+  const keptName = baseline?.nameSaved === true && values.name.trim() === baseline.values.name.trim();
   const schema = keptName ? OwnFoodUpdateBodySchema : OwnFoodBodySchema;
   const result = schema.safeParse({ name: values.name, per100g, barcode: barcode === "" ? null : barcode });
   if (result.success && Object.keys(errors).length === 0) return { ok: true, body: result.data };

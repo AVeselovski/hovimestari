@@ -465,3 +465,20 @@
 [reviewer STARTED] (2026-11-19T06:34:38Z) delta review of the answered connected AI design
 [reviewer DONE] (2026-11-19T06:43:25Z) delta review of the connected AI design: build after named fixes; twelve small points, each tied to the slice that needs it (345k tokens)
 [architect DONE] (2026-11-19T06:43:25Z) the delta review's twelve points written into the design; slice 1 can start (304k tokens)
+[frontend-engineer STARTED] (2026-11-19T02:34:42Z) barcode slice 2: the typed lookup in the log sheet, the Open Food Facts credit and the product link, from docs/design/barcode.md
+[frontend-engineer DONE] (2026-11-19T06:25:23Z) barcode slice 2 built: a typed number looks a product up from the log sheet, the label form opens prefilled, Copy to your foods, the Open Food Facts link and the Settings credit; 1640 web tests pass; three real lookups (423k tokens)
+[validator STARTED] (2026-11-19T06:25:23Z) barcode slice 2 against the requirements and docs/design/barcode.md
+[ui-validator STARTED] (2026-11-19T06:25:23Z) barcode slice 2 in Chromium at 320, 375, 390 and 1280, both themes
+[reviewer STARTED] (2026-11-19T06:25:23Z) code review of barcode slice 2
+[reviewer DONE] (2026-11-19T06:32:41Z) code review of barcode slice 2: approve after fixes; one major (an offline failure is stored and never cleared, so Look up does not come back), minors on an answer kept after its food is gone, one leaked name search, and prop shapes the camera slice will strain
+[validator DONE] (2026-11-19T06:34:31Z) barcode slice 2: fail on one major (a deleted or gone own food still shows as found for its barcode); the prefill, barcode mode and the docs are right; the tests fail under nine mutations; five minors
+[ui-validator DONE] (2026-11-19T06:47:09Z) barcode slice 2 in Chromium: pass with one major (focus is lost after Try again and after Look up while offline); the field and the block hold their place across every state, nothing scrolls sideways, the log sheet equals master's apart from this slice (243k tokens)
+[frontend-engineer STARTED] (2026-11-19T06:47:09Z) one fix batch for barcode slice 2 from the reviewer, the validator and the ui-validator
+[frontend-engineer DONE] (2026-11-19T07:25:30Z) barcode slice 2 fix batch: all 18 items; a held answer is forgotten when its food goes, offline no longer strands the block, focus returns to the block, Look up is the primary action with one line under it, the code is shaped for the camera; 1731 web tests pass (374k tokens)
+[ui-validator STARTED] (2026-11-19T07:25:30Z) delta check of barcode slice 2's fixes
+[reviewer STARTED] (2026-11-19T07:25:30Z) delta review of barcode slice 2's fix batch
+[reviewer DONE] (2026-11-19T10:55:13Z) delta review of barcode slice 2: approve after five small fixes (focus left alone in a stacked sheet, a scan's format held with its code, a lookup never aborted, an external link typed to https, one home for the forget rule)
+[frontend-engineer DONE] (2026-11-19T10:55:13Z) the five delta-review fixes for barcode slice 2 (9d643e9, c6ca0d6)
+[ui-validator DONE] (2026-11-19T10:55:13Z) delta check of barcode slice 2: pass; one minor filed in TODO.md (a busy button reads as disabled, app-wide), one phone-only note added to the keyboard-tap item
+[documentation-specialist STARTED] (2026-11-19T10:57:50Z) the docs of the typed barcode lookup on the web against the standard
+[documentation-specialist DONE] (2026-11-19T10:59:35Z) barcode lookup web docs: the web README's source tree, the food detail's two links in the log sheet page, the Foods catalog line (b774b10)

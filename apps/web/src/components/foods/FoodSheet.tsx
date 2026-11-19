@@ -27,15 +27,17 @@ import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { afterFoodGone, afterSavedMealGone } from "@/lib/invalidation";
 import { foodDetailQuery, prefetchLogLists, savedMealsQuery } from "@/lib/queryOptions";
-import type { EntryStatus, FoodSummary, LastAmount, SavedMeal } from "@hovimestari/types";
+import type { EntryStatus, FoodDetail, FoodSummary, LastAmount, SavedMeal } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { ADD_PORTION_ATTRIBUTE, FoodDetailBody, FoodDetailHeader } from "./FoodDetail";
 import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
 import { FoodSearchView } from "./FoodSearchView";
-import { FoodSheetStack, type MealSheetTarget, type OwnFoodTarget, type PortionTarget } from "./FoodSheetStack";
+import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
+import type { OwnFoodTarget } from "./OwnFoodSheet";
 import { SearchField } from "./SearchField";
+import { useBarcodeMode } from "./useBarcodeMode";
 import { useFavourite } from "./useFavourite";
 import { useOwnFoodDelete } from "./useOwnFoodDelete";
 import { useSheetNavigation } from "./useSheetNavigation";
@@ -49,7 +51,10 @@ import { useSheetNavigation } from "./useSheetNavigation";
 //   and "Add an estimate", the recent items, the favourites, the saved meals
 //   and the user's own foods, or the results of what is typed, saved meals
 //   first. A recent item, a saved meal, and a favourite with a last amount,
-//   logs again in one press ("+", `useLogAgain`).
+//   logs again in one press ("+", `useLogAgain`). A typed barcode puts the
+//   search in barcode mode (`useBarcodeMode`): Look up or Enter sends it, a
+//   food found opens its food view while the search still shows that code,
+//   and anything else offers the own-food form from the label.
 // - Food: Back, the name and the star in the header. The log block on top,
 //   then the food's detail, scrolling. Log in the pinned footer.
 // - Meal: Back and the meal's name. The log block with the number of meals,
@@ -160,13 +165,21 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     [date],
   );
 
-  function showFood(food: FoodSummary, opener: HTMLElement | null, last: LastAmount | null | undefined): void {
+  /** Opens the food view. `row` is the row that opened it, or a selector for the row Back focuses. */
+  function showFood(food: FoodSummary, row: HTMLElement | string | null, last: LastAmount | null | undefined): void {
     setNotice(null);
     const next: View = { kind: "food", food, last };
     // A view over the search goes back to the search, never to another food.
     if (nav.depth > 1) nav.swap(next);
-    else nav.open(next, opener ? rowSelectorOf(opener, FOOD_ROW_ATTRIBUTE) : null);
+    else nav.open(next, typeof row === "string" || row === null ? row : rowSelectorOf(row, FOOD_ROW_ATTRIBUTE));
   }
+
+  const barcode = useBarcodeMode({
+    query,
+    canOpenFood: open && view.kind === "search" && !stackedOpen,
+    showFood,
+    onFromLabel: (start, opener) => ownSheet.open(opener, { start }),
+  });
 
   function showMeal(meal: SavedMeal, opener: HTMLElement, lastCount: number | null): void {
     setNotice(null);
@@ -188,6 +201,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     portionSheet.close();
     setNotice(t("gone"));
     nav.reset();
+    barcode.forget(id);
     void afterFoodGone(client, id);
   }
 
@@ -237,11 +251,12 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   }, [gone, favouriteGone]);
 
   // The deletes run the shared helpers, which also drop the food or meal from every list.
-  const remove = useOwnFoodDelete<FoodSummary>({ onDone: () => afterDelete() });
+  const remove = useOwnFoodDelete<FoodSummary>({ onDone: (deleted) => afterDelete(deleted.id) });
   const removeMeal = useSavedMealDelete({ onDone: () => afterDelete() });
 
   /** After the open food or meal is deleted: the browse view, with focus in the search field. */
-  function afterDelete(): void {
+  function afterDelete(foodId?: string): void {
+    if (foodId !== undefined) barcode.forget(foodId);
     ownSheet.close();
     setText("");
     nav.reset();
@@ -282,7 +297,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
         onChange={(next) => {
           setText(next);
           setNotice(null);
+          barcode.textChanged(next);
         }}
+        onEnter={barcode.onEnter}
         autoFocus={!isMobile}
       />
     );
@@ -342,11 +359,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               {removeMeal.dialog}
             </>
           }
-          onSavedFood={(saved) => {
+          onSavedFood={(saved: FoodDetail) => {
+            // Saved with the held code: the block holds it as found, and Back focuses its row.
+            const row = barcode.savedOwnFood(saved);
             if (view.kind === "food" && view.food.id === saved.id) return;
-            showFood(saved, null, undefined);
+            showFood(saved, row, undefined);
           }}
-          onDeletedFood={() => afterDelete()}
+          onDeletedFood={(id) => afterDelete(id)}
           onFoodGone={foodGone}
           focusAfterPortionDelete={() =>
             contentRef.current?.querySelector<HTMLElement>(`[${ADD_PORTION_ATTRIBUTE}]`) ?? null
@@ -367,7 +386,17 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                 onLeave={onClose}
                 onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
                 onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
-                onEdit={(loaded, opener) => ownSheet.open(opener, { food: loaded, name: loaded.name })}
+                onEdit={(loaded, opener) => ownSheet.open(opener, { food: loaded })}
+                onCopy={(loaded, opener) =>
+                  ownSheet.open(opener, {
+                    start: {
+                      name: loaded.name,
+                      barcode: loaded.barcode ?? undefined,
+                      per100g: loaded.per100g,
+                      fromProduct: true,
+                    },
+                  })
+                }
                 onDelete={(opener) => remove.open(food, opener)}
               />
             </div>
@@ -396,8 +425,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                   settled={settled}
                   notice={notice}
                   onOpen={(row, opener) => showFood(row, opener, undefined)}
-                  onAddOwn={(name, opener) => ownSheet.open(opener, { name })}
+                  onAddOwn={(name, opener) => ownSheet.open(opener, { start: { name } })}
                   logging={logging}
+                  barcode={barcode.block}
                   meals={{
                     source,
                     onSource: setSource,

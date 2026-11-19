@@ -8,7 +8,8 @@ import type { ReactElement, RefObject } from "react";
 /**
  * The search field, pinned in the sheet's header: a text field with the
  * search icon and, once something is typed, a 44px button that clears it.
- * Enter puts the keyboard away, so the results show in full. Its placeholder
+ * Enter puts the keyboard away, so the results show in full, and runs
+ * `onEnter` when the sheet gives one, such as the lookup of a typed barcode. Its placeholder
  * is its own label, "Search foods and meals", the one field in the app that
  * has one: it says what the field searches, never a value to type.
  */
@@ -17,12 +18,14 @@ export function SearchField({
   inputRef,
   value,
   onChange,
+  onEnter,
   autoFocus,
 }: {
   id: string;
   inputRef: RefObject<HTMLInputElement | null>;
   value: string;
   onChange: (value: string) => void;
+  onEnter?: () => void;
   autoFocus: boolean;
 }): ReactElement {
   const t = useTranslations("foods.sheet");
@@ -48,7 +51,9 @@ export function SearchField({
         placeholder={t("searchLabel")}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key !== "Enter") return;
+          e.currentTarget.blur();
+          onEnter?.();
         }}
         autoFocus={autoFocus}
         className={`${inputClass} pr-12 pl-11`}

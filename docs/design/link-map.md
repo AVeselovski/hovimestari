@@ -76,6 +76,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | food search results, browse lists, no results           | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
 | food view, per 100 g figures, favourite star            | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
 | own-food sheet, add a food, edit food                   | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
+| typed barcode in the log sheet, the barcode block       | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
 | portion sheet, add a portion                            | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
 | the log sheet's status line                             | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
 | "+", logging again on screen                            | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |

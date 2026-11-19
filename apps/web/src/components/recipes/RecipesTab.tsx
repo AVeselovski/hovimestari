@@ -40,9 +40,10 @@ import { SavedMealsSection } from "./SavedMealsSection";
 //   write edits them, so a change in either place shows in the other.
 // - A food row opens its sheet at once on the food's cached detail when it
 //   is fresh, and offline on any cached detail. Otherwise it reads the
-//   detail first, and the row shows it is busy meanwhile. Any other open while that read is out wins, and the read's
-//   answer is dropped, so one sheet opens, the last one asked for. A failed
-//   read shows as a toast, since no sheet is open.
+//   detail first, and the row shows it is busy meanwhile. Any other open
+//   while that read is out wins, and the read's answer is dropped, so one
+//   sheet opens, the last one asked for. A failed read shows as a toast,
+//   since no sheet is open.
 // - Writes wait while the app asks the server for today, as on the Day tab.
 // - After a delete, focus goes to the next row of that list, else the row
 //   before, else that list's action at the top.

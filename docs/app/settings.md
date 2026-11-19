@@ -79,6 +79,8 @@ On a launch with no server in reach and no session confirmed yet, the Sign-in me
 
 The last panel credits the food data: "Food composition data comes from Fineli, the Finnish food composition database of the Finnish Institute for Health and Welfare (THL). It is used under the Creative Commons Attribution 4.0 licence. Hovimestari converts its energy values from kilojoules to kilocalories. Hovimestari is not produced or endorsed by THL." **Fineli** links to Fineli's site and **Creative Commons Attribution 4.0** to the licence, each in a new tab. Its terms come from [Fineli's licence](../features/foods.md#fineli). Every Fineli food's detail in [the log sheet](log-sheet.md#a-food) links here.
 
+A second paragraph credits the products looked up by barcode: "Product data comes from Open Food Facts, available under the Open Database License. Hovimestari is not produced or endorsed by Open Food Facts." **Open Food Facts** links to openfoodfacts.org and **Open Database License** to the licence, each in a new tab. A screen reader hears "(opens in a new tab)" after each of the four links. Its terms come from [Open Food Facts' licence](../features/foods.md#open-food-facts). Every Open Food Facts food's detail links here too.
+
 ### On a phone
 
 The panels fill the width, and every button is a full-width 48 pixel target. Each targets row is at least 44 pixels tall. On a phone narrower than 372 pixels, each theme segment's icon sits above its label, so all three fit. The sheets slide up from the bottom with a drag handle, and their two buttons sit side by side at the bottom, above the keyboard while one is up. [The app shell](shell.md#sheets-and-dialogs) says how every sheet behaves.
@@ -106,6 +108,6 @@ Each account action calls the backend: `PUT /users/me/password`, `POST /auth/lin
 ## Features on this page
 
 - [Targets](../features/targets.md): the ranges, dated changes, which days a change covers, and removing one.
-- [Foods](../features/foods.md): the food-name language and the credit for Fineli's data.
+- [Foods](../features/foods.md): the food-name language and the credit for Fineli's and Open Food Facts' data.
 - [Appearance](../features/appearance.md): what the theme choice does and where it is kept.
 - [Authentication](../features/authentication.md): the sign-in methods, changing the password, signing out everywhere, linking Google and deleting the account.

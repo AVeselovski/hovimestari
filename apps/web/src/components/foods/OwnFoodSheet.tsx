@@ -13,26 +13,31 @@ import { afterOwnFoodSaved } from "@/lib/invalidation";
 import type { FoodDetail } from "@hovimestari/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useId, useState, type ReactElement } from "react";
 import {
-  emptyOwnFood,
   markedFields,
   ownFoodFieldOf,
-  ownFoodValuesOf,
   parseOwnFood,
+  savedBaselineOf,
   sharesSumLine,
+  startOf,
   type FieldError,
   type OwnFoodErrors,
   type OwnFoodField,
+  type OwnFoodStart,
 } from "./ownFoodForm";
 import { useOwnFoodDelete } from "./useOwnFoodDelete";
 
 // ---------------------------------------------------------------------------
 // OwnFoodSheet: add or edit the user's own food. A name, the four values per
 // 100 g copied from a label, and an optional barcode. A new food's fields
-// open empty with no placeholder (its name may come from the search typed),
-// an edit's with what was saved. Stacked on the food sheet. Editing adds
-// Delete, which asks first.
+// open empty with no placeholder, or with its start: the name typed in the
+// search, or what a barcode lookup or a kept product brought back. A start
+// from Open Food Facts adds a line that asks to check each value.
+// An edit's open with what was saved. A value left as it opened saves as the
+// figure it came from, under the same checks as a typed one. Stacked on the
+// food sheet, or on its own on the Recipes tab. Editing adds Delete, which
+// asks first.
 //
 // It stands tall, so its top and Save hold still. Every field keeps two
 // lines of room under it, the longest line it can show at 320 pixels wide,
@@ -42,11 +47,12 @@ import { useOwnFoodDelete } from "./useOwnFoodDelete";
 // Carbohydrates and Fat, which all read that one line.
 // ---------------------------------------------------------------------------
 
-export interface OwnFoodSheetProps extends FormSheetCallerProps {
-  /** The food to edit. Left out, the sheet adds one. */
-  food?: FoodDetail;
-  /** A new food's name, as the search typed it. */
-  initialName?: string;
+/** What the sheet opens on: a food to edit, or what a new one starts from, if anything. */
+export type OwnFoodTarget = { food: FoodDetail; start?: never } | { food?: undefined; start?: OwnFoodStart };
+
+export type OwnFoodSheetProps = FormSheetCallerProps & OwnFoodTarget & OwnFoodSheetCallbacks;
+
+interface OwnFoodSheetCallbacks {
   /** The save worked: the food as the server answered it. Called before `onSaved`. */
   onSavedFood?: (food: FoodDetail) => void;
   /**
@@ -95,7 +101,7 @@ export function OwnFoodSheet({
   onClose,
   onSaved,
   food,
-  initialName = "",
+  start,
   onSavedFood,
   onDeleted,
   focusAfterDelete,
@@ -108,8 +114,10 @@ export function OwnFoodSheet({
   const id = useId();
   const fieldId = (field: OwnFoodField) => `${id}-${field}`;
 
-  const saved = useMemo(() => (food ? { values: ownFoodValuesOf(food), per100g: food.per100g } : undefined), [food]);
-  const [values, setValues] = useState(() => saved?.values ?? emptyOwnFood(initialName));
+  // What the form opened on. Fixed for the sheet's open: the host keys the sheet per open.
+  const [baseline] = useState(() => (food ? savedBaselineOf(food) : startOf(start)));
+  const checkProduct = start?.fromProduct === true;
+  const [values, setValues] = useState(() => baseline.values);
   const [fieldErrors, setFieldErrors] = useState<OwnFoodErrors>({});
   const [formError, setFormError] = useState<FormFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -140,7 +148,7 @@ export function OwnFoodSheet({
 
   async function handleSubmit(): Promise<void> {
     setFormError(null);
-    const parsed = parseOwnFood(values, saved);
+    const parsed = parseOwnFood(values, baseline);
     if (!parsed.ok) {
       refuse(parsed.errors);
       return;
@@ -204,11 +212,15 @@ export function OwnFoodSheet({
             error={lineOf(fieldErrors.name)}
             autoFocus={autoFocus}
           />
-          <fieldset aria-describedby={`${id}-hint`} className={`${sectionStart} min-w-0 border-0 p-0`}>
+          <fieldset
+            aria-describedby={checkProduct ? `${id}-hint ${id}-note` : `${id}-hint`}
+            className={`${sectionStart} min-w-0 border-0 p-0`}
+          >
             <legend className={`${sectionTitle} p-0`}>{t("per100g")}</legend>
-            <p id={`${id}-hint`} className={`${fieldHintClass} mt-1 mb-3`}>
-              {t("hint")}
-            </p>
+            <div className={`${fieldHintClass} mt-1 mb-3 space-y-1`}>
+              <p id={`${id}-hint`}>{t("hint")}</p>
+              {checkProduct && <p id={`${id}-note`}>{t("checkProduct")}</p>}
+            </div>
             <div className="space-y-2">
               {VALUE_ROWS.map(({ field, unit }) => (
                 <DecimalField
