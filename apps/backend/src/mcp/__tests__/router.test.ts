@@ -34,6 +34,7 @@ const { APP_RULES, WRITE_RULES } = await import("../appRules.js");
 const { signAccessToken } = await import("../../lib/jwt.js");
 const { AUTH_FAILURE_LIMIT } = await import("../router.js");
 const { READ_TOOLS } = await import("../tools/index.js");
+const { WRITE_TOOLS } = await import("../tools/writes/index.js");
 
 const initialize = {
   jsonrpc: "2.0",
@@ -280,12 +281,46 @@ describe("/mcp through the MCP client", () => {
     await client.close();
   });
 
-  it("lists the same tools to a writing key while writing is on: no write tool exists yet", async () => {
+  it.each(["legacy", "modern"] as const)(
+    "lists the read tools and then the write tools to a writing key while writing is on (%s era)",
+    async (era) => {
+      env.MCP_WRITES_ENABLED = true;
+      const client = await connect(server.url, WRITE_KEY, era);
+      const { tools } = await client.listTools();
+      expect(tools.map((t) => t.name)).toEqual([...READ_TOOLS, ...WRITE_TOOLS].map((t) => t.name));
+      expect(tools).toHaveLength(20);
+      await client.close();
+    },
+  );
+
+  it("marks every write tool as a write, idempotent by its request key, destructive only where it may change or remove", async () => {
     env.MCP_WRITES_ENABLED = true;
     const client = await connect(server.url, WRITE_KEY);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(READ_TOOLS.map((t) => t.name));
+    const writes = tools.filter((t) => WRITE_TOOLS.some((w) => w.name === t.name));
+    expect(writes).toHaveLength(8);
+    const destructive = ["update_entry", "set_entries_status", "remove_entries"];
+    for (const tool of writes) {
+      expect(tool.annotations).toEqual({
+        readOnlyHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+        destructiveHint: destructive.includes(tool.name),
+      });
+      expect(tool.inputSchema.required).toContain("requestKey");
+      expect(Object.keys(tool.inputSchema.properties ?? {}).join(" ")).not.toMatch(/user/i);
+    }
     await client.close();
+  });
+
+  it("never lists a write tool to a read key, whatever the switch says", async () => {
+    for (const on of [false, true]) {
+      env.MCP_WRITES_ENABLED = on;
+      const client = await connect(server.url, READ_KEY);
+      const { tools } = await client.listTools();
+      expect(tools.map((t) => t.name)).toEqual(READ_TOOLS.map((t) => t.name));
+      await client.close();
+    }
   });
 
   it("marks every tool read-only and takes no user id as input", async () => {

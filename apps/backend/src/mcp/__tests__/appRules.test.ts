@@ -5,6 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { APP_RULES, APP_RULES_SOURCES, appRulesFor, WRITE_RULES } from "../appRules.js";
 import { READ_TOOLS } from "../tools/index.js";
+import { WRITE_TOOLS } from "../tools/writes/index.js";
 
 // Lifted from finanssiappisV2, with Hovimestari's phrases. The app rules are
 // hand-written from docs/features/*.md (design d.6): a base text every key
@@ -30,13 +31,6 @@ const FIELD_VALUES: readonly string[] = FOOD_SOURCES.filter((source) => source.i
 
 const DISCLAIMER = "Nothing the app returns is nutrition or medical advice.";
 const ADVICE_WORDS = /you should|recommend|advice|healthy|too much|too little|on track/;
-
-/**
- * The write tools the write rules name. No write tool is registered yet:
- * the slice that adds the write tools reads these names from their registry
- * instead, so a new tool is covered without editing this test.
- */
-const WRITE_TOOLS_NAMED = ["log_estimate", "set_entries_status", "update_entry", "create_own_food"];
 
 describe("APP_RULES", () => {
   it("has a stamp for exactly the feature docs that exist and the catalog lists", () => {
@@ -89,11 +83,13 @@ describe("APP_RULES", () => {
     expect(saidOfReadOnly).toHaveLength(1);
   });
 
-  it("names every write tool in the write rules only", () => {
-    for (const tool of WRITE_TOOLS_NAMED) {
-      expect(WRITE_RULES).toContain(tool);
-      expect(APP_RULES).not.toContain(tool);
-    }
+  it("names no write tool in the rules a read key reads", () => {
+    const writeNames = WRITE_TOOLS.map((tool) => tool.name);
+    expect(writeNames.filter((name) => APP_RULES.includes(name))).toEqual([]);
+    // The write rules do lean on write tools, read from the registry.
+    expect(snakeCaseWords(WRITE_RULES).filter((word) => writeNames.includes(word))).toEqual(
+      expect.arrayContaining(["log_estimate", "set_entries_status", "update_entry"]),
+    );
   });
 
   it("names only tools a read key lists", () => {
@@ -105,12 +101,32 @@ describe("APP_RULES", () => {
     expect(FIELD_VALUES.filter((value) => listed.includes(value))).toEqual([]);
   });
 
-  // From slice 4a: the same case for appRulesFor(true), every snake_case word of
-  // WRITE_RULES checked against the write registry beside READ_TOOLS.
+  it("names only tools a writing key lists", () => {
+    const named = snakeCaseWords(appRulesFor(true));
+    const listed = [...READ_TOOLS, ...WRITE_TOOLS].map((tool) => tool.name);
+    expect(named.filter((word) => !listed.includes(word) && !FIELD_VALUES.includes(word))).toEqual([]);
+    expect(named).toEqual(expect.arrayContaining(["log_estimate", "set_entries_status", "update_entry"]));
+  });
+
+  it("promises nothing a writing key cannot do yet", () => {
+    // Foods, saved meals, targets and the record's screen come with their own tools and screen.
+    for (const phrase of ["own foods", "favourite", "archive", "Set them", "read it in Settings"]) {
+      expect(WRITE_RULES).not.toContain(phrase);
+    }
+    expect(WRITE_RULES).toContain("This connection reads them and does not change them.");
+  });
 
   it("names no deletion tool while no tool can delete", () => {
     expect(`${APP_RULES}${WRITE_RULES}`).not.toContain("request_deletion");
     expect(WRITE_RULES).toContain("This connection cannot delete foods or saved meals.");
+  });
+
+  it("never reads as leave to change anything the person did not ask for", () => {
+    // Removing entries skips a deletion request, not the person's yes.
+    for (const phrase of ["needs no approval", "without asking", "no need to ask"]) {
+      expect(WRITE_RULES.toLowerCase()).not.toContain(phrase);
+    }
+    expect(WRITE_RULES).toContain("Like every change, remove entries only when the person has asked for it.");
   });
 
   it("gives a read key the estimate rule too", () => {

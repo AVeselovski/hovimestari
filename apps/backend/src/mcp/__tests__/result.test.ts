@@ -10,9 +10,9 @@ import { CONNECTION_ID, CONNECTION_NAME, TIME_ZONE, USER_ID } from "./harness.js
 // never an argument or a name.
 
 const ctx: ToolContext = {
-  read: {
+  service: {
     userId: USER_ID,
-    db: {} as ToolContext["read"]["db"],
+    db: {} as ToolContext["service"]["db"],
     now: new Date(0),
     timeZone: TIME_ZONE,
     today: "2026-11-19",
