@@ -14,6 +14,7 @@ function makeApp(log: (line: string) => void, onSlow: () => void = () => {}) {
   app.get("/livez", (_req, res) => res.sendStatus(200));
   app.get("/health", (_req, res) => res.sendStatus(200));
   app.get("/api/v1/recipes/:recipeId", (_req, res) => res.status(200).json({}));
+  app.post("/api/v1/foods/lookup", express.json(), (_req, res) => res.status(200).json({}));
   app.get("/slow", () => {
     // Never answers: the client gives up first.
     onSlow();
@@ -43,6 +44,16 @@ describe("requestLog", () => {
 
     expect(await line).toMatch(/^\[req\] GET \/api\/v1\/recipes\/:id 200 \d+ms fly=01JREQ$/);
     expect(await line).not.toContain(RECIPE_ID);
+  });
+
+  it("logs a barcode lookup with no barcode, since it travels in the body", async () => {
+    const log = jest.fn<(line: string) => void>();
+    const line = nextLine(log);
+
+    await request(makeApp(log)).post("/api/v1/foods/lookup?barcode=6408430000258").send({ barcode: "6408430000258" });
+
+    expect(await line).toMatch(/^\[req\] POST \/api\/v1\/foods\/lookup 200 \d+ms$/);
+    expect(await line).not.toMatch(/[0-9]{8,}/);
   });
 
   it("omits the Fly request id when the header is absent", async () => {
