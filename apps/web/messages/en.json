@@ -293,7 +293,13 @@
   "day": {
     "launcher": {
       "log": "Log food",
-      "plan": "Add to plan"
+      "plan": "Add to plan",
+      "week": "Week"
+    },
+    "reading": {
+      "eaten": "Eaten",
+      "planned": "Planned",
+      "energy": "Calories"
     },
     "dateBar": {
       "today": "Today",
@@ -304,9 +310,6 @@
       "choose": "Choose a date, {label}"
     },
     "summary": {
-      "eaten": "Eaten",
-      "withPlan": "With plan",
-      "energy": "Calories",
       "protein": "Protein",
       "carbs": "Carbs",
       "carbsSpoken": "Carbohydrates",
@@ -356,6 +359,26 @@
       "failed": "This day did not load.",
       "retry": "Try again",
       "offline": "This day needs a connection."
+    },
+    "week": {
+      "to": " to ",
+      "previous": "Previous week",
+      "next": "Next week",
+      "previousShort": "Previous",
+      "nextShort": "Next",
+      "protein": "Protein (g)",
+      "today": "Today",
+      "empty": "No entries",
+      "failed": "This week did not load.",
+      "offline": "This week needs a connection.",
+      "retry": "Try again",
+      "spoken": {
+        "today": "Today, {date}",
+        "within": "in the range",
+        "below": "below the range",
+        "floor": "below the floor",
+        "above": "above the range"
+      }
     }
   },
   "entries": {

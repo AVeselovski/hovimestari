@@ -9,12 +9,13 @@ import { formatTarget } from "@/lib/targetFormat";
 import type { Day, DayReading, RangePosition } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import type { ReactElement, ReactNode } from "react";
-import { Gauge, type GaugeMacro } from "./Gauge";
+import { Gauge, GaugeFrame, type GaugeMacro } from "./Gauge";
 import type { NoTargets } from "./noTargets";
 
 // ---------------------------------------------------------------------------
-// DaySummary: a day's two readings, Eaten and With plan, side by side: Eaten
-// on the left, With plan on the right. No visible heads name the columns. A
+// DaySummary: a day's two readings, Eaten and Planned, side by side: Eaten
+// on the left, Planned on the right. Planned is everything on the day, eaten
+// or still planned. No visible heads name the columns. A
 // screen reader hears each figure's reading (`sr-only` terms), and the two
 // columns never merge, also when they are equal. For calories and protein a
 // gauge and, under it, each reading's figure and its distance from the
@@ -142,6 +143,7 @@ interface MacroBlockProps {
 
 function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactElement {
   const t = useTranslations("day.summary");
+  const names = useTranslations("day.reading");
   const labelId = `summary-${macro}`;
   const range = day?.targets ? (macro === "energy" ? day.targets.energyKcal : day.targets.proteinG) : null;
   const value = (r: DayReading) => (macro === "energy" ? r.figures.energyKcal : r.figures.proteinG);
@@ -156,7 +158,7 @@ function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactEl
     const copy = position ? distanceCopy(t, macro, position.position, formatTarget(position.distance)) : null;
     return (
       <div data-reading={which}>
-        <dt className="sr-only">{which === "eaten" ? t("eaten") : t("withPlan")}</dt>
+        <dt className="sr-only">{which === "eaten" ? names("eaten") : names("planned")}</dt>
         <dd>
           <BigFigure
             value={reading ? format(value(reading)) : null}
@@ -180,7 +182,7 @@ function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactEl
     <section aria-labelledby={labelId} data-summary-macro={macro}>
       <div className={`${dayHeadLine} justify-between gap-3`}>
         <h2 id={labelId} className="section-label">
-          {macro === "energy" ? t("energy") : t("protein")}
+          {macro === "energy" ? names("energy") : t("protein")}
         </h2>
         {/* The figures and the unit in the monospaced face, "to" in the body face, as in Settings.
             Kept while empty, for the line's height, and hidden from assistive technology then. */}
@@ -207,15 +209,6 @@ function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactEl
         {cell("withPlan")}
       </dl>
     </section>
-  );
-}
-
-/** The gauge's track alone, with no band and no ticks, the same height as a gauge: the loading frame. */
-function GaugeFrame(): ReactElement {
-  return (
-    <div aria-hidden="true" data-gauge="frame" className="py-1">
-      <div className="h-3.5 rounded-pill bg-gauge-track md:h-4" />
-    </div>
   );
 }
 
@@ -254,11 +247,12 @@ function TargetsRow({ noTargets, onSetTargets }: { noTargets: NoTargets; onSetTa
 /**
  * Carbohydrates and fat: no target, so no gauge. A two-row table in the
  * summary's two columns. In the Eaten column the label holds a fixed-width
- * lead and the figure follows it, left-aligned. In the With plan column the
+ * lead and the figure follows it, left-aligned. In the Planned column the
  * figure starts at the column's start, under the big figure above it.
  */
 function SmallMacros({ day }: { day: Day | null }): ReactElement {
   const t = useTranslations("day.summary");
+  const names = useTranslations("day.reading");
   const rows = [
     { macro: "carbs", label: t("carbs"), spoken: t("carbsSpoken"), value: (r: DayReading) => r.figures.carbsG },
     { macro: "fat", label: t("fat"), spoken: t("fat"), value: (r: DayReading) => r.figures.fatG },
@@ -280,7 +274,7 @@ function SmallMacros({ day }: { day: Day | null }): ReactElement {
                 data-reading={which}
                 className={`row-start-1 min-h-5 justify-self-start font-mono text-base leading-5 text-ink tabular-nums ${which === "eaten" ? "col-start-1 ml-16" : "col-start-2"}`}
               >
-                <span className="sr-only">{which === "eaten" ? t("eaten") : t("withPlan")} </span>
+                <span className="sr-only">{which === "eaten" ? names("eaten") : names("planned")} </span>
                 {reading && (
                   <>
                     {reading.includesEstimate && (

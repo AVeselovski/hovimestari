@@ -61,12 +61,17 @@
   /* The day gauge (components/day/Gauge.tsx). The track and the target band
      are neutral, from the panel and the muted ink, never a macro hue, so the
      band never reads as a verdict. The plan tints fill the planned segment
-     inside a border of the full hue. Nothing in the gauge changes colour past
-     a bound. */
+     inside a border of the full hue, a clear step lighter than the band in
+     both themes, so a planned stretch reads apart from the band by its fill
+     and not by its border alone. Nothing in the gauge changes colour past a
+     bound. The track sits on the page. A gauge on a sheet's surface takes
+     the on-surface track, the page's colour, so it keeps the same step from
+     its ground. */
   --color-gauge-track: #efe6d2;
+  --color-gauge-track-on-surface: #f6efe1;
   --color-gauge-range: #bfb59d;
   --color-energy-plan: #e6d3b4;
-  --color-protein-plan: #bac6c9;
+  --color-protein-plan: #ccd6d9;
 
   --color-transparent: transparent;
   --color-current: currentColor;
@@ -122,9 +127,10 @@
   --color-carbs: #b893c4;
   --color-fat: #6fbfb3;
   --color-gauge-track: #1a251e;
+  --color-gauge-track-on-surface: #121a15;
   --color-gauge-range: #41463a;
-  --color-energy-plan: #504425;
-  --color-protein-plan: #334750;
+  --color-energy-plan: #6c5933;
+  --color-protein-plan: #485a68;
 }
 
 :root {

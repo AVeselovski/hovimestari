@@ -95,6 +95,68 @@ export function dayLabel(date: string, today: string): "today" | "yesterday" | "
 }
 
 /**
+ * A week row's date, in this device's language: the weekday short ("Mon"),
+ * the day of the month ("16"), and the whole date for a screen reader
+ * ("Monday 16 November" on a British phone, "Monday, November 16" on an
+ * American one). Rendering, not copy.
+ */
+export function formatWeekRowDate(date: string, locale?: string): { weekday: string; day: string; spoken: string } {
+  const at = utcMidnight(date);
+  if (!at) return { weekday: "", day: date, spoken: date };
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(at);
+  return {
+    weekday: part({ weekday: "short" }),
+    day: part({ day: "numeric" }),
+    spoken: part({ weekday: "long", day: "numeric", month: "long" }),
+  };
+}
+
+/** A dash or a tilde between the two ends of a range, with the spaces around it. */
+const RANGE_DASH = /\s*[‐-―−~～〜-]\s*/u;
+
+/**
+ * A week for a title, in this device's language and order: "16 to 22 Nov" on
+ * a British phone, "Nov 16 to 22" on an American one, "30 Nov to 6 Dec"
+ * across two months. A week outside `today`'s year shows its year as the
+ * locale puts it: once when both ends share it ("4 to 10 Jan 2027"), on both
+ * ends when they do not ("28 Dec 2026 to 3 Jan 2027"). The dash or tilde the
+ * locale puts between the two ends becomes `separator`, the catalog's " to ",
+ * so no dash shows on screen and the locale's own order and marks stay
+ * ("11월 16일 to 22일" in Korean). A locale that puts a word there keeps its
+ * word. Rendering, not copy.
+ */
+export function formatWeekRange(from: string, to: string, today: string, separator: string, locale?: string): string {
+  const start = utcMidnight(from);
+  const end = utcMidnight(to);
+  if (!start || !end) return `${from}${separator}${to}`;
+  const withYear = from.slice(0, 4) !== today.slice(0, 4) || to.slice(0, 4) !== today.slice(0, 4);
+  const format = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+    ...(withYear ? { year: "numeric" } : {}),
+    timeZone: "UTC",
+  });
+  if (typeof format.formatRangeToParts !== "function")
+    return `${format.format(start)}${separator}${format.format(end)}`;
+  const parts = format.formatRangeToParts(start, end);
+  const lastStart = parts.findLastIndex((p) => p.source === "startRange");
+  const firstEnd = parts.findIndex((p) => p.source === "endRange");
+  if (lastStart < 0 || firstEnd < 0 || firstEnd < lastStart) {
+    return `${format.format(start)}${separator}${format.format(end)}`;
+  }
+  // The shared text between the two ends holds the mark: "–", " – ", ".–" or "일~".
+  // Only the mark is replaced. Text around it stays, and a word with no mark stays whole.
+  const between = parts
+    .slice(lastStart + 1, firstEnd)
+    .map((p) => p.value)
+    .join("");
+  const joined = between.replace(RANGE_DASH, separator);
+  const text = (slice: typeof parts) => slice.map((p) => p.value).join("");
+  return `${text(parts.slice(0, lastStart + 1))}${joined}${text(parts.slice(firstEnd))}`;
+}
+
+/**
  * `date` short, for a line that has one line of room: "Tue 17 Nov" on a
  * British phone, "ti 17. marrask." on a Finnish one. The year follows only
  * when it is not `today`'s ("Mon 17 Nov 2025"), so a far date never reads
