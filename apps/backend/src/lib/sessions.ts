@@ -91,7 +91,7 @@ async function grant(tx: Db, user: UserRow, familyId: string): Promise<SessionGr
     tokenHash: hashToken(refreshToken),
     expiresAt: sql`now() + ${lifetime}::interval`,
   });
-  return { accessToken: signAccessToken({ sub: user.id }), refreshToken, user: meOf(user) };
+  return { accessToken: signAccessToken({ sub: user.id, fam: familyId }), refreshToken, user: meOf(user) };
 }
 
 function proofHolds(user: UserRow, proof: SignInProof): boolean {
@@ -171,6 +171,23 @@ async function reuseIfFamilyLives(tx: Tx, userId: string, fam: string | undefine
   if (fam && isUuid(fam) && (await familyLives(tx, userId, fam))) {
     await onRefreshReuse(tx, { userId, familyId: fam });
   }
+}
+
+/**
+ * Whether the session `familyId` names is live: the user has an unexpired
+ * row in it. A sign-out, a sign-out everywhere, a password change and a reset
+ * delete the rows, and a renewal keeps the family. Call it under the user
+ * lock, so no session can end between this check and what the caller writes.
+ * A family that is not a UUID is not live.
+ */
+export async function sessionLives(tx: Tx, userId: string, familyId: string | undefined): Promise<boolean> {
+  if (!familyId || !isUuid(familyId)) return false;
+  const rows = await tx
+    .select({ id: refreshTokens.id })
+    .from(refreshTokens)
+    .where(and(eq(refreshTokens.userId, userId), eq(refreshTokens.familyId, familyId), unexpired))
+    .limit(1);
+  return rows.length > 0;
 }
 
 /** Whether the user still has any row in `familyId`. */

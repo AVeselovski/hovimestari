@@ -293,7 +293,16 @@
     "entry_id_taken": "This could not be added. Try again.",
     "saved_meal_not_found": "This saved meal is no longer available.",
     "saved_meal_id_taken": "This could not be saved. Try again.",
-    "meal_source_too_long": "Use at most 40 characters."
+    "meal_source_too_long": "Use at most 40 characters.",
+    "connection_name_required": "Give the connection a name.",
+    "connection_name_too_long": "Use at most 64 characters.",
+    "connection_name_invalid": "Use only characters that show on screen.",
+    "connection_expiry_invalid": "Choose 7, 30 or 90 days, or a year.",
+    "connection_write_expiry_too_long": "A key that can make changes lasts at most 90 days.",
+    "connection_limit": "You have 10 working keys. Remove one before you make another.",
+    "connection_not_found": "This connection is already gone.",
+    "connect_off": "Connecting an assistant is switched off for now.",
+    "writes_off": "Keys that can make changes are switched off for now."
   },
   "day": {
     "launcher": {

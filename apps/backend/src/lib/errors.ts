@@ -107,6 +107,15 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   saved_meal_not_found: "This saved meal is no longer available.",
   saved_meal_id_taken: "This saved meal id is already in use.",
   meal_source_too_long: "Use at most 40 characters.",
+  connection_name_required: "Give the connection a name.",
+  connection_name_too_long: "Use at most 64 characters.",
+  connection_name_invalid: "Use only characters that show on screen.",
+  connection_expiry_invalid: "Choose 7, 30, 90 or 365 days.",
+  connection_write_expiry_too_long: "A key that can make changes lasts at most 90 days.",
+  connection_limit: "You already have 10 live connection keys. Revoke one first.",
+  connection_not_found: "This connection does not exist or is already revoked.",
+  connect_off: "Connecting an AI assistant is switched off on this server.",
+  writes_off: "Keys that can make changes are switched off on this server.",
 };
 
 /** An AppError for `code`, with the code's fixed message, and when to try again if that is known. */

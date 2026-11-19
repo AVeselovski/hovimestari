@@ -1,3 +1,4 @@
+export * from "./assistantConnections.js";
 export * from "./entries.js";
 export * from "./foods.js";
 export * from "./password-reset-tokens.js";

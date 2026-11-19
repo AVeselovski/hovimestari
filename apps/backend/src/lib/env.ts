@@ -3,6 +3,20 @@ import { z } from "zod";
 /** An optional value, where an empty one (`KEY=` in a .env file) counts as unset. */
 const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
 
+/**
+ * An operator switch, "true" or "false". Unset or empty (`KEY=` in a .env
+ * file) takes `fallback`. Anything else fails at boot, so a typo never turns a
+ * switch the wrong way.
+ */
+const switchFlag = (fallback: "true" | "false") =>
+  z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z
+      .enum(["true", "false"])
+      .default(fallback)
+      .transform((v) => v === "true"),
+  );
+
 /** The Google values sign-in with Google needs. All four or none: Google is off when none is set. */
 export const GOOGLE_KEYS = [
   "GOOGLE_CLIENT_ID",
@@ -39,6 +53,10 @@ export const EnvSchema = z
     OFF_BASE_URL: optional(z.url()),
     /** The User-Agent of barcode lookups. Defaults to `Hovimestari/<version>`. Not a secret. */
     OFF_USER_AGENT: optional(z.string().trim().min(1).max(200)),
+    /** Connected AI: users may make connection keys. Off refuses every new key. */
+    MCP_ENABLED: switchFlag("true"),
+    /** Keys that can make changes. Off refuses a new writing key. Needs MCP_ENABLED too. */
+    MCP_WRITES_ENABLED: switchFlag("false"),
   })
   .superRefine((env, ctx) => {
     const setGoogle = GOOGLE_KEYS.filter((key) => env[key] !== undefined);
