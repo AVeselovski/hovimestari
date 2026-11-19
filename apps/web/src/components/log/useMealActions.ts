@@ -19,27 +19,39 @@ import { useCallback, useRef, useState } from "react";
 //   Writes wait while the app asks the server for today (`held`).
 // - The answer moves the meal out of the list it was in, in place, and the
 //   lists are read again (`afterSavedMealArchived`).
-// - A failure says so on the sheet's status line: "You are offline." when
-//   nothing was sent, "Could not confirm. Try again." when it may have landed
-//   (a second press sends the same, harmless request), else the code's copy.
-//   A meal that is gone goes to `onGone`.
+// - Each press answers how it went (`ArchiveOutcome`): the meal as it now
+//   is, or the line a failure shows. "You are offline." when nothing was
+//   sent, "Could not confirm. Try again." when it may have landed (a second
+//   press sends the same, harmless request), else the code's copy. The
+//   caller puts that line where the press was made, such as the log sheet's
+//   status line or the edit sheet's error line. A meal that is gone goes to
+//   `onGone`, and a press refused while one runs or while writes wait shows
+//   nothing.
 // ---------------------------------------------------------------------------
+
+/** How an archive or restore went: the meal as it now is, or the line to show, null when there is none. */
+export type ArchiveOutcome = { ok: true; meal: SavedMeal } | { ok: false; failure: string | null };
 
 export interface MealActions {
   /** The id of the meal whose archive or restore runs, or null. */
   busyId: string | null;
-  /** Archives or restores `meal`. Answers the meal as it now is, or null when nothing changed. */
-  setArchived: (meal: SavedMeal, archived: boolean) => Promise<SavedMeal | null>;
+  /** Archives or restores `meal`, and answers how it went. */
+  setArchived: (meal: SavedMeal, archived: boolean) => Promise<ArchiveOutcome>;
 }
 
 export interface UseMealActionsOptions {
   held: boolean;
-  /** Puts a failure on the sheet's status line. */
-  sayFailure: (text: string) => void;
   onGone: (id: string) => void;
 }
 
-export function useMealActions({ held, sayFailure, onGone }: UseMealActionsOptions): MealActions {
+/** Shows an outcome's failure line through `say`, and answers the meal when it went through. */
+export function sayIfFailed(outcome: ArchiveOutcome, say: (text: string) => void): SavedMeal | null {
+  if (outcome.ok) return outcome.meal;
+  if (outcome.failure !== null) say(outcome.failure);
+  return null;
+}
+
+export function useMealActions({ held, onGone }: UseMealActionsOptions): MealActions {
   const failureLine = useFailureLine("status");
   const client = useQueryClient();
   const offline = useKnownOffline();
@@ -47,28 +59,25 @@ export function useMealActions({ held, sayFailure, onGone }: UseMealActionsOptio
   const busyRef = useRef(false);
 
   const setArchived = useCallback(
-    async (meal: SavedMeal, archived: boolean): Promise<SavedMeal | null> => {
-      if (busyRef.current || held) return null;
-      if (offline) {
-        sayFailure(failureLine(new OfflineError()));
-        return null;
-      }
+    async (meal: SavedMeal, archived: boolean): Promise<ArchiveOutcome> => {
+      if (busyRef.current || held) return { ok: false, failure: null };
+      if (offline) return { ok: false, failure: failureLine(new OfflineError()) };
       busyRef.current = true;
       setBusyId(meal.id);
       try {
         await setSavedMealArchived(meal.id, archived);
         void afterSavedMealArchived(client, meal.id, archived);
-        return { ...meal, archived };
+        return { ok: true, meal: { ...meal, archived } };
       } catch (err) {
-        if (getErrorCode(err) === "saved_meal_not_found") onGone(meal.id);
-        else sayFailure(failureLine(err));
-        return null;
+        if (getErrorCode(err) !== "saved_meal_not_found") return { ok: false, failure: failureLine(err) };
+        onGone(meal.id);
+        return { ok: false, failure: null };
       } finally {
         busyRef.current = false;
         setBusyId(null);
       }
     },
-    [client, failureLine, held, offline, onGone, sayFailure],
+    [client, failureLine, held, offline, onGone],
   );
 
   return { busyId, setArchived };

@@ -27,8 +27,12 @@ export function mealFilter(meals: readonly SavedMeal[], query: string, source: s
 
 /** The sources the meals name, each once, in the Finnish order the server sorts names in. */
 export function sourcesOf(meals: readonly SavedMeal[]): string[] {
-  const all = new Set(meals.map((m) => m.source).filter((s): s is string => s !== null));
-  return [...all].sort((a, b) => a.localeCompare(b, "fi"));
+  return sortedSources(meals.map((m) => m.source).filter((s): s is string => s !== null));
+}
+
+/** Sources once each, in the order every list of them takes. */
+export function sortedSources(sources: readonly string[]): string[] {
+  return [...new Set(sources)].sort((a, b) => a.localeCompare(b, "fi"));
 }
 
 /** The chosen source while its chips show and a meal still names it, else null: every meal. */

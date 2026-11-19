@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/Icon";
-import { focusRing } from "@/components/ui/styles";
+import { busyRing, focusRing } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
 import type { MouseEvent, ReactElement } from "react";
 
@@ -68,12 +68,7 @@ export function MarkEatenButton({ kind, name, busy, held, onMark }: MarkEatenBut
       className={`relative flex size-11 shrink-0 items-center justify-center rounded-pill text-ink hover:bg-surface-raised active:bg-surface-raised aria-disabled:cursor-not-allowed ${focusRing}`}
     >
       <Icon name="circle" className="size-7" strokeWidth={1.75} />
-      {busy && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-2 animate-spin rounded-pill border-2 border-transparent border-t-ink motion-reduce:animate-none"
-        />
-      )}
+      {busy && <span aria-hidden="true" className={`absolute inset-2 ${busyRing}`} />}
     </button>
   );
 }

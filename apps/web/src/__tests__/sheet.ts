@@ -181,6 +181,20 @@ export function controlSheetAnimations(): { finish: () => void; restore: () => v
 }
 
 /**
+ * The open sheet whose title is `title`, read from the DOM, or null. A role
+ * query misses a sheet that is open under a stacked one, because Base UI
+ * hides it from assistive tech, so "the sheet closed" checked with
+ * `queryByRole` passes while the sheet is still on screen. This does not.
+ */
+export function openSheet(title: string): HTMLElement | null {
+  return (
+    [...document.querySelectorAll<HTMLElement>('[role="dialog"][data-open]')].find((d) =>
+      [...d.querySelectorAll("h2")].some((h) => h.textContent === title),
+    ) ?? null
+  );
+}
+
+/**
  * Waits until the open `ConfirmDialog`'s confirm button is armed: it takes a
  * press only once its sheet is at rest and a short delay has passed, so the
  * second tap of a double tap on the control that opened it cannot confirm.

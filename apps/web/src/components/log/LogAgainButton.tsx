@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/Icon";
-import { focusRing } from "@/components/ui/styles";
+import { busyRing, focusRing } from "@/components/ui/styles";
 import type { ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
@@ -38,12 +38,7 @@ export function LogAgainButton({ label, busy, unavailable, onPress }: LogAgainBu
       className={`relative flex size-11 shrink-0 items-center justify-center rounded-pill border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface aria-disabled:cursor-not-allowed ${busy ? "" : "aria-disabled:opacity-60"} ${focusRing}`}
     >
       <Icon name="plus" className="size-5" strokeWidth={2} />
-      {busy && (
-        <span
-          aria-hidden="true"
-          className="absolute -inset-px animate-spin rounded-pill border-2 border-transparent border-t-ink motion-reduce:animate-none"
-        />
-      )}
+      {busy && <span aria-hidden="true" className={`absolute -inset-px ${busyRing}`} />}
     </button>
   );
 }

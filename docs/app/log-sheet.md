@@ -1,6 +1,6 @@
 # The log sheet
 
-The one place to log a food, a saved meal or an estimate to a day, find a food, read its figures, and keep the foods and saved meals of your own. It opens from **Log food** at the top of the Day tab, or **Add to plan** on a future day, and covers nearly the whole screen. It logs to the day it opened on. It has four views: the search, a food, a saved meal and the archived meals. Adding or changing a food, a portion or a saved meal, and adding an estimate, opens a sheet on top of it.
+The one place to log a food, a saved meal or an estimate to a day, find a food, read its figures, and keep the foods and saved meals of your own. It opens from **Log food** at the top of the Day tab, or **Add to plan** on a future day, and covers nearly the whole screen. It logs to the day it opened on. It has four views: the search, a food, a saved meal and the archived meals. Adding or changing a food, a portion or a saved meal, and adding an estimate, opens a sheet on top of it. [The Recipes tab](recipes.md) keeps the same saved meals and own foods, from the same lists, so a change in either place shows in the other.
 
 ## In detail
 
@@ -98,6 +98,8 @@ The saved meal sheet is titled "New saved meal", or "Edit saved meal" for an edi
 On a phone they come one under the other, in that order. From `md` a new meal's Eaten or planned sits beside the name, as tall as the name field, with From and its chips across the width under them. An edit has no choice, so its Name and From each take the width, one under the other.
 
 A new meal's **Save and log**, or **Save and add to plan** while Planned is chosen, saves the meal and logs one of it in one request. Both sheets then close together and the line above the tab bar says "Saved Chicken bowl and logged 1 meal." or "Saved Chicken bowl and added it to the plan." with **Remove from day** or **Remove from plan**, which takes the entry off and leaves the meal saved. **Save meal**, on its own row over the buttons on a phone and at the start of their row from `md`, saves the meal without logging it: the sheet closes, the log sheet stays on its lists with the meal in them, and its status line says "Saved Chicken bowl.". A save that could not confirm keeps what was typed. Pressing again makes one meal and logs it at most once, with what is on screen, by [the rule for a save that could not confirm](../features/saved-meals.md#a-save-that-could-not-confirm). An edit's button reads **Save meal**, and a saved edit says "Saved Chicken bowl." on the status line too.
+
+An edit has **Delete** in its footer, over Cancel and Save meal. It asks first, with the same words as **Delete meal**, in a confirmation stacked on the edit sheet. After a delete the edit sheet closes and the log sheet shows the lists, with focus in the search field. The chips under From stay as they opened while the sheet is open, and a new source joins them.
 
 From the Day tab a new delivered meal takes seven taps and five typed values: **Log food**, **New saved meal**, the name, then Protein, Carbohydrates and Fat, and **Save and log**. Calories follows the name by Enter.
 

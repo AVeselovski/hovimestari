@@ -82,4 +82,60 @@ describe("FoodRow", () => {
     expect(row.contains(trailing)).toBe(false);
     expect(trailing.parentElement).toBe(row.parentElement);
   });
+
+  it("leaves Yours off an own food in a list of the user's own foods alone, and keeps the star", () => {
+    const client = registerTestQueryClient(createTestQueryClient());
+    const food = ownFood("Rye bread", { isFavourite: true });
+    const view = render(
+      <ul>
+        <FoodRow food={food} onOpen={jest.fn()} />
+        <FoodRow food={{ ...food, id: "other" }} onOpen={jest.fn()} ownMark={false} busy />
+      </ul>,
+      { wrapper: queryWrapper(client) },
+    );
+    const [marked, plain] = view.container.querySelectorAll<HTMLElement>("[data-food-row-marks]");
+    expect(marked).toHaveTextContent("Yours");
+    expect(plain).not.toHaveTextContent("Yours");
+    expect(plain).toHaveTextContent("Favourite");
+    const [first, second] = screen.getAllByRole("button");
+    expect(first).not.toHaveAttribute("aria-busy");
+    expect(second).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("shows a busy row on screen with a ring in the star's slot, the slot the same, the star still named", () => {
+    const client = registerTestQueryClient(createTestQueryClient());
+    const food = ownFood("Rye bread", { isFavourite: true });
+    const view = render(
+      <ul>
+        <FoodRow food={food} onOpen={jest.fn()} />
+        <FoodRow food={{ ...food, id: "other" }} onOpen={jest.fn()} busy />
+      </ul>,
+      { wrapper: queryWrapper(client) },
+    );
+    const [idle, busy] = view.container.querySelectorAll<HTMLElement>("[data-food-row-marks]");
+    expect(idle.querySelector("[data-row-busy]")).toBeNull();
+    const ring = busy.querySelector<HTMLElement>("[data-row-busy]")!;
+    expect(ring.getAttribute("aria-hidden")).toBe("true");
+    expect(ring.className.split(" ")).toEqual(expect.arrayContaining(["animate-spin", "absolute", "inset-0"]));
+    // The ring sits inside the star's slot, which keeps its classes, so nothing in the row moves.
+    expect(ring.parentElement!.className).toBe(idle.firstElementChild!.className);
+    expect(busy).toHaveTextContent("Favourite");
+    const [, busyButton] = screen.getAllByRole("button");
+    expect(busyButton.className.split(" ")).toContain("bg-surface-raised");
+  });
+
+  it("says what a press does only when the list passes it", () => {
+    const client = registerTestQueryClient(createTestQueryClient());
+    const food = ownFood("Rye bread");
+    render(
+      <ul>
+        <FoodRow food={food} onOpen={jest.fn()} />
+        <FoodRow food={{ ...food, id: "other" }} onOpen={jest.fn()} description="Opens it to edit." />
+      </ul>,
+      { wrapper: queryWrapper(client) },
+    );
+    const [plain, described] = screen.getAllByRole("button");
+    expect(plain).not.toHaveAttribute("aria-description");
+    expect(described).toHaveAttribute("aria-description", "Opens it to edit.");
+  });
 });

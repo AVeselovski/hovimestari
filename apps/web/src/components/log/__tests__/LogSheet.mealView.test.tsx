@@ -1,6 +1,6 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { deferred } from "@/__tests__/helpers/queryClient";
-import { confirmArmed } from "@/__tests__/sheet";
+import { confirmArmed, openSheet } from "@/__tests__/sheet";
 import { renderDay } from "@/components/day/__tests__/harness";
 import { mealEntry } from "@/components/day/__tests__/support";
 import { uuid } from "@/components/foods/__tests__/support";
@@ -242,6 +242,52 @@ describe("The meal view", () => {
     await waitFor(() => expect(deleteSavedMeal).toHaveBeenCalledWith(bowl.id));
     await waitFor(() => expect(searchField()).toHaveFocus());
     expect(rowsOf("Saved meals").join()).not.toContain("Chicken bowl");
+  });
+
+  it("deletes from the edit sheet on the meal view: one DELETE, the edit sheet closed, browsing with focus in the search field", async () => {
+    renderDay();
+    await openLogSheet();
+    await openMeal("Saved meals", "Chicken bowl");
+    fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
+    const edit = await screen.findByRole("dialog", { name: "Edit saved meal" });
+    fireEvent.click(within(edit).getByRole("button", { name: "Delete" }));
+    const confirm = await screen.findByRole("dialog", { name: "Delete Chicken bowl?" });
+    // Stacked on the edit sheet, not on the log sheet: a confirmation over a stacked sheet is raised again.
+    expect(document.querySelectorAll("[data-sheet-backdrop][data-sheet-stacked]")).toHaveLength(2);
+    await confirmArmed();
+    fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
+    // Read from the DOM: a role query misses the edit sheet while the confirmation hides it.
+    await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+    await waitFor(() => expect(searchField()).toHaveFocus());
+    expect(deleteSavedMeal).toHaveBeenCalledTimes(1);
+    expect(deleteSavedMeal).toHaveBeenCalledWith(bowl.id);
+    expect(rowsOf("Saved meals").join()).not.toContain("Chicken bowl");
+  });
+
+  it("takes a meal already deleted on another device as deleted, from the meal view and from the edit sheet", async () => {
+    renderDay();
+    await openLogSheet();
+    for (const [meal, fromSheet] of [
+      [bowl, false],
+      [soup, true],
+    ] as const) {
+      await openMeal("Saved meals", meal.name);
+      if (fromSheet) {
+        fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
+        const edit = await screen.findByRole("dialog", { name: "Edit saved meal" });
+        fireEvent.click(within(edit).getByRole("button", { name: "Delete" }));
+      } else {
+        fireEvent.click(within(sheet()).getByRole("button", { name: "Delete meal" }));
+      }
+      const confirm = await screen.findByRole("dialog", { name: `Delete ${meal.name}?` });
+      world.server.meals.delete(meal.id);
+      await confirmArmed();
+      fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
+      await waitFor(() => expect(openSheet(`Delete ${meal.name}?`)).toBeNull());
+      await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+      await waitFor(() => expect(searchField()).toHaveFocus());
+      expect(rowsOf("Saved meals").join()).not.toContain(meal.name);
+    }
   });
 
   it("goes back to browsing with its notice when an edit finds the meal gone", async () => {

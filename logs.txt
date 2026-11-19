@@ -427,3 +427,18 @@
 [reviewer STARTED] (2026-11-19T01:35:10Z) delta review of barcode slice 1's fix batch
 [reviewer DONE] (2026-11-19T01:45:58Z) delta review of barcode slice 1's fixes: approve after one; a storing failure was cached as unavailable for ten minutes (217k tokens)
 [backend-engineer DONE] (2026-11-19T01:45:58Z) the lookup caches the fetched product and retries only the insert; a storing failure answers the app's ordinary server error; 787 backend tests pass twice (253k tokens)
+[frontend-engineer STARTED] (2026-11-18T21:53:41Z) the Recipes tab page: saved meals and own foods, from docs/design/foods-page.md
+[frontend-engineer DONE] (2026-11-19T01:21:06Z) the Recipes tab page built: saved meals, archived meals and own foods with add, edit, archive and delete through the log sheet's sheets; 1488 web tests pass; not run on a phone (423k tokens)
+[validator STARTED] (2026-11-19T01:21:06Z) the Recipes tab page against the requirements and docs/design/foods-page.md
+[ui-validator STARTED] (2026-11-19T01:21:06Z) the Recipes tab page in Chromium at 320, 375, 390 and 1280, both themes
+[reviewer STARTED] (2026-11-19T01:21:06Z) code review of the Recipes tab page
+[reviewer DONE] (2026-11-19T01:29:21Z) the Recipes tab page: approve after fixes; three majors (a log sheet test passes with the edit sheet still open, Save and Delete work while an archive runs, a food sheet can open over another sheet), minors on the sheet's prop types and the archive result's path
+[validator DONE] (2026-11-19T01:30:06Z) the Recipes tab page passes: no critical or major; the log sheet behaves as before apart from Delete in the meal edit sheet's footer; five minors (a held guard with no test of its own, a doc sentence on loading, listeners left by a test) (221k tokens)
+[ui-validator DONE] (2026-11-19T01:44:44Z) the Recipes tab page in Chromium: pass; the action row, the lists and the sheets hold their place across states, the log sheet differs from master only by Delete in the meal edit sheet; four minors (243k tokens)
+[frontend-engineer STARTED] (2026-11-19T01:44:44Z) one fix batch for the Recipes tab page from the reviewer, the validator and the ui-validator
+[frontend-engineer DONE] (2026-11-19T02:12:37Z) the Recipes tab page fix batch: all 15 findings fixed or filed; the three form sheets close themselves after a delete, a food's read can no longer open a second sheet, Save and Delete wait for an archive (345k tokens)
+[reviewer STARTED] (2026-11-19T02:12:37Z) delta review of the Recipes tab page's fix batch
+[documentation-specialist STARTED] (2026-11-19T02:12:37Z) the docs of the week sheet and the Recipes tab page against the standard
+[documentation-specialist DONE] (2026-11-19T02:25:03Z) the catalog, the foods, Recipes and shell docs and TODO.md trued up after the week sheet, the barcode lookup and the Recipes tab (246k tokens)
+[reviewer DONE] (2026-11-19T02:25:03Z) delta review of the Recipes tab page's fixes: approve after one; a food's edit sheet could open on stale cached values and save them over a newer edit (235k tokens)
+[frontend-engineer DONE] (2026-11-19T02:25:03Z) a food opens at once only from fresh cached detail and reads first otherwise; archived rows described; a late food-gone answer still drops the row; 1566 web tests pass (373k tokens)

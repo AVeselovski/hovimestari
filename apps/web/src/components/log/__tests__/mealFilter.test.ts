@@ -1,5 +1,5 @@
 import type { SavedMeal } from "@hovimestari/types";
-import { activeSource, fold, mealFilter, sourcesOf } from "../mealFilter";
+import { activeSource, fold, mealFilter, sortedSources, sourcesOf } from "../mealFilter";
 
 const meal = (name: string, source: string | null): SavedMeal => ({
   id: name,
@@ -53,5 +53,16 @@ describe("mealFilter", () => {
     expect(activeSource(meals, "Hesburger")).toBeNull();
     // One source left: no chips, so no filter in force that cannot be seen or cleared.
     expect(activeSource([meal("Kanasalaatti", "Wolt"), meal("Pähkinäpuuro", null)], "Wolt")).toBeNull();
+  });
+});
+
+describe("sortedSources", () => {
+  it("keeps each source once, in Finnish order, as the source chips list them", () => {
+    expect(sortedSources(["Wolt", "Äitee", "Foodora", "Wolt", "Ö-baari"])).toEqual([
+      "Foodora",
+      "Wolt",
+      "Äitee",
+      "Ö-baari",
+    ]);
   });
 });

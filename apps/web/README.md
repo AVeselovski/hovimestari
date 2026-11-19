@@ -23,7 +23,8 @@ src/
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache, then the first-run gate, then AppShell
 │   │   ├── page.tsx            Day: renders DayTab inside Suspense, since it reads ?date=
-│   │   ├── recipes/, groceries/  The two other content tabs
+│   │   ├── recipes/            Recipes: renders RecipesTab
+│   │   ├── groceries/          Groceries: "Nothing here yet."
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Sign-in methods, Account and Food data, and their sheets
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
@@ -65,16 +66,17 @@ src/
 │   │   ├── FoodSheetStack.tsx  The own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
 │   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals"
 │   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure
-│   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours", and a trailing control
+│   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours" unless left out, and a trailing control
 │   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures and portions
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
 │   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the Fineli credit
 │   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
 │   │   ├── OwnFoodSheet.tsx    Add or edit an own food, with its delete
+│   │   ├── useOwnFoodDelete.ts The one delete of an own food: asks first, takes a food already gone as deleted, drops it from the lists
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
 │   │   └── ownFoodForm.ts      The two forms' fields, their parsing and the shared schemas
-│   ├── log/                    Logging in the log sheet:
+│   ├── log/                    Logging in the log sheet, and the saved meal parts the Recipes tab shares:
 │   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
 │   │   ├── CreateActions.tsx   "New saved meal" and "Add an estimate", the first controls while browsing
 │   │   ├── RecentList.tsx      The recent items, each with its last amount and "+"
@@ -94,8 +96,9 @@ src/
 │   │   ├── LogFooter.tsx       The pinned footer: the refusal line and Log or Add to plan
 │   │   ├── MealView.tsx        A saved meal: the log block, its figures per meal, Edit, Archive or Restore, Delete
 │   │   ├── ArchivedMealsView.tsx  The archived meals, read when the view opens, each with Restore
-│   │   ├── useMealActions.ts   Archiving and restoring a meal, one at a time, with the failure on the status line
-│   │   ├── SavedMealSheet.tsx  A new meal (Save and log, or Save meal) or an edit, stacked on the log sheet
+│   │   ├── useMealActions.ts   Archiving and restoring a meal, one at a time, with the failure on the status line or where the press names
+│   │   ├── SavedMealSheet.tsx  A new meal or an edit with Delete: Save and log with the log sheet's logging, save only without, Archive meal where passed
+│   │   ├── useSavedMealDelete.ts  The one delete of a saved meal, behind the meal view and the meal sheet
 │   │   ├── EstimateSheet.tsx   Add an estimate, stacked on the log sheet
 │   │   ├── mealSends.ts        A new meal pressed again after a send that could not confirm: the latest press decides
 │   │   ├── useFormFields.ts    A form's values and refusals, a change clearing its field's refusal
@@ -113,6 +116,10 @@ src/
 │   ├── Icon.tsx                The outline icon set
 │   ├── QueryProvider.tsx       The query client for one signed-in user
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
+│   ├── recipes/                The Recipes tab:
+│   │   ├── RecipesTab.tsx      The page: New saved meal and Add a food, the two sections, and the meal and own-food sheets
+│   │   ├── SavedMealsSection.tsx  The saved meals, and the archived meals opened in place
+│   │   └── OwnFoodsSection.tsx The own foods, each opening its edit sheet
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
 │   ├── targets/                Targets on the web:
 │   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider, and useFirstRun

@@ -6,6 +6,7 @@ import { Field } from "@/components/form/Field";
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import {
+  btnText,
   chip,
   chipOff,
   chipOn,
@@ -35,15 +36,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState, type ReactElement } from "react";
 import { useAmountLabels } from "./amountLabel";
+import { sortedSources } from "./mealFilter";
 import { MEAL_ORDER, fieldOfCode, firstRefused, mealFieldsOf, readMeal, type MealField } from "./mealForm";
 import { bringUpToDate, type MealSend } from "./mealSends";
 import { useFormFields } from "./useFormFields";
+import type { ArchiveOutcome } from "./useMealActions";
+import { useSavedMealDelete } from "./useSavedMealDelete";
 
 // ---------------------------------------------------------------------------
 // SavedMealSheet: a saved meal's name, where it comes from and its figures
-// for one meal, stacked on the log sheet.
+// for one meal. Stacked on the log sheet, which passes `logging`, or on its
+// own on the Recipes tab, which does not.
 //
-// - New: "Save and log" (or "Save and add to plan" while Planned is chosen)
+// - New, with `logging`: "Save and log" (or "Save and add to plan" while Planned is chosen)
 //   saves the meal and logs one of it in one request, then both sheets close
 //   in one update. "Save meal", in the footer's own row, saves it without
 //   logging and leaves the log sheet open. The ids of the meal and of its
@@ -51,11 +56,25 @@ import { useFormFields } from "./useFormFields";
 //   "Save meal" that timed out, then "Save and log", makes one meal. A press
 //   after a send that could not confirm, with the form changed since, first
 //   brings what that send may have written up to date (mealSends.ts).
+// - New, without `logging`: save only. No Eaten or planned, and "Save meal"
+//   is the one submit.
 // - Edit: the meal's own values, no state choice, "Save meal". Its planned
-//   entries from today on take the new figures.
+//   entries from today on take the new figures. "Delete" in the footer asks
+//   first, in a confirmation stacked on this sheet (`useSavedMealDelete`).
+//   On a delete this sheet closes itself, then tells the host, as every
+//   form sheet with a Delete does.
+// - `archive`, which only the Recipes tab passes: "Archive meal" or
+//   "Restore meal" at the end of the form. The button turns in place, with
+//   focus kept on it. The sheet awaits the answer and keeps the meal's
+//   archived state itself, and a failure shows on its own error line.
+// - Writes wait while the app asks the server for today
+//   (`useToday().holding`), and Save and Delete also wait while an archive
+//   or restore runs.
 // - "From (optional)" opens empty. The user's sources sit under it as chips:
 //   a chip fills the field, and the chip that matches it is in the accent.
-//   With no sources yet, a hint under the field says what it is for.
+//   With no sources yet, a hint under the field says what it is for. A chip
+//   never leaves while the sheet is open: archiving the last meal from a
+//   source would otherwise take its chip row away and pull the form up.
 // - The figures' shared line says where to copy them from until one is
 //   refused (`FigureFields`).
 // - A new meal asks Eaten or planned first, then Name, From and the figures.
@@ -66,54 +85,90 @@ import { useFormFields } from "./useFormFields";
 // - Enter in Name moves to Calories.
 // ---------------------------------------------------------------------------
 
-export interface SavedMealSheetProps extends FormSheetCallerProps {
-  /** The meal to edit, or none for a new one. */
-  meal?: SavedMeal;
-  /** A name to start a new meal from, such as the text the search held. */
+/** A new meal. */
+export interface NewSavedMeal {
+  kind: "new";
+  /** A name to start from, such as the text the search held. */
   initialName: string;
+  /** What the meal needs to be saved and logged in one press. Left out, the sheet saves only. */
+  logging?: MealSheetLogging;
+}
+
+/** A meal to edit. */
+export interface EditSavedMeal {
+  kind: "edit";
+  meal: SavedMeal;
+  /** Archive or restore from the edit form. Only where no meal view offers it. */
+  archive?: MealSheetArchive;
+  /** The meal is gone, deleted on another device. */
+  onGone: (id: string) => void;
+  /** The meal was deleted from this sheet, which has closed itself. The lists have dropped it. */
+  onDeleted?: (id: string) => void;
+  /**
+   * Where focus goes after a delete, read while the opener is still on the
+   * page: a control that stays, such as the next row. Default: none, and the
+   * sheet underneath takes it.
+   */
+  focusAfterDelete?: () => HTMLElement | null;
+}
+
+export type SavedMealSheetProps = FormSheetCallerProps &
+  (NewSavedMeal | EditSavedMeal) & {
+    /** The sources of the user's meals, offered as chips. */
+    sources: readonly string[];
+    /** A meal was saved without logging, new or edited. The lists already hold it. */
+    onSavedMeal?: (meal: SavedMeal) => void;
+  };
+
+/** The log sheet's part in a new meal: its day, its writes and what happens after a log. */
+export interface MealSheetLogging {
   /** The log sheet's date, which "Save and log" logs to. */
   date: string;
-  /** The sources of the user's meals, offered as chips. */
-  sources: readonly string[];
-  actions: Pick<EntryActions, "saveAndLog" | "withdrawAdd" | "holding">;
+  actions: Pick<EntryActions, "saveAndLog" | "withdrawAdd">;
   /** "Save and log" was answered: close both sheets, then `done.announce()`. */
   onLogged: (done: SaveAndLogDone) => void;
-  /** A meal was saved without logging, new or edited. */
-  onSavedMeal: (meal: SavedMeal) => void;
-  /** The meal being edited is gone. */
-  onGone: (id: string) => void;
+}
+
+/** Archive or restore, from the edit form. */
+export interface MealSheetArchive {
+  /** An archive or restore runs. */
+  busy: boolean;
+  /** Archives or restores the meal, and answers the meal as it now is or the failure to show. */
+  set: (archived: boolean) => Promise<ArchiveOutcome>;
 }
 
 const SAVE_ONLY = "save";
 
-export function SavedMealSheet({
-  open,
-  returnFocusTo,
-  onClose,
-  onSaved,
-  meal,
-  initialName,
-  date,
-  sources,
-  actions,
-  onLogged,
-  onSavedMeal,
-  onGone,
-}: SavedMealSheetProps): ReactElement {
+export function SavedMealSheet(props: SavedMealSheetProps): ReactElement {
+  const { open, returnFocusTo, onClose, onSaved, sources, onSavedMeal } = props;
+  const edit = props.kind === "edit" ? props : null;
+  const meal = edit?.meal;
+  const logging = props.kind === "new" ? props.logging : undefined;
+  const archive = edit?.archive;
   const t = useTranslations("log.mealSheet");
+  const tMeal = useTranslations("log.meal");
+  const tCommon = useTranslations("common");
   const errorCopy = useErrorCopy();
   const failureLine = useFailureLine("form");
   const client = useQueryClient();
   const labels = useAmountLabels();
   const offline = useKnownOffline();
-  const { today } = useToday();
+  const { today, holding } = useToday();
   const id = useId();
   const editing = meal !== undefined;
+  const date = logging?.date ?? null;
+  // Save and Delete wait while the app asks for today, and while an archive or restore runs.
+  const waits = holding || (archive?.busy ?? false);
 
-  const [initial] = useState(() => mealFieldsOf(meal, initialName));
+  const [initial] = useState(() => mealFieldsOf(meal, props.kind === "new" ? props.initialName : ""));
+  // Every source this open has offered: new ones join, none leaves.
+  const [chips, setChips] = useState<readonly string[]>(sources);
+  if (sources.some((s) => !chips.includes(s))) setChips(sortedSources([...chips, ...sources]));
   const { fields, errors, setErrors, change } = useFormFields<MealField>(initial);
   const [formError, setFormError] = useState<FormFailure | null>(null);
   const [saving, setSaving] = useState(false);
+  // The meal as it now is, after an archive or restore from this sheet.
+  const [archived, setArchived] = useState(meal?.archived ?? false);
   const [chosen, setChosen] = useState<EntryStatus | null>(null);
   // Made once per open and kept across retries, so a repeat applies once.
   const [mealId, setMealId] = useState(() => newId());
@@ -121,9 +176,17 @@ export function SavedMealSheet({
   // What a send whose answer never came may have written under these ids (mealSends.ts).
   const held = useRef<MealSend | null>(null);
 
-  const future = today !== null && date > today;
+  const future = today !== null && date !== null && date > today;
   const status: EntryStatus = future ? "planned" : (chosen ?? "eaten");
   const dirty = JSON.stringify(fields) !== JSON.stringify(initial) || chosen !== null;
+
+  const remove = useSavedMealDelete({
+    onDone: (gone) => {
+      onClose();
+      edit?.onDeleted?.(gone.id);
+    },
+    focusAfter: () => edit?.focusAfterDelete?.() ?? null,
+  });
   const fieldId = (field: MealField) =>
     field === "name" || field === "source" ? `${id}-${field}` : figureFieldId(id, field);
 
@@ -147,34 +210,37 @@ export function SavedMealSheet({
 
   /** A new meal: brings an earlier unconfirmed send up to date, then saves, and logs unless `saveOnly`. */
   async function sendNew(body: SavedMealEditBody, saveOnly: boolean): Promise<SaveAndLogDone | SavedMeal | "held"> {
-    const entryOf = (entry: string) => ({ id: entry, date, status, count: 1, figures: body.figures });
-    const next: MealSend = { meal: body, entry: saveOnly ? null : entryOf(entryId) };
+    // Without logging there is no day, and every send saves only.
+    const logTo = saveOnly ? null : logging;
+    const entryOf = (day: string, entry: string) => ({ id: entry, date: day, status, count: 1, figures: body.figures });
+    const next: MealSend = { meal: body, entry: logTo ? entryOf(logTo.date, entryId) : null };
     const fresh = await bringUpToDate(held, next, {
       putMeal: async (edit) => {
         const saved = await updateSavedMeal(mealId, edit);
         void afterSavedMealChange(client, saved);
         return saved;
       },
-      dropEntry: (entry) => actions.withdrawAdd(entry.id, entry.date),
+      // Only a send with an entry holds one, and only the log sheet sends one.
+      dropEntry: (entry) => logging?.actions.withdrawAdd(entry.id, entry.date) ?? Promise.resolve(false),
     });
     const entry = fresh ? newId() : entryId;
     if (fresh) setEntryId(entry);
-    const sent: MealSend = { meal: body, entry: saveOnly ? null : entryOf(entry) };
+    const sent: MealSend = { meal: body, entry: logTo ? entryOf(logTo.date, entry) : null };
     try {
-      if (saveOnly) {
+      if (!logTo) {
         const saved = await createSavedMeal({ id: mealId, ...body });
         // In the open list before this sheet closes: the list holds its rows once it can be pressed again.
         await afterSavedMealCreated(client, saved);
         return saved;
       }
       const again = (): AddRequest => ({
-        body: { kind: "saved_meal", id: newId(), date, status, savedMealId: mealId, count: 1 },
+        body: { kind: "saved_meal", id: newId(), date: logTo.date, status, savedMealId: mealId, count: 1 },
         name: body.name,
         amount: labels.meals(1),
         again,
       });
-      return await actions.saveAndLog({
-        body: { meal: { id: mealId, ...body }, entry: { id: entry, date, status, count: 1 } },
+      return await logTo.actions.saveAndLog({
+        body: { meal: { id: mealId, ...body }, entry: { id: entry, date: logTo.date, status, count: 1 } },
         again,
       });
     } catch (err) {
@@ -182,14 +248,14 @@ export function SavedMealSheet({
         // It may have landed: the next press starts from it. A "Save and log" reads its day
         // and the lists again on the add path (useAddActions), a "Save meal" the lists here.
         held.current = sent;
-        if (saveOnly) void afterSavedMealCreated(client);
+        if (!logTo) void afterSavedMealCreated(client);
       }
       throw err;
     }
   }
 
   async function handleSubmit(mode?: string): Promise<void> {
-    if (saving || actions.holding) return;
+    if (saving || waits) return;
     setFormError(null);
     const read = readMeal(fields);
     if (!read.ok) {
@@ -204,12 +270,12 @@ export function SavedMealSheet({
     }
     setSaving(true);
     try {
-      if (editing) {
+      if (meal) {
         const saved = await updateSavedMeal(meal.id, read.body);
         void afterSavedMealChange(client, saved);
-        onSavedMeal(saved);
+        onSavedMeal?.(saved);
       } else {
-        const done = await sendNew(read.body, mode === SAVE_ONLY);
+        const done = await sendNew(read.body, mode === SAVE_ONLY || !logging);
         if (done === "held") {
           setSaving(false);
           return;
@@ -217,15 +283,15 @@ export function SavedMealSheet({
         if ("announce" in done) {
           onSaved?.();
           // Both sheets close in this one update: never the log sheet alone.
-          onLogged(done);
+          logging?.onLogged(done);
           onClose();
           return;
         }
-        onSavedMeal(done);
+        onSavedMeal?.(done);
       }
     } catch (err) {
       setSaving(false);
-      if (editing && getErrorCode(err) === "saved_meal_not_found") onGone(meal.id);
+      if (edit && getErrorCode(err) === "saved_meal_not_found") edit.onGone(edit.meal.id);
       else failed(err);
       return;
     }
@@ -234,8 +300,17 @@ export function SavedMealSheet({
     onClose();
   }
 
+  /** Archives or restores the meal, then turns the button, or shows why it could not. */
+  async function toggleArchive(): Promise<void> {
+    if (!archive || waits || saving) return;
+    setFormError(null);
+    const outcome = await archive.set(!archived);
+    if (outcome.ok) setArchived(outcome.meal.archived);
+    else if (outcome.failure !== null) setFormError({ line: outcome.failure, cause: null });
+  }
+
   // The chips say what the field is for once there are sources. Until then the hint does.
-  const sourceLine = errors.source ? errorCopy.forCode(errors.source) : sources.length > 0 ? null : t("sourceHint");
+  const sourceLine = errors.source ? errorCopy.forCode(errors.source) : chips.length > 0 ? null : t("sourceHint");
   const matching = (s: string) => s.toLocaleLowerCase("fi") === fields.source.trim().toLocaleLowerCase("fi");
   return (
     <FormSheet
@@ -245,15 +320,19 @@ export function SavedMealSheet({
       returnFocusTo={returnFocusTo}
       dirty={dirty}
       submitting={saving}
-      held={actions.holding}
+      held={waits}
       onSubmit={handleSubmit}
       formError={formError}
-      idle={editing ? t("saveMeal") : status === "planned" ? t("saveAndPlan") : t("saveAndLog")}
+      idle={editing || !logging ? t("saveMeal") : status === "planned" ? t("saveAndPlan") : t("saveAndLog")}
       busy={t("saving")}
       footerStart={
-        editing ? undefined : { label: t("saveMeal"), submit: SAVE_ONLY, busy: t("saving"), tone: "neutral" }
+        meal
+          ? { label: tCommon("delete"), onPress: (opener) => remove.open(meal, opener) }
+          : logging
+            ? { label: t("saveMeal"), submit: SAVE_ONLY, busy: t("saving"), tone: "neutral" }
+            : undefined
       }
-      sheet={{ panelClassName: "md:max-w-lg" }}
+      sheet={{ panelClassName: "md:max-w-lg", stacked: remove.dialog }}
     >
       {({ autoFocus }) => (
         <>
@@ -262,8 +341,10 @@ export function SavedMealSheet({
               Eaten or planned and Name share a row for a new meal. From and its chips take the
               full width under them, and an edit's Name takes the full width too, so a long
               source chip has the whole row. */}
-          <div className={editing ? formStack : pairRow}>
-            {!editing && <StateChoice id={`${id}-state`} value={status} onChange={setChosen} future={future} />}
+          <div className={editing || !logging ? formStack : pairRow}>
+            {!editing && logging && (
+              <StateChoice id={`${id}-state`} value={status} onChange={setChosen} future={future} />
+            )}
             <Field
               id={fieldId("name")}
               name="name"
@@ -295,14 +376,14 @@ export function SavedMealSheet({
                 aria-describedby={`${fieldId("source")}-line`}
                 className={inputClass}
               />
-              {sources.length > 0 && (
+              {chips.length > 0 && (
                 <div
                   role="group"
                   aria-label={t("sources")}
                   data-meal-sources=""
                   className={`${sheetChipRowWrapping} mt-1.5`}
                 >
-                  {sources.map((s) => (
+                  {chips.map((s) => (
                     <button
                       key={s}
                       type="button"
@@ -328,6 +409,20 @@ export function SavedMealSheet({
             <h3 className={`${sectionTitle} mb-2`}>{t("perMeal")}</h3>
             <FigureFields idPrefix={id} values={fields} errors={errors} onChange={change} hint={t("perMealHint")} />
           </div>
+          {archive && (
+            <div data-meal-archive="" className={sectionStart}>
+              {/* One button that turns in place, so focus stays on it from Archive to Restore and back. */}
+              <button
+                type="button"
+                aria-disabled={waits || saving || undefined}
+                aria-busy={archive.busy || undefined}
+                onClick={() => void toggleArchive()}
+                className={btnText}
+              >
+                {archived ? tMeal("restore") : tMeal("archive")}
+              </button>
+            </div>
+          )}
         </>
       )}
     </FormSheet>

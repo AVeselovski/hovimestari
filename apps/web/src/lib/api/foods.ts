@@ -1,5 +1,13 @@
 import { api, type RequestOptions } from "@/lib/api";
-import type { FavouriteFoodList, FoodDetail, FoodList, OwnFoodBody, Portion, PortionBody } from "@hovimestari/types";
+import {
+  MAX_LIST_LIMIT,
+  type FavouriteFoodList,
+  type FoodDetail,
+  type FoodList,
+  type OwnFoodBody,
+  type Portion,
+  type PortionBody,
+} from "@hovimestari/types";
 
 /** `GET /foods/search`: the foods whose names hold every word of `q`, ranked by the server. */
 export async function searchFoods(q: string, req?: RequestOptions): Promise<FoodList> {
@@ -13,9 +21,9 @@ export async function getFavouriteFoods(req?: RequestOptions): Promise<Favourite
   return res.data;
 }
 
-/** `GET /foods/own`: the user's own foods, in alphabetical order. */
+/** `GET /foods/own`: the user's own foods, in alphabetical order, as many as the route gives (`MAX_LIST_LIMIT`). */
 export async function getOwnFoods(req?: RequestOptions): Promise<FoodList> {
-  const res = await api.get<FoodList>("/foods/own", { signal: req?.signal });
+  const res = await api.get<FoodList>("/foods/own", { params: { limit: MAX_LIST_LIMIT }, signal: req?.signal });
   return res.data;
 }
 

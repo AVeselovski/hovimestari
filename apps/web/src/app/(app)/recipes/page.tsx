@@ -1,4 +1,4 @@
-import { EmptyTab } from "@/components/shell/EmptyTab";
+import { RecipesTab } from "@/components/recipes/RecipesTab";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import type { ReactElement } from "react";
@@ -9,5 +9,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function RecipesPage(): ReactElement {
-  return <EmptyTab />;
+  return <RecipesTab />;
 }

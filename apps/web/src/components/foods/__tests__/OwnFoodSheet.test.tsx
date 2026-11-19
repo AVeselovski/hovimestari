@@ -204,8 +204,11 @@ describe("OwnFoodSheet", () => {
     expect(updateFood).not.toHaveBeenCalled();
   });
 
-  it("deletes an own food after asking, from the edit", async () => {
-    const { onDeleted } = renderSheet({ food: saved });
+  it("deletes an own food after asking, from the edit, closes itself, then tells the host", async () => {
+    const calls: string[] = [];
+    const { onDeleted, onClose } = renderSheet({ food: saved });
+    onClose.mockImplementation(() => calls.push("close"));
+    onDeleted.mockImplementation((id: string) => calls.push(`deleted ${id}`));
     fireEvent.click(within(dialog()).getByRole("button", { name: "Delete" }));
     const confirm = await screen.findByRole("dialog", { name: "Delete Mummon pulla?" });
     expect(confirm).toHaveTextContent("This removes the food and its portions.");
@@ -213,6 +216,7 @@ describe("OwnFoodSheet", () => {
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(deleteFood).toHaveBeenCalledWith(saved.id));
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
+    expect(calls).toEqual(["close", `deleted ${saved.id}`]);
   });
 
   it("offers no Delete while adding", () => {

@@ -627,6 +627,12 @@
       "deleteBody": "This removes “{portion}” from the food's portions."
     }
   },
+  "recipes": {
+    "addFood": "Add a food",
+    "mealsUnavailable": "Your saved meals show here once Hovimestari can reach the server.",
+    "foodsUnavailable": "Your foods show here once Hovimestari can reach the server.",
+    "rowOpens": "Opens it to edit."
+  },
   "session": {
     "offlineTitle": "Not signed in",
     "offlineBody": "Sign in once you are back online.",
