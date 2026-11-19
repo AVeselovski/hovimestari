@@ -42,6 +42,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | server fault, Something went wrong, Try again           | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
 | the known-session flag, offline sign-in side            | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
 | the shell's layout, one scroll container                | `app/shell.md#layout`                                                   | `### Layout`                                     |
+| Recipes tab, keeping foods and meals                    | `app/recipes.md`                                                        | Doc                                              |
+| the archived meals on the Recipes tab                   | `app/recipes.md#archived-meals`                                         | `### Archived meals`                             |
 | design tokens, colours                                  | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
 | the accent, what it means                               | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
 | macro hues, energy, protein, carbohydrates, fat         | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |

@@ -6,7 +6,7 @@ The frame every signed-in screen sits in: a page title at the top of most tabs, 
 
 ### The tabs
 
-**Day** opens first, at `/`. **Recipes**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. The **Day** tab leads back to the day it last showed, and pressed on the Day tab it goes to today, as [Coming back to the tab](day.md#coming-back-to-the-tab) says. [Day](day.md) shows one day, its summary and its entries. Recipes and Groceries say "Nothing here yet." until later steps fill them, and promise nothing about what is coming.
+**Day** opens first, at `/`. **Recipes**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. The **Day** tab leads back to the day it last showed, and pressed on the Day tab it goes to today, as [Coming back to the tab](day.md#coming-back-to-the-tab) says. [Day](day.md) shows one day, its summary and its entries. [Recipes](recipes.md) keeps the saved meals and your own foods. Groceries says "Nothing here yet.".
 
 ### The header
 

@@ -14,13 +14,13 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names, a repeatable Fineli import that retires, never deletes, a food that leaves a release, and a barcode lookup, own foods first and then Open Food Facts, that keeps a product found once and shows it to the users who looked it up. In the log sheet a person searches it, logs a food by weight or portion, reads its figures per 100 g, marks favourites, and adds, edits and deletes foods and portions of their own.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. A barcode lookup, in the API only, finds a product among a user's own foods, then at Open Food Facts, and keeps a product it finds.
 
 ## Days and logging
 
-- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance on days that have them. The Day tab shows one day at a time, and the log sheet adds estimates to it. The week sheet on the Day tab shows seven days side by side.
+- **[Days](features/days.md)**: a day's entries, foods by weight, saved meals by count and estimates, each planned or eaten, added up twice, as what was eaten and as what the day comes to with the plan, each placed against the user's own targets with a distance on days that have them. The Day tab shows one day, and its week sheet the seven days of a week side by side, and the log sheet adds estimates.
 - **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Marking eaten, editing, moving and removing, each with Undo, are on the Day tab. Adding a food, a saved meal or an estimate, saving a new meal and logging it in one action, and logging a recent item again in one press are in the log sheet. Copying is in the API only.
-- **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. The log sheet lists them with a filter by source, logs them, saves new ones alone or with their first log, and edits, archives, restores and deletes them.
+- **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. The log sheet lists them with a filter by source and logs them, and the log sheet and the Recipes tab both save, edit, archive, restore and delete them.
 
 ## The app
 
@@ -31,6 +31,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 - **[The app shell](app/shell.md)**: the frame every signed-in screen sits in, with the four tabs, the sheets and the toasts.
 - **[Day](app/day.md)**: one day, its two readings against the person's targets, and its entries to mark, change and remove.
+- **[Recipes](app/recipes.md)**: the saved meals and your own foods, to add, edit, archive and delete.
 - **[The log sheet](app/log-sheet.md)**: logging a food, a saved meal or an estimate to a day, logging a recent item again in one press, finding a food or a meal, reading its figures, and keeping foods and saved meals of your own.
 - **[Settings](app/settings.md)**: targets, the language of food names, the theme, sign-in methods, the account and the food data credit.
 - **[First run](app/first-run.md)**: the page that offers a new account its targets, once, before the tabs, and opens again from a day for a user with none.
