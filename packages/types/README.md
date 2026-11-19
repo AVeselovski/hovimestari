@@ -24,6 +24,7 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 ```text
 auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
 barcode.ts     The barcode lookup's body with its optional scan format, and its four answers: found, incomplete, not found, a shop's own
+connections.ts A connection key's access, lifetimes, limit and prefix, the create body, a connection, the list with what the server offers, and the one answer that holds the key
 dates.ts       IsoDateSchema, a calendar date that exists, and TimeZoneSchema with isKnownTimeZone
 days.ts        A day, its readings and summary, and the day and range queries
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry

@@ -21,7 +21,7 @@ An account has a password, Google, or both. The two never join by themselves:
 
 Joining them is done on purpose, while signed in, on Settings. A Google-only account can add a password. A password account can link its Google account. An account with both can remove either one, after a confirmation. The last way in can never be removed: the server refuses it, and so does the database.
 
-Changing the password keeps this device signed in. The server ends every session, and the app signs this device straight back in with the new password. When that sign-in fails, this device signs out and opens the sign-in page with a note to sign in with the new password. Other devices sign out as described under staying signed in.
+Changing the password keeps this device signed in. The server ends every session and revokes every [connection key](connected-ai.md#connections-and-keys), and the app signs this device straight back in with the new password. When that sign-in fails, this device signs out and opens the sign-in page with a note to sign in with the new password. Other devices sign out as described under staying signed in.
 
 Adding a password, linking Google and removing either method leave every session as it is, on this device and on others.
 
@@ -43,7 +43,7 @@ Sign-up allows 10 accounts per network an hour. Password reset allows 5 requests
 
 ### Forgotten password
 
-Asking for a reset link always gets the same answer, just as fast, so it cannot tell anyone which addresses have an account. Only an account with a password gets the email. The link works once, for one hour. Using it sets the new password, ends every session, and makes every other reset link of that account stop working.
+Asking for a reset link always gets the same answer, just as fast, so it cannot tell anyone which addresses have an account. Only an account with a password gets the email. The link works once, for one hour. Using it sets the new password, ends every session, revokes every [connection key](connected-ai.md#connections-and-keys), and makes every other reset link of that account stop working.
 
 The link opens its form whether or not the browser is signed in. After any reset this device signs out, if it was signed in, and lands on the sign-in page with a note to use the new password. This holds even when the link was for another account than the one signed in here.
 
@@ -57,7 +57,7 @@ Afterwards this device keeps nothing of the account. The session ends, the app's
 
 ### Tokens
 
-Two JWTs with separate secrets carry `sub`, the user id, in `apps/backend/src/lib/jwt.ts`. Both are signed and verified with HS256 only, so a token signed another way, or not signed, is refused. The access token lasts `JWT_ACCESS_EXPIRES_IN`, `15m` by default. The refresh token lasts `JWT_REFRESH_EXPIRES_IN`, `7d` by default, and carries a random `jti`, so two signed in the same second differ.
+Two JWTs with separate secrets carry `sub`, the user id, in `apps/backend/src/lib/jwt.ts`. Both also carry `fam`, the session's family, described below. The access token names the session it was issued to, so a route can check that the session is still live. Both are signed and verified with HS256 only, so a token signed another way, or not signed, is refused. The access token lasts `JWT_ACCESS_EXPIRES_IN`, `15m` by default. The refresh token lasts `JWT_REFRESH_EXPIRES_IN`, `7d` by default, and carries a random `jti`, so two signed in the same second differ.
 
 The server stores only a SHA-256 hash of each refresh token. `apps/backend/src/lib/sessions.ts` holds every write to the stored tokens.
 
@@ -76,7 +76,7 @@ So a renewal whose answer was lost can be repeated with the same token until one
 
 Expiry is judged by the database clock. A row expires at `now() + JWT_REFRESH_EXPIRES_IN`, set in SQL, and an expired row is refused and deleted. A sign-in and a renewal also sweep the same user's other expired rows. A sign out and a sign out everywhere delete the rows they end, expired or not.
 
-`endSession` signs out: it deletes every row of the presented token's family. A token whose row is gone, while its family still has rows, is a reuse and ends the family, as it does on a renewal. So a person who signs out with a token whose row a copy's renewals already deleted also ends the copy's session. A token of a family that has ended ends nothing. `endAllSessions` deletes every refresh row of a user. Password change, password reset and sign out everywhere call it inside their transactions. An access token already handed out stays valid until it expires, which is the 15-minute window above.
+`endSession` signs out: it deletes every row of the presented token's family. A token whose row is gone, while its family still has rows, is a reuse and ends the family, as it does on a renewal. So a person who signs out with a token whose row a copy's renewals already deleted also ends the copy's session. A token of a family that has ended ends nothing. `endAllSessions` deletes every refresh row of a user. Password change, password reset and sign out everywhere call it inside their transactions. Password change and password reset also call `revokeAllConnections` from `apps/backend/src/services/writes/connections.ts` in the same transaction, so a change that fails revokes no key. Sign out everywhere leaves keys alone. An access token already handed out stays valid until it expires, which is the 15-minute window above. Making a connection key is the one exception. It needs a live refresh row of the family the access token names, so a token whose session has ended cannot make a key, and answers 401 `session_expired`.
 
 `authenticate` in `apps/backend/src/middleware/authenticate.ts` accepts a `Bearer` access token and answers 401 `unauthorized` otherwise.
 
@@ -144,7 +144,7 @@ The link callback sets no cookie of its own and checks none, unlike the sign-in 
 
 `apps/backend/src/lib/passwords.ts` hashes with bcrypt at cost 12. A sign-in for an unknown address or an account with no password is compared against a dummy hash made at start-up, so every refused sign-in costs the same. bcrypt reads only the first 72 bytes of a password, so the schemas refuse a longer one with `password_too_long`, on sign-in too, where a longer input that starts with the stored password would otherwise match it.
 
-A reset link carries 32 random bytes and is stored as a SHA-256 hash with a one-hour expiry. Storing one sweeps the user's expired links. Redeeming one deletes the used row first and requires that it was there, then deletes every other reset row of the user, sets the password and ends every session, all in one transaction. The route answers before it stores the link and sends the mail, so an address with an account answers as fast as one without. A mail that fails is logged. Only when no `RESEND_API_KEY` is configured does the backend write each mail, the link included, to its console, which is how development works. Production refuses to start without the key. Setup is in [the Resend runbook](../setup/resend-email.md).
+A reset link carries 32 random bytes and is stored as a SHA-256 hash with a one-hour expiry. Storing one sweeps the user's expired links. Redeeming one deletes the used row first and requires that it was there, then deletes every other reset row of the user, sets the password, ends every session and revokes every connection key, all in one transaction. The route answers before it stores the link and sends the mail, so an address with an account answers as fast as one without. A mail that fails is logged. Only when no `RESEND_API_KEY` is configured does the backend write each mail, the link included, to its console, which is how development works. Production refuses to start without the key. Setup is in [the Resend runbook](../setup/resend-email.md).
 
 ### Rate limiting
 
@@ -183,14 +183,14 @@ All under `/api/v1`. **Relay** means `X-Bff-Secret` is required. **Bearer** mean
 | GET    | `/auth/google/callback`      | Google        | 302 to the web server's `/api/auth/google/complete?code=`, or to `/auth/sign-in?error=`                                                      |
 | POST   | `/auth/google/exchange`      | Relay         | 200 with a session for a code and its nonce, or 401 `google_failed`                                                                          |
 | POST   | `/auth/forgot-password`      | Anyone        | 200 with the same answer for every address                                                                                                   |
-| POST   | `/auth/reset-password`       | Anyone        | 204, or 400 `reset_link_invalid`                                                                                                             |
+| POST   | `/auth/reset-password`       | Anyone        | 204 and revokes every connection key, or 400 `reset_link_invalid`                                                                            |
 | POST   | `/auth/link/password`        | Bearer        | 200 with the user, or 409 `password_already_set`                                                                                             |
 | POST   | `/auth/link/google/start`    | Bearer, Relay | 200 `{ url }`, Google's consent URL, or 409 `google_already_linked`                                                                          |
 | GET    | `/auth/link/google/callback` | Google        | 302 to the web server's `/api/auth/google/link/complete?code=`, or to `/settings?google=failed`                                              |
 | POST   | `/auth/link/google/exchange` | Relay         | 204, or 401 `google_failed`, 409 `google_taken` or `google_already_linked`                                                                   |
 | DELETE | `/auth/unlink/:method`       | Bearer        | 200 with the user, or 400 `last_sign_in_method`. `method` is `google` or `password`                                                          |
 | GET    | `/users/me`                  | Bearer        | 200 `{ id, email, hasPassword, hasGoogle, foodNameLanguage, timeZone }`                                                                      |
-| PUT    | `/users/me/password`         | Bearer        | 204, or 401 `current_password_wrong`, 403 `no_password`                                                                                      |
+| PUT    | `/users/me/password`         | Bearer        | 204 and revokes every connection key, or 401 `current_password_wrong`, 403 `no_password`                                                     |
 | DELETE | `/users/me`                  | Bearer        | 204, or 400 `confirmation_mismatch`. Takes `{ password }` or `{ email }`                                                                     |
 
 The request and response shapes are the Zod schemas in `packages/types/src/auth.ts`.

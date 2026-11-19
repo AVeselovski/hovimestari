@@ -90,6 +90,14 @@ flyctl secrets import -a hovimestari-backend
 
 `NODE_ENV`, `PORT`, the token lifetimes and `DB_POOL_MAX` are in `apps/backend/fly.toml` and need no secret.
 
+Connected AI has two switches, `MCP_ENABLED` and `MCP_WRITES_ENABLED`, each `true` or `false`. Leave both unset to keep the defaults. Connected AI is on by default. Keys that make changes are off by default. To switch connected AI off for the whole deployment:
+
+```bash
+flyctl secrets set -a hovimestari-backend MCP_ENABLED=false
+```
+
+Setting a secret restarts the machine, which is what applies the change. `flyctl secrets unset -a hovimestari-backend MCP_ENABLED` returns to the default.
+
 ### 4. Deploy
 
 From the repository root, because the image copies workspace siblings such as `packages/types`:

@@ -13,6 +13,7 @@ src/
 │   ├── types.ts                Db, the database or a transaction, and Tx, a transaction only, for code that holds a lock
 │   └── schema/
 │       ├── index.ts            Re-exports every table
+│       ├── assistantConnections.ts  assistant_connections: a user's connection keys, stored as hashes, with access, expiry, last use and revocation
 │       ├── users.ts            Accounts, with the sign-in method and lower-case email CHECKs, the food-name language, the time zone and when the first run was passed
 │       ├── targets.ts          target_changes: one row per dated change of a user's targets
 │       ├── foods.ts            foods, food_portions, food_favourites and food_lookups, with the generated search columns
@@ -35,9 +36,10 @@ src/
 │   ├── requestAborted.ts       isAborted(req): has the client gone or the response been sent
 │   ├── clientIp.ts             The address the rate limiters key on: the relayed X-Client-Ip, Fly-Client-IP, or the socket
 │   ├── jwt.ts                  Token sign, verify and hash, and the signed OAuth state with its purpose
-│   ├── sessions.ts             Sessions as token families: sign-in, renewal, sign-out and the user lock
+│   ├── sessions.ts             Sessions as token families: sign-in, renewal, sign-out, the user lock and whether a session is live
 │   ├── passwords.ts            bcrypt at cost 12, the 72-byte rule and the dummy compare for refused sign-ins
 │   ├── users.ts                findUser
+│   ├── connectionKeys.ts       The connection key's format and hash, lookupConnectionKey with its four states and touchDue, touchLastUsed
 │   ├── google.ts               googleConfig and googleEnabled
 │   ├── passport.ts             The Google sign-in and link strategies, and the consent URL builder
 │   ├── oauthStateCookie.ts     The cookie that ties a Google consent to the browser that went to Google
@@ -58,13 +60,14 @@ src/
 │   ├── error.ts                Global error handler: { message, code }, 503 when the database is busy, 500 otherwise
 │   └── requestLog.ts           One line per request: method, route key, status, duration
 ├── routes/
-│   ├── index.ts                Mounts /auth, /users, /targets, /foods, /days, /entries, /saved-meals and /log
+│   ├── index.ts                Mounts /auth, /users, /targets, /foods, /days, /entries, /saved-meals, /log and /connections
 │   ├── targets.ts              Targets: the overview for a date, set a dated change, remove one
 │   ├── foods.ts                Food search, favourites, own foods, the barcode lookup, one food, own food writes, portions, favourite toggles
 │   ├── days.ts                 One day, or a range of days without their entries
 │   ├── entries.ts              Add, change, mark, copy, remove one or several, and restore entries
 │   ├── savedMeals.ts           Saved meals: list, read, create, save and log, edit, archive, delete
 │   ├── log.ts                  Recent items
+│   ├── connections.ts          Connection keys: list, create, revoke
 │   ├── auth.ts                 Sign-up, sign-in, refresh, sign-out, password reset, password link, unlink
 │   ├── authGoogle.ts           Google sign-in and linking, and their code exchanges
 │   └── users.ts                The signed-in user: read, change settings, pass the first run, change password, delete the account
@@ -75,6 +78,7 @@ src/
 │   ├── reads/days.ts           getDay and listDaySummaries: the two readings and their positions
 │   ├── reads/log.ts            listRecents and lastAmountsOf, from eaten entries
 │   ├── reads/savedMeals.ts     listSavedMeals and getSavedMeal
+│   ├── reads/connections.ts    listConnections and connectionAvailability, the two switches as the server holds them now
 │   ├── writes/context.ts       WriteContext and WriteOutcome
 │   ├── writes/targets.ts       setTargets, and removeTargetChange, which also marks the first run passed
 │   ├── writes/foods.ts         Own foods, portions and favourites
@@ -82,6 +86,7 @@ src/
 │   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, removeEntries, restoreEntry, copyEntries
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/settings.ts      updateSettings: the food-name language and the time zone. finishFirstRun and markFirstRunDone
+│   ├── writes/connections.ts   createConnection for a live session under the user lock and the ten-key limit, revokeConnection, revokeAllConnections
 │   ├── entryRows.ts            The selection every entry read answers with, and an entry's figures
 │   ├── sourceValues.ts         Reads an entry's basis from its source, takes the user lock, checks a source's use and rewrites planned entries
 │   ├── foodScope.ts            visibleTo and portionVisibleTo, the only place the visibility rules are written
@@ -100,7 +105,7 @@ src/
 
 ## Endpoints
 
-Every route is under `/api/v1`. The feature docs list them with who may call each: [authentication](../../docs/features/authentication.md#api), [targets](../../docs/features/targets.md#api), [foods](../../docs/features/foods.md#api), [days](../../docs/features/days.md#api), [quick logging](../../docs/features/quick-logging.md#api) and [saved meals](../../docs/features/saved-meals.md#api). A route parses its input, builds the service context with `contextFor(req)`, calls one service in `src/services/` and sends the answer. It holds no SQL. Two more routes live outside it, with no auth:
+Every route is under `/api/v1`. The feature docs list them with who may call each: [authentication](../../docs/features/authentication.md#api), [targets](../../docs/features/targets.md#api), [foods](../../docs/features/foods.md#api), [days](../../docs/features/days.md#api), [quick logging](../../docs/features/quick-logging.md#api), [saved meals](../../docs/features/saved-meals.md#api) and [connected AI](../../docs/features/connected-ai.md#api). A route parses its input, builds the service context with `contextFor(req)`, calls one service in `src/services/` and sends the answer. It holds no SQL. Two more routes live outside it, with no auth:
 
 - `GET /livez` answers 200 while the process serves HTTP. It never touches the database, so Fly's routing check cannot fail on a busy pool.
 - `GET /health` answers 200 when the database answers `SELECT 1`, and 503 otherwise. It is for monitoring.
@@ -115,6 +120,10 @@ A known error answers `{ message, code }`, and the codes are `ERROR_CODES` in `@
 - `OFF_USER_AGENT`: the User-Agent of every call. `Hovimestari/<version of this package>` by default. Open Food Facts asks for a contact in it, which a deployment may add, such as `Hovimestari/1.0 (an address you choose)`. Nothing builds it from user data.
 
 The two call budgets and the answers held in memory live in the process, so the backend runs on one machine. How the lookup works is in [the foods feature doc](../../docs/features/foods.md#looking-up-a-barcode).
+
+### The connected AI switches
+
+`MCP_ENABLED` and `MCP_WRITES_ENABLED` are the operator's switches for connected AI, each `true` or `false`, neither a secret. `MCP_ENABLED` is `true` by default and `MCP_WRITES_ENABLED` is `false`. Unset or empty takes the default, and any other value stops the server at start-up. A change takes a restart. While `MCP_ENABLED` is off no connection key can be made, and while `MCP_WRITES_ENABLED` is off no key that makes changes can. What each does is in [the connected AI feature doc](../../docs/features/connected-ai.md#the-two-switches).
 
 ### The relay secret
 
@@ -168,6 +177,8 @@ Migration `0005_first_run_done.sql` adds the nullable `users.first_run_done_at`,
 
 Migration `0006_off_lookups.sql` adds `food_lookups`, the CHECK `foods_off_has_barcode` and the unique index `foods_off_barcode_uq` on an Open Food Facts food's barcode padded to 14 digits. No stored row is an Open Food Facts food before it, so both apply to an empty set.
 
+Migration `0007_assistant_connections.sql` adds the empty table `assistant_connections`, so it touches no stored row.
+
 A migration that adds, renames, drops or retypes a column of `entries`, or tightens one of its CHECKs, also rewrites or clears `removed_entries.row`. A restore puts that row back by column name, so a row removed before such a migration lacks the new column or keeps the old name. A restore that the table then refuses answers `entry_not_found`, and the entry cannot come back.
 
 CI runs `db:generate` and fails when `git status --porcelain apps/backend/drizzle` prints anything, so a schema change without its migration cannot merge. `generate` needs no database. Fly applies pending migrations with the `release_command` in `fly.toml` before a new machine takes traffic. Rollback is forward only: a bad migration is undone by a new one.
@@ -188,6 +199,7 @@ Jest 29 in native ESM mode, with Supertest against the Express app. Use `jest.un
 - The barcode lookup never reaches Open Food Facts in a test. `src/lib/openFoodFacts/__tests__/` tests each helper, the client against a local `node:http` server, on answers recorded once by hand in `fixtures/` and credited in the README there. `src/services/__tests__/barcodeLookup.db.test.ts` runs the service and `src/routes/__tests__/barcodeVisibility.db.test.ts` the route and who sees a stored product. Both pass `offStub()` from `src/__tests__/support/offStub.ts` as `fetch`, which counts every call, and a fake clock. The route suite swaps the route's budgets with `setSharedLookupDepsForTests`.
 - `src/services/__tests__/foodSearch.db.test.ts` pins the search ranking on `fixtures/fineli-names-r18.csv`, 249 real Fineli names credited in the README next to it.
 - `src/scripts/fineliImport/__tests__/` tests the Fineli import. `readRelease.test.ts` reads the fixtures without a database, and `fineliImport.db.test.ts` imports them into one. `nameCase.test.ts` pins how a name written in capitals is stored, and `fineliImportCase.db.test.ts` imports a release in capitals over stored names. `support/capitalRelease.ts` makes that release as a temp copy of a fixture. The fixtures in `fixtures/` are release 18 rows in the release's own bytes, credited in the README there. Git treats them as binary, so their CRLF line ends and Windows-1252 names never change.
+- `src/routes/__tests__/connections.db.test.ts` makes, lists and revokes connection keys on the real database, with the two switches set on the parsed `env`. It holds the user's row on its own connection to show a create waits and counts the key added meanwhile, and races six creates for the tenth place. `src/routes/__tests__/connectionsRevoke.db.test.ts` changes and resets passwords, and fails their transactions at commit with a deferred trigger to show a failed change revokes no key. `src/routes/__tests__/connectionsSession.db.test.ts` shows that only a live session makes a key. `src/lib/__tests__/connectionKeys.test.ts` renders the lookup's and the last-use write's SQL with drizzle's own dialect.
 - The other route suites mock the database. They cover who may call each route, the codes a refused body answers and the answers that must not differ between accounts. The flows run on the real database in `src/routes/__tests__/authFlow.db.test.ts`.
 
 ## Deployment
