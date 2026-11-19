@@ -28,3 +28,6 @@ secrets.json
 
 # The unzipped Fineli release, downloaded by hand. See docs/setup/fineli-import.md.
 apps/backend/data/fineli/
+
+# The local HTTPS certificate and its key, made by mkcert. See docs/setup/local-https.md.
+tools/local-https/certs/
