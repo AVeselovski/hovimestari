@@ -42,8 +42,15 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | server fault, Something went wrong, Try again           | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
 | the known-session flag, offline sign-in side            | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
 | the shell's layout, one scroll container                | `app/shell.md#layout`                                                   | `### Layout`                                     |
-| Recipes tab, keeping foods and meals                    | `app/recipes.md`                                                        | Doc                                              |
-| the archived meals on the Recipes tab                   | `app/recipes.md#archived-meals`                                         | `### Archived meals`                             |
+| Recipes tab, keeping recipes, foods and meals           | `app/recipes.md`                                                        | Doc                                              |
+| the Recipes tab's segments, its action and search       | `app/recipes.md#the-three-segments`                                     | `### The three segments`                         |
+| the archived meals on the Recipes tab                   | `app/recipes.md#meals`                                                  | `### Meals`                                      |
+| the recipe editor                                       | `app/recipes.md#the-recipe-editor`                                      | `### The recipe editor`                          |
+| the ingredient picker, adding an ingredient             | `app/recipes.md#adding-an-ingredient`                                   | `### Adding an ingredient`                       |
+| a recipe's page                                         | `app/recipe.md`                                                         | Doc                                              |
+| the servings stepper, a recipe's figures card           | `app/recipe.md#servings-and-figures`                                    | `### Servings and figures`                       |
+| logging a recipe from its page                          | `app/recipe.md#log`                                                     | `### Log`                                        |
+| the food search hook, useFoodFinder                     | `app/log-sheet.md#route-and-entry`                                      | `### Route and entry`                            |
 | design tokens, colours                                  | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
 | the accent, what it means                               | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
 | macro hues, energy, protein, carbohydrates, fat         | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |

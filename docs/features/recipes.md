@@ -2,7 +2,7 @@
 
 A recipe is a dish a person cooks again and again, written once with its servings, its ingredients and its method. The app computes its figures from the foods its ingredients point at, so a person never types a recipe's totals.
 
-Recipes are kept and put on days through the API and by a connected assistant. They have no screen of their own yet.
+Recipes are kept on [the Recipes tab](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too.
 
 ## In detail
 
@@ -127,13 +127,15 @@ Every table cascades from `users`, so deleting an account removes its recipes wi
 
 ### Known gaps
 
-- A line typed as a count of one of the person's own portions is checked again on every save, so once that portion is removed, saving the recipe with the line unchanged is refused at that line.
+- A line typed as a count of one of the person's own portions is checked again on every save, so once that portion is removed, saving the recipe with the line unchanged is refused at that line. The editor then turns that line into its grams, so the next save passes.
 - A preview checks lines against the foods the person can see now, so it refuses a line on a food hidden since that a save would keep.
-- A recipe has no cover image yet, and cannot be duplicated yet.
+- A recipe has no cover image yet.
 
 Requirements: FR-REC-01 to FR-REC-10, FR-DAY-02, FR-DAY-07, FR-AI-06, FR-AI-07 (requirements 3.3, 3.7 and 3.10)
 
 ## Where it appears
 
-- [The Day tab](../app/day.md): a recipe's entries, each with its servings.
+- [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites and tags, and the editor that makes and changes a recipe from foods.
+- [A recipe's page](../app/recipe.md): the recipe, its figures at any number of servings, logging servings on a day, duplicating, archiving and deleting.
+- [The Day tab](../app/day.md): a recipe's entries, each with its servings, and Open recipe in an entry's sheet.
 - [Settings](../app/settings.md#activity): an assistant's changes to recipes and the recipes it put on days, in a connection's Activity.

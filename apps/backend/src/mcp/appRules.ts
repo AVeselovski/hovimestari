@@ -95,10 +95,10 @@ export const APP_RULES_SOURCES: Record<string, string> = {
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
   "connected-ai.md": "7e2c1ac5ba319841752e3b7a396cf95fd55a9c90b6ad284fc0dcd194071527cd",
   "days.md": "e2d8cf6a8845a0ea2ccc7cc382a1360de08de29fc21f20ec96dd341b61ba914e",
-  "foods.md": "844c7e49ef79108f8641507afff57bd90397ccd310b4cbdcd923f1fd4a1fbcb2",
+  "foods.md": "1ce3c786187af2f2b6f64ccaebf4ff7e1ef0119ea6ee47ba7fdbef504c802fa1",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "e1907e217c57dd5f5798de463dc3cc80e814472c477b462f4c5a7ae4117c401e",
-  "recipes.md": "027feaf0fa490e89251117ace5970a5b4d0172cbea4548329f8efdbea95840c3",
-  "saved-meals.md": "9085297c760a9c079db155bd9be519dc96afa0edac26bc516784361ff398605f",
+  "recipes.md": "49df2599c105f9d39e0ad0b88bf537279a10814794e81146d67f80af6717c9a7",
+  "saved-meals.md": "26a12db9de59ecd38a7b553be24c256b72262121e2e35e62edfd1743bc8ff859",
   "targets.md": "c3a8e3e1dd39115af77c0dee4dafae547d98b9a1a424ec47e4039cda799e553f",
 };
