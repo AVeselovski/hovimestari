@@ -1,4 +1,11 @@
-import type { Recipe, RecipeFieldChange, RecipeLine, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
+import type {
+  Cook,
+  Recipe,
+  RecipeFieldChange,
+  RecipeLine,
+  RecipeLineChange,
+  RecipeLineRecord,
+} from "@hovimestari/types";
 import { isDeepStrictEqual } from "node:util";
 
 // ---------------------------------------------------------------------------
@@ -181,6 +188,34 @@ export function editedChanges(before: Recipe, after: Recipe): RecipeFieldChange[
       ? null
       : { field: "notes", change: textChange(before.notes, after.notes)! },
     isDeepStrictEqual(before.tags, after.tags) ? null : { field: "tags", from: before.tags, to: after.tags },
+  ];
+  return changes.filter((c) => c !== null);
+}
+
+/**
+ * What a batch logged as made changed from its recipe as the recipe was
+ * then, in a recipe change's own shapes: its servings when they differ, and
+ * its lines. A cook's line that started as a recipe line is matched to it,
+ * so it reads as that line changed, or not at all. A line the batch added
+ * is added, and a recipe line it left out is under `removed`. The order of
+ * the lines is not a change of a batch.
+ */
+export function cookChanges(recipe: Recipe, cook: Cook): RecipeFieldChange[] {
+  const held = new Set(recipe.lines.map((l) => l.id));
+  const matched = new Set<string>();
+  const lines = cook.lines.map(({ fromLineId, ...line }): RecipeLine => {
+    if (fromLineId === null || !held.has(fromLineId) || matched.has(fromLineId)) return line;
+    matched.add(fromLineId);
+    return { ...line, id: fromLineId };
+  });
+  const change = linesChange(recipe.lines, lines);
+  const kept =
+    change?.field === "lines" && change.added.length + change.removed.length + change.changed.length > 0
+      ? { ...change, reordered: false }
+      : null;
+  const changes: (RecipeFieldChange | null)[] = [
+    recipe.servings === cook.servings ? null : { field: "servings", from: recipe.servings, to: cook.servings },
+    kept,
   ];
   return changes.filter((c) => c !== null);
 }
