@@ -1,5 +1,14 @@
 import { releaseHeldLists } from "@/components/log/heldList";
-import type { Day, DaySummaryList, FoodDetail, Me, Portion, SavedMeal, TargetChange } from "@hovimestari/types";
+import {
+  averageOfDays,
+  type Day,
+  type DaySummaryList,
+  type FoodDetail,
+  type Me,
+  type Portion,
+  type SavedMeal,
+  type TargetChange,
+} from "@hovimestari/types";
 import { matchQuery, onlineManager, type Query, type QueryClient, type QueryKey } from "@tanstack/react-query";
 import { daySummaryOf } from "./daySummary";
 import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion, putSavedFood } from "./foodCache";
@@ -291,7 +300,9 @@ export async function afterEntryWrite(
 /**
  * Writes each answered day, without its entries, into every cached range that
  * holds its date, so a week's row equals that day's own summary from the
- * moment the write answers.
+ * moment the write answers. The range's average day is computed again over
+ * its patched days with `averageOfDays`, the server's own computation, so the
+ * average row equals the rows as they do.
  *
  * It cancels every range read first, so a read that left before the write
  * cannot answer after the patch and write the older week over it. Invalidate
@@ -311,7 +322,8 @@ export async function putDaysInRanges(client: QueryClient, days: readonly Day[],
   client.setQueriesData<DaySummaryList>({ queryKey: queryKeys.dayRanges() }, (range) => {
     if (range === undefined) return undefined;
     if (!range.days.some((d) => byDate.has(d.date))) return range;
-    return { ...range, days: range.days.map((d) => byDate.get(d.date) ?? d) };
+    const patched = range.days.map((d) => byDate.get(d.date) ?? d);
+    return { ...range, days: patched, average: averageOfDays(patched) };
   });
 }
 

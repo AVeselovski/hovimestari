@@ -105,3 +105,35 @@ export function planStyle(plan: { start: number; end: number }): { left: string;
   const width = `max(${PLAN_MIN_PX}px, ${plan.end - plan.start}%)`;
   return { left: `min(${plan.start}%, calc(100% - ${width}))`, width };
 }
+
+/**
+ * The week's average on the same track: a mark per reading, not a fill. The
+ * two averages count different days, so Planned can sit below Eaten, which a
+ * fill cannot draw. The scale, the band and the ticks are `gaugeGeometry`'s
+ * own for the same range, so the average row's band sits under the rows'.
+ */
+export interface AverageMarks {
+  scale: number;
+  band: { start: number; end: number };
+  ticks: { lower: number; upper: number };
+  /** The Eaten mark's centre, in per cent, clamped to the track. Null when Eaten has no position. */
+  eaten: number | null;
+  /** The Planned mark's centre, in per cent, clamped to the track. Null when Planned has no position. */
+  withPlan: number | null;
+}
+
+export function averageMarks(
+  range: GaugeRange,
+  eaten: number | null,
+  withPlan: number | null,
+  options: GaugeGeometryOptions = {},
+): AverageMarks {
+  const { scale, band, ticks } = gaugeGeometry(range, 0, 0, options);
+  const at = (v: number | null) => (v === null ? null : percentOf(v, scale));
+  return { scale, band, ticks, eaten: at(eaten), withPlan: at(withPlan) };
+}
+
+/** A mark's `left` as CSS: its centre, kept its radius from each end so the mark never leaves the track. */
+export function markLeft(center: number, radiusPx: number): string {
+  return `clamp(${radiusPx}px, ${center}%, calc(100% - ${radiusPx}px))`;
+}

@@ -1,5 +1,5 @@
 import { api, type RequestOptions } from "@/lib/api";
-import type { Day, DaySummaryList, IsoDate } from "@hovimestari/types";
+import { averageOfDays, type Day, type DaysAverage, type DaySummaryList, type IsoDate } from "@hovimestari/types";
 
 /** `GET /days/:date`: one day with its entries, both readings and their positions. Always a concrete date. */
 export async function getDay(date: IsoDate, req?: RequestOptions): Promise<Day> {
@@ -7,8 +7,17 @@ export async function getDay(date: IsoDate, req?: RequestOptions): Promise<Day> 
   return res.data;
 }
 
-/** `GET /days?from=&to=`: every day of the range, both ends included, without their entries. At most 42 days. */
+/** The range's answer as it may arrive: a backend deployed before the average answers `{ days }` alone. */
+type RangeAnswer = Omit<DaySummaryList, "average"> & { average?: DaysAverage };
+
+/**
+ * `GET /days?from=&to=`: every day of the range, both ends included, without
+ * their entries, and their average day. At most 42 days. When the backend
+ * does not answer the average, it is `averageOfDays` of the same days: the
+ * one shared computation, so the figure is the one the server would give.
+ */
 export async function getDaySummaries(from: IsoDate, to: IsoDate, req?: RequestOptions): Promise<DaySummaryList> {
-  const res = await api.get<DaySummaryList>("/days", { params: { from, to }, signal: req?.signal });
-  return res.data;
+  const res = await api.get<RangeAnswer>("/days", { params: { from, to }, signal: req?.signal });
+  const { days, average } = res.data;
+  return { days, average: average ?? averageOfDays(days) };
 }

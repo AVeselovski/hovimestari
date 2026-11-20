@@ -4,11 +4,24 @@ import { focusRing } from "@/components/ui/styles";
 import { formatKcal, formatMacroGrams } from "@/lib/foodFormat";
 import { formatWeekRowDate } from "@/lib/localDate";
 import { weekDates } from "@/lib/week";
-import type { DayReading, DaySummary, RangePosition, TargetsOverview } from "@hovimestari/types";
+import type { DayReading, DaysAverage, DaySummary, TargetsOverview } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import type { ReactElement, ReactNode } from "react";
 import { Gauge, GaugeFrame, type GaugeMacro } from "./Gauge";
 import { predictedNoTargets } from "./noTargets";
+import { WeekAverageRow } from "./WeekAverageRow";
+import {
+  EMPTY_CELL,
+  FIGURE_CELL,
+  FIGURE_TYPE,
+  gapBefore,
+  GAUGE_CELL,
+  MACROS,
+  positionKey,
+  READINGS,
+  type WeekKind,
+  type Which,
+} from "./weekCells";
 
 // ---------------------------------------------------------------------------
 // WeekTable: seven days side by side, Monday to Sunday, in a real table. Each
@@ -16,6 +29,8 @@ import { predictedNoTargets } from "./noTargets";
 // and under each macro's two figures a mini gauge on days with targets. It
 // states positions only: the figures stay in ink and nothing turns a colour
 // past a bound. A screen reader hears each figure's position.
+//
+// Under Sunday, a `<tfoot>` holds the week's average day (WeekAverageRow).
 //
 // Each day is one `<tbody>` of two rows: the figures, then the gauges. Its
 // date cell spans both and holds the day's button, named by the date alone,
@@ -35,18 +50,6 @@ import { predictedNoTargets } from "./noTargets";
 /** The widest figure a column keeps room for: four digits with "≈". A five-digit figure still fits at 320. */
 const LONGEST = { energy: 8888, protein: 888.8 } as const;
 
-type Which = "eaten" | "withPlan";
-
-const MACROS: readonly GaugeMacro[] = ["energy", "protein"];
-const READINGS: readonly Which[] = ["eaten", "withPlan"];
-
-/** The gap before a figure column: 12 px at the start of a macro's group, 8 px inside it. */
-function gapBefore(which: Which): string {
-  return which === "eaten" ? "pl-3" : "pl-2";
-}
-
-const FIGURE_TYPE = "font-mono text-sm leading-5 text-ink tabular-nums md:text-base md:leading-6";
-
 function figureOf(reading: DayReading, macro: GaugeMacro): string {
   return macro === "energy" ? formatKcal(reading.figures.energyKcal) : formatMacroGrams(reading.figures.proteinG);
 }
@@ -54,6 +57,10 @@ function figureOf(reading: DayReading, macro: GaugeMacro): string {
 export interface WeekTableProps {
   /** The week's Monday. */
   from: string;
+  /** The week's Sunday. */
+  to: string;
+  /** The week against today: WeekSheet works it out once, for the counted line and the average's spoken count. */
+  kind: WeekKind;
   /** The app's today, for the "Today" label. */
   today: string | null;
   /** The day the Day tab shows: its row is marked. */
@@ -62,6 +69,8 @@ export interface WeekTableProps {
   focusShown: boolean;
   /** The week's days, or null for the frame. */
   days: readonly DaySummary[] | null;
+  /** The week's average day, or null for the frame. */
+  average: DaysAverage | null;
   /** The cached targets answer, which says which days have no targets before the week answers. */
   overview: TargetsOverview | undefined;
   /** The table's caption, for a screen reader: the week, as the title says it. */
@@ -71,10 +80,13 @@ export interface WeekTableProps {
 
 export function WeekTable({
   from,
+  to,
+  kind,
   today,
   shownDate,
   focusShown,
   days,
+  average,
   overview,
   caption,
   onPick,
@@ -139,6 +151,13 @@ export function WeekTable({
           onPick={onPick}
         />
       ))}
+      <WeekAverageRow
+        // A new week paints its marks fresh.
+        key={from}
+        average={average}
+        kind={kind}
+        predictedWithout={predictedNoTargets(to, overview) !== null}
+      />
     </table>
   );
 }
@@ -160,11 +179,9 @@ function WeekRow({ date, day, isToday, shown, autoFocus, predictedWithout, onPic
   const label = formatWeekRowDate(date);
   const empty = day !== null && day.entryCount === 0;
 
-  const positionWord = (macro: GaugeMacro, position: RangePosition | null): string | null => {
-    if (position === null) return null;
-    if (position.position === "within") return t("week.spoken.within");
-    if (position.position === "above") return t("week.spoken.above");
-    return macro === "protein" ? t("week.spoken.floor") : t("week.spoken.below");
+  const positionWord = (macro: GaugeMacro, position: DayReading["energy"]): string | null => {
+    const key = positionKey(macro, position);
+    return key === null ? null : t(`week.spoken.${key}`);
   };
 
   const figureCell = (macro: GaugeMacro, which: Which): ReactNode => {
@@ -175,7 +192,7 @@ function WeekRow({ date, day, isToday, shown, autoFocus, predictedWithout, onPic
       <td
         key={`${macro}-${which}`}
         data-week-figure={`${macro}-${which}`}
-        className={`h-6.5 pt-1.5 text-right align-top whitespace-nowrap md:h-8 md:pt-2 ${FIGURE_TYPE} ${gapBefore(which)}`}
+        className={`${FIGURE_CELL} ${FIGURE_TYPE} ${gapBefore(which)}`}
       >
         {reading && (
           <>
@@ -203,7 +220,7 @@ function WeekRow({ date, day, isToday, shown, autoFocus, predictedWithout, onPic
       gauge = <GaugeFrame size="mini" />;
     }
     return (
-      <td key={macro} colSpan={2} data-week-gauge={macro} className="h-4.5 pt-0.5 pl-3 align-top md:h-5">
+      <td key={macro} colSpan={2} data-week-gauge={macro} className={GAUGE_CELL}>
         {gauge}
       </td>
     );
@@ -245,11 +262,7 @@ function WeekRow({ date, day, isToday, shown, autoFocus, predictedWithout, onPic
           )}
         </th>
         {empty ? (
-          <td
-            colSpan={4}
-            data-week-empty=""
-            className="h-6.5 pt-1.5 pl-3 align-top text-sm leading-5 whitespace-nowrap text-ink-muted md:h-8 md:pt-2 md:text-base md:leading-6"
-          >
+          <td colSpan={4} data-week-empty="" className={EMPTY_CELL}>
             {t("reading.noEntries")}
           </td>
         ) : (
