@@ -13,6 +13,7 @@ import {
   recordedCopyEntries,
   recordedLogEstimate,
   recordedLogFood,
+  recordedLogRecipe,
   recordedLogSavedMeal,
   recordedRemoveEntries,
   recordedRestoreEntry,
@@ -26,7 +27,7 @@ import {
 import { dateIn, DayDate, EntryIdSet, writeInput } from "../../inputs.js";
 import { defineWriteTool } from "./run.js";
 
-// The entry write tools (design d.3), each through one recorded service in
+// The entry write tools (design d.3, and log_recipe from the recipes design), each through one recorded service in
 // services/writes/recorded/entries.ts, which calls the service its REST
 // route calls. Field names are the REST body's. A date may be `today`, the
 // person's today. The tools take no entry id for a new entry: the app makes
@@ -77,6 +78,24 @@ export const logSavedMealTool = defineWriteTool({
   replay: replayEntry,
 });
 
+export const logRecipeTool = defineWriteTool({
+  name: "log_recipe",
+  description:
+    "Log or plan a recipe on a day, by servings. The figures are one serving of the recipe as it is now, times the servings. Planned entries from today on follow later edits of the recipe.",
+  inputSchema: writeInput({
+    recipeId: z.uuid().describe("The recipe's id, from list_recipes or get_recipe."),
+    servings: EntryCountSchema.describe("How many servings, such as 1 or 1.5."),
+    date: DayDate,
+    status: Status,
+  }),
+  destructive: false,
+  async run({ date, ...args }, { service, via }) {
+    const { outcome, value } = await recordedLogRecipe(service, via, { ...args, date: dateIn(date, service.today) });
+    return { outcome, data: { entry: value.entry, days: value.days } };
+  },
+  replay: replayEntry,
+});
+
 export const logEstimateTool = defineWriteTool({
   name: "log_estimate",
   description:
@@ -102,6 +121,7 @@ const UpdateInput = writeInput({
   status: Status.optional(),
   amount: Amount.optional().describe("Food entries only: { grams } or { portionId, count }."),
   count: EntryCountSchema.optional().describe("Saved meal entries only: the count of meals."),
+  servings: EntryCountSchema.optional().describe("Recipe entries only: the servings."),
   name: NameSchema.optional().describe("Estimates only."),
   figures: TypedFiguresSchema.optional().describe("Estimates only: all four figures."),
   note: NoteSchema.nullable().optional().describe("Estimates only. null or an empty text clears it."),
@@ -117,7 +137,7 @@ const UpdateInput = writeInput({
 export const updateEntryTool = defineWriteTool({
   name: "update_entry",
   description:
-    "Change, move or mark one entry: its date, its status, a food's amount, a saved meal's count, or an estimate's name, figures and note. Its values per 100 g or per meal stay as they were when it was added.",
+    "Change, move or mark one entry: its date, its status, a food's amount, a saved meal's count, a recipe's servings, or an estimate's name, figures and note. Its values per 100 g, per meal or per serving stay as they were when it was added.",
   inputSchema: UpdateInput,
   destructive: true,
   async run({ entryId, date, ...patch }, { service, via }) {

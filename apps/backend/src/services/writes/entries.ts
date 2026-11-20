@@ -18,6 +18,7 @@ import { isUuid } from "../../lib/isUuid.js";
 import { isForeignKeyViolation, isUniqueViolation, pgCodeOf } from "../../lib/pgErrors.js";
 import { basisColumnsOf, entryOf, selectEntries } from "../entryRows.js";
 import { getDay, getDays, getEntry } from "../reads/days.js";
+import { readRecipeForEntry } from "../recipeValues.js";
 import { gramsOf, lockUserForWrite, readFoodForEntry, readMealForEntry, restoreCutoff } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
@@ -45,12 +46,15 @@ async function removedOwnerOf(db: Db, id: string): Promise<string | undefined> {
 
 /**
  * A foreign-key failure on an entry insert as what it names, never a 500.
- * The user lock comes first, so the user's key failing is a second line of defence.
+ * Each is a second line of defence that no test reaches: the user lock comes
+ * first, and the source is read FOR SHARE (a recipe through `ownRecipe`)
+ * until the insert commits, so no delete lands between the read and the insert.
  */
 function sourceRefused(err: unknown): never {
   if (isForeignKeyViolation(err, "entries_user_id_users_id_fk")) throw appError("user_not_found", 404);
   if (isForeignKeyViolation(err, "entries_food_id_foods_id_fk")) throw appError("food_not_found", 404);
   if (isForeignKeyViolation(err, "entries_saved_meal_user_fk")) throw appError("saved_meal_not_found", 404);
+  if (isForeignKeyViolation(err, "entries_recipe_user_fk")) throw appError("recipe_not_found", 404);
   throw err;
 }
 
@@ -75,6 +79,10 @@ async function valuesFor(tx: Tx, ctx: WriteContext, body: AddEntryBody): Promise
     case "saved_meal": {
       const basis = await readMealForEntry(tx, ctx, body.savedMealId);
       return { ...common, savedMealId: body.savedMealId, mealCount: body.count, ...basisColumnsOf(basis) };
+    }
+    case "recipe": {
+      const basis = await readRecipeForEntry(tx, ctx, body.recipeId);
+      return { ...common, recipeId: body.recipeId, servings: body.servings, ...basisColumnsOf(basis) };
     }
     case "estimate":
       return { ...common, name: body.name, note: body.note, ...basisColumnsOf(body.figures) };
@@ -124,6 +132,7 @@ export async function addEntry(ctx: WriteContext, body: AddEntryBody): Promise<W
 function mismatched(kind: Entry["kind"], patch: EntryPatchBody): boolean {
   if (patch.amount !== undefined && kind !== "food") return true;
   if (patch.count !== undefined && kind !== "saved_meal") return true;
+  if (patch.servings !== undefined && kind !== "recipe") return true;
   const estimateOnly = [patch.name, patch.figures, patch.note].some((v) => v !== undefined);
   return estimateOnly && kind !== "estimate";
 }
@@ -161,6 +170,7 @@ export async function updateEntry(
     };
     if (patch.amount !== undefined) Object.assign(set, await gramsOf(tx, ctx, row.foodId!, patch.amount));
     if (patch.count !== undefined) set.mealCount = patch.count;
+    if (patch.servings !== undefined) set.servings = patch.servings;
     if (patch.name !== undefined) set.name = patch.name;
     if (patch.note !== undefined) set.note = patch.note;
     if (patch.figures !== undefined) Object.assign(set, basisColumnsOf(patch.figures));
@@ -308,13 +318,14 @@ async function purgeExpired(tx: Tx, ctx: WriteContext): Promise<void> {
 const ROW_NO_LONGER_FITS = new Set(["23502", "23514", "22P02"]);
 
 /**
- * A restore that cannot put its row back: its food or meal was deleted
+ * A restore that cannot put its row back: its food, meal or recipe was deleted
  * outright since, its id is in use, or the stored row no longer fits the table.
  */
 function restoreRefused(err: unknown): never {
   const lost =
     isForeignKeyViolation(err, "entries_food_id_foods_id_fk") ||
     isForeignKeyViolation(err, "entries_saved_meal_user_fk") ||
+    isForeignKeyViolation(err, "entries_recipe_user_fk") ||
     isUniqueViolation(err, "entries_pkey") ||
     ROW_NO_LONGER_FITS.has(pgCodeOf(err) ?? "");
   if (lost) throw appError("entry_not_found", 404);

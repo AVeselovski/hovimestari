@@ -7,13 +7,13 @@ import {
   type Scale,
 } from "@hovimestari/types";
 import { and, asc, eq, sql, type SQL } from "drizzle-orm";
-import { entries, foodPortions, foods, savedMeals } from "../db/schema/index.js";
+import { entries, foodPortions, foods, recipes, savedMeals } from "../db/schema/index.js";
 import type { Db } from "../db/types.js";
 import { displayName } from "./foodRows.js";
 import { portionVisibleTo } from "./foodScope.js";
 
-// The one selection every entry read answers with. It joins the entry's food
-// and saved meal WITHOUT the visibility rule: an entry is scoped by its own
+// The one selection every entry read answers with. It joins the entry's food,
+// saved meal and recipe WITHOUT the visibility rule: an entry is scoped by its own
 // user_id, and a hidden or retired source keeps its rows on every day. The
 // portion is joined only through the hint rule: same id, same food as the
 // entry, and visible to the user. Any other portion_id reads as null.
@@ -29,6 +29,9 @@ export const entryColumns = (userId: string) => ({
   mealSource: savedMeals.source,
   mealArchived: sql<boolean>`${savedMeals.archivedAt} IS NOT NULL`,
   mealDeleted: sql<boolean>`${savedMeals.deletedAt} IS NOT NULL`,
+  recipeName: recipes.name,
+  recipeArchived: sql<boolean>`${recipes.archivedAt} IS NOT NULL`,
+  recipeDeleted: sql<boolean>`${recipes.deletedAt} IS NOT NULL`,
   portionId: foodPortions.id,
 });
 
@@ -42,6 +45,9 @@ type EntryRow = {
   mealSource: string | null;
   mealArchived: boolean | null;
   mealDeleted: boolean | null;
+  recipeName: string | null;
+  recipeArchived: boolean | null;
+  recipeDeleted: boolean | null;
   portionId: string | null;
 };
 
@@ -52,6 +58,7 @@ export function selectEntries(db: Db, userId: string, where: SQL | undefined) {
     .from(entries)
     .leftJoin(foods, eq(foods.id, entries.foodId))
     .leftJoin(savedMeals, eq(savedMeals.id, entries.savedMealId))
+    .leftJoin(recipes, eq(recipes.id, entries.recipeId))
     .leftJoin(
       foodPortions,
       and(eq(foodPortions.id, entries.portionId), eq(foodPortions.foodId, entries.foodId), portionVisibleTo(userId)),
@@ -83,8 +90,24 @@ export function scaleOf(e: typeof entries.$inferSelect): Scale {
       return { per: "100g", grams: e.grams! };
     case "saved_meal":
       return { per: "meal", count: e.mealCount! };
+    case "recipe":
+      return { per: "serving", count: e.servings! };
     case "estimate":
       return { per: "whole" };
+  }
+}
+
+/** An entry's name: its food's in the user's language, its meal's or recipe's as it is now, or its own. */
+function nameOf(row: EntryRow): string {
+  switch (row.entry.kind) {
+    case "food":
+      return row.foodName ?? "";
+    case "saved_meal":
+      return row.mealName ?? "";
+    case "recipe":
+      return row.recipeName ?? "";
+    case "estimate":
+      return row.entry.name ?? "";
   }
 }
 
@@ -97,7 +120,7 @@ export function entryOf(row: EntryRow): Entry {
     position: e.position,
     status: e.status,
     kind: e.kind,
-    name: (e.kind === "food" ? row.foodName : e.kind === "saved_meal" ? row.mealName : e.name) ?? "",
+    name: nameOf(row),
     food:
       e.foodId === null
         ? null
@@ -117,6 +140,8 @@ export function entryOf(row: EntryRow): Entry {
             count: e.portionCount,
           },
     count: e.mealCount,
+    servings: e.servings,
+    recipe: e.recipeId === null ? null : { id: e.recipeId, archived: row.recipeArchived!, deleted: row.recipeDeleted! },
     note: e.note,
     basis: basisOf(e),
     figures: entryFigures(basisOf(e), scaleOf(e)),

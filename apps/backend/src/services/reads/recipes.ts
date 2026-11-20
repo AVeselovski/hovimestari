@@ -13,8 +13,8 @@ import {
   type RecipeSummary,
   type ScaledRecipe,
 } from "@hovimestari/types";
-import { and, asc, eq, inArray, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
-import { foodPortions, foods, recipeIngredients, recipes, recipeTags } from "../../db/schema/index.js";
+import { and, asc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { entries, foodPortions, foods, recipeIngredients, recipes, recipeTags } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { byName, displayName } from "../foodRows.js";
@@ -35,9 +35,6 @@ import type { ReadContext } from "./context.js";
 // by the recipe's owner, so a line keeps a food hidden or retired since.
 // One person's recipes are a few hundred at most, read with their lines in
 // three queries.
-
-/** The recipes of `userId` a user can see: their own, not deleted. */
-export const ownRecipe = (userId: string): SQL => and(eq(recipes.userId, userId), isNull(recipes.deletedAt))!;
 
 /** The portion hint as a line carries it: read only when it is the line's food's portion and visible. */
 const hintedPortion = (userId: string) =>
@@ -116,6 +113,16 @@ async function tagsOf(ctx: ReadContext, recipeIds: string[]): Promise<Map<string
   return byRecipe;
 }
 
+/** The latest date each of `recipeIds` is on, planned or eaten, through `entries_recipe_idx`. */
+async function lastPutOnOf(ctx: ReadContext, recipeIds: string[]): Promise<Map<string, string>> {
+  const rows = await ctx.db
+    .select({ recipeId: entries.recipeId, last: max(entries.date) })
+    .from(entries)
+    .where(and(eq(entries.userId, ctx.userId), inArray(entries.recipeId, recipeIds)))
+    .groupBy(entries.recipeId);
+  return new Map(rows.flatMap((r) => (r.recipeId !== null && r.last !== null ? [[r.recipeId, r.last]] : [])));
+}
+
 /** The user's recipes matching `where`, whole, in no particular order. */
 async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
   const rows = await ctx.db
@@ -124,7 +131,7 @@ async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
     .where(and(eq(recipes.userId, ctx.userId), where));
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
-  const [lines, tags] = await Promise.all([linesOf(ctx, ids), tagsOf(ctx, ids)]);
+  const [lines, tags, lastPutOn] = await Promise.all([linesOf(ctx, ids), tagsOf(ctx, ids), lastPutOnOf(ctx, ids)]);
   return rows.map((row) => {
     const recipeLines = lines.get(row.id) ?? [];
     const basis = servingBasis(recipeLines, row.servings);
@@ -138,8 +145,8 @@ async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
       archived: row.archivedAt !== null,
       perServing: entryFigures(basis, { per: "serving", count: 1 }),
       basis,
-      // Nothing puts a recipe on a day yet.
-      lastPutOn: null,
+      lastPutOn: lastPutOn.get(row.id) ?? null,
+      // Recent recipes arrive with the log sheet's recipes.
       lastServings: null,
       imageId: null,
       foodsGone: recipeLines.some((l) => l.food !== null && (l.food.deleted || l.food.retired)),

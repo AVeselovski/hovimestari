@@ -5,13 +5,15 @@ import type { Tx } from "../../db/types.js";
 import { appError, lineError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { isForeignKeyViolation, isUniqueViolation } from "../../lib/pgErrors.js";
-import { getRecipe, ownRecipe } from "../reads/recipes.js";
+import { getRecipe } from "../reads/recipes.js";
+import { ownRecipe } from "../recipeScope.js";
 import { basisLine, cappedServingBasis, checkLine, readLineFoods, type CheckedLine } from "../recipeValues.js";
-import { lockUserForWrite } from "../sourceValues.js";
+import { isUsed, lockUserForWrite, restoreCutoff, rewritePlannedBasis } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
 // A recipe is the user's own, found by id and user_id, never another user's
-// (404). A deleted recipe is invisible to every write. A create or an edit
+// (404). A deleted recipe, hidden because days use it, is invisible to every
+// write. A create or an edit
 // takes the user's row, then the recipe's, then the user's own foods among
 // its lines FOR SHARE (readLineFoods), in that order, so it never deadlocks
 // with a food edit or delete, which take the food's row and then entries.
@@ -219,8 +221,10 @@ const sameTags = (a: string[], b: string[]) => {
  * A line keeps its id across the edit, and a line sent under an id the
  * recipe does not hold keeps the id of an identical line (`keepingIds`).
  * A line on a food the recipe already uses keeps it even when the food is
- * hidden or retired since, and a new food must be one the user can see. An
- * edit that changes nothing writes nothing and answers `unchanged`.
+ * hidden or retired since, and a new food must be one the user can see. Its
+ * planned entries dated today or later take the new figures, and eaten
+ * entries and past days keep theirs. An edit that changes nothing writes
+ * nothing and answers `unchanged`.
  */
 export async function updateRecipe(ctx: WriteContext, id: string, body: RecipeEditBody): Promise<WriteOutcome<Recipe>> {
   const changed = await ctx.db
@@ -254,6 +258,7 @@ export async function updateRecipe(ctx: WriteContext, id: string, body: RecipeEd
       await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipe.id));
       await tx.delete(recipeTags).where(eq(recipeTags.recipeId, recipe.id));
       await insertParts(tx, ctx, recipe.id, rows, body.tags);
+      await rewritePlannedBasis(tx, ctx, { kind: "recipe", id: recipe.id });
       return true;
     })
     .catch(lineIdChecked);
@@ -289,13 +294,24 @@ export async function setRecipeFavourite(
 }
 
 /**
- * Deletes the user's recipe, and with it its lines and tags. Nothing puts a
- * recipe on a day yet, so nothing can use one, and a delete always deletes.
+ * Deletes the user's recipe, and with it its lines and tags. A recipe that
+ * entries use, or that an entry removed in the last ten minutes used, is
+ * hidden instead: it leaves every list and the favourites, keeps its lines
+ * and tags, and every day keeps its rows and figures and still opens it by
+ * id. The row lock (FOR UPDATE) waits for an add that holds the recipe FOR
+ * SHARE, and the use check, a new statement, then sees that add's entry.
  */
 export async function deleteRecipe(ctx: WriteContext, id: string): Promise<WriteOutcome<null>> {
   await ctx.db.transaction(async (tx) => {
     const recipe = await lockRecipe(tx, ctx, id);
-    await tx.delete(recipes).where(eq(recipes.id, recipe.id));
+    if (!(await isUsed(tx, ctx, { kind: "recipe", id: recipe.id }, restoreCutoff(ctx)))) {
+      await tx.delete(recipes).where(eq(recipes.id, recipe.id));
+      return;
+    }
+    await tx
+      .update(recipes)
+      .set({ deletedAt: ctx.now, favouriteAt: null, updatedAt: ctx.now })
+      .where(eq(recipes.id, recipe.id));
   });
   return { value: null, outcome: "deleted" };
 }

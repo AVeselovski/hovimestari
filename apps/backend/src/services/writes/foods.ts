@@ -112,13 +112,19 @@ export async function updateOwnFood(
     await barcodeChecked(() =>
       ctx.db.transaction(async (tx) => {
         await lockUserForWrite(tx, ctx.userId);
-        const changed = await tx
+        // The values before the edit, under the lock the update takes anyway,
+        // so the rewrite can tell an edit that raises a recipe's serving.
+        const [before] = await tx
+          .select({ energyKcal: foods.energyKcal, proteinG: foods.proteinG, carbsG: foods.carbsG, fatG: foods.fatG })
+          .from(foods)
+          .where(ownFood(ctx, food.id))
+          .for("no key update");
+        if (!before) throw appError("food_not_found", 404);
+        await tx
           .update(foods)
           .set({ ...next, updatedAt: ctx.now })
-          .where(ownFood(ctx, food.id))
-          .returning({ id: foods.id });
-        if (changed.length === 0) throw appError("food_not_found", 404);
-        await rewritePlannedBasis(tx, ctx, { kind: "food", id: food.id }, body.per100g);
+          .where(ownFood(ctx, food.id));
+        await rewritePlannedBasis(tx, ctx, { kind: "food", id: food.id, before });
       }),
     );
   }

@@ -96,6 +96,7 @@ export const ERROR_CODES = [
   "recipe_servings_invalid",
   "recipe_time_invalid",
   "recipe_serving_too_large",
+  "food_edit_recipe_too_large",
   "step_too_long",
   "steps_too_many",
   "notes_too_long",
@@ -115,7 +116,17 @@ export interface ApiError {
   code?: ErrorCode;
   /** The index from 0 of the recipe line a refusal is about, when it is about one. */
   line?: number;
+  /**
+   * What the refusal is about, when its code says. Each string or number in
+   * it is a value of the code's catalog line. `food_edit_recipe_too_large`
+   * carries `recipe` (the first recipe by name), `others` (how many more) and
+   * `recipes` (the first three names).
+   */
+  details?: ErrorDetails;
 }
+
+/** The details of a refusal: values its catalog line reads, and lists for API clients. */
+export type ErrorDetails = Record<string, string | number | string[]>;
 
 const CODES: ReadonlySet<string> = new Set(ERROR_CODES);
 

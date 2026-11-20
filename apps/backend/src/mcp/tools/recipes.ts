@@ -14,7 +14,7 @@ const { archived, q, tags, minProteinG, maxProteinG, minEnergyKcal, maxEnergyKca
 export const listRecipesTool = defineTool({
   name: "list_recipes",
   description:
-    "The person's recipes, each with its servings, tags, whether it is a favourite and its figures for one serving (perServing). No recipe can be put on a day yet, so lastPutOn and lastServings are null. Active recipes, or archived ones with archived true. Every filter is optional.",
+    "The person's recipes, each with its servings, tags, whether it is a favourite, its figures for one serving (perServing) and lastPutOn, the latest date it is on, planned or eaten, or null. lastServings is null. Active recipes, or archived ones with archived true. Every filter is optional.",
   inputSchema: z.strictObject({
     archived: archived.describe("true lists the archived recipes instead of the active ones."),
     q: q.describe("Words that must each be in the recipe's name or one of its tags, case and accents ignored."),
@@ -25,7 +25,7 @@ export const listRecipesTool = defineTool({
     maxEnergyKcal: maxEnergyKcal.describe("At most this many kcal in one serving, as shown."),
     favourites: favourites.describe("true lists the favourites only."),
     sort: sort.describe(
-      "name (alphabetical), protein (most per serving first) or energy (fewest kcal per serving first). lastPutOn sorts as name while no recipe is on a day.",
+      "name (alphabetical), lastPutOn (latest date first, never put on a day last), protein (most per serving first) or energy (fewest kcal per serving first).",
     ),
     limit: z.number().int().min(1).max(200).optional().describe("At most this many recipes, 1 to 200."),
   }),

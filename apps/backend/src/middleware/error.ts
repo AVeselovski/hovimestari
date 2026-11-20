@@ -55,8 +55,12 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof AppError) {
     if (err.retryAfterSeconds !== undefined) res.set("Retry-After", String(err.retryAfterSeconds));
-    const body = err.code ? { message: err.message, code: err.code } : { message: err.message };
-    res.status(err.status).json(err.line === undefined ? body : { ...body, line: err.line });
+    res.status(err.status).json({
+      message: err.message,
+      ...(err.code ? { code: err.code } : {}),
+      ...(err.line === undefined ? {} : { line: err.line }),
+      ...(err.details === undefined ? {} : { details: err.details }),
+    });
     return;
   }
 

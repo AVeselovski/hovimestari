@@ -50,6 +50,12 @@ export interface LogSavedMealArgs {
   date: string;
   status: EntryStatus;
 }
+export interface LogRecipeArgs {
+  recipeId: string;
+  servings: number;
+  date: string;
+  status: EntryStatus;
+}
 export interface LogEstimateArgs {
   name: string;
   figures: TypedFigures;
@@ -70,9 +76,10 @@ export function lineOf(entry: Entry): AssistantEntryLine {
   };
 }
 
-/** A food's grams or portion count, a saved meal's count. An estimate has no amount. */
+/** A food's grams or portion count, a saved meal's count, a recipe's servings. An estimate has no amount. */
 function amountOf(entry: Entry): AssistantEntryLine["amount"] {
   if (entry.kind === "saved_meal") return entry.count === null ? null : { count: entry.count };
+  if (entry.kind === "recipe") return entry.servings === null ? null : { servings: entry.servings };
   if (entry.kind !== "food" || entry.grams === null) return null;
   if (!entry.portion) return { grams: entry.grams };
   const portionLabel = entry.portion.name ?? entry.portion.unit ?? "";
@@ -149,6 +156,16 @@ export async function recordedLogFood(ctx: WriteContext, via: AssistantActor, ar
 
 export async function recordedLogSavedMeal(ctx: WriteContext, via: AssistantActor, args: LogSavedMealArgs) {
   const body = AddEntryBodySchema.parse({ kind: "saved_meal", id: randomUUID(), ...args });
+  return recordedWrite(ctx, via, {
+    userLock: "key share",
+    before: none,
+    run: (tx) => addEntry(tx, body),
+    record: (_before, result) => addedRecord(result),
+  });
+}
+
+export async function recordedLogRecipe(ctx: WriteContext, via: AssistantActor, args: LogRecipeArgs) {
+  const body = AddEntryBodySchema.parse({ kind: "recipe", id: randomUUID(), ...args });
   return recordedWrite(ctx, via, {
     userLock: "key share",
     before: none,

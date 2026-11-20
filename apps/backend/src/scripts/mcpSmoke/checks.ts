@@ -30,6 +30,7 @@ export const WRITE_TOOL_NAMES = [
   "log_food",
   "log_saved_meal",
   "log_estimate",
+  "log_recipe",
   "update_entry",
   "set_entries_status",
   "copy_entries",
