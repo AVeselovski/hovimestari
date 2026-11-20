@@ -1,6 +1,6 @@
 # Days
 
-A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as everything on the day, eaten or still planned, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance.
+A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as everything on the day, eaten or still planned, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance. A past day's total with nothing recorded in it has no position.
 
 ## In detail
 
@@ -31,6 +31,8 @@ Each reading gives the position of its energy against the calorie range and of i
 - above: past the upper bound, with the distance past it.
 
 A distance has at most one decimal. Eaten protein of 129.9 g against a floor of 130 g is below, 0.1 g from it. Eaten protein of exactly 130 g is within. A day without targets gets the figures and no position. A day has no targets before the user's first change, and none at all for a user with no change. The targets a day uses are [the ones in force on its date](targets.md#which-targets-a-day-uses).
+
+A past day's reading with no entries has no position, and the day keeps its targets. The reading records nothing, so its zero is not an amount eaten. An empty past day has no position in either reading. A past day with only planned entries has none for what was eaten, and keeps its position with the plan. Today and later days keep their positions while empty, because there the distance is what is left to reach the range. At the user's midnight, an empty today becomes a past day and loses its positions.
 
 ### Figures that stay
 
@@ -66,7 +68,7 @@ Entry reads go through `selectEntries` in `apps/backend/src/services/entryRows.t
 
 ### Reads
 
-`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build the readings with one shared function. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. `getEntry` there reads one entry by its id, as the entry writes answer it. A connected assistant reads days through these same services, as [what an assistant reads](connected-ai.md#what-an-assistant-reads) describes. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
+`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build every day with `summarizeDay` in `packages/types/src/days.ts`, the one day summary. It takes the date, the user's today, the day's entries and the targets in force, and answers the relation, the two readings, their positions and the counts. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. `getEntry` there reads one entry by its id, as the entry writes answer it. A connected assistant reads days through these same services, as [what an assistant reads](connected-ai.md#what-an-assistant-reads) describes. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
 
 ### API
 
@@ -77,7 +79,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`. 
 | GET    | `/days/:date`     | 200 with the day. `:date` is a date or `today`. 400 `invalid_date`                                               |
 | GET    | `/days?from=&to=` | 200 `{ days }`, every day without its entries. `from` on or before `to`, at most 42 days, else `invalid_request` |
 
-A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy` and `protein` (each `{ position, distance }`, or null on a day without targets, as `targets` is) and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
+A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy`, `protein` and `includesEstimate`. `energy` and `protein` are each `{ position, distance }`, or null. They are null on a day without targets, where `targets` is null too. They are also null on a past day when the reading holds no entries, where `targets` is still given. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
 
 ### Data
 

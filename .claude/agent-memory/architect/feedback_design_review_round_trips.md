@@ -16,6 +16,11 @@ Before handing a design to review, check these, each of which cost a review roun
 - Per-user client state lives where the app already scopes by user (the layout's `key={user.id}`), never in a module global, which outlives sign-out.
 - A lock that guards a count must conflict with itself: `FOR KEY SHARE` does not, so a cap counted under it can be raced.
 
+- Web test fakes (`components/day/__tests__/support.ts` `dayOf`, `harness.tsx` `FakeDays`) copy server rules. A rule change must move the rule into `packages/types` and have the fake call it, or the fake encodes the old behaviour (week average review, 2026-11-20).
+- The week table is automatic layout: any in-flow nowrap text widens its `w-12` column. Put new labels out of flow. Fonts load with `display: swap`, so a 0.2 px margin is no margin.
+- A change that alters what renders is user-visible even with no web code change: it gets ui-validator and screenshots. A blank where a figure's line was reads as half-loaded.
+- Count copy must be checkable against the rows a person sees ("3 days before today", not "3 days eaten").
+
 **Why:** the orchestrator accepted every one of these as a finding and asked for the fix in the body, so they are the review's standing bar.
 
 **How to apply:** run this list over a design before returning it.

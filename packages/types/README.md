@@ -27,7 +27,7 @@ auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account 
 barcode.ts     The barcode lookup's body with its optional scan format, and its four answers: found, incomplete, not found, a shop's own
 connections.ts A connection key's access, lifetimes, limit and prefix, the create body, a connection, a connection with its count of changes, a past connection, the list with what the server offers, and the one answer that holds the key
 dates.ts       IsoDateSchema, a calendar date that exists, TimeZoneSchema with isKnownTimeZone, addDays, and weekOf with WEEK_START and WEEK_LENGTH, the Monday to Sunday week
-days.ts        A day, its readings and summary, and the day and range queries
+days.ts        A day, its readings and summary, the day and range queries, summarizeDay, the one day summary that sets each reading's position, and DayRow, the fields it reads of an entry
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry
 errors.ts      ERROR_CODES, ErrorCode, ApiError and isErrorCode
 figures.ts     Figures, positions, and the one figure computation: entryFigures, totalOf, positionOf, gramsForPortion
@@ -40,4 +40,4 @@ targets.ts     The target ranges, the set-targets body, a dated change and the t
 
 ## Tests
 
-`src/__tests__/` holds the schema and date tests, on Jest 29 in native ESM mode. Run them with `pnpm --filter @hovimestari/types test`.
+`src/__tests__/` holds the schema, date, figure and day summary tests, on Jest 29 in native ESM mode. Run them with `pnpm --filter @hovimestari/types test`.
