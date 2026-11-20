@@ -26,7 +26,7 @@ src/
 │   │   ├── recipes/            Recipes: renders RecipesTab
 │   │   ├── groceries/          Groceries: "Nothing here yet."
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Connected AI, Sign-in methods, Account and Food data, and their sheets
-│   │       └── _components/    One file per section and sheet. Connected AI is ConnectedAiSection, with ConnectionRows, CreateConnectionSheet, AccessLevelField, KeyRevealSheet, ConnectionInstructions, CopyButton, ConnectionActivitySheet (a connection's record, a page at a time) and changeText.ts (one recorded change as a headline and its lines, and as one sentence for a screen reader)
+│   │       └── _components/    One file per section and sheet. Connected AI is ConnectedAiSection, with ConnectionRows, CreateConnectionSheet, AccessLevelField, KeyRevealSheet, ConnectionInstructions, CopyButton, ConnectionActivitySheet (a connection's record, a page at a time), changeText.ts (one recorded change as a headline and its lines, and as one sentence for a screen reader) and recipeChangeText.ts (a recipe change's lines)
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
 │       ├── _guard.ts           The same-origin guard every POST handler runs first
