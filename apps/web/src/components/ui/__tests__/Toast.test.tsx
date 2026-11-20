@@ -1,4 +1,5 @@
 import { holdSheetExits } from "@/__tests__/sheet";
+import { TOAST_REGION_SELECTOR } from "@/lib/sheetTab";
 import { Toast } from "@base-ui/react/toast";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
@@ -150,5 +151,19 @@ describe("useToast", () => {
     } finally {
       release();
     }
+  });
+});
+
+describe("ToastRegion", () => {
+  it("carries the marker an open sheet looks for, so Tab and F6 in the toasts stay the toasts' own", async () => {
+    render(
+      <ToastProvider>
+        <Caller name="One" onUndo={() => undefined} />
+        <ToastRegion />
+      </ToastProvider>,
+    );
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "One" })));
+    const undo = screen.getByRole("button", { name: "Undo" });
+    expect(undo.closest(TOAST_REGION_SELECTOR)).toBe(screen.getByRole("region"));
   });
 });

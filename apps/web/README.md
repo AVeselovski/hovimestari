@@ -175,6 +175,8 @@ src/
 │   ├── useArmedAtRest.ts       A sheet's action takes a press only once the sheet is at rest on a phone
 │   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
+│   ├── useSheetFocusReturn.ts  Where a sheet puts focus back the moment it closes
+│   ├── useSheetTabWrap.ts      Keeps Tab and Shift+Tab inside the top-most open sheet
 │   ├── useStillUnderFinger.ts  No scroll by code while a finger is on the screen
 │   ├── useNativeTapWhileKeyboardDown.ts  While the keyboard is down, a tap on a sheet's text field is the browser's own
 │   ├── useAnchoredPanel.ts     Holds a centred panel's top where it opened
@@ -217,6 +219,7 @@ src/
 │   ├── googleLink.ts           The results a Google link comes back with
 │   ├── focus.ts                Whether focus is still inside an overlay, so closing it puts focus back only then
 │   ├── focusAfterRemoval.ts    Where focus goes when a row leaves the page
+│   ├── sheetTab.ts             A sheet's Tab stops, and where Tab goes from its two ends and from outside it
 │   ├── lastInputModality.ts    Which input the reader last used, so a focus put back after a tap paints no ring
 │   ├── backend.ts              The backend's URL for server code, which production refuses to guess
 │   └── theme/noFlashScript.ts  The pre-paint theme script and its storage key

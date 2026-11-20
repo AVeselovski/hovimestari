@@ -21,16 +21,15 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useMainScrollLock } from "@/hooks/useMainScrollLock";
 import { useNativeTapWhileKeyboardDown } from "@/hooks/useNativeTapWhileKeyboardDown";
 import { useScrollHold } from "@/hooks/useScrollHold";
+import { useSheetFocusReturn } from "@/hooks/useSheetFocusReturn";
+import { useSheetTabWrap } from "@/hooks/useSheetTabWrap";
 import { useStillUnderFinger } from "@/hooks/useStillUnderFinger";
-import { focusIsInsideOrLost } from "@/lib/focus";
-import { restoreFocus } from "@/lib/lastInputModality";
 import { Drawer } from "@base-ui/react/drawer";
 import {
   createContext,
   Fragment,
   useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -52,8 +51,11 @@ import { closingBackdropHandlers, closingBackdropStyle, useClosingPresses } from
 // `sheet*` recipes in styles.ts; the motion is the `sheet-*-motion`
 // utilities in globals.css.
 //
-// Base UI owns the swipe, the focus trap, Escape and the outside press. This
-// component owns five things Base UI does not do the way this app needs (presses while closing: closingSheet.ts):
+// Base UI owns the swipe, the focus trap, Escape and the outside press. Its
+// trap moves focus off a focus guard a frame late, so the top-most sheet wraps
+// Tab at its two ends itself (`useSheetTabWrap`, lib/sheetTab.ts). This
+// component owns five things Base UI does not do the way this app needs
+// (presses while closing: closingSheet.ts):
 //
 // 1. The entry animation. Base UI plays an entry only for a root that
 //    mounted closed and then opened; most callers mount this component
@@ -310,19 +312,6 @@ export function BottomSheet({
   const parentStack = useContext(SheetStackContext);
   const nested = parentStack !== null;
   const stack = useMemo<SheetStack>(() => ({ parentPopupRef: popupRef }), []);
-  // Read by the restore when the sheet closes, so the latest element wins.
-  const returnFocusToRef = useRef(returnFocusTo);
-  const restoreFocusOnCloseRef = useRef(restoreFocusOnClose);
-  useLayoutEffect(() => {
-    returnFocusToRef.current = returnFocusTo;
-    restoreFocusOnCloseRef.current = restoreFocusOnClose;
-  });
-
-  const previouslyFocusedRef = useRef<Element | null>(null);
-  useLayoutEffect(() => {
-    if (open) previouslyFocusedRef.current = document.activeElement;
-  }, [open]);
-
   // The entry animation (point 1 above), and a fresh content mount on every
   // open (point 3 above).
   const [rootOpen, setRootOpen] = useState(false);
@@ -360,35 +349,19 @@ export function BottomSheet({
     [holdRef, stillRef],
   );
 
-  // Focus return (point 3 above). Only while focus is still inside the
-  // closing sheet, has been dropped on <body>, or has not moved since the
-  // sheet opened, so a sheet closed by an action that moved focus elsewhere
-  // leaves it there. Base UI moves focus in a frame after opening, and a
-  // sheet closed before that frame still holds the stale focus it opened on.
-  useEffect(() => {
-    if (!open) return;
-    return () => {
-      // The latest value: the update that closes the sheet may have turned it off.
-      if (!restoreFocusOnCloseRef.current) return;
-      const named = returnFocusToRef.current;
-      const captured = previouslyFocusedRef.current;
-      // A `returnFocusTo` that has left the document (its row re-rendered
-      // away) falls back to the element captured at open. A nested sheet
-      // never falls back to <body>: it hands focus to the sheet underneath.
-      const target = nested
-        ? ([named, captured].find((el) => el?.isConnected && el !== document.body) ??
-          parentStack.parentPopupRef.current)
-        : named?.isConnected
-          ? named
-          : captured;
-      const unmoved = captured !== null && document.activeElement === captured;
-      if (target instanceof HTMLElement && (unmoved || focusIsInsideOrLost(popupRef.current))) restoreFocus(target);
-    };
-  }, [open, nested, parentStack]);
+  // Focus return (point 3 above).
+  useSheetFocusReturn({
+    open,
+    popupRef,
+    returnFocusTo,
+    restoreFocusOnClose,
+    parentPopupRef: parentStack?.parentPopupRef ?? null,
+  });
 
   // The `<main>` scroll lock (point 2 above). A nested sheet skips it: the
   // sheet underneath already holds the lock.
   useMainScrollLock(open && !nested);
+  useSheetTabWrap(open, popupRef);
 
   // Base UI's keyboard handling, only for a sheet that asks for it.
   const KeyboardScope = keyboardAware ? Drawer.VirtualKeyboardProvider : Fragment;
