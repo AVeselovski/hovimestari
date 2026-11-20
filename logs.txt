@@ -688,3 +688,4 @@
 [frontend-engineer DONE] (2026-11-20T21:25:26Z) recipes slice R1b web fix batch at a7b5071: a count with too many decimals reads the range line, one table for the counted kinds in entryForm, the web part of "R1b, as built", five items filed in TODO.md. Types 250, backend 1444, web 2082 tests.
 [documentation-specialist STARTED] (2026-11-20T21:25:26Z) recipes slice R1b: docs pass on the branch brought onto master.
 [documentation-specialist DONE] (2026-11-20T21:30:39Z) recipes slice R1b docs pass at 092d1fe on the branch brought onto master: a hidden recipe still answers by id, the cap rule linked from foods, three TODO items made true, build-progress.md current, five stamps renewed. docs:check 0 findings.
+[frontend-engineer STARTED] (2026-11-20T21:40:54Z) recipes slice R2a: the Recipes tab in three segments, the recipe page, the editor with its ingredient picker, and planning a recipe on a day from its page.
