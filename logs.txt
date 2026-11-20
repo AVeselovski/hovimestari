@@ -689,3 +689,7 @@
 [documentation-specialist STARTED] (2026-11-20T21:25:26Z) recipes slice R1b: docs pass on the branch brought onto master.
 [documentation-specialist DONE] (2026-11-20T21:30:39Z) recipes slice R1b docs pass at 092d1fe on the branch brought onto master: a hidden recipe still answers by id, the cap rule linked from foods, three TODO items made true, build-progress.md current, five stamps renewed. docs:check 0 findings.
 [frontend-engineer STARTED] (2026-11-20T21:40:54Z) recipes slice R2a: the Recipes tab in three segments, the recipe page, the editor with its ingredient picker, and planning a recipe on a day from its page.
+[frontend-engineer DONE] (2026-11-20T23:01:38Z) recipes slice R2a at 9aa9a14: the Recipes tab in three segments, the recipe page with its servings stepper, the editor with the ingredient picker, planning a recipe on a day from its page, Open recipe in the entry sheet; useFoodFinder lifted out of the log sheet with no behaviour change. Web 2219 tests twice. Thirteen owner screenshots.
+[validator STARTED] (2026-11-20T23:01:38Z) recipes slice R2a against the requirements and the design, at 9aa9a14.
+[ui-validator STARTED] (2026-11-20T23:01:38Z) recipes slice R2a in a real browser, at 9aa9a14.
+[reviewer STARTED] (2026-11-20T23:01:38Z) recipes slice R2a code review, at 9aa9a14.
