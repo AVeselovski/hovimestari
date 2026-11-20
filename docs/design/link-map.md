@@ -132,6 +132,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | position, distance, where a day stands, nothing recorded | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
 | figures that stay, basis, hidden source                  | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
 | the week, a range of days                                | `features/days.md#the-week`                                  | `### The week`                         |
+| the week's average, average day, counted days            | `features/days.md#the-weeks-average`                         | `### The week's average`               |
 | estimate                                                 | `features/days.md#estimates`                                 | `### Estimates`                        |
 | the figure computation                                   | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
 | adding, editing and moving an entry                      | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
