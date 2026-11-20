@@ -26,7 +26,7 @@ const EntryIds = z.array(z.uuid()).max(MAX_COOK_ENTRIES);
 export const logCookTool = defineWriteTool({
   name: "log_cook",
   description:
-    "Log a batch of a recipe as it was made, when it came out different from the recipe: its own lines and the servings it gave. The recipe stays as written. The entries the batch fed take its figures: plain entries of the recipe it attaches, and new servings it adds. Nothing else on their days changes. Answers the batch with its figures and what it changed from the recipe, the entries and their days.",
+    "Log a batch of a recipe as it was made, when it came out different from the recipe: its own lines and the servings it gave. The recipe stays as written. The entries the batch fed take its figures: plain entries of the recipe it attaches, eaten ones and past days included, and new servings it adds. Nothing else on their days changes. Answers the batch with its figures and what it changed from the recipe, the entries and their days.",
   inputSchema: writeInput({
     recipeId: z.uuid().describe("The recipe's id, from list_recipes or get_recipe."),
     date: DayDate.describe("The day the batch was made, YYYY-MM-DD, or today."),
@@ -59,7 +59,8 @@ export const logCookTool = defineWriteTool({
       .default([])
       .describe("New servings from the batch, each on its day. At least one entry, attached or added."),
   }),
-  destructive: false,
+  // Attaching rewrites the figures and status of entries already there, an eaten one on a past day included.
+  destructive: true,
   async run({ date, add, ...args }, { service, via }) {
     const { outcome, value } = await recordedLogCook(service, via, {
       ...args,

@@ -310,6 +310,7 @@ describe("/mcp through the MCP client", () => {
       "update_recipe",
       "set_recipe_archived",
       "set_recipe_favourite",
+      "log_cook",
       "set_targets",
       "remove_targets",
     ];
