@@ -23,6 +23,7 @@ export const READ_TOOL_NAMES = [
   "list_recipes",
   "get_recipe",
   "preview_recipe",
+  "get_cook",
   "look_up_barcode",
 ];
 
@@ -48,6 +49,8 @@ export const WRITE_TOOL_NAMES = [
   "update_recipe",
   "set_recipe_archived",
   "set_recipe_favourite",
+  "log_cook",
+  "save_cook_as_recipe",
   "set_targets",
   "remove_targets",
 ];

@@ -116,7 +116,7 @@ describe("APP_RULES", () => {
 
   it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {
     expect(WRITE_RULES).toContain(
-      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites and log them, and change targets.",
+      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites, log them and log a batch as made, and change targets.",
     );
     expect(WRITE_RULES).toContain("Values the person reads from a label go in with create_own_food.");
     expect(WRITE_RULES).toContain("Set them only with the numbers the person gave, from the date they gave");
