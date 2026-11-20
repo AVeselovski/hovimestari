@@ -693,3 +693,6 @@
 [validator STARTED] (2026-11-20T22:20:50Z) recipes slice R3a against the requirements and the design, at af3a0f8.
 [reviewer STARTED] (2026-11-20T22:20:50Z) recipes slice R3a code review, at af3a0f8.
 [ui-validator STARTED] (2026-11-20T22:20:50Z) recipes slice R3a: the Activity sheet's row for a recipe logged as made, at af3a0f8.
+[validator DONE] (2026-11-20T22:32:45Z) recipes slice R3a: pass; no blockers or majors, three minors, five nits; 111 end to end checks, e.4 by hand, three guards broken and each test red.
+[reviewer DONE] (2026-11-20T22:32:45Z) recipes slice R3a: approve after fixes; one major (log_cook is not marked destructive though it changes existing entries), six minors, ten nits.
+[backend-engineer STARTED] (2026-11-20T22:32:45Z) recipes slice R3a fix batch: log_cook destructive, the attach hash as a set, the record and differs agreeing, the reads before the copies, the cap on a cook saved as a recipe.
