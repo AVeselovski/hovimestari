@@ -115,7 +115,8 @@ src/
 │   ├── writes/targets.ts       setTargets, and removeTargetChange, which also marks the first run passed
 │   ├── writes/foods.ts         Own foods, portions and favourites
 │   ├── writes/barcode.ts       lookupBarcode, and the process's budgets and memory for it
-│   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, removeEntries, restoreEntry, copyEntries, and the purge of expired removals and orphan cooks
+│   ├── writes/entries.ts       addEntry, updateEntry, setEntriesStatus, removeEntry, removeEntries, restoreEntry, and the purge of expired removals and orphan cooks
+│   ├── writes/entryCopies.ts   copyEntries: entries copied to a day, a batch's entry as a plain entry of its recipe
 │   ├── writes/savedMeals.ts    Saved meal writes and saveAndLog
 │   ├── writes/recipes.ts       createRecipe, updateRecipe, setRecipeArchived, setRecipeFavourite, deleteRecipe
 │   ├── writes/cooks.ts         createCook, which logs a batch and attaches and adds its entries, and saveCookAsRecipe
