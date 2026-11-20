@@ -689,3 +689,7 @@
 [documentation-specialist STARTED] (2026-11-20T21:25:26Z) recipes slice R1b: docs pass on the branch brought onto master.
 [documentation-specialist DONE] (2026-11-20T21:30:39Z) recipes slice R1b docs pass at 092d1fe on the branch brought onto master: a hidden recipe still answers by id, the cap rule linked from foods, three TODO items made true, build-progress.md current, five stamps renewed. docs:check 0 findings.
 [backend-engineer STARTED] (2026-11-20T21:40:54Z) recipes slice R3a: making and reading cooks (a recipe logged as made), with get_cook, log_cook and save_cook_as_recipe.
+[backend-engineer DONE] (2026-11-20T22:20:50Z) recipes slice R3a at af3a0f8: cooks and their lines (migration 0011), createCook with attach and add, the orphan purge with its lock and recheck, the copy rule, saveCookAsRecipe, the routes, get_cook, log_cook, save_cook_as_recipe and cookId on log_recipe. The purge race and the orphan cook seen red first. Types 278, backend 1489, web 2133 tests; smoke 75 of 75.
+[validator STARTED] (2026-11-20T22:20:50Z) recipes slice R3a against the requirements and the design, at af3a0f8.
+[reviewer STARTED] (2026-11-20T22:20:50Z) recipes slice R3a code review, at af3a0f8.
+[ui-validator STARTED] (2026-11-20T22:20:50Z) recipes slice R3a: the Activity sheet's row for a recipe logged as made, at af3a0f8.
