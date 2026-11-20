@@ -162,6 +162,18 @@ describe("src/mcp import boundary", () => {
     },
   );
 
+  it("reaches neither the connections nor the record of changes as its owner reads them", () => {
+    // Settings reads both through /connections, with a session. A key never
+    // lists keys, nor reads its own record or another connection's.
+    const OWNER_ONLY = /\/services\/(reads|writes)\/connections\.js$|\/services\/reads\/changeRecord\.js$/;
+    const offenders = files.flatMap((file) =>
+      importsOf(source(file))
+        .filter((path) => OWNER_ONLY.test(path))
+        .map((path) => `${file} imports ${path}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it("keeps the write tools out of the read registry and the read tools' files", () => {
     const offenders = files
       .filter((file) => !file.startsWith("tools/writes/") && file !== "server.ts")

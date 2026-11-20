@@ -167,7 +167,8 @@ export async function recordedUpdatePortion(
       return {
         action: "portion.changed",
         entityIds: [foodId, value.id],
-        summary: { entity: "food", name: before.foodName, changes },
+        // The portion's name after the change, so a change of grams alone still says which portion.
+        summary: { entity: "food", name: before.foodName, portion: value.name ?? undefined, changes },
       };
     },
   });

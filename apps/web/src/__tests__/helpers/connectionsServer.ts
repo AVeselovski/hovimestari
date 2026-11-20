@@ -1,12 +1,16 @@
 import { api } from "@/lib/api";
 import {
   CONNECTION_WRITE_EXPIRY_DAYS,
+  DEFAULT_CHANGE_PAGE_SIZE,
   MAX_LIVE_CONNECTIONS,
+  type AssistantChange,
+  type AssistantChangePage,
   type Connection,
   type ConnectionAccess,
   type ConnectionList,
   type CreatedConnection,
   type ErrorCode,
+  type PastConnection,
 } from "@hovimestari/types";
 import {
   AxiosError,
@@ -23,6 +27,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 // renew-once-and-retry on a 401) run as in the app. It remembers what it was
 // sent: a created key shows in the next list, a revoked one is gone, and the
 // limit of ten counts what it holds. Its refusals carry the backend's codes.
+//
+// It also holds each connection's record of changes, newest first, and pages
+// it as the route does: a cursor names the last change a page showed, a page
+// after it starts below that change, and a cursor it never issued, or one
+// whose change is no longer in the record, is refused `invalid_request`. The
+// list counts each connection's changes from it.
 // ---------------------------------------------------------------------------
 
 /**
@@ -38,6 +48,8 @@ export function testConnectionKey(): string {
 export interface SentRequest {
   method: string;
   url: string;
+  /** The query parameters, such as a changes read's `cursor`. */
+  params: Record<string, string | undefined>;
   body: unknown;
   bearer: string | undefined;
 }
@@ -56,6 +68,16 @@ export interface FakeConnectionsServer {
   issuedKeys: string[];
   /** Every request, in order. */
   sent: SentRequest[];
+  /** Each connection's record, by connection id, newest first. Tests may add to it at any time. */
+  changes: Map<string, AssistantChange[]>;
+  /** Revoked connections that made changes, as the list answers them. */
+  past: PastConnection[];
+  /** How many changes a page holds. */
+  pageSize: number;
+  /** Answers the next changes reads with a failure while set. */
+  changesRefusal: Refusal | null;
+  /** While set, a changes read waits for this before it answers. */
+  changesGate: Promise<void> | null;
   /** Answers the next list with a failure while set. */
   listRefusal: Refusal | null;
   /** While set, a list read waits for this before it answers, as a slow network does. */
@@ -106,6 +128,11 @@ export function fakeConnectionsServer(
     availability: initial.availability ?? { connect: true, write: false },
     issuedKeys: [],
     sent: [],
+    changes: new Map(),
+    past: [],
+    pageSize: DEFAULT_CHANGE_PAGE_SIZE,
+    changesRefusal: null,
+    changesGate: null,
     listRefusal: null,
     listGate: null,
     loseCreateAnswer: false,
@@ -116,19 +143,24 @@ export function fakeConnectionsServer(
     },
   };
 
+  // Each issued cursor, to the connection and the change it names.
+  const cursors = new Map<string, { connectionId: string; changeId: string }>();
+
   const adapter: AxiosAdapter = async (config) => {
     const method = (config.method ?? "get").toUpperCase();
     const url = config.url ?? "";
+    const params = (config.params ?? {}) as Record<string, string | undefined>;
     const bearer = AxiosHeaders.from(config.headers).get("Authorization") as string | undefined;
     const body: unknown = typeof config.data === "string" ? JSON.parse(config.data) : config.data;
-    const req: SentRequest = { method, url, body, bearer };
+    const req: SentRequest = { method, url, params: { ...params }, body, bearer };
     server.sent.push(req);
 
     if (method === "GET" && url === "/connections") {
       if (server.listGate) await server.listGate;
       if (server.listRefusal) return refuse(config, server.listRefusal);
       const list: ConnectionList = {
-        connections: server.connections.map((c) => ({ ...c })),
+        connections: server.connections.map((c) => ({ ...c, changeCount: server.changes.get(c.id)?.length ?? 0 })),
+        past: server.past.map((p) => ({ ...p })),
         availability: { ...server.availability },
       };
       return answer(config, 200, list);
@@ -167,6 +199,35 @@ export function fakeConnectionsServer(
       return answer(config, 201, created);
     }
 
+    const changesOf = /^\/connections\/([^/]+)\/changes$/.exec(url);
+    if (method === "GET" && changesOf) {
+      if (server.changesGate) await server.changesGate;
+      if (server.changesRefusal) return refuse(config, server.changesRefusal);
+      const id = decodeURIComponent(changesOf[1] ?? "");
+      const known = server.connections.some((c) => c.id === id) || server.past.some((p) => p.id === id);
+      if (!known) return refuse(config, { status: 404, code: "connection_not_found" });
+      const record = server.changes.get(id) ?? [];
+      let start = 0;
+      if (params.cursor !== undefined) {
+        const named = cursors.get(params.cursor);
+        if (!named || named.connectionId !== id) return refuse(config, { status: 400, code: "invalid_request" });
+        // Below the change the cursor names, wherever newer changes have put it since.
+        const at = record.findIndex((c) => c.id === named.changeId);
+        // The route reads the change back by its id, and refuses a cursor whose change it cannot find.
+        if (at < 0) return refuse(config, { status: 400, code: "invalid_request" });
+        start = at + 1;
+      }
+      const shown = record.slice(start, start + server.pageSize);
+      const more = start + server.pageSize < record.length;
+      let nextCursor: string | null = null;
+      if (more) {
+        nextCursor = randomBytes(16).toString("base64url");
+        cursors.set(nextCursor, { connectionId: id, changeId: shown[shown.length - 1]!.id });
+      }
+      const page: AssistantChangePage = { changes: shown.map((c) => ({ ...c })), nextCursor };
+      return answer(config, 200, page);
+    }
+
     const revoke = /^\/connections\/([^/]+)$/.exec(url);
     if (method === "DELETE" && revoke) {
       const own = server.refuseRevoke?.(req);
@@ -174,7 +235,13 @@ export function fakeConnectionsServer(
       const id = decodeURIComponent(revoke[1] ?? "");
       const at = server.connections.findIndex((c) => c.id === id);
       if (at < 0) return refuse(config, { status: 404, code: "connection_not_found" });
-      server.connections.splice(at, 1);
+      const [gone] = server.connections.splice(at, 1);
+      // A revoked key that made changes is listed under past, newest change first.
+      const record = server.changes.get(id) ?? [];
+      if (gone && record.length > 0) {
+        server.past.push({ id, name: gone.name, changeCount: record.length, lastChangeAt: record[0]!.at });
+        server.past.sort((a, b) => b.lastChangeAt.localeCompare(a.lastChangeAt));
+      }
       return answer(config, 204, "");
     }
 

@@ -121,7 +121,7 @@ await describeWithDb("mcp entry writes", (suite) => {
         });
         expect(data.entry).toMatchObject({ date: TODAY, grams: 400, portion: { id: food.portionId, count: 2 } });
         expect((await records()).at(-1)?.summary).toMatchObject({
-          entry: { amount: { portionLabel: "PORTM", count: 2, grams: 400 } },
+          entry: { amount: { portionLabel: "PORTM", portionUnit: "PORTM", count: 2, grams: 400 } },
         });
       });
 

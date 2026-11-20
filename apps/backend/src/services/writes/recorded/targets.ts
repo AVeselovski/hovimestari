@@ -35,6 +35,12 @@ async function changeOn(tx: Tx, ctx: WriteContext, effectiveFrom: string, lock: 
   return row ? { id: row.id, change: targetChangeOf(row) } : null;
 }
 
+/**
+ * `set_targets`: the screen's `setTargets` under the user's row `FOR UPDATE`,
+ * recorded with the ranges it replaced. The answer's `targets` are read after
+ * the commit on purpose, as a replay reads them: they are the targets as they
+ * are now, which a screen save landing just after may already have changed.
+ */
 export async function recordedSetTargets(
   ctx: WriteContext,
   via: AssistantActor,

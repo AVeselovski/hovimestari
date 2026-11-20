@@ -76,7 +76,8 @@ function amountOf(entry: Entry): AssistantEntryLine["amount"] {
   if (entry.kind !== "food" || entry.grams === null) return null;
   if (!entry.portion) return { grams: entry.grams };
   const portionLabel = entry.portion.name ?? entry.portion.unit ?? "";
-  return { portionLabel, count: entry.portion.count, grams: entry.grams };
+  // The unit apart from the label, so a reader names a Fineli portion by its unit, as the Day tab does.
+  return { portionLabel, portionUnit: entry.portion.unit, count: entry.portion.count, grams: entry.grams };
 }
 
 /** What an edit changed, field by field, from the entry before to the entry after. Empty when nothing did. */

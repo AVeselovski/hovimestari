@@ -301,7 +301,13 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
         expect(await lastRecord()).toMatchObject({
           action: "portion.changed",
           entityIds: [food.id, portionId],
-          summary: { entity: "food", name: "Leipä", changes: [{ field: "grams", from: 30, to: 35 }] },
+          // The portion's name, though only its grams changed, so the line can say which portion.
+          summary: {
+            entity: "food",
+            name: "Leipä",
+            portion: "viipale",
+            changes: [{ field: "grams", from: 30, to: 35 }],
+          },
         });
 
         const rows = (await records()).length;

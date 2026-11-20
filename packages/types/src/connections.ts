@@ -81,9 +81,32 @@ export const ConnectionSchema = z.object({
   lastUsedAt: z.iso.datetime().nullable(),
 });
 
-/** `GET /connections`: the user's connections, newest first, and what the server offers now. */
+/** A connection in the list, with how many changes its assistant has made. */
+export const ConnectionWithChangesSchema = ConnectionSchema.extend({
+  /** Every change in the record under this connection, exact. */
+  changeCount: z.number().int(),
+});
+
+/**
+ * A revoked connection whose assistant made changes. It is listed so its
+ * record stays readable. A revoked connection that changed nothing is not.
+ */
+export const PastConnectionSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  changeCount: z.number().int(),
+  /** When its newest change was made. */
+  lastChangeAt: z.iso.datetime(),
+});
+
+/**
+ * `GET /connections`: the user's connections not revoked, newest first, the
+ * revoked ones that made changes, newest change first, and what the server
+ * offers now.
+ */
 export const ConnectionListSchema = z.object({
-  connections: z.array(ConnectionSchema),
+  connections: z.array(ConnectionWithChangesSchema),
+  past: z.array(PastConnectionSchema),
   /** `connect`: connected AI is on. `write`: a key may also make changes. */
   availability: z.object({ connect: z.boolean(), write: z.boolean() }),
 });
@@ -98,5 +121,7 @@ export type ConnectionAccess = z.infer<typeof ConnectionAccessSchema>;
 /** The body as a client sends it: `access` and `expiresInDays` may be left out. */
 export type CreateConnectionBody = z.input<typeof CreateConnectionBodySchema>;
 export type Connection = z.infer<typeof ConnectionSchema>;
+export type ConnectionWithChanges = z.infer<typeof ConnectionWithChangesSchema>;
+export type PastConnection = z.infer<typeof PastConnectionSchema>;
 export type ConnectionList = z.infer<typeof ConnectionListSchema>;
 export type CreatedConnection = z.infer<typeof CreatedConnectionSchema>;

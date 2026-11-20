@@ -1,5 +1,6 @@
 "use client";
 
+import { portionName } from "@/components/entries/portionLabel";
 import { Icon } from "@/components/Icon";
 import {
   btnSecondary,
@@ -94,7 +95,7 @@ export const ADD_PORTION_ATTRIBUTE = "data-add-portion";
 /** A portion's label: Fineli's measure from the catalog, or the user's own name. */
 export function usePortionLabel(): (portion: Portion) => string {
   const t = useTranslations("foods.portionUnits");
-  return (portion) => (portion.unit ? t(portion.unit) : (portion.name ?? ""));
+  return (portion) => portionName(portion, t) ?? "";
 }
 
 export interface FoodDetailBodyProps {

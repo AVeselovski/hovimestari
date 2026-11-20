@@ -587,3 +587,23 @@
 [architect STARTED] (2026-11-19T21:31:18Z) second revision of the recipes design, the delta review's seven points
 [architect DONE] (2026-11-19T21:38:04Z) recipes design, second revision: recipe writes read their foods for share in one id-ordered statement, the food finder is a hook with two hosts, the drafted rules fit the length limit (140a23b)
 [architect DONE] (2026-11-19T21:54:07Z) recipes design, third pass from the pull request's review: query flags that read false as false, the cook slice split so making a batch does not wait for the owner, an unused cook no longer keeps its recipe, share locks on own foods only (dda619e)
+[backend-engineer STARTED] (2026-11-19T21:56:08Z) connected AI slice 5, backend half: the route that reads a connection's change record, change counts and past connections
+[backend-engineer DONE] (2026-11-19T22:15:40Z) slice 5 backend: GET /connections/:id/changes paged by an opaque cursor, exact change counts from one index-only query, past connections; the smoke guard takes only plain database names and its opt-out must name the database twice; backend 1306 tests
+[frontend-engineer STARTED] (2026-11-19T22:15:40Z) slice 5 frontend: the Activity sheet in Settings, change counts on the rows and past connections
+[frontend-engineer DONE] (2026-11-19T22:58:56Z) slice 5 frontend built at 2f18e0d: the Activity sheet with one plain line per change and Show more that moves nothing, change counts on the rows, past connections; all 18 write tools called for real and each line checked against its call
+[validator STARTED] (2026-11-19T22:58:56Z) slice 5, both halves, against the requirements and the design at 2f18e0d
+[ui-validator STARTED] (2026-11-19T22:58:56Z) slice 5 in Chromium at 320, 390 and 1280, light and dark
+[reviewer STARTED] (2026-11-19T22:58:56Z) slice 5, both halves, at 2f18e0d
+[validator DONE] (2026-11-19T23:18:34Z) slice 5: pass; all 18 kinds of change read truly on screen, the route refuses every bad cursor, counts stay exact; two minors and three nits
+[reviewer DONE] (2026-11-19T23:18:34Z) slice 5: approve after fixes; the backend is sound; one major (the change text falls back to a default line for an action it does not name) and five minors (172k tokens)
+[ui-validator DONE] (2026-11-19T23:18:34Z) slice 5 in Chromium: pass with findings; no row moves through paging, failure and retry; three accessibility majors (Tab leaves the sheet, a screen reader hears run-on figures, Show more is silent) and six minors
+[frontend-engineer STARTED] (2026-11-19T23:18:34Z) one fix batch for slice 5 from the validator, the reviewer and the ui-validator
+[frontend-engineer DONE] (2026-11-19T23:53:04Z) slice 5 fix batch: the change text fails the type check on an action it does not name, each change reads as one sentence to a screen reader, Show more moves focus to the first new row and says how many more are shown, the portion's name in its record; one item left for the shared sheet wrapper (cb2a759..3c4232c)
+[ui-validator STARTED] (2026-11-19T23:53:04Z) delta check of slice 5's fixes at 3c4232c
+[reviewer STARTED] (2026-11-19T23:53:04Z) delta review of slice 5's fix batch at 3c4232c
+[reviewer DONE] (2026-11-20T00:09:29Z) delta review of slice 5: approve; the major is fixed and pinned by the type check and a test; two minors and three nits
+[ui-validator DONE] (2026-11-20T00:09:29Z) delta check of slice 5: pass with findings; each of 161 changes reads as one sentence, Show more moves focus and announces once, no row moves; four minors and two nits
+[frontend-engineer STARTED] (2026-11-20T00:09:29Z) the last small fixes for slice 5 from the two delta checks
+[frontend-engineer DONE] (2026-11-20T02:27:58Z) Activity slice last fixes at d092043: focus after Try again on an empty record, a Jest test for the scroll guard, the dialog at 576 px, the focus ring 2 px clear, a short sheet for a record of three changes or fewer (its held loading height on a slow read is filed in TODO.md), the targets removal wording, spoken names. Web 1954 tests twice. 13 owner screenshots. (278k tokens)
+[documentation-specialist STARTED] (2026-11-20T02:27:58Z) Activity slice: review the branch's docs against the standard, bring docs/design/build-progress.md current, check the link map and the app rules stamps.
+[documentation-specialist DONE] (2026-11-20T02:31:07Z) Activity slice docs at d7d751c: the feature doc links the page doc instead of repeating it, the page doc's focus sentence matches the code, a known gap for the held loading height, build-progress.md current through #75, the connected-ai stamp renewed. docs:check 0 findings.

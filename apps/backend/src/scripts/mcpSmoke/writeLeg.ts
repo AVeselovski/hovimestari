@@ -9,7 +9,9 @@ import { READ_TOOL_NAMES, same, WRITE_TOOL_NAMES, type Json } from "./checks.js"
 // change, by its id, and none for the screen's. A retry with the same
 // request key must answer `replayed` and write nothing. Then a food made
 // through create_own_food must equal GET /foods/:id, log through log_food,
-// and leave two record rows, the food's and the entry's.
+// and leave two record rows, the food's and the entry's. The three changes
+// must read back through GET /connections/:id/changes, two a page, and as
+// the connection's count in GET /connections.
 
 export interface SmokeSession {
   rest: (method: string, path: string, body?: unknown) => Promise<Json>;
@@ -82,6 +84,34 @@ export async function writeLeg(s: SmokeSession, foodId: string, today: string): 
       { action: "food.created", entityIds: [made.food.id] },
       { action: "entry.added", entityIds: [logged.entry.id] },
     ]);
+
+    // The record as Settings reads it: the three changes, newest first, two
+    // a page, the count on the connection, and nothing a replay reads.
+    const id = created.connection.id as string;
+    const first = await s.rest("GET", `/connections/${id}/changes?limit=2`);
+    const second = await s.rest("GET", `/connections/${id}/changes?limit=2&cursor=${first.nextCursor}`);
+    const lines = (page: Json) =>
+      page.changes.map((c: Json) => [c.action, c.summary.entry?.name ?? c.summary.name, c.connectionName]);
+    same(
+      "GET /connections/:id/changes, newest first, by cursor",
+      [...lines(first), ...lines(second)],
+      [
+        ["entry.added", "Smoke leipä", "MCP smoke, writing"],
+        ["food.created", "Smoke leipä", "MCP smoke, writing"],
+        ["entry.added", tool.entry.name, "MCP smoke, writing"],
+      ],
+    );
+    same("the last page has no cursor", second.nextCursor, null);
+    same("a change's fields", Object.keys(first.changes[0]).sort(), [
+      "action",
+      "at",
+      "connectionName",
+      "deletionStatus",
+      "id",
+      "summary",
+    ]);
+    const listed = (await s.rest("GET", "/connections")).connections.find((c: Json) => c.id === id);
+    same("GET /connections counts the changes", listed?.changeCount, 3);
   } finally {
     await client.close();
   }

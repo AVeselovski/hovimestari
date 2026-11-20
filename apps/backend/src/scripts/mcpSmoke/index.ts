@@ -6,7 +6,8 @@
 //
 // Runs against a local, migrated database: the one DATABASE_URL names, which
 // must be on localhost and have a name ending in _smoke (localOnly.ts).
-// MCP_SMOKE_ANY_DATABASE=true lifts the name rule only. It boots the app in
+// MCP_SMOKE_ANY_DATABASE=true lifts the name rule for one run, and only with
+// MCP_SMOKE_CONFIRM_DATABASE repeating the name it prints. It boots the app in
 // this process on a free port, signs up a user of its own through the API
 // with a password made at run time, gives it a day of data through the REST
 // routes, makes a read key and a writing key through
@@ -31,11 +32,20 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { READ_TOOL_NAMES, same, tally, withoutRouting, type Json } from "./checks.js";
-import { refuseNonLocal } from "./localOnly.js";
+import { smokeTarget } from "./localOnly.js";
 
-const refusal = refuseNonLocal(process.env.DATABASE_URL, process.env.MCP_SMOKE_ANY_DATABASE === "true");
-if (refusal) {
-  console.error(`mcp:smoke runs against a local database made for it only. ${refusal}`);
+const optOut = {
+  anyDatabase: process.env.MCP_SMOKE_ANY_DATABASE === "true",
+  confirmDatabase: process.env.MCP_SMOKE_CONFIRM_DATABASE,
+};
+if (optOut.anyDatabase) {
+  // Printed before the check, so the name to confirm is on screen.
+  const url = URL.canParse(process.env.DATABASE_URL ?? "") ? new URL(process.env.DATABASE_URL!) : null;
+  console.log(`mcp:smoke will write to database "${url?.pathname.slice(1) ?? ""}" on host "${url?.hostname ?? ""}".`);
+}
+const target = smokeTarget(process.env.DATABASE_URL, optOut);
+if ("refusal" in target) {
+  console.error(`mcp:smoke runs against a local database made for it only. ${target.refusal}`);
   process.exit(1);
 }
 

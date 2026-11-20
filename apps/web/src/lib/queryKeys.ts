@@ -55,6 +55,14 @@ export const queryKeys = {
   // Connected AI -----------------------------------------------------------
   /** The user's connections and what the server offers. Never a key: the list answer holds none. */
   connections: () => ["connections"] as const,
+  /**
+   * One connection's record of changes, page by page, as one open of the
+   * Activity sheet read it. Its own family, not under `connections`, so a read
+   * of the list never reads every page of an open record again. Each open has
+   * its own entry, so an open starts from the newest page and never shows
+   * pages an earlier open read.
+   */
+  connectionChanges: (id: string, open: number) => ["connectionChanges", id, open] as const,
 };
 
 /**
