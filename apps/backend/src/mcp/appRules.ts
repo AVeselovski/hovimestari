@@ -57,12 +57,11 @@ This connection reaches one person's targets, days, foods and saved meals. It ca
  * The rules for making changes, added after APP_RULES only for a key that can
  * write while writing is switched on. A read-only connection never sees them.
  * They name only what a writing key can do now, so the rules never name a
- * tool an assistant cannot list (appRules.test.ts reads the write registry):
- * entries only. Rule 4 says the connection does not change targets, rule 6
- * that no tool deletes a food or a saved meal, and rule 7 that changes are
- * recorded, without where to read them. The slices that add the food, meal
- * and targets tools, the record's screen and request_deletion rewrite them
- * in the same change (design d.6).
+ * tool an assistant cannot list (appRules.test.ts reads the write registry).
+ * Rule 6 says no tool deletes a food or a saved meal, and the slice that adds
+ * request_deletion rewrites it in the same change (design d.6). Rule 7 says
+ * where the person reads the record: Settings, under the connection's
+ * Activity.
  */
 export const WRITE_RULES = `## 10. Making changes
 *(Sources: connected-ai.md, quick-logging.md, targets.md, saved-meals.md, foods.md)*
@@ -74,7 +73,7 @@ This connection can also log, plan, change, move, mark, copy, remove and restore
 4. Targets are the person's numbers. Set them only with the numbers the person gave, from the date they gave, today by default. A change replaces another change on the same date.
 5. Every call takes a new requestKey. Send the same one again only to retry the same call after an error or no answer. After a refusal for too many changes, wait as it says, then retry with the same requestKey. A change that already landed is not made twice. replayed means an earlier call already made this change, and the answer shows the thing as it is now, with its id. unchanged means nothing needed changing, and nothing was recorded. An error is the app refusing: tell the person what it said, and do not work around it. The limits on changes count every connection of this person together.
 6. This connection cannot delete foods or saved meals. Removing entries from a day takes no deletion request, because a removed entry can be put back for ten minutes with restore_entry. Like every change, remove entries only when the person has asked for it.
-7. Everything you change is recorded in the app under this connection's name.
+7. Everything you change is recorded in the app under this connection's name, and the person can read it in Settings.
 `;
 
 /** The rules a connection reads: the base text, and the write rules when it can write. */
@@ -89,7 +88,7 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "0700c3248d85de0ee493061925301efab083f6646edd2628b1f76f0ae08b3745",
+  "connected-ai.md": "e4fde12d93440eb458c4257dc3811b704368e99721a47dd287053d7e67610f57",
   "days.md": "bdd7ad905dbcdad8e7620daa771c5acdb60a92b7e98b8373a94882ed49cff7d5",
   "foods.md": "c13f6c5c00766b64c226423893ee48e45af9573652434c702e05964cceb200a4",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
