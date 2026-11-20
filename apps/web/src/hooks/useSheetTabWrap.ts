@@ -6,9 +6,12 @@ import { useEffect, type RefObject } from "react";
  * in the same keydown (see `lib/sheetTab.ts` for why Base UI's own trap is not
  * enough on its own). A sheet with a sheet stacked on it, which Base UI marks
  * `data-nested-drawer-open`, leaves Tab to that one. A sheet that is closing
- * has stopped listening. A key a control inside the sheet already handled
- * (`defaultPrevented`) is left alone, and so is a Tab pressed while an input
- * method is composing text.
+ * has stopped listening. While a stacked sheet slides out, the sheet under it
+ * wraps again at once: Base UI drops the child's `data-open` and the parent's
+ * `data-nested-drawer-open` in the same frame, and focus is already back in
+ * the parent, so no frame of the close is left to the late guard alone. A key
+ * a control inside the sheet already handled (`defaultPrevented`) is left
+ * alone, and so is a Tab pressed while an input method is composing text.
  */
 export function useSheetTabWrap(open: boolean, popupRef: RefObject<HTMLElement | null>): void {
   useEffect(() => {
