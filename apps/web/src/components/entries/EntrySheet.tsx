@@ -4,7 +4,7 @@ import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput, dateHintId } from "@/components/ui/NativeDateInput";
-import { labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
+import { btnText, labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFailureLine } from "@/hooks/useFailureLine";
@@ -13,9 +13,11 @@ import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { isIsoDate } from "@/lib/localDate";
 import { foodDetailQuery } from "@/lib/queryOptions";
+import { markOpenedInApp } from "@/lib/recipeNav";
 import type { Entry, ErrorCode } from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { GRAMS, switchUnit, type UnitChip } from "./amount";
 import { AmountField } from "./AmountField";
@@ -44,7 +46,8 @@ import { StateChoice } from "./StateChoice";
 // `entryFigures` on the entry's stored basis once it changes, so it is the
 // figure Save will store. Save sends only what changed, and closes the sheet
 // with a toast that can undo it. A failure keeps the sheet open with the
-// typed values and says why under the form.
+// typed values and says why under the form. A recipe entry has Open recipe
+// under its figures, which leaves for the recipe's page.
 // ---------------------------------------------------------------------------
 
 export interface EntrySheetProps extends FormSheetCallerProps {
@@ -297,6 +300,17 @@ export function EntrySheet({
             </p>
             {/* "Calories", as the estimate's own field and the Day tab's summary say. */}
             <MacroFigures figures={preview} estimate={entry.isEstimate} energyWord="calories" />
+            {entry.kind === "recipe" && entry.recipe && (
+              // The recipe's page, also for a recipe deleted since: it still opens from its entries.
+              <Link
+                href={`/recipes/${entry.recipe.id}`}
+                onClick={markOpenedInApp}
+                data-open-recipe=""
+                className={`${btnText} mt-2`}
+              >
+                {t("openRecipe")}
+              </Link>
+            )}
           </div>
           <div>
             <label htmlFor={fieldId("date")} className={labelClass}>

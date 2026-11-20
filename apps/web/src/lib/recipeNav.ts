@@ -1,0 +1,37 @@
+// ---------------------------------------------------------------------------
+// What the recipe page needs to know about how it was reached, kept for the
+// page's life only, never stored.
+//
+// - Whether it was opened from inside the app (a recipe row, or an entry's
+//   Open recipe), so Back goes back to that place as it was, with its
+//   search and scroll. Opened by its address, Back goes to the Recipes tab.
+// - After a delete, which row of the Recipes tab takes focus as the list
+//   shows again: the next row by name, else the one before, else New recipe.
+// ---------------------------------------------------------------------------
+
+let openedInApp = false;
+let focusNext: string | null = null;
+
+/** A recipe row or an entry's Open recipe was pressed. */
+export function markOpenedInApp(): void {
+  openedInApp = true;
+}
+
+/** Whether the page was opened from inside the app. Asking clears it. */
+export function takeOpenedInApp(): boolean {
+  const was = openedInApp;
+  openedInApp = false;
+  return was;
+}
+
+/** The recipe whose row takes focus when the Recipes tab shows its list, or "new" for New recipe. */
+export function setFocusAfterDelete(target: string): void {
+  focusNext = target;
+}
+
+/** The focus a delete asked for, once. */
+export function takeFocusAfterDelete(): string | null {
+  const target = focusNext;
+  focusNext = null;
+  return target;
+}

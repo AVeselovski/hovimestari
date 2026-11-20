@@ -1,6 +1,6 @@
 import { clockFrom } from "@/__tests__/helpers/clock";
 import { setTestLocale } from "@/__tests__/helpers/locale";
-import { TODAY, dayOf, fakeEntryActions, recipeEntry } from "@/components/day/__tests__/support";
+import { TODAY, dayOf, fakeEntryActions, foodEntry, recipeEntry } from "@/components/day/__tests__/support";
 import { refusal } from "@/components/targets/__tests__/support";
 import { TodayContext, type TodayState } from "@/hooks/useToday";
 import type { Entry } from "@hovimestari/types";
@@ -172,5 +172,24 @@ describe("EntrySheet, a recipe entry", () => {
     for (let i = 1; i < order.length; i++) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+});
+
+describe("EntrySheet, Open recipe", () => {
+  it("links a recipe entry to its recipe's page, a deleted recipe's too, and no other kind of entry", () => {
+    const entry = shakshuka();
+    const { unmount } = renderSheet(entry);
+    const open = within(dialog()).getByRole("link", { name: "Open recipe" });
+    expect(open).toHaveAttribute("href", `/recipes/${entry.recipe!.id}`);
+    unmount();
+    const { unmount: unmount2 } = renderSheet(
+      shakshuka({ recipe: { id: entry.recipe!.id, archived: false, deleted: true } }),
+    );
+    expect(within(dialog()).getByText("This recipe was deleted.")).toBeInTheDocument();
+    expect(within(dialog()).getByRole("link", { name: "Open recipe" })).toBeInTheDocument();
+    unmount2();
+    renderSheet(dayOf([foodEntry("Rahka", 200)]).entries[0]);
+    expect(screen.getByRole("dialog", { name: "Rahka" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open recipe" })).toBeNull();
   });
 });
