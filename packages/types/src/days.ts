@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { IsoDateSchema } from "./dates.js";
 import { EntrySchema, type Entry } from "./entries.js";
-import { FiguresSchema, positionOf, RangePositionSchema, totalOf } from "./figures.js";
-import { TargetRangesSchema, type TargetRanges } from "./targets.js";
+import { averageOf, FiguresSchema, positionOf, RangePositionSchema, totalOf } from "./figures.js";
+import { sameTargets, TargetRangesSchema, type TargetRanges } from "./targets.js";
 
 /** The longest range `GET /days` answers, in days. */
 export const MAX_DAY_RANGE = 42;
@@ -38,7 +38,40 @@ export const DaySummarySchema = z.object({
 });
 
 export const DaySchema = DaySummarySchema.extend({ entries: z.array(EntrySchema) });
-export const DaySummaryListSchema = z.object({ days: z.array(DaySummarySchema) });
+
+/** One reading's average day over the days it counts. */
+export const AverageReadingSchema = z.object({
+  /** The days this average counts, in date order. */
+  dates: z.array(IsoDateSchema),
+  /**
+   * The average day: the counted days' totals summed in integer tenths and
+   * divided by their number, kcal to a whole number and grams to one
+   * decimal, halves away from zero. Null when no day counts.
+   */
+  figures: FiguresSchema.nullable(),
+  /**
+   * The targets every counted day shares. Null when no day counts, when a
+   * counted day has no targets, or when two counted days have different ones.
+   */
+  targets: TargetRangesSchema.nullable(),
+  /** The rounded average against `targets`. Null exactly when `targets` is. */
+  energy: RangePositionSchema.nullable(),
+  protein: RangePositionSchema.nullable(),
+  /** A counted day's reading includes an estimate. */
+  includesEstimate: z.boolean(),
+});
+
+/**
+ * The average day of a range. `eaten` counts the past days with at least one
+ * eaten entry. `withPlan` counts every day with at least one entry, whatever
+ * its date, each day whole however little is on it. A day with no entries
+ * counts toward neither. The two count different days, so withPlan can be
+ * below eaten.
+ */
+export const DaysAverageSchema = z.object({ eaten: AverageReadingSchema, withPlan: AverageReadingSchema });
+
+/** `GET /days`: every day of the range, without entries, and their average day. */
+export const DaySummaryListSchema = z.object({ days: z.array(DaySummarySchema), average: DaysAverageSchema });
 
 /** `GET /days/:date`: a date, or `today` for the user's today. */
 export const DayParamSchema = z.union([z.literal("today"), IsoDateSchema], { error: "invalid_date" });
@@ -59,6 +92,8 @@ export type DaySummary = z.infer<typeof DaySummarySchema>;
 export type DayRelation = DaySummary["relation"];
 export type Day = z.infer<typeof DaySchema>;
 export type DaySummaryList = z.infer<typeof DaySummaryListSchema>;
+export type AverageReading = z.infer<typeof AverageReadingSchema>;
+export type DaysAverage = z.infer<typeof DaysAverageSchema>;
 export type DayRangeQuery = z.infer<typeof DayRangeQuerySchema>;
 
 /** What a day summary reads of an entry: the fields `summarizeDay` takes of each row. */
@@ -112,5 +147,46 @@ export function summarizeDay(
     entryCount: rows.length,
     plannedCount: planned,
     unmarkedCount: relation === "past" ? planned : 0,
+  };
+}
+
+/** The targets every day of `days` has, bound for bound. Null when one has none or two differ. */
+function sharedTargets(days: readonly DaySummary[]): TargetRanges | null {
+  const first = days[0]?.targets ?? null;
+  if (!first) return null;
+  return days.every((d) => d.targets !== null && sameTargets(d.targets, first)) ? first : null;
+}
+
+/** One reading's average over the `counted` days. */
+function averageReading(counted: readonly DaySummary[], reading: "eaten" | "withPlan"): AverageReading {
+  const figures = counted.length > 0 ? averageOf(counted.map((d) => d[reading].figures)) : null;
+  const targets = figures ? sharedTargets(counted) : null;
+  return {
+    dates: counted.map((d) => d.date),
+    figures,
+    targets,
+    energy: figures && targets ? positionOf(figures.energyKcal, targets.energyKcal) : null,
+    protein: figures && targets ? positionOf(figures.proteinG, targets.proteinG) : null,
+    includesEstimate: counted.some((d) => d[reading].includesEstimate),
+  };
+}
+
+/**
+ * The average day of `days`, one range's summaries in date order. The one
+ * computation: the server answers it, and the web's cache patch recomputes
+ * it. Eaten counts the past days with eaten entries, so today counts only
+ * once it is over. Planned counts every day with any entry. An empty day
+ * counts toward neither, never as zero.
+ */
+export function averageOfDays(days: readonly DaySummary[]): DaysAverage {
+  return {
+    eaten: averageReading(
+      days.filter((d) => d.relation === "past" && d.entryCount - d.plannedCount > 0),
+      "eaten",
+    ),
+    withPlan: averageReading(
+      days.filter((d) => d.entryCount > 0),
+      "withPlan",
+    ),
   };
 }

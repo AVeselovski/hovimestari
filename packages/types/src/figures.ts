@@ -100,6 +100,24 @@ export function totalOf(rows: Figures[]): Figures {
   };
 }
 
+/**
+ * The average of day totals: summed in integer tenths, divided by their
+ * number, kcal rounded to whole, grams to one decimal, halves away from zero.
+ * One rounding, so 2.3 and 2.4 g give 2.4 where a float average gives 2.3.
+ * At least one total. 42 days of 10^6 kcal stay far below 2^53.
+ */
+export function averageOf(totals: readonly Figures[]): Figures {
+  if (totals.length === 0) throw new Error("averageOf needs at least one total.");
+  const n = totals.length;
+  const sum = (key: (typeof KEYS)[number]) => totals.reduce((acc, t) => acc + scaled(t[key], 1), 0);
+  return {
+    energyKcal: divRound(sum("energyKcal"), 10 * n),
+    proteinG: divRound(sum("proteinG"), n) / 10,
+    carbsG: divRound(sum("carbsG"), n) / 10,
+    fatG: divRound(sum("fatG"), n) / 10,
+  };
+}
+
 /** Where a total stands against a range, compared and subtracted in integer tenths. */
 export function positionOf(total: number, range: { lower: number; upper: number }): RangePosition {
   const t = scaled(total, 1);
