@@ -1,6 +1,7 @@
 import { gramsForPortion, MAX_ENTRY_GRAMS, MAX_FIGURE_G, MAX_FIGURE_KCAL, type Figures } from "@hovimestari/types";
-import { and, asc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, or, sql } from "drizzle-orm";
 import {
+  cookIngredients,
   entries,
   foodPortions,
   foods,
@@ -18,7 +19,7 @@ import { portionVisibleTo, visibleFood } from "./foodScope.js";
 import type { ReadContext } from "./reads/context.js";
 import { ownMeal } from "./reads/savedMeals.js";
 import { ownRecipe } from "./recipeScope.js";
-import { fitsEntry, readRecipeServings, servingOf } from "./recipeValues.js";
+import { figuresPastCap, fitsEntry, readRecipeServings, servingOf } from "./recipeValues.js";
 
 // The only place an entry's basis is taken from its source. A source is read
 // FOR SHARE, so an edit of it waits until the add commits, and the edit's
@@ -123,8 +124,11 @@ export const restoreCutoff = (ctx: ReadContext): Date => new Date(ctx.now.getTim
 /**
  * Whether the user's entries use `source`, or an entry they removed after
  * `cutoff` did, so a restore would need it. A food is also used while a line
- * of one of the user's recipes names it. A recipe counts its entries and
- * removed entries only. A new statement: called after the source's row lock,
+ * of one of the user's recipes or cooks names it, any cook, orphan or not: a
+ * hidden food costs nothing, and a deleted one would take the line from under
+ * a cook. A recipe counts its entries and removed entries only: every entry
+ * of a cook names the cook's recipe too, so a cook still in use already
+ * counts through its entry, and an orphan cook must not keep its recipe. A new statement: called after the source's row lock,
  * it sees an add or a recipe save that committed while the lock waited.
  */
 export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cutoff: Date): Promise<boolean> {
@@ -132,7 +136,9 @@ export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cuto
   const onRecipe =
     source.kind === "food"
       ? sql`OR EXISTS (SELECT 1 FROM ${recipeIngredients}
-                        WHERE ${recipeIngredients.foodId} = ${source.id} AND ${recipeIngredients.userId} = ${ctx.userId})`
+                        WHERE ${recipeIngredients.foodId} = ${source.id} AND ${recipeIngredients.userId} = ${ctx.userId})
+            OR EXISTS (SELECT 1 FROM ${cookIngredients}
+                        WHERE ${cookIngredients.foodId} = ${source.id} AND ${cookIngredients.userId} = ${ctx.userId})`
       : sql``;
   const { rows } = await tx.execute<{ used: boolean }>(sql`
     SELECT EXISTS (SELECT 1 FROM ${entries} WHERE ${column} = ${source.id} AND ${entries.userId} = ${ctx.userId})
@@ -202,7 +208,11 @@ export async function rewritePlannedBasis(tx: Tx, ctx: ReadContext, source: Edit
       writes.push({ basis, ids: locked.filter((e) => e.recipeId === recipeId).map((e) => e.id) });
       continue;
     }
-    // A recipe save refuses a serving past the cap, so only a food's edit gets here.
+    // Only a food's edit gets here. A saved meal reaches no recipe entry. A
+    // recipe's own edit (updateRecipe) checks the cap on the same lines and
+    // foods before it calls this, while it holds its own foods FOR SHARE, so
+    // they cannot change in between. A second line of defence that no test
+    // reaches, so a broken order answers a refusal rather than a wrong basis.
     if (source.kind !== "food") throw appError("recipe_serving_too_large", 400);
     if (raisesPastCap(servingOf(recipe, { id: source.id, per100g: source.before }), basis)) raised.push(recipe.name);
   }
@@ -216,7 +226,7 @@ export async function rewritePlannedBasis(tx: Tx, ctx: ReadContext, source: Edit
   }
 }
 
-/** Step 1: the planned entries from today on that `source` reaches, locked in id order. */
+/** Step 1: the plain planned entries from today on that `source` reaches, locked in id order. A cook's are never reached. */
 function lockReached(tx: Tx, ctx: ReadContext, source: EditedSource) {
   const onRecipes = tx
     .select({ id: recipeIngredients.recipeId })
@@ -232,17 +242,23 @@ function lockReached(tx: Tx, ctx: ReadContext, source: EditedSource) {
   return tx
     .select({ id: entries.id, foodId: entries.foodId, savedMealId: entries.savedMealId, recipeId: entries.recipeId })
     .from(entries)
-    .where(and(eq(entries.userId, ctx.userId), eq(entries.status, "planned"), gte(entries.date, ctx.today), reached))
+    .where(
+      and(
+        eq(entries.userId, ctx.userId),
+        eq(entries.status, "planned"),
+        gte(entries.date, ctx.today),
+        // A cook's entry carries its cook's basis, which no food or recipe edit rewrites.
+        isNull(entries.cookId),
+        reached,
+      ),
+    )
     .orderBy(asc(entries.id))
     .for("no key update");
 }
 
 /** Whether a figure of `after` is past its cap and higher than in `before`. */
 function raisesPastCap(before: Figures, after: Figures): boolean {
-  return (Object.keys(after) as (keyof Figures)[]).some((key) => {
-    const cap = key === "energyKcal" ? MAX_FIGURE_KCAL : MAX_FIGURE_G;
-    return after[key] > cap && after[key] > before[key];
-  });
+  return figuresPastCap(after).some((key) => after[key] > before[key]);
 }
 
 /** The refusal of a food's edit, naming the first recipes by name and counting the rest. */
@@ -256,7 +272,7 @@ function recipesTooLarge(names: string[]): AppError {
       : `Planned servings of ${recipes.join(", ")}${more > 0 ? `, and ${more} more ${more === 1 ? "recipe" : "recipes"},` : ""}`;
   const change = sorted.length === 1 ? "the recipe or its" : "those recipes or their";
   return new AppError(
-    `${which} would come to more than 10000 kcal or 1000 g of a macro. Change ${change} planned entries first.`,
+    `${which} would come to more than ${MAX_FIGURE_KCAL} kcal or ${MAX_FIGURE_G} g of a macro. Change ${change} planned entries first.`,
     400,
     { code: "food_edit_recipe_too_large", details: { recipe: recipes[0], others: sorted.length - 1, recipes } },
   );

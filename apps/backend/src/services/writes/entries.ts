@@ -11,14 +11,14 @@ import type {
   EntryWriteResult,
 } from "@hovimestari/types";
 import { and, asc, eq, inArray, lt, lte, ne, sql } from "drizzle-orm";
-import { entries, removedEntries } from "../../db/schema/index.js";
+import { cooks, entries, removedEntries } from "../../db/schema/index.js";
 import type { Db, Tx } from "../../db/types.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { isForeignKeyViolation, isUniqueViolation, pgCodeOf } from "../../lib/pgErrors.js";
 import { basisColumnsOf, entriesOf, selectEntries } from "../entryRows.js";
 import { getDay, getDays, getEntry } from "../reads/days.js";
-import { readRecipeForEntry } from "../recipeValues.js";
+import { readCookForEntry, readRecipeForEntry } from "../recipeValues.js";
 import { gramsOf, lockUserForWrite, readFoodForEntry, readMealForEntry, restoreCutoff } from "../sourceValues.js";
 import type { WriteContext, WriteOutcome } from "./context.js";
 
@@ -55,6 +55,7 @@ function sourceRefused(err: unknown): never {
   if (isForeignKeyViolation(err, "entries_food_id_foods_id_fk")) throw appError("food_not_found", 404);
   if (isForeignKeyViolation(err, "entries_saved_meal_user_fk")) throw appError("saved_meal_not_found", 404);
   if (isForeignKeyViolation(err, "entries_recipe_user_fk")) throw appError("recipe_not_found", 404);
+  if (isForeignKeyViolation(err, "entries_cook_fk")) throw appError("cook_not_found", 404);
   throw err;
 }
 
@@ -81,8 +82,13 @@ async function valuesFor(tx: Tx, ctx: WriteContext, body: AddEntryBody): Promise
       return { ...common, savedMealId: body.savedMealId, mealCount: body.count, ...basisColumnsOf(basis) };
     }
     case "recipe": {
-      const basis = await readRecipeForEntry(tx, ctx, body.recipeId);
-      return { ...common, recipeId: body.recipeId, servings: body.servings, ...basisColumnsOf(basis) };
+      // Servings from a batch logged as made take the cook's basis, which every entry from it shares.
+      const cookId = body.cookId ?? null;
+      const basis =
+        cookId === null
+          ? await readRecipeForEntry(tx, ctx, body.recipeId)
+          : await readCookForEntry(tx, ctx, body.recipeId, cookId);
+      return { ...common, recipeId: body.recipeId, servings: body.servings, cookId, ...basisColumnsOf(basis) };
     }
     case "estimate":
       return { ...common, name: body.name, note: body.note, ...basisColumnsOf(body.figures) };
@@ -302,11 +308,42 @@ export async function removeEntries(ctx: WriteContext, ids: string[]): Promise<W
   return { value, outcome: removed.length > 0 ? "deleted" : "unchanged" };
 }
 
-/** Deletes the user's removed entries too old to restore. */
+/** The user's cooks no entry and no remaining removed entry names: orphans to purge. */
+const orphanCook = (ctx: WriteContext) => sql`
+  ${cooks.userId} = ${ctx.userId}
+  AND NOT EXISTS (SELECT 1 FROM ${entries} WHERE ${entries.cookId} = ${cooks.id})
+  AND NOT EXISTS (SELECT 1 FROM ${removedEntries}
+                   WHERE ${removedEntries.userId} = ${ctx.userId}
+                     AND ${removedEntries.row}->>'cook_id' = ${cooks.id}::text)`;
+
+/**
+ * Deletes the user's removed entries too old to restore, then the cooks no
+ * entry and no remaining removed entry names, as a food delete does: the
+ * orphans are locked FOR UPDATE SKIP LOCKED, so a cook an add holds FOR
+ * SHARE is skipped, and their use is checked again in a new statement, which
+ * sees an add that committed meanwhile, before they are deleted. An add that
+ * comes after the purge finds no cook and answers cook_not_found.
+ */
 async function purgeExpired(tx: Tx, ctx: WriteContext): Promise<void> {
   await tx
     .delete(removedEntries)
     .where(and(eq(removedEntries.userId, ctx.userId), lt(removedEntries.removedAt, restoreCutoff(ctx))));
+  const orphans = await tx
+    .select({ id: cooks.id })
+    .from(cooks)
+    .where(orphanCook(ctx))
+    .orderBy(asc(cooks.id))
+    .for("update", { skipLocked: true });
+  if (orphans.length === 0) return;
+  await tx.delete(cooks).where(
+    and(
+      inArray(
+        cooks.id,
+        orphans.map((o) => o.id),
+      ),
+      orphanCook(ctx),
+    ),
+  );
 }
 
 /**
@@ -318,14 +355,15 @@ async function purgeExpired(tx: Tx, ctx: WriteContext): Promise<void> {
 const ROW_NO_LONGER_FITS = new Set(["23502", "23514", "22P02"]);
 
 /**
- * A restore that cannot put its row back: its food, meal or recipe was deleted
- * outright since, its id is in use, or the stored row no longer fits the table.
+ * A restore that cannot put its row back: its food, meal, recipe or cook was
+ * deleted outright since, its id is in use, or the stored row no longer fits the table.
  */
 function restoreRefused(err: unknown): never {
   const lost =
     isForeignKeyViolation(err, "entries_food_id_foods_id_fk") ||
     isForeignKeyViolation(err, "entries_saved_meal_user_fk") ||
     isForeignKeyViolation(err, "entries_recipe_user_fk") ||
+    isForeignKeyViolation(err, "entries_cook_fk") ||
     isUniqueViolation(err, "entries_pkey") ||
     ROW_NO_LONGER_FITS.has(pgCodeOf(err) ?? "");
   if (lost) throw appError("entry_not_found", 404);
