@@ -5,7 +5,7 @@ import type { BrowseLogging } from "@/components/log/browseLogging";
 import { HeldLists, releaseHeldLists } from "@/components/log/heldList";
 import { LogBlock } from "@/components/log/LogBlock";
 import { LogFooter } from "@/components/log/LogFooter";
-import { sourcesOf } from "@/components/log/mealFilter";
+import { activeSource, mealFilter, sourcesOf } from "@/components/log/mealFilter";
 import { MealView } from "@/components/log/MealView";
 import { ARCHIVED_ATTRIBUTE } from "@/components/log/SavedMealList";
 import { MEAL_ROW_ATTRIBUTE } from "@/components/log/SavedMealRow";
@@ -18,7 +18,6 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import type { AddDone, EntryActions } from "@/hooks/entryActions";
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { foodNameLangs, useFoodNameLanguage } from "@/hooks/useFoodNameLanguage";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -27,19 +26,16 @@ import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { afterFoodGone, afterSavedMealGone } from "@/lib/invalidation";
 import { foodDetailQuery, prefetchLogLists, savedMealsQuery } from "@/lib/queryOptions";
-import type { EntryStatus, FoodDetail, FoodSummary, LastAmount, SavedMeal } from "@hovimestari/types";
+import type { EntryStatus, FoodSummary, LastAmount, SavedMeal } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { ADD_PORTION_ATTRIBUTE, FoodDetailBody, FoodDetailHeader } from "./FoodDetail";
 import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
-import { FoodSearchView } from "./FoodSearchView";
+import { Browse, MealResults, type MealBrowsing } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
-import type { OwnFoodTarget } from "./OwnFoodSheet";
-import { useScanner } from "./scanner/useScanner";
-import { SearchField } from "./SearchField";
-import { useBarcodeMode } from "./useBarcodeMode";
 import { useFavourite } from "./useFavourite";
+import { useFoodFinder } from "./useFoodFinder";
 import { useOwnFoodDelete } from "./useOwnFoodDelete";
 import { useSheetNavigation } from "./useSheetNavigation";
 
@@ -48,7 +44,8 @@ import { useSheetNavigation } from "./useSheetNavigation";
 // with, its views on one navigation stack, because moving from a row to a
 // food and back is navigation, not a form:
 //
-// - Search: the search field pinned in the header. Under it "New saved meal"
+// - Search: the food search (`useFoodFinder`), its field pinned in the
+//   header, its scanner and own-food sheets stacked. Under it "New saved meal"
 //   and "Add an estimate", the recent items, the favourites, the saved meals
 //   and the user's own foods, or the results of what is typed, saved meals
 //   first. A recent item, a saved meal, and a favourite with a last amount,
@@ -80,8 +77,7 @@ import { useSheetNavigation } from "./useSheetNavigation";
 // sheets in one update.
 // ---------------------------------------------------------------------------
 
-/** How long typing must pause before a search is sent. */
-export const SEARCH_DEBOUNCE_MS = 150;
+export { SEARCH_DEBOUNCE_MS } from "./useFoodFinder";
 
 export interface FoodSheetProps {
   open: boolean;
@@ -107,12 +103,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   const isMobile = useIsMobile();
   const { today } = useToday();
   const nameLanguage = useFoodNameLanguage();
-  const searchId = `${useId()}-search`;
   const armed = useArmedAtRest(open, isMobile);
 
-  const [text, setText] = useState("");
-  const query = text.trim();
-  const settled = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const [notice, setNotice] = useState<string | null>(null);
   // The source chip chosen while browsing, which filters the meals in the results too.
   const [source, setSource] = useState<string | null>(null);
@@ -128,21 +120,29 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   const detail = useQuery({ ...foodDetailQuery(detailId ?? ""), enabled: detailId !== null });
   const favourite = useFavourite(detailId ?? "");
 
-  const ownSheet = useSheetTarget<OwnFoodTarget>();
   const portionSheet = useSheetTarget<PortionTarget>();
   const mealSheet = useSheetTarget<MealSheetTarget>();
   const estimateSheet = useSheetTarget<string>();
   // The lists follow their data only while they cannot be pressed: the sheet
   // slides in, or a sheet stacked on it is open (heldList.tsx). While that
   // sheet slides away its backdrop swallows every press.
-  const scanner = useScanner({
-    setText: typeText,
-    lookUp: (code, format) => barcode.lookUp(code, format),
-    say: (note) => status.say(note, "note"),
+  const hostStackedOpen = [portionSheet, mealSheet, estimateSheet].some((s) => s.isOpen);
+  const finder = useFoodFinder({
+    open,
+    canPick: view.kind === "search" && !hostStackedOpen,
     inputRef,
     contentRef,
+    say: (note) => status.say(note, "note"),
+    onPick: showFood,
+    onSavedOwnFood: (saved, row) => {
+      if (view.kind === "food" && view.food.id === saved.id) return;
+      showFood(saved, row, undefined);
+    },
+    onOwnFoodDeleted: (id) => afterDelete(id),
+    onFoodGone: foodGone,
+    onType: () => setNotice(null),
   });
-  const stackedOpen = [scanner.sheet, ownSheet, portionSheet, mealSheet, estimateSheet].some((s) => s.isOpen);
+  const stackedOpen = hostStackedOpen || finder.stackedOpen;
   const listsFollow = !armed.armed || stackedOpen;
   const activeMeals = useQuery(savedMealsQuery(false)).data?.meals;
   const sources = activeMeals ? sourcesOf(activeMeals) : [];
@@ -184,20 +184,6 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     else nav.open(next, typeof row === "string" || row === null ? row : rowSelectorOf(row, FOOD_ROW_ATTRIBUTE));
   }
 
-  /** The search field's text changed, typed or read by the scanner. */
-  function typeText(next: string): void {
-    setText(next);
-    setNotice(null);
-    barcode.textChanged(next);
-  }
-
-  const barcode = useBarcodeMode({
-    query,
-    canOpenFood: open && view.kind === "search" && !stackedOpen,
-    showFood,
-    onFromLabel: (start, opener) => ownSheet.open(opener, { start }),
-  });
-
   function showMeal(meal: SavedMeal, opener: HTMLElement, lastCount: number | null): void {
     setNotice(null);
     nav.open({ kind: "meal", meal, lastCount }, rowSelectorOf(opener, MEAL_ROW_ATTRIBUTE));
@@ -214,11 +200,11 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
    * a line that says so. Its row is gone too, so focus goes to the field.
    */
   function foodGone(id: string): void {
-    ownSheet.close();
+    finder.ownSheet.close();
     portionSheet.close();
     setNotice(t("gone"));
     nav.reset();
-    barcode.forget(id);
+    finder.forget(id);
     void afterFoodGone(client, id);
   }
 
@@ -273,9 +259,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
 
   /** After the open food or meal is deleted: the browse view, with focus in the search field. */
   function afterDelete(foodId?: string): void {
-    if (foodId !== undefined) barcode.forget(foodId);
-    ownSheet.close();
-    setText("");
+    if (foodId !== undefined) finder.forget(foodId);
+    finder.ownSheet.close();
+    finder.reset();
     nav.reset();
   }
 
@@ -287,6 +273,17 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     planned: statusAt() === "planned",
     onOpenFood: (row, opener, last) => showFood(row, opener, last),
     onOpenMeal: showMeal,
+  };
+
+  const mealBrowsing: MealBrowsing = {
+    source,
+    onSource: setSource,
+    onNewMeal: (name, opener) => mealSheet.open(opener, { name }),
+    onEstimate: (name, opener) => estimateSheet.open(opener, name),
+    onArchived: (opener) => {
+      setNotice(null);
+      nav.open({ kind: "archived" }, rowSelectorOf(opener, ARCHIVED_ATTRIBUTE));
+    },
   };
 
   let viewHeader: ReactElement;
@@ -306,17 +303,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   } else if (view.kind === "archived") {
     viewHeader = <FoodDetailHeader name={tLog("archived.title")} backRef={backRef} onBack={nav.back} />;
   } else {
-    viewHeader = (
-      <SearchField
-        id={searchId}
-        inputRef={inputRef}
-        value={text}
-        onChange={typeText}
-        onEnter={barcode.onEnter}
-        onScan={scanner.open}
-        autoFocus={!isMobile}
-      />
-    );
+    viewHeader = finder.field;
   }
 
   return (
@@ -348,8 +335,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
       }
       stacked={
         <FoodSheetStack
-          scanner={scanner}
-          ownSheet={ownSheet}
+          finder={finder.stacked}
           portionSheet={portionSheet}
           mealSheet={mealSheet}
           estimateSheet={estimateSheet}
@@ -374,13 +360,6 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               {removeMeal.dialog}
             </>
           }
-          onSavedFood={(saved: FoodDetail) => {
-            // Saved with the held code: the block holds it as found, and Back focuses its row.
-            const row = barcode.savedOwnFood(saved);
-            if (view.kind === "food" && view.food.id === saved.id) return;
-            showFood(saved, row, undefined);
-          }}
-          onDeletedFood={(id) => afterDelete(id)}
           onFoodGone={foodGone}
           focusAfterPortionDelete={() =>
             contentRef.current?.querySelector<HTMLElement>(`[${ADD_PORTION_ATTRIBUTE}]`) ?? null
@@ -401,9 +380,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                 onLeave={onClose}
                 onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
                 onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
-                onEdit={(loaded, opener) => ownSheet.open(opener, { food: loaded })}
+                onEdit={(loaded, opener) => finder.ownSheet.open(opener, { food: loaded })}
                 onCopy={(loaded, opener) =>
-                  ownSheet.open(opener, {
+                  finder.ownSheet.open(opener, {
                     start: {
                       name: loaded.name,
                       barcode: loaded.barcode ?? undefined,
@@ -435,25 +414,24 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
           ) : (
             <div {...armed.guardProps}>
               <HeldLists follow={listsFollow}>
-                <FoodSearchView
-                  query={query}
-                  settled={settled}
-                  notice={notice}
-                  onOpen={(row, opener) => showFood(row, opener, undefined)}
-                  onAddOwn={(name, opener) => ownSheet.open(opener, { start: { name } })}
-                  logging={logging}
-                  barcode={barcode.block}
-                  meals={{
-                    source,
-                    onSource: setSource,
-                    onNewMeal: (name, opener) => mealSheet.open(opener, { name }),
-                    onEstimate: (name, opener) => estimateSheet.open(opener, name),
-                    onArchived: (opener) => {
-                      setNotice(null);
-                      nav.open({ kind: "archived" }, rowSelectorOf(opener, ARCHIVED_ATTRIBUTE));
-                    },
-                  }}
-                />
+                {finder.results({
+                  notice,
+                  browse: (
+                    <Browse
+                      onOpen={(row, opener) => showFood(row, opener, undefined)}
+                      onAddOwn={(name, opener) => finder.ownSheet.open(opener, { start: { name } })}
+                      logging={logging}
+                      meals={mealBrowsing}
+                    />
+                  ),
+                  lead: (query) => {
+                    const found = mealFilter(activeMeals ?? [], query, activeSource(activeMeals ?? [], source));
+                    return {
+                      node: <MealResults query={query} found={found} logging={logging} meals={mealBrowsing} />,
+                      foodsTitled: found.length > 0,
+                    };
+                  },
+                })}
               </HeldLists>
             </div>
           )}

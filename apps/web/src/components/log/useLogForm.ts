@@ -30,6 +30,7 @@ import {
 } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import { useId, useMemo, useState } from "react";
+import { foodChipsOf } from "./foodChips";
 
 // ---------------------------------------------------------------------------
 // useLogForm: the log block's state, for the food view and the meal view.
@@ -151,20 +152,13 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   }, [target]);
 
   const chips = useMemo<UnitChip[]>(() => {
-    const list: UnitChip[] = [{ id: GRAMS, label: null }];
-    if (target?.kind !== "food") return list;
-    const last = target.last ?? target.detail?.lastAmount ?? null;
-    const own = last?.portion?.id ? last.portion : null;
-    if (own?.id && !goneChips.has(own.id)) {
-      const current = target.detail?.portions.find((p) => p.id === own.id);
-      list.push({ id: own.id, label: chipLabel(own), grams: current?.grams ?? (last?.grams ?? 0) / own.count });
-    }
-    for (const portion of target.detail?.portions ?? []) {
-      if (portion.id !== own?.id && !goneChips.has(portion.id)) {
-        list.push({ id: portion.id, label: chipLabel(portion), grams: portion.grams });
-      }
-    }
-    return list;
+    if (target?.kind !== "food") return [{ id: GRAMS, label: null }];
+    return foodChipsOf({
+      last: target.last ?? target.detail?.lastAmount ?? null,
+      portions: target.detail?.portions,
+      gone: goneChips,
+      label: chipLabel,
+    });
   }, [target, goneChips, chipLabel]);
 
   const shown: Fields = fields ?? prefill ?? { unit: GRAMS, amount: "" };

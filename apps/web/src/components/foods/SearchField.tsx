@@ -38,6 +38,7 @@ export function SearchField({
   onEnter,
   onScan,
   autoFocus,
+  label,
 }: {
   id: string;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -47,14 +48,17 @@ export function SearchField({
   /** Opens the scanner, with the camera button as its opener. No camera button without it. */
   onScan?: (opener: HTMLElement) => void;
   autoFocus: boolean;
+  /** The label and placeholder, when the field searches something other than foods and meals. */
+  label?: string;
 }): ReactElement {
   const t = useTranslations("foods.sheet");
   const tScan = useTranslations("foods.scan");
   const cameraApi = useCameraApi();
+  const name = label ?? t("searchLabel");
   return (
     <div role="search" className="relative pb-1">
       <label htmlFor={id} className="sr-only">
-        {t("searchLabel")}
+        {name}
       </label>
       <span className="pointer-events-none absolute top-0 left-3.5 flex h-12 items-center text-ink-muted">
         <Icon name="search" className="size-5" />
@@ -70,7 +74,7 @@ export function SearchField({
         autoCapitalize="none"
         spellCheck={false}
         value={value}
-        placeholder={t("searchLabel")}
+        placeholder={name}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;
