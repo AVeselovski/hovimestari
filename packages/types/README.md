@@ -29,7 +29,7 @@ connections.ts A connection key's access, lifetimes, limit and prefix, the creat
 dates.ts       IsoDateSchema, a calendar date that exists, TimeZoneSchema with isKnownTimeZone, addDays, and weekOf with WEEK_START and WEEK_LENGTH, the Monday to Sunday week
 days.ts        A day, its readings and summary, the day and range queries, summarizeDay, the one day summary that sets each reading's position, DayRow, the fields it reads of an entry, and averageOfDays, a range's average day in both readings
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry
-errors.ts      ERROR_CODES, ErrorCode, ApiError with the line a recipe refusal names, and isErrorCode
+errors.ts      ERROR_CODES, ErrorCode, ApiError with the line a recipe refusal names and a refusal's details, ErrorDetails, and isErrorCode
 figures.ts     Figures, positions, and the one figure computation: entryFigures, with a scale per 100 g, meal, serving or whole, totalOf, averageOf, positionOf, gramsForPortion, and the integer helpers scaled and divRound
 foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, BarcodeSchema, macroSumWithinLimit and hasSearchableWord
 log.ts         A recent item and the recents query

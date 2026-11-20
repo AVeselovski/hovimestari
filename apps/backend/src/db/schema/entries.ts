@@ -13,19 +13,20 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { foods } from "./foods.js";
+import { recipes } from "./recipes.js";
 import { savedMeals } from "./savedMeals.js";
 import { users } from "./users.js";
 
-// Kind and status are text with CHECKs, not pgEnum: the recipe step adds the
-// kind "recipe", and ALTER TYPE ... ADD VALUE cannot run in the migrator's
-// own transaction.
+// Kind and status are text with CHECKs, not pgEnum: a new kind is an ALTER of
+// the CHECK, and ALTER TYPE ... ADD VALUE cannot run in the migrator's own
+// transaction.
 const listOf = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 /**
- * One entry on one day: a food by weight, a saved meal by count, or an
- * estimate with typed figures, planned or eaten. An entry stores its basis
- * and its amount, and its figures are computed from those two alone, so a
- * past day never changes when a food or meal is edited.
+ * One entry on one day: a food by weight, a saved meal by count, a recipe
+ * by servings, or an estimate with typed figures, planned or eaten. An entry
+ * stores its basis and its amount, and its figures are computed from those
+ * two alone, so a past day never changes when a food, meal or recipe is edited.
  *
  * A migration that adds, renames or drops a column here must also rewrite or
  * clear `removed_entries.row`: a restore puts that row back by column name,
@@ -68,14 +69,19 @@ export const entries = pgTable(
     savedMealId: uuid("saved_meal_id"),
     mealCount: numeric("meal_count", { precision: 5, scale: 2, mode: "number" }),
 
+    // kind = recipe. Servings with two decimals, above 0 and at most 100.
+    recipeId: uuid("recipe_id"),
+    servings: numeric("servings", { precision: 5, scale: 2, mode: "number" }),
+
     // kind = estimate
     name: text("name"),
     note: text("note"),
 
     // The values the entry is figured from: per 100 g (food), per meal (saved
-    // meal), or the whole entry (estimate). Written once, when the entry is
-    // added. Only an edit of the source rewrites it, and only on planned
-    // entries dated today or later.
+    // meal), per serving (recipe), or the whole entry (estimate). Written
+    // once, when the entry is added. Only an edit of the source (for a
+    // recipe, also of an own food on its lines) rewrites it, and only on
+    // planned entries dated today or later.
     basisEnergyKcal: numeric("basis_energy_kcal", { precision: 7, scale: 2, mode: "number" }).notNull(),
     basisProteinG: numeric("basis_protein_g", { precision: 7, scale: 3, mode: "number" }).notNull(),
     basisCarbsG: numeric("basis_carbs_g", { precision: 7, scale: 3, mode: "number" }).notNull(),
@@ -90,6 +96,12 @@ export const entries = pgTable(
       name: "entries_saved_meal_user_fk",
       columns: [t.savedMealId, t.userId],
       foreignColumns: [savedMeals.id, savedMeals.userId],
+    }).onDelete("cascade"),
+    // An entry's recipe belongs to the entry's user, whatever the service checked.
+    foreignKey({
+      name: "entries_recipe_user_fk",
+      columns: [t.recipeId, t.userId],
+      foreignColumns: [recipes.id, recipes.userId],
     }).onDelete("cascade"),
     check("entries_status", sql`${t.status} IN (${listOf(ENTRY_STATUSES)})`),
     check("entries_kind", sql`${t.kind} IN (${listOf(ENTRY_KINDS)})`),
@@ -107,6 +119,8 @@ export const entries = pgTable(
       "entries_meal_fields",
       sql`${t.kind} = 'saved_meal' OR (${t.savedMealId} IS NULL AND ${t.mealCount} IS NULL)`,
     ),
+    check("entries_recipe", sql`(${t.kind} = 'recipe') = (${t.recipeId} IS NOT NULL AND ${t.servings} IS NOT NULL)`),
+    check("entries_recipe_fields", sql`${t.kind} = 'recipe' OR (${t.recipeId} IS NULL AND ${t.servings} IS NULL)`),
     check("entries_estimate", sql`(${t.kind} = 'estimate') = (${t.name} IS NOT NULL)`),
     check("entries_note", sql`${t.note} IS NULL OR ${t.kind} = 'estimate'`),
     check(
@@ -115,7 +129,7 @@ export const entries = pgTable(
     ),
     check(
       "entries_amounts",
-      sql`(${t.grams} IS NULL OR ${t.grams} > 0) AND (${t.mealCount} IS NULL OR ${t.mealCount} > 0) AND (${t.portionCount} IS NULL OR ${t.portionCount} > 0)`,
+      sql`(${t.grams} IS NULL OR ${t.grams} > 0) AND (${t.mealCount} IS NULL OR ${t.mealCount} > 0) AND (${t.portionCount} IS NULL OR ${t.portionCount} > 0) AND (${t.servings} IS NULL OR (${t.servings} > 0 AND ${t.servings} <= 100))`,
     ),
     check(
       "entries_basis",
@@ -128,5 +142,7 @@ export const entries = pgTable(
       .where(sql`${t.eatenAt} IS NOT NULL`),
     index("entries_food_id_idx").on(t.foodId),
     index("entries_saved_meal_id_idx").on(t.savedMealId),
+    // A recipe's entries by date: lastPutOn, the rewrite and the use check.
+    index("entries_recipe_idx").on(t.recipeId, t.date),
   ],
 );

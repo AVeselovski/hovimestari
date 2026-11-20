@@ -51,16 +51,32 @@ export type EntryField = "date" | "amount" | "name" | "energy" | "protein" | "ca
 export type FigureField = "energy" | "protein" | "carbs" | "fat";
 export type EntryFieldErrors = Partial<Record<EntryField, EntryFieldError>>;
 
+/**
+ * The kinds whose amount is a count, one row each: the entry's field that
+ * holds the count, which is also the field a PATCH sends, and what the basis
+ * is per, which scales the preview. A new counted kind is one more row.
+ */
+const COUNTED = {
+  saved_meal: { field: "count", per: "meal" },
+  recipe: { field: "servings", per: "serving" },
+} as const satisfies Partial<Record<Entry["kind"], { field: "count" | "servings"; per: "meal" | "serving" }>>;
+
+type Counted = (typeof COUNTED)[keyof typeof COUNTED];
+
+/** The entry's count row, or null for a kind whose amount is not a count. */
+function countedOf(entry: Entry): Counted | null {
+  return entry.kind in COUNTED ? COUNTED[entry.kind as keyof typeof COUNTED] : null;
+}
+
 /** The fields as the entry holds them: every field prefilled from the entry itself. */
 export function fieldsOf(entry: Entry): EntryFields {
   const portion = entry.portion?.id ? entry.portion : null;
+  const counted = countedOf(entry);
   const amount =
     entry.kind === "food"
-      ? portion
-        ? formatDecimalForField(portion.count, "en")
-        : formatDecimalForField(entry.grams ?? 0, "en")
-      : entry.kind === "saved_meal"
-        ? formatDecimalForField(entry.count ?? 0, "en")
+      ? formatDecimalForField(portion ? portion.count : (entry.grams ?? 0), "en")
+      : counted
+        ? formatDecimalForField(entry[counted.field] ?? 0, "en")
         : "";
   const typed = entry.kind === "estimate";
   return {
@@ -133,6 +149,7 @@ export function buildPatch(entry: Entry, fields: EntryFields, today: string | nu
   const status = effectiveStatus(fields, today);
   if (status !== entry.status) patch.status = status;
 
+  const counted = countedOf(entry);
   if (entry.kind === "food") {
     const n = parseAmount(fields.amount, fields.unit);
     if (typeof n !== "number") errors.amount = n;
@@ -141,10 +158,10 @@ export function buildPatch(entry: Entry, fields: EntryFields, today: string | nu
       const now = fields.unit === GRAMS ? { grams: n } : { portionId: fields.unit, count: n };
       if (JSON.stringify(was) !== JSON.stringify(now)) patch.amount = now;
     }
-  } else if (entry.kind === "saved_meal") {
+  } else if (counted) {
     const n = parseCount(fields.amount);
     if (typeof n !== "number") errors.amount = n;
-    else if (n !== entry.count) patch.count = n;
+    else if (n !== entry[counted.field]) patch[counted.field] = n;
   } else {
     const name = NameSchema.safeParse(fields.name);
     if (!name.success) errors.name = name.error.issues[0].message as ErrorCode;
@@ -172,7 +189,10 @@ export function inverseOf(before: Entry, after: Entry): EntryPatchBody {
       (after.portion?.id ?? null) !== (before.portion?.id ?? null) || after.portion?.count !== before.portion?.count;
     if (after.grams !== before.grams || portionChanged) inverse.amount = amountOfEntry(before);
   }
-  if (after.count !== before.count && before.count !== null) inverse.count = before.count;
+  for (const { field } of Object.values(COUNTED)) {
+    const was = before[field];
+    if (after[field] !== was && was !== null) inverse[field] = was;
+  }
   if (before.kind === "estimate") {
     if (after.name !== before.name) inverse.name = before.name;
     if (!sameFigures(after.figures, before.figures)) {
@@ -192,10 +212,11 @@ export function previewOf(entry: Entry, fields: EntryFields, chips: readonly Uni
     const grams = chip ? gramsOf(fields.amount, chip) : null;
     return grams === null ? null : entryFigures(entry.basis, { per: "100g", grams });
   }
-  if (entry.kind === "saved_meal") {
+  const counted = countedOf(entry);
+  if (counted) {
     if (fields.amount === initial.amount) return entry.figures;
     const count = parseCount(fields.amount);
-    return typeof count === "number" ? entryFigures(entry.basis, { per: "meal", count }) : null;
+    return typeof count === "number" ? entryFigures(entry.basis, { per: counted.per, count }) : null;
   }
   const { figures } = parseFigures(fields);
   return figures === null ? null : entryFigures(figures, { per: "whole" });

@@ -288,7 +288,7 @@ describe("/mcp through the MCP client", () => {
       const client = await connect(server.url, WRITE_KEY, era);
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name)).toEqual([...READ_TOOLS, ...WRITE_TOOLS].map((t) => t.name));
-      expect(tools).toHaveLength(37);
+      expect(tools).toHaveLength(38);
       await client.close();
     },
   );
@@ -298,7 +298,7 @@ describe("/mcp through the MCP client", () => {
     const client = await connect(server.url, WRITE_KEY);
     const { tools } = await client.listTools();
     const writes = tools.filter((t) => WRITE_TOOLS.some((w) => w.name === t.name));
-    expect(writes).toHaveLength(22);
+    expect(writes).toHaveLength(23);
     const destructive = [
       "update_entry",
       "set_entries_status",

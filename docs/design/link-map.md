@@ -162,12 +162,14 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | ingredient line, counted line, line not counted     | `features/recipes.md#ingredient-lines`           | `### Ingredient lines`           |
 | recipe figures, per serving, whole recipe           | `features/recipes.md#a-recipes-figures`          | `### A recipe's figures`         |
 | scaling, another number of servings                 | `features/recipes.md#another-number-of-servings` | `### Another number of servings` |
+| recipe entry, a recipe on a day, servings on a day  | `features/recipes.md#a-recipe-on-a-day`          | `### A recipe on a day`          |
 | recipe tags, favourite recipe                       | `features/recipes.md#tags-and-favourites`        | `### Tags and favourites`        |
 | finding a recipe, recipe filter, last on a day      | `features/recipes.md#finding-a-recipe`           | `### Finding a recipe`           |
 | archiving and deleting a recipe                     | `features/recipes.md#archiving-and-deleting`     | `### Archiving and deleting`     |
 | a recipe's foods changing, hidden and retired foods | `features/recipes.md#when-a-food-changes`        | `### When a food changes`        |
 | recipe basis, the recipe figure computation         | `features/recipes.md#the-figures-in-code`        | `### The figures in code`        |
 | a recipe save's locks, a refused line               | `features/recipes.md#saving-a-recipe`            | `### Saving a recipe`            |
+| reading a recipe entry's basis, the hide on delete  | `features/recipes.md#recipe-entries-in-code`     | `### Recipe entries in code`     |
 
 ## Connected AI
 

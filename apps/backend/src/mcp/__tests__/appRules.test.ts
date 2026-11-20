@@ -116,7 +116,7 @@ describe("APP_RULES", () => {
 
   it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {
     expect(WRITE_RULES).toContain(
-      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes and mark them as favourites, and change targets.",
+      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites and log them, and change targets.",
     );
     expect(WRITE_RULES).toContain("Values the person reads from a label go in with create_own_food.");
     expect(WRITE_RULES).toContain("Set them only with the numbers the person gave, from the date they gave");
@@ -149,6 +149,13 @@ describe("APP_RULES", () => {
       "Call preview_recipe, show each line's food and grams and the figures per serving from its answer, and create on their yes.",
     );
     expect(WRITE_RULES).toContain("A refusal names its line by index.");
+  });
+
+  it("says a recipe on a day keeps its figures, and only planned entries from today on follow an edit", () => {
+    expect(APP_RULES).toContain("A recipe on a day is an entry of kind recipe with a number of servings");
+    expect(APP_RULES).toContain("changes its planned entries from today on, as with a saved meal.");
+    expect(APP_RULES).toContain("lastPutOn is the latest date the recipe is on, planned or eaten.");
+    expect(APP_RULES).not.toContain("cannot be put on a day");
   });
 
   it("gives a read key the estimate rule too", () => {

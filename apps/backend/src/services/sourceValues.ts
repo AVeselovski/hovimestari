@@ -1,21 +1,24 @@
-import { gramsForPortion, MAX_ENTRY_GRAMS, type Figures } from "@hovimestari/types";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { gramsForPortion, MAX_ENTRY_GRAMS, MAX_FIGURE_G, MAX_FIGURE_KCAL, type Figures } from "@hovimestari/types";
+import { and, asc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import {
   entries,
   foodPortions,
   foods,
   recipeIngredients,
+  recipes,
   removedEntries,
   RESTORE_WINDOW_MS,
   savedMeals,
   users,
 } from "../db/schema/index.js";
 import type { Db, Tx } from "../db/types.js";
-import { appError } from "../lib/errors.js";
+import { AppError, appError } from "../lib/errors.js";
 import { basisColumnsOf } from "./entryRows.js";
 import { portionVisibleTo, visibleFood } from "./foodScope.js";
 import type { ReadContext } from "./reads/context.js";
 import { ownMeal } from "./reads/savedMeals.js";
+import { ownRecipe } from "./recipeScope.js";
+import { fitsEntry, readRecipeServings, servingOf } from "./recipeValues.js";
 
 // The only place an entry's basis is taken from its source. A source is read
 // FOR SHARE, so an edit of it waits until the add commits, and the edit's
@@ -103,8 +106,16 @@ export async function gramsOf(
   };
 }
 
-/** A food or a saved meal that entries are added from. */
-export type EntrySource = { kind: "food"; id: string } | { kind: "saved_meal"; id: string };
+/** A food, a saved meal or a recipe that entries are added from. */
+export type EntrySource =
+  { kind: "food"; id: string } | { kind: "saved_meal"; id: string } | { kind: "recipe"; id: string };
+
+/** The entry column that names a source of `kind`, and its key in a removed entry's row. */
+const SOURCE_COLUMNS = {
+  food: [entries.foodId, "food_id"],
+  saved_meal: [entries.savedMealId, "saved_meal_id"],
+  recipe: [entries.recipeId, "recipe_id"],
+} as const;
 
 /** The oldest removal a restore still accepts at `ctx.now`. */
 export const restoreCutoff = (ctx: ReadContext): Date => new Date(ctx.now.getTime() - RESTORE_WINDOW_MS);
@@ -112,12 +123,12 @@ export const restoreCutoff = (ctx: ReadContext): Date => new Date(ctx.now.getTim
 /**
  * Whether the user's entries use `source`, or an entry they removed after
  * `cutoff` did, so a restore would need it. A food is also used while a line
- * of one of the user's recipes names it. A new statement: called after the
- * source's row lock, it sees an add or a recipe save that committed while
- * the lock waited.
+ * of one of the user's recipes names it. A recipe counts its entries and
+ * removed entries only. A new statement: called after the source's row lock,
+ * it sees an add or a recipe save that committed while the lock waited.
  */
 export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cutoff: Date): Promise<boolean> {
-  const [column, key] = source.kind === "food" ? [entries.foodId, "food_id"] : [entries.savedMealId, "saved_meal_id"];
+  const [column, key] = SOURCE_COLUMNS[source.kind];
   const onRecipe =
     source.kind === "food"
       ? sql`OR EXISTS (SELECT 1 FROM ${recipeIngredients}
@@ -134,40 +145,142 @@ export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cuto
 }
 
 /**
- * Sets the basis of the user's planned entries of `source` dated today or
- * later to `figures`. Eaten entries and past days keep theirs. The rows are
- * locked in id order first, as the status batch locks them, so the two never
- * deadlock over the same entries.
+ * A source whose edit rewrites planned entries. A food carries its values
+ * per 100 g from before the edit, so a recipe on it can be compared.
  */
-export async function rewritePlannedBasis(
-  tx: Tx,
-  ctx: ReadContext,
-  source: EntrySource,
-  figures: Figures,
-): Promise<void> {
-  const planned = and(
-    eq(entries.userId, ctx.userId),
-    eq(source.kind === "food" ? entries.foodId : entries.savedMealId, source.id),
-    eq(entries.status, "planned"),
-    gte(entries.date, ctx.today),
-  );
-  const locked = await tx
-    .select({ id: entries.id })
+export type EditedSource =
+  { kind: "food"; id: string; before: Figures } | { kind: "saved_meal"; id: string } | { kind: "recipe"; id: string };
+
+/** How many recipe names a refusal names. The rest it counts. */
+const NAMED_RECIPES = 3;
+
+/**
+ * Rewrites the basis of the user's planned entries dated today or later that
+ * `source` reaches, from the source as it is now. Eaten entries and past days
+ * keep theirs. A food reaches its own entries and the entries of every recipe
+ * the user can see with a line on it. A deleted recipe is not reached, so its
+ * entries keep their figures. A saved meal or a recipe reaches its own
+ * entries. Three steps, so the figures are always read after the locks:
+ *
+ * 1. Lock every entry it reaches, in one statement in id order, as the
+ *    status batch and the removals lock them, so none of them deadlock.
+ * 2. Read the food's or meal's values and each recipe's serving, in a new
+ *    statement, which sees every edit that committed while step 1 waited.
+ * 3. Write each source's basis to its locked entries.
+ *
+ * Called after the caller's own write of the source, in its transaction, so
+ * step 2 reads that write. It takes no lock on a food or a recipe.
+ *
+ * A recipe whose serving is past what an entry holds keeps the basis its
+ * entries have. An own food's edit is refused with 400
+ * `food_edit_recipe_too_large`, and rolls back with it, when it takes a
+ * reached recipe's serving past the cap or raises a figure already past it.
+ * The refusal names the recipes. An edit that lowers a serving past the cap
+ * passes.
+ */
+export async function rewritePlannedBasis(tx: Tx, ctx: ReadContext, source: EditedSource): Promise<void> {
+  const locked = await lockReached(tx, ctx, source);
+  if (locked.length === 0) return;
+
+  const writes: { basis: Figures; ids: string[] }[] = [];
+  if (source.kind !== "recipe") {
+    const own = locked.filter((e) => (source.kind === "food" ? e.foodId : e.savedMealId) === source.id);
+    if (own.length > 0) {
+      const basis = source.kind === "food" ? await foodValues(tx, source.id) : await mealValues(tx, source.id);
+      writes.push({ basis, ids: own.map((e) => e.id) });
+    }
+  }
+
+  const recipeIds = [...new Set(locked.flatMap((e) => (e.recipeId === null ? [] : [e.recipeId])))];
+  const servings = await readRecipeServings(tx, ctx, recipeIds, { lock: false });
+  const raised: string[] = [];
+  for (const recipeId of recipeIds) {
+    // Every locked entry's recipe is the user's, by the entry's foreign key.
+    const recipe = servings.get(recipeId)!;
+    const basis = servingOf(recipe);
+    if (fitsEntry(basis)) {
+      writes.push({ basis, ids: locked.filter((e) => e.recipeId === recipeId).map((e) => e.id) });
+      continue;
+    }
+    // A recipe save refuses a serving past the cap, so only a food's edit gets here.
+    if (source.kind !== "food") throw appError("recipe_serving_too_large", 400);
+    if (raisesPastCap(servingOf(recipe, { id: source.id, per100g: source.before }), basis)) raised.push(recipe.name);
+  }
+  if (raised.length > 0) throw recipesTooLarge(raised);
+
+  for (const { basis, ids } of writes) {
+    await tx
+      .update(entries)
+      .set({ ...basisColumnsOf(basis), updatedAt: ctx.now })
+      .where(and(eq(entries.userId, ctx.userId), inArray(entries.id, ids)));
+  }
+}
+
+/** Step 1: the planned entries from today on that `source` reaches, locked in id order. */
+function lockReached(tx: Tx, ctx: ReadContext, source: EditedSource) {
+  const onRecipes = tx
+    .select({ id: recipeIngredients.recipeId })
+    .from(recipeIngredients)
+    .innerJoin(recipes, eq(recipes.id, recipeIngredients.recipeId))
+    .where(
+      and(eq(recipeIngredients.foodId, source.id), eq(recipeIngredients.userId, ctx.userId), ownRecipe(ctx.userId)),
+    );
+  const reached =
+    source.kind === "food"
+      ? or(eq(entries.foodId, source.id), inArray(entries.recipeId, onRecipes))
+      : eq(SOURCE_COLUMNS[source.kind][0], source.id);
+  return tx
+    .select({ id: entries.id, foodId: entries.foodId, savedMealId: entries.savedMealId, recipeId: entries.recipeId })
     .from(entries)
-    .where(planned)
+    .where(and(eq(entries.userId, ctx.userId), eq(entries.status, "planned"), gte(entries.date, ctx.today), reached))
     .orderBy(asc(entries.id))
     .for("no key update");
-  if (locked.length === 0) return;
-  await tx
-    .update(entries)
-    .set({ ...basisColumnsOf(figures), updatedAt: ctx.now })
-    .where(
-      and(
-        planned,
-        inArray(
-          entries.id,
-          locked.map((r) => r.id),
-        ),
-      ),
-    );
+}
+
+/** Whether a figure of `after` is past its cap and higher than in `before`. */
+function raisesPastCap(before: Figures, after: Figures): boolean {
+  return (Object.keys(after) as (keyof Figures)[]).some((key) => {
+    const cap = key === "energyKcal" ? MAX_FIGURE_KCAL : MAX_FIGURE_G;
+    return after[key] > cap && after[key] > before[key];
+  });
+}
+
+/** The refusal of a food's edit, naming the first recipes by name and counting the rest. */
+function recipesTooLarge(names: string[]): AppError {
+  const sorted = [...names].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const recipes = sorted.slice(0, NAMED_RECIPES);
+  const more = sorted.length - recipes.length;
+  const which =
+    sorted.length === 1
+      ? `A planned serving of ${recipes[0]}`
+      : `Planned servings of ${recipes.join(", ")}${more > 0 ? `, and ${more} more ${more === 1 ? "recipe" : "recipes"},` : ""}`;
+  const change = sorted.length === 1 ? "the recipe or its" : "those recipes or their";
+  return new AppError(
+    `${which} would come to more than 10000 kcal or 1000 g of a macro. Change ${change} planned entries first.`,
+    400,
+    { code: "food_edit_recipe_too_large", details: { recipe: recipes[0], others: sorted.length - 1, recipes } },
+  );
+}
+
+/** A food's values per 100 g as they are now. */
+async function foodValues(tx: Tx, foodId: string): Promise<Figures> {
+  const [food] = await tx
+    .select({ energyKcal: foods.energyKcal, proteinG: foods.proteinG, carbsG: foods.carbsG, fatG: foods.fatG })
+    .from(foods)
+    .where(eq(foods.id, foodId));
+  return food;
+}
+
+/** A saved meal's figures for one meal as they are now. */
+async function mealValues(tx: Tx, mealId: string): Promise<Figures> {
+  const [meal] = await tx
+    .select({
+      energyKcal: savedMeals.energyKcal,
+      proteinG: savedMeals.proteinG,
+      carbsG: savedMeals.carbsG,
+      fatG: savedMeals.fatG,
+    })
+    .from(savedMeals)
+    .where(eq(savedMeals.id, mealId));
+  return meal;
 }

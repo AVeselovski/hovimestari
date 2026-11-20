@@ -6,9 +6,17 @@ import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import type { EntryFieldError } from "./amount";
 
-/** A saved meal entry's count of meals, with two decimals. Its line keeps two lines of room. */
-export function MealCount({
+/** What a count counts: a saved meal entry's meals, or a recipe entry's servings. */
+export type CountOf = "meals" | "servings";
+
+/**
+ * A saved meal entry's count of meals, or a recipe entry's servings, with
+ * two decimals. Both take the same limits and the same keyboard, so they are
+ * one field with two names. Its line keeps two lines of room.
+ */
+export function CountField({
   id,
+  of,
   value,
   onChange,
   error,
@@ -16,6 +24,7 @@ export function MealCount({
   layout,
 }: {
   id: string;
+  of: CountOf;
   value: string;
   onChange: (raw: string) => void;
   error: EntryFieldError | undefined;
@@ -31,8 +40,8 @@ export function MealCount({
     <DecimalField
       id={id}
       name="count"
-      label={t("sheet.meals")}
-      unit={t("amount.meals")}
+      label={of === "meals" ? t("sheet.meals") : t("sheet.servings")}
+      unit={of === "meals" ? t("amount.meals") : t("amount.servings")}
       inputMode="decimal"
       enterKeyHint="done"
       autoFocus={autoFocus}

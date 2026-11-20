@@ -4,14 +4,14 @@ import { FiguresSchema } from "./figures.js";
 import { FINELI_PORTION_UNITS, FOOD_SOURCES } from "./foods.js";
 import { hasAtMostDecimals } from "./numbers.js";
 
-/** The kinds of entry. A recipe kind arrives with recipes. */
-export const ENTRY_KINDS = ["food", "saved_meal", "estimate"] as const;
+/** The kinds of entry. */
+export const ENTRY_KINDS = ["food", "saved_meal", "estimate", "recipe"] as const;
 /** Every entry is planned or eaten. */
 export const ENTRY_STATUSES = ["planned", "eaten"] as const;
 
 /** The heaviest food entry, in grams, with one decimal. */
 export const MAX_ENTRY_GRAMS = 5000;
-/** The largest portion or meal count, with two decimals. */
+/** The largest portion, meal or serving count, with two decimals. */
 export const MAX_ENTRY_COUNT = 100;
 /** The largest typed energy, in kcal, with one decimal: estimates and saved meals. */
 export const MAX_FIGURE_KCAL = 10000;
@@ -29,7 +29,7 @@ export const EntryGramsSchema = z
   .number({ error: "entry_grams_invalid" })
   .refine((v) => v > 0 && v <= MAX_ENTRY_GRAMS && hasAtMostDecimals(v, 1), { error: "entry_grams_invalid" });
 
-/** A portion or meal count: above zero, up to 100, two decimals. */
+/** A portion, meal or serving count: above zero, up to 100, two decimals. */
 export const EntryCountSchema = z
   .number({ error: "entry_count_invalid" })
   .refine((v) => v > 0 && v <= MAX_ENTRY_COUNT && hasAtMostDecimals(v, 2), { error: "entry_count_invalid" });
@@ -100,6 +100,7 @@ export const AddEntryBodySchema = z.discriminatedUnion("kind", [
     note: NoteSchema.nullable().default(null),
     ...common,
   }),
+  z.object({ kind: z.literal("recipe"), recipeId: z.uuid(), servings: EntryCountSchema, ...common }),
 ]);
 
 /** What a PATCH may change. At least one field. A field that does not fit the entry's kind answers entry_kind_mismatch. */
@@ -112,6 +113,8 @@ export const EntryPatchBodySchema = z
     amount: FoodAmountSchema.optional(),
     /** Saved meal entries only. */
     count: EntryCountSchema.optional(),
+    /** Recipe entries only. */
+    servings: EntryCountSchema.optional(),
     /** Estimates only. */
     name: NameSchema.optional(),
     figures: TypedFiguresSchema.optional(),
@@ -149,7 +152,7 @@ export const EntrySchema = z.object({
   position: z.number().int(),
   status: z.enum(ENTRY_STATUSES),
   kind: z.enum(ENTRY_KINDS),
-  /** A food's name in the user's language, a meal's or an estimate's own. */
+  /** A food's name in the user's language, a meal's, a recipe's or an estimate's own. A recipe's as it is now. */
   name: z.string(),
   food: z.object({ id: z.uuid(), source: z.enum(FOOD_SOURCES), retired: z.boolean(), deleted: z.boolean() }).nullable(),
   savedMeal: z
@@ -167,14 +170,20 @@ export const EntrySchema = z.object({
     .nullable(),
   /** A saved meal entry's count of meals. */
   count: z.number().nullable(),
+  /** A recipe entry's servings, with up to two decimals. */
+  servings: z.number().nullable(),
+  /** A recipe entry's recipe. A deleted one still opens by its id. */
+  recipe: z.object({ id: z.uuid(), archived: z.boolean(), deleted: z.boolean() }).nullable(),
   note: z.string().nullable(),
   /**
    * The values the entry's figures are computed from, as stored: set when the entry is
    * added, replaced when an estimate's figures are edited, and rewritten on planned
-   * entries dated today or later when their own food or saved meal is edited. Per kind:
+   * entries dated today or later when their own food, saved meal or recipe, or an own food
+   * on the recipe, is edited. Per kind:
    * - food: per 100 g of the food. figures = entryFigures(basis, { per: "100g", grams })
    * - saved_meal: per one meal. figures = entryFigures(basis, { per: "meal", count })
    * - estimate: the whole entry, the typed figures. figures = entryFigures(basis, { per: "whole" })
+   * - recipe: one serving of the recipe. figures = entryFigures(basis, { per: "serving", count: servings })
    * Not rounded for display: kcal with up to two decimals, grams with up to three, as the
    * columns hold them.
    */

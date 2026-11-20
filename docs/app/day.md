@@ -73,7 +73,7 @@ A week that fails to load says "This week did not load." with **Try again**, and
 
 ### The entries
 
-Under the summary, "Entries", and each entry in the order it was added. A row holds a mark at its start, then the name, one line with the amount ("250 g", "2 × Medium piece · 110 g", "1 meal · Foodora" or "Estimate"), and the entry's calories over its protein, each with its dot. An estimate's figures start with "≈". A day with nothing on it says "Nothing logged yet.", or "Nothing planned yet." on a future day.
+Under the summary, "Entries", and each entry in the order it was added. A row holds a mark at its start, then the name, one line with the amount ("250 g", "2 × Medium piece · 110 g", "1 meal · Foodora", "1.5 servings" or "Estimate"), and the entry's calories over its protein, each with its dot. An estimate's figures start with "≈". A day with nothing on it says "Nothing logged yet.", or "Nothing planned yet." on a future day.
 
 The mark says the entry's state:
 
@@ -92,11 +92,11 @@ A tap on the rest of a row opens the entry sheet.
 Titled with the entry's name, two lines at most. The fields come in this order, and Tab follows it:
 
 1. The choice between **Eaten** and **Planned**, for every kind of entry, so marking a planned entry eaten is in the first screen of a phone. On a date after today only Planned can be chosen, and the date's own line says "Future days hold planned entries.", next to what makes it so. The choice keeps no line under it, since it cannot be refused, so the amount starts 16 pixels below it.
-2. The amount. For a food, chips over the field choose grams or one of the food's portions, and the field takes the grams or the count. For a saved meal, the number of meals. For an estimate, its name, its four figures two by two, **Calories** and **Protein** over **Carbohydrates** and **Fat**, and a note. Enter in the name moves to Calories. Each number field names its unit at its end: "g", "portions", "meals" or "kcal".
+2. The amount. For a food, chips over the field choose grams or one of the food's portions, and the field takes the grams or the count. For a saved meal, the number of meals. For [a recipe](../features/recipes.md#a-recipe-on-a-day), **Servings**. For an estimate, its name, its four figures two by two, **Calories** and **Protein** over **Carbohydrates** and **Fat**, and a note. Enter in the name moves to Calories. Each number field names its unit at its end: "g", "portions", "meals", "servings" or "kcal". On a phone the amount fields open the decimal keypad.
 3. The figures that amount comes to, with "For this amount" over them, or "Enter an amount to see its figures." while the field is empty. A changed count of the entry's own portion, before the food's portions have loaded, says "Figures update when you save.".
 4. The date. Changing it moves the entry to that day.
 
-**Save** stores every change in one go, the amount and Eaten included. **Remove entry** takes the entry off the day. While the keyboard is open, the row of **Remove entry** makes way for it, so **Save** stays above the keyboard. A refusal under a field goes away as soon as the field changes, and a refused save scrolls to the field it refused, its line in sight. A save or a removal that fails says why in the line above the buttons, which stays in sight, and keeps what was typed. A food that was deleted since says "This food is no longer in your foods." and a deleted saved meal "This saved meal was deleted.". Both can still be changed. [Adding and changing an entry](../features/quick-logging.md#adding-and-changing-an-entry) has the rules a save follows.
+**Save** stores every change in one go, the amount and Eaten included. **Remove entry** takes the entry off the day. While the keyboard is open, the row of **Remove entry** makes way for it, so **Save** stays above the keyboard. A refusal under a field goes away as soon as the field changes, and a refused save scrolls to the field it refused, its line in sight. A save or a removal that fails says why in the line above the buttons, which stays in sight, and keeps what was typed. A food that was deleted since says "This food is no longer in your foods." A deleted saved meal says "This saved meal was deleted." A deleted recipe says "This recipe was deleted." Each keeps its name and figures and can still be changed. [Adding and changing an entry](../features/quick-logging.md#adding-and-changing-an-entry) has the rules a save follows.
 
 ### The copy sheet
 
@@ -143,9 +143,9 @@ Nothing moves. Every line that can change keeps the room of its longest form at 
 
 The entry sheet is as tall as its form, and [holds still](shell.md#the-sheet-primitives) once open. Its estimate's figures are a two by two grid with one shared line under it, which keeps one line of room, and every refusal a figure can show fits it at 320 pixels wide (`FigureFields` in `apps/web/src/components/entries/`). The name, the note, the amount and the date keep one line each. Measured on a production build with the keyboard closed:
 
-- At 390 by 844 an entry for a food and one for a saved meal show their whole form. An estimate shows its state, its name, its four figures, its note, "For this amount" and its calories, and the rest follows on a scroll.
-- At 375 by 667 a food entry shows its state, the amount and its figures down to carbohydrates, a saved meal entry everything but the date, and an estimate its state, its name, its four figures and the note's label.
-- At 320 by 568 a food entry shows its state, the amount and "For this amount", a saved meal entry down to its protein, and an estimate its state, its name, and Calories and Protein.
+- At 390 by 844 an entry for a food, a saved meal or a recipe shows its whole form. An estimate shows its state, its name, its four figures, its note, "For this amount" and its calories, and the rest follows on a scroll.
+- At 375 by 667 a food entry shows its state, the amount and its figures down to carbohydrates, a saved meal or recipe entry everything but the date, and an estimate its state, its name, its four figures and the note's label.
+- At 320 by 568 a food entry shows its state, the amount and "For this amount", a saved meal or recipe entry down to its protein, and an estimate its state, its name, and Calories and Protein.
 
 In the footer, **Remove entry** sits centred between the footer's line and **Cancel** and **Save**, with its 44 pixel target kept ([the sheet primitives](shell.md#the-sheet-primitives)).
 
@@ -175,3 +175,4 @@ A chevron keeps focus when the day changes, and so does the date button. Arrivin
 - [Quick logging](../features/quick-logging.md): adding entries through the log sheet, marking, editing, moving, copying and removing them, and their undo.
 - [Targets](../features/targets.md): the ranges the summary measures against, today, and the first run that Set targets opens.
 - [Foods](../features/foods.md): the foods the log sheet finds and logs.
+- [Recipes](../features/recipes.md): a recipe on a day, as an entry of a number of servings.

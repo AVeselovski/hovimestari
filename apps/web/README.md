@@ -59,7 +59,7 @@ src/
 │   │   ├── EntrySheet.tsx      A FormSheet on one entry: Eaten or Planned, the amount, its figures, the date, Remove entry
 │   │   ├── CopyEntriesSheet.tsx  A FormSheet that copies ticked entries of a day to another date, with its own ids for the open
 │   │   ├── AmountField.tsx     A food's amount: the unit chips and one number field
-│   │   ├── MealCount.tsx       A saved meal entry's count of meals
+│   │   ├── CountField.tsx      A saved meal entry's count of meals, or a recipe entry's servings
 │   │   ├── EstimateFields.tsx  An estimate's name, four figures and note
 │   │   ├── FigureFields.tsx    Four typed figures two by two, with one shared line under them
 │   │   ├── StateChoice.tsx     Eaten or Planned, with Eaten unavailable on a future date
@@ -296,7 +296,7 @@ Parse what it holds with `parseDecimalInput(raw, { maxDecimals })` from `src/lib
 
 - It accepts digits with one comma or one point as the decimal separator, whatever the device's language. "9,8" and "9.8" are both 9.8.
 - It refuses a sign, grouping and more decimals than `maxDecimals`, and never rounds. Trailing zeros in a fraction of one or two digits count for nothing, so "120.50" fits one decimal.
-- A number that may be one thousands group, such as "2,000" or "1.500", comes back as `group` in every field, also one that allows three decimals. Leading zeros are dropped first, so "012,345" is a group too. So a value from 1 to 999 cannot carry a third decimal when typed. A form shows `group` with the line `common.digitGroup`, so the reader learns what to type instead.
+- A number that may be one thousands group, such as "2,000" or "1.500", comes back as `group` in every field, also one that allows three decimals. Leading zeros are dropped first, so "012,345" is a group too. So a value from 1 to 999 cannot carry a third decimal when typed. A form shows `group` with the line `common.digitGroup`, so the reader learns what to type instead. A count of portions, meals or servings is the exception: it is at most 100, so `parseCount` in `components/entries/amount.ts` refuses a `group` with the count's own range line.
 
 Show a figure without digit grouping and in Latin digits, as `formatTarget` in `src/lib/targetFormat.ts` does, so what shows can be typed back. Join a figure to its unit with a no-break space in the catalog, as in `"{value}\u00a0g"`, so a narrow line never parts them.
 
@@ -346,6 +346,7 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - The default environment is jsdom plus Node's `Response`, `Request` and `Headers`. `fetch` is not provided, so a test that reaches the network stubs it.
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
+- `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen.
 - `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.
 - Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them. The scanner runs in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, and `--use-file-for-fake-video-capture=<file>.y4m` plays a barcode to it. Make the `.y4m` from a barcode image with `ffmpeg -loop 1 -i code.png -t 5 -pix_fmt yuv420p code.y4m`, outside the repository.

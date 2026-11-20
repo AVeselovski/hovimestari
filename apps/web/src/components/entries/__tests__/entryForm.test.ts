@@ -1,4 +1,11 @@
-import { estimateEntry, foodEntry, mealEntry, portionEntry, TODAY } from "@/components/day/__tests__/support";
+import {
+  estimateEntry,
+  foodEntry,
+  mealEntry,
+  portionEntry,
+  recipeEntry,
+  TODAY,
+} from "@/components/day/__tests__/support";
 import { GRAMS, switchUnit, type UnitChip } from "../amount";
 import { buildPatch, fieldsOf, inverseOf, previewOf } from "../entryForm";
 
@@ -51,10 +58,15 @@ describe("buildPatch", () => {
       ok: false,
       errors: { amount: "entry_grams_invalid" },
     });
+    expect(buildPatch(quark, { ...fieldsOf(quark), amount: "1,000" }, TODAY)).toEqual({
+      ok: false,
+      errors: { amount: "digit_group" },
+    });
+    // A count is at most 100, so a thousands group in it is out of range whichever way it reads.
     const meal = mealEntry("Bowl", 1, { energyKcal: 600, proteinG: 40, carbsG: 50, fatG: 20 });
     expect(buildPatch(meal, { ...fieldsOf(meal), amount: "1,000" }, TODAY)).toEqual({
       ok: false,
-      errors: { amount: "digit_group" },
+      errors: { amount: "entry_count_invalid" },
     });
   });
 });
@@ -109,5 +121,41 @@ describe("previewOf", () => {
     );
     const fields = { ...fieldsOf(milk), amount: "3" };
     expect(previewOf(milk, fields, [grams, glass])?.energyKcal).toBe(83);
+  });
+});
+
+describe("a recipe entry", () => {
+  const serving = { energyKcal: 365.1, proteinG: 21.78, carbsG: 9.87, fatG: 25.69 };
+
+  it("holds its servings as its amount and sends a change of them, never a name or figures", () => {
+    const shakshuka = recipeEntry("Shakshuka", 1, serving, { status: "planned" });
+    expect(fieldsOf(shakshuka)).toMatchObject({ amount: "1", name: "" });
+    expect(buildPatch(shakshuka, fieldsOf(shakshuka), TODAY)).toEqual({ ok: true, patch: {} });
+    expect(buildPatch(shakshuka, { ...fieldsOf(shakshuka), amount: "1.5" }, TODAY)).toEqual({
+      ok: true,
+      patch: { servings: 1.5 },
+    });
+    const moved = { ...fieldsOf(shakshuka), date: "2026-11-18" };
+    expect(buildPatch(shakshuka, moved, TODAY)).toEqual({ ok: true, patch: { date: "2026-11-18" } });
+    expect(buildPatch(shakshuka, { ...fieldsOf(shakshuka), amount: "100.01" }, TODAY)).toEqual({
+      ok: false,
+      errors: { amount: "entry_count_invalid" },
+    });
+  });
+
+  it("puts its servings back", () => {
+    const before = recipeEntry("Shakshuka", 2, serving);
+    expect(inverseOf(before, { ...before, servings: 1 })).toEqual({ servings: 2 });
+  });
+
+  it("previews N servings from its basis per serving", () => {
+    const shakshuka = recipeEntry("Shakshuka", 1, serving);
+    expect(previewOf(shakshuka, fieldsOf(shakshuka), [grams])).toBe(shakshuka.figures);
+    expect(previewOf(shakshuka, { ...fieldsOf(shakshuka), amount: "3" }, [grams])).toEqual({
+      energyKcal: 1095,
+      proteinG: 65.3,
+      carbsG: 29.6,
+      fatG: 77.1,
+    });
   });
 });

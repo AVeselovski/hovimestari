@@ -11,8 +11,9 @@ import { recipes } from "../../../db/schema/index.js";
 import type { Tx } from "../../../db/types.js";
 import { isUuid } from "../../../lib/isUuid.js";
 import type { ReadContext } from "../../reads/context.js";
-import { getRecipe, ownRecipe } from "../../reads/recipes.js";
+import { getRecipe } from "../../reads/recipes.js";
 import { createdChanges, editedChanges } from "../../recipeChanges.js";
+import { ownRecipe } from "../../recipeScope.js";
 import { goneAsNull, recordedWrite, type AssistantActor, type ChangeRecord, type Replay } from "../changeRecord.js";
 import type { WriteContext } from "../context.js";
 import { createRecipe, setRecipeArchived, setRecipeFavourite, updateRecipe } from "../recipes.js";
@@ -154,7 +155,11 @@ export async function recordedSetRecipeFavourite(
   });
 }
 
-/** The recipe the record names, as it is now, or null when it is gone. */
+/**
+ * The recipe the record names, as it is now, or null when it is gone: deleted
+ * outright, or deleted on screen and kept hidden because days use it.
+ */
 export async function replayRecipe(ctx: ReadContext, replay: Replay): Promise<{ recipe: Recipe | null }> {
-  return { recipe: await goneAsNull("recipe_not_found", getRecipe(ctx, replay.entityIds[0])) };
+  const recipe = await goneAsNull("recipe_not_found", getRecipe(ctx, replay.entityIds[0]));
+  return { recipe: recipe?.deleted ? null : recipe };
 }

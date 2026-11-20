@@ -89,7 +89,7 @@ export async function updateSavedMeal(
       .update(savedMeals)
       .set({ ...next, updatedAt: ctx.now })
       .where(eq(savedMeals.id, meal.id));
-    await rewritePlannedBasis(tx, ctx, { kind: "saved_meal", id: meal.id }, body.figures);
+    await rewritePlannedBasis(tx, ctx, { kind: "saved_meal", id: meal.id });
   });
   return { value: await getSavedMeal(ctx, id), outcome: "changed" };
 }

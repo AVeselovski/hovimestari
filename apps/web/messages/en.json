@@ -245,6 +245,7 @@
           "grams": "{value} g",
           "portion": "{count} × {portion}",
           "meals": "{count, plural, one {# meal} other {# meals}}",
+          "servings": "{count, plural, one {# serving} other {# servings}}",
           "estimate": "Estimate",
           "kcal": "{value} kcal",
           "protein": "{value} g protein",
@@ -549,6 +550,7 @@
     "recipe_servings_invalid": "Enter a whole number of servings from 1 to 100.",
     "recipe_time_invalid": "Enter a whole number of minutes from 1 to 1440.",
     "recipe_serving_too_large": "One serving comes to more than 10000 kcal or 1000 g of protein, carbs or fat. Check the amounts.",
+    "food_edit_recipe_too_large": "{others, plural, =0 {A planned serving of {recipe} would come to more than 10000 kcal or 1000 g of protein, carbs or fat. Change the recipe or its planned entries first.} one {Planned servings of {recipe} and one other recipe would come to more than 10000 kcal or 1000 g of protein, carbs or fat. Change those recipes or their planned entries first.} other {Planned servings of {recipe} and # other recipes would come to more than 10000 kcal or 1000 g of protein, carbs or fat. Change those recipes or their planned entries first.}}",
     "step_too_long": "Use at most 1000 characters in a step.",
     "steps_too_many": "A recipe can have up to 40 steps.",
     "notes_too_long": "Use at most 2000 characters.",
@@ -619,6 +621,7 @@
       "grams": "{grams} g",
       "portion": "{count} × {portion} · {grams} g",
       "meals": "{count, plural, one {# meal} other {# meals}}",
+      "servings": "{count, plural, one {# serving} other {# servings}}",
       "estimate": "Estimate",
       "withSource": "{amount} · {source}",
       "kcal": "{value} kcal",
@@ -667,6 +670,7 @@
     "sheet": {
       "amount": "Amount",
       "meals": "Meals",
+      "servings": "Servings",
       "date": "Date",
       "state": "Eaten or planned",
       "eaten": "Eaten",
@@ -677,6 +681,7 @@
       "saving": "Saving…",
       "foodGone": "This food is no longer in your foods.",
       "mealGone": "This saved meal was deleted.",
+      "recipeGone": "This recipe was deleted.",
       "figuresOnSave": "Figures update when you save."
     },
     "copy": {
@@ -695,7 +700,8 @@
       "forAmount": "For this amount",
       "enterAmount": "Enter an amount to see its figures.",
       "portions": "portions",
-      "meals": "meals"
+      "meals": "meals",
+      "servings": "servings"
     },
     "estimate": {
       "name": "Name",

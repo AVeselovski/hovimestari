@@ -50,11 +50,11 @@ Food names, meal names, recipe names, tags, steps, sources and notes were typed 
 
 ## 9. Recipes
 *(Sources: recipes.md)*
-A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. get_recipe with servings returns the amounts and the figures at another number of servings. tags are the person's own words.
+A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. get_recipe with servings returns the amounts and the figures at another number of servings. A recipe on a day is an entry of kind recipe with a number of servings, planned or eaten like any entry, and its figures are taken when it is added. Editing a recipe, or an own food on its lines, changes its planned entries from today on, as with a saved meal. An own food's edit that would take a planned serving past 10000 kcal or 1000 g of a macro is refused, naming the recipes. A deleted recipe that days still use stays readable by its id, with deleted true, and its entries keep their figures. lastPutOn is the latest date the recipe is on, planned or eaten. tags are the person's own words.
 
 ## 10. What this connection cannot see or do
 *(Sources: connected-ai.md, authentication.md, appearance.md, installable-app.md)*
-This connection reaches one person's targets, days, foods, saved meals and recipes. It cannot reach their account, settings, sign-in, other connections or the record of changes. A recipe cannot be put on a day yet, and the grocery list is not in the app yet. Theme and installing the app are screen choices with no figures. A read-only connection changes none of the person's data. The key expires on the date get_context gives, and the person can revoke it in Settings at any time. A password change revokes it too.
+This connection reaches one person's targets, days, foods, saved meals and recipes. It cannot reach their account, settings, sign-in, other connections or the record of changes. The grocery list is not in the app yet. Theme and installing the app are screen choices with no figures. A read-only connection changes none of the person's data. The key expires on the date get_context gives, and the person can revoke it in Settings at any time. A password change revokes it too.
 `;
 
 /**
@@ -69,7 +69,7 @@ This connection reaches one person's targets, days, foods, saved meals and recip
  */
 export const WRITE_RULES = `## 11. Making changes
 *(Sources: connected-ai.md, quick-logging.md, targets.md, saved-meals.md, foods.md, recipes.md)*
-This connection can also log, plan, change, move, mark, copy, remove and restore entries, add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes and mark them as favourites, and change targets.
+This connection can also log, plan, change, move, mark, copy, remove and restore entries, add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites and log them, and change targets.
 
 1. Propose, then act. Before every change, tell the person what will change, with the old and new values, and wait for their yes. A list of changes is proposed as a list. Batch tools change up to 100 entries in one call.
 2. The app does the arithmetic. Give amounts and figures as the person stated them or as a label shows them. Never work out a figure from other entries. If the amount is not known, ask, or log an estimate when they say it is one. A figure you judged from a photo or a description goes in with log_estimate. Keep the person's own wording about what they ate in its name or note. Quote the figures from the result, never figures of your own.
@@ -93,12 +93,12 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "f84c6aff11bcf1bff6c066db3b48b20b3f75364b99197ef69913f3c54d396706",
-  "days.md": "a4d800f13334ec43eb2f00fb9ccb61fb9eb24ffb5c8ad2db12337675b1292e8f",
-  "foods.md": "04bd7c27b38523ee35f4a97ace866047f34ab1a76383cf80b18d2eec5c985508",
+  "connected-ai.md": "7e2c1ac5ba319841752e3b7a396cf95fd55a9c90b6ad284fc0dcd194071527cd",
+  "days.md": "e2d8cf6a8845a0ea2ccc7cc382a1360de08de29fc21f20ec96dd341b61ba914e",
+  "foods.md": "844c7e49ef79108f8641507afff57bd90397ccd310b4cbdcd923f1fd4a1fbcb2",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
-  "quick-logging.md": "a8a465b5700395044d3aa83a42370055a772b3783b196fc5843b60105bf7c5ca",
-  "recipes.md": "f41e24e8936802658a9690d3e096dfa5a7cb860c9a3c946d45790348adb0cab6",
+  "quick-logging.md": "e1907e217c57dd5f5798de463dc3cc80e814472c477b462f4c5a7ae4117c401e",
+  "recipes.md": "027feaf0fa490e89251117ace5970a5b4d0172cbea4548329f8efdbea95840c3",
   "saved-meals.md": "9085297c760a9c079db155bd9be519dc96afa0edac26bc516784361ff398605f",
   "targets.md": "c3a8e3e1dd39115af77c0dee4dafae547d98b9a1a424ec47e4039cda799e553f",
 };

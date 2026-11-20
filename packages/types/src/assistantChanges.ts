@@ -46,7 +46,8 @@ export const DELETION_STATUSES = ["pending", "approved", "declined", "gone", "wi
 /**
  * An entry in a change's summary, with the values the answer had. A food's
  * amount is its grams, or a count of a portion with the portion's label and
- * the grams it came to. A saved meal's is its count. An estimate has none.
+ * the grams it came to. A saved meal's is its count, a recipe's its
+ * servings. An estimate has none.
  * The portion form is listed first, because a union takes the first form
  * that fits and would read a portion amount as grams alone.
  *
@@ -69,6 +70,7 @@ export const AssistantEntryLineSchema = z.object({
         grams: z.number(),
       }),
       z.object({ grams: z.number() }),
+      z.object({ servings: z.number() }),
       z.object({ count: z.number() }),
     ])
     .nullable(),

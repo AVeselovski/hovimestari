@@ -73,6 +73,32 @@ describe("changeText: one line per recorded action", () => {
     ]);
   });
 
+  it("log_recipe, by servings", () => {
+    const entry: AssistantEntryLine = {
+      ...porridge,
+      name: "Shakshuka",
+      kind: "recipe",
+      amount: { servings: 1 },
+      figures: { energyKcal: 365, proteinG: 21.8, carbsG: 9.9, fatG: 25.7 },
+    };
+    expect(read(change("entry.added", { entity: "entry", entry, changes: [] }))).toEqual([
+      "Planned Shakshuka",
+      "For 21 November 2026 · 1 serving · 365 kcal · 21.8 g protein",
+    ]);
+  });
+
+  it("update_entry on a recipe entry's servings", () => {
+    const summary: AssistantChangeSummary = {
+      entity: "entry",
+      entry: { ...porridge, name: "Shakshuka", kind: "recipe", amount: { servings: 1.5 } },
+      changes: [{ field: "amount", from: { servings: 1 }, to: { servings: 1.5 } }],
+    };
+    expect(read(change("entry.changed", summary))).toEqual([
+      "Changed the entry Shakshuka",
+      "Amount: 1 serving to 1.5 servings",
+    ]);
+  });
+
   it("update_entry: one line per field, in the order recorded", () => {
     const summary: AssistantChangeSummary = {
       entity: "entry",

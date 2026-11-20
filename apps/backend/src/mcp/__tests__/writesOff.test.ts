@@ -21,6 +21,7 @@ const recordedByFile = {
     "recordedLogFood",
     "recordedLogSavedMeal",
     "recordedLogEstimate",
+    "recordedLogRecipe",
     "recordedUpdateEntry",
     "recordedSetEntriesStatus",
     "recordedCopyEntries",
@@ -101,7 +102,7 @@ describe("MCP_WRITES_ENABLED=false", () => {
   });
 
   it("refuses a direct call of every write tool, and never reaches a recorded write or the record", async () => {
-    expect(WRITE_TOOLS).toHaveLength(22);
+    expect(WRITE_TOOLS).toHaveLength(23);
     for (const tool of WRITE_TOOLS) {
       const result = await writer
         .callTool({ name: tool.name, arguments: { requestKey: "k7Qx2mPa9w" } })

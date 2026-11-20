@@ -162,6 +162,7 @@ async function main(): Promise<void> {
       lines: recipeLines,
       tags: ["Brunch"],
     });
+    await rest("POST", "/entries", entry("recipe", { recipeId: recipe.id, servings: 1.5, status: "planned" }));
 
     // --- the read leg --------------------------------------------------------
     console.log("\n== read leg");
@@ -187,7 +188,15 @@ async function main(): Promise<void> {
     same("get_context.rules is the text", typeof context.rules === "string" && context.rules.length > 1000, true);
 
     same("get_targets", await call("get_targets"), targets);
-    same("get_day", await call("get_day", { date: "today" }), await rest("GET", `/days/${today}`));
+    const day = await call("get_day", { date: "today" });
+    same("get_day", day, await rest("GET", `/days/${today}`));
+    same(
+      "get_day answers the recipe entry's servings and recipe",
+      day.entries
+        .filter((e: Json) => e.kind === "recipe")
+        .map((e: Json) => ({ servings: e.servings, recipe: e.recipe.id })),
+      [{ servings: 1.5, recipe: recipe.id }],
+    );
     const range = await rest("GET", `/days?from=${today}&to=${today}`);
     same("get_days from to", await call("get_days", { from: today, to: today }), range);
     const week = await call("get_days", { weekOf: today });

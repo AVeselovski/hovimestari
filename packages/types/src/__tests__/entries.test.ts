@@ -1,5 +1,12 @@
 import { describe, expect, it } from "@jest/globals";
-import { EntryRemoveManyBodySchema, EntryRemoveManyResultSchema, MAX_ENTRY_BATCH } from "../index.js";
+import {
+  AddEntryBodySchema,
+  AssistantEntryLineSchema,
+  EntryPatchBodySchema,
+  EntryRemoveManyBodySchema,
+  EntryRemoveManyResultSchema,
+  MAX_ENTRY_BATCH,
+} from "../index.js";
 
 // The batch remove's body and answer: 1 to 100 unique entry ids in, the ids
 // removed and their days out.
@@ -40,5 +47,40 @@ describe("EntryRemoveManyResultSchema", () => {
 
   it("refuses an answer without its days", () => {
     expect(EntryRemoveManyResultSchema.safeParse({ removedIds: [uuid(1)] }).success).toBe(false);
+  });
+});
+
+describe("a recipe entry", () => {
+  const body = (servings: unknown) => ({
+    kind: "recipe",
+    id: uuid(1),
+    recipeId: uuid(2),
+    servings,
+    date: "2026-11-21",
+    status: "planned",
+  });
+
+  it("is added by its servings, with up to two decimals, above zero and up to 100", () => {
+    for (const servings of [1, 1.5, 0.25, 100]) expect(AddEntryBodySchema.safeParse(body(servings)).success).toBe(true);
+    for (const servings of [0, -1, 100.01, 1.255]) {
+      expect(firstMessage(AddEntryBodySchema.safeParse(body(servings)))).toBe("entry_count_invalid");
+    }
+  });
+
+  it("changes its servings by a patch", () => {
+    expect(EntryPatchBodySchema.parse({ servings: 2.5 })).toEqual({ servings: 2.5 });
+    expect(firstMessage(EntryPatchBodySchema.safeParse({ servings: 100.01 }))).toBe("entry_count_invalid");
+  });
+
+  it("is a line of the record with its servings, never read as a count", () => {
+    const line = {
+      name: "Shakshuka",
+      date: "2026-11-21",
+      status: "planned",
+      kind: "recipe",
+      amount: { servings: 1.5 },
+      figures: { energyKcal: 548, proteinG: 32.7, carbsG: 14.8, fatG: 38.5 },
+    };
+    expect(AssistantEntryLineSchema.parse(line).amount).toEqual({ servings: 1.5 });
   });
 });

@@ -33,6 +33,8 @@ export function foodEntry(name: string, grams: number, overrides: Partial<Entry>
     grams,
     portion: null,
     count: null,
+    servings: null,
+    recipe: null,
     note: null,
     basis,
     figures: entryFigures(basis, { per: "100g", grams }),
@@ -67,6 +69,21 @@ export function mealEntry(name: string, count: number, basis: Figures, overrides
     count,
     basis,
     figures: entryFigures(basis, { per: "meal", count }),
+    ...overrides,
+  };
+}
+
+/** A recipe entry of `servings`, with the recipe's basis for one serving. */
+export function recipeEntry(name: string, servings: number, basis: Figures, overrides: Partial<Entry> = {}): Entry {
+  return {
+    ...foodEntry(name, 1),
+    kind: "recipe",
+    food: null,
+    grams: null,
+    servings,
+    recipe: { id: entryId(), archived: false, deleted: false },
+    basis,
+    figures: entryFigures(basis, { per: "serving", count: servings }),
     ...overrides,
   };
 }

@@ -11,12 +11,13 @@ import { WRITE_TOOLS } from "../tools/writes/index.js";
 const isWriteTool = (tool: object) => "destructive" in tool || "replay" in tool;
 
 describe("the tool registries", () => {
-  it("hold the 15 read tools and the 22 write tools", () => {
+  it("hold the 15 read tools and the 23 write tools", () => {
     expect(READ_TOOLS).toHaveLength(15);
     expect(WRITE_TOOLS.map((tool) => tool.name)).toEqual([
       "log_food",
       "log_saved_meal",
       "log_estimate",
+      "log_recipe",
       "update_entry",
       "set_entries_status",
       "copy_entries",

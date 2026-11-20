@@ -1,4 +1,4 @@
-import type { ErrorCode } from "@hovimestari/types";
+import type { ErrorCode, ErrorDetails } from "@hovimestari/types";
 
 /**
  * AppError represents a known, intentional error whose message is safe to
@@ -15,6 +15,8 @@ export class AppError extends Error {
   public readonly retryAfterSeconds?: number;
   /** The index from 0 of the recipe line the refusal is about. The error middleware sends it as `line`. */
   public readonly line?: number;
+  /** What the refusal is about, as its code defines. The error middleware sends it as `details`. */
+  public readonly details?: ErrorDetails;
 
   constructor(
     public override readonly message: string,
@@ -25,13 +27,20 @@ export class AppError extends Error {
      * a failed write). The error middleware never returns the cause to the
      * client: it is for logs and debuggers.
      */
-    options: { code?: ErrorCode; cause?: unknown; retryAfterSeconds?: number; line?: number } = {},
+    options: {
+      code?: ErrorCode;
+      cause?: unknown;
+      retryAfterSeconds?: number;
+      line?: number;
+      details?: ErrorDetails;
+    } = {},
   ) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "AppError";
     this.code = options.code;
     this.retryAfterSeconds = options.retryAfterSeconds;
     this.line = options.line;
+    this.details = options.details;
   }
 }
 
@@ -132,6 +141,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   recipe_servings_invalid: "Enter a whole number of servings from 1 to 100.",
   recipe_time_invalid: "Enter a whole number of minutes from 1 to 1440.",
   recipe_serving_too_large: "One serving comes to more than 10000 kcal or 1000 g of a macro.",
+  food_edit_recipe_too_large:
+    "A planned serving of a recipe on this food would come to more than 10000 kcal or 1000 g of a macro. Change the recipe or its planned entries first.",
   step_too_long: "Use at most 1000 characters in a step.",
   steps_too_many: "A recipe has at most 40 steps.",
   notes_too_long: "Use at most 2000 characters.",

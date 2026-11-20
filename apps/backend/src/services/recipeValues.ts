@@ -7,13 +7,14 @@ import {
   type FoodSource,
   type IngredientLineDraft,
 } from "@hovimestari/types";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
-import { foods } from "../db/schema/index.js";
-import type { Db } from "../db/types.js";
-import { AppError } from "../lib/errors.js";
+import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { foods, recipeIngredients, recipes } from "../db/schema/index.js";
+import type { Db, Tx } from "../db/types.js";
+import { AppError, appError } from "../lib/errors.js";
 import { displayName } from "./foodRows.js";
 import { visibleTo } from "./foodScope.js";
 import type { ReadContext } from "./reads/context.js";
+import { ownRecipe } from "./recipeScope.js";
 import { gramsOf, type StoredAmount } from "./sourceValues.js";
 
 // ---------------------------------------------------------------------------
@@ -44,9 +45,24 @@ export interface LineFood {
  * Every distinct food of `foodIds` a line may point at: one the user can
  * see, or one already on this recipe (`knownFoodIds`), read without the
  * visibility rule so an old line keeps a food hidden or retired since. With
- * `lock`, the user's own foods among them are first taken FOR SHARE. A food
- * missing from the answer is refused at its line.
+ * `lock`, the user's own foods among them are first taken FOR SHARE, which
+ * holds only inside a transaction. A food missing from the answer is
+ * refused at its line.
  */
+export async function readLineFoods(
+  db: Tx,
+  ctx: ReadContext,
+  foodIds: readonly string[],
+  knownFoodIds: readonly string[],
+  opts: { lock: true },
+): Promise<Map<string, LineFood>>;
+export async function readLineFoods(
+  db: Db,
+  ctx: ReadContext,
+  foodIds: readonly string[],
+  knownFoodIds: readonly string[],
+  opts: { lock: false },
+): Promise<Map<string, LineFood>>;
 export async function readLineFoods(
   db: Db,
   ctx: ReadContext,
@@ -155,17 +171,122 @@ export function servingBasis(lines: readonly BasisLine[], servings: number): Fig
   return recipeBasis(counted, servings);
 }
 
-/**
- * One serving's basis, or null when one serving comes to more than an entry
- * can hold: 10000 kcal, or 1000 g of a macro, the caps a typed figure has.
- * What a save, a preview and an entry of a recipe accept.
- */
-export function cappedServingBasis(lines: readonly BasisLine[], servings: number): Figures | null {
-  const basis = servingBasis(lines, servings);
-  const fits =
+/** Whether a serving fits what an entry holds: 10000 kcal, and 1000 g of each macro, the caps a typed figure has. */
+export function fitsEntry(basis: Figures): boolean {
+  return (
     basis.energyKcal <= MAX_FIGURE_KCAL &&
     basis.proteinG <= MAX_FIGURE_G &&
     basis.carbsG <= MAX_FIGURE_G &&
-    basis.fatG <= MAX_FIGURE_G;
-  return fits ? basis : null;
+    basis.fatG <= MAX_FIGURE_G
+  );
+}
+
+/**
+ * One serving's basis, or null when one serving comes to more than an entry
+ * can hold. What a save, a preview and an entry of a recipe accept.
+ */
+export function cappedServingBasis(lines: readonly BasisLine[], servings: number): Figures | null {
+  const basis = servingBasis(lines, servings);
+  return fitsEntry(basis) ? basis : null;
+}
+
+/** What one serving of a stored recipe is computed from. */
+export interface RecipeServing {
+  name: string;
+  servings: number;
+  /** Its counted lines, each with its food's values per 100 g as they are now. */
+  lines: { foodId: string; per100g: Figures; grams: number }[];
+}
+
+/**
+ * One serving's basis of `recipe`, not capped. With `food`, a line on that
+ * food reads `food.per100g` instead of its values now: the serving as it was
+ * before an edit of the food.
+ */
+export function servingOf(recipe: RecipeServing, food?: { id: string; per100g: Figures }): Figures {
+  const lines = recipe.lines.map((l) => ({
+    per100g: food && l.foodId === food.id ? food.per100g : l.per100g,
+    grams: l.grams,
+  }));
+  return recipeBasis(lines, recipe.servings);
+}
+
+/**
+ * What one serving of each of the user's recipes among `recipeIds` comes
+ * from: its counted lines and their foods as they are now. Every line's food
+ * is read, hidden or retired since or not: a line keeps its food. With
+ * `lock`, the user's own foods among the lines are first taken FOR SHARE in
+ * id order, as a recipe save takes them, so `lock` takes a transaction.
+ */
+export async function readRecipeServings(
+  db: Tx,
+  ctx: ReadContext,
+  recipeIds: readonly string[],
+  opts: { lock: true },
+): Promise<Map<string, RecipeServing>>;
+export async function readRecipeServings(
+  db: Db,
+  ctx: ReadContext,
+  recipeIds: readonly string[],
+  opts: { lock: false },
+): Promise<Map<string, RecipeServing>>;
+export async function readRecipeServings(
+  db: Db,
+  ctx: ReadContext,
+  recipeIds: readonly string[],
+  { lock }: { lock: boolean },
+): Promise<Map<string, RecipeServing>> {
+  if (recipeIds.length === 0) return new Map();
+  // One statement after another, so a read on the pool holds one connection at a time.
+  const rows = await db
+    .select({ id: recipes.id, name: recipes.name, servings: recipes.servings })
+    .from(recipes)
+    .where(and(eq(recipes.userId, ctx.userId), inArray(recipes.id, [...recipeIds])));
+  const lines = await db
+    .select({ recipeId: recipeIngredients.recipeId, foodId: recipeIngredients.foodId, grams: recipeIngredients.grams })
+    .from(recipeIngredients)
+    .where(
+      and(
+        eq(recipeIngredients.userId, ctx.userId),
+        inArray(recipeIngredients.recipeId, [...recipeIds]),
+        isNotNull(recipeIngredients.foodId),
+      ),
+    );
+  const foodIds = lines.map((l) => l.foodId!);
+  const lineFoods = lock
+    ? await readLineFoods(db as Tx, ctx, foodIds, foodIds, { lock: true })
+    : await readLineFoods(db, ctx, foodIds, foodIds, { lock: false });
+  return new Map(
+    rows.map((recipe) => [
+      recipe.id,
+      {
+        name: recipe.name,
+        servings: recipe.servings,
+        lines: lines
+          .filter((l) => l.recipeId === recipe.id)
+          .map((l) => ({ foodId: l.foodId!, per100g: lineFoods.get(l.foodId!)!.per100g, grams: l.grams! })),
+      },
+    ]),
+  );
+}
+
+/**
+ * The basis of a new entry of the user's recipe `recipeId`: one serving, from
+ * its lines and foods now. The recipe is read FOR SHARE and must be one the
+ * user can see, so an edit or a delete of it waits for the add, or the add
+ * waits for them and reads what they left. Its own foods are then held FOR
+ * SHARE, so an edit of one waits too. 404 `recipe_not_found`, or 400
+ * `recipe_serving_too_large` when an own food edited since takes one serving
+ * past what an entry holds.
+ */
+export async function readRecipeForEntry(tx: Tx, ctx: ReadContext, recipeId: string): Promise<Figures> {
+  const [recipe] = await tx
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), ownRecipe(ctx.userId)))
+    .for("share");
+  if (!recipe) throw appError("recipe_not_found", 404);
+  const basis = servingOf((await readRecipeServings(tx, ctx, [recipe.id], { lock: true })).get(recipe.id)!);
+  if (!fitsEntry(basis)) throw appError("recipe_serving_too_large", 400);
+  return basis;
 }
