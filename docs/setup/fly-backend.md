@@ -96,7 +96,13 @@ Connected AI has two switches, `MCP_ENABLED` and `MCP_WRITES_ENABLED`, each `tru
 flyctl secrets set -a hovimestari-backend MCP_ENABLED=false
 ```
 
-Setting a secret restarts the machine, which is what applies the change. `flyctl secrets unset -a hovimestari-backend MCP_ENABLED` returns to the default.
+To let assistants make changes, which Settings then offers as **Read and write** when a key is made:
+
+```bash
+flyctl secrets set -a hovimestari-backend MCP_WRITES_ENABLED=true
+```
+
+Setting a secret restarts the machine, which is what applies the change. `flyctl secrets unset -a hovimestari-backend MCP_ENABLED` or `flyctl secrets unset -a hovimestari-backend MCP_WRITES_ENABLED` returns that switch to its default. With writing off again, a key made to write can only read until it is back on.
 
 ### 4. Deploy
 

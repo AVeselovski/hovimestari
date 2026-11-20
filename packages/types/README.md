@@ -22,10 +22,10 @@ The apps import the package's build output in `dist/`. `pnpm build` and `pnpm de
 ## Modules
 
 ```text
-assistantChanges.ts  The actions of an assistant's changes, an entry as a line of the record, a field change, the summary union and one change as a person reads it
+assistantChanges.ts  The actions of an assistant's changes, an entry as a line of the record, a field change, the summary union, one change as a person reads it, and a page of changes with its query and page sizes
 auth.ts        Sign-up, sign-in, refresh, Google exchange, password and account bodies, the user, the settings body, the session grant and the browser session
 barcode.ts     The barcode lookup's body with its optional scan format, and its four answers: found, incomplete, not found, a shop's own
-connections.ts A connection key's access, lifetimes, limit and prefix, the create body, a connection, the list with what the server offers, and the one answer that holds the key
+connections.ts A connection key's access, lifetimes, limit and prefix, the create body, a connection, a connection with its count of changes, a past connection, the list with what the server offers, and the one answer that holds the key
 dates.ts       IsoDateSchema, a calendar date that exists, TimeZoneSchema with isKnownTimeZone, addDays, and weekOf with WEEK_START and WEEK_LENGTH, the Monday to Sunday week
 days.ts        A day, its readings and summary, and the day and range queries
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry

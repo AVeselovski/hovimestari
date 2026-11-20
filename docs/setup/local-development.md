@@ -49,7 +49,11 @@ This runbook sets up the backend and the web app on your own machine: the tools,
    pnpm --filter @hovimestari/backend dev
    ```
 
-   Connected AI has two switches in `apps/backend/.env`, `MCP_ENABLED` and `MCP_WRITES_ENABLED`, each `true` or `false`. Connected AI is on and keys that make changes are off, by default and in `.env.example`. An `.env` without the two lines gets the defaults. A change takes a restart of the backend.
+   Connected AI has two switches in `apps/backend/.env`, `MCP_ENABLED` and `MCP_WRITES_ENABLED`, each `true` or `false`. Connected AI is on and keys that make changes are off, by default and in `.env.example`. An `.env` without the two lines gets the defaults. A change takes a restart of the backend. To let an assistant make changes, change the `MCP_WRITES_ENABLED` line in `apps/backend/.env` to this one, or add it, and restart the backend. Settings then offers **Read and write** when a key is made.
+
+   ```bash
+   MCP_WRITES_ENABLED=true
+   ```
 
 8. Start the web app in a second terminal. It listens on port 3000 and talks to the backend on 3001.
 

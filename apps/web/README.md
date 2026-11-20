@@ -26,7 +26,7 @@ src/
 │   │   ├── recipes/            Recipes: renders RecipesTab
 │   │   ├── groceries/          Groceries: "Nothing here yet."
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Connected AI, Sign-in methods, Account and Food data, and their sheets
-│   │       └── _components/    One file per section and sheet. Connected AI is ConnectedAiSection, with ConnectionRows, CreateConnectionSheet, AccessLevelField, KeyRevealSheet, ConnectionInstructions and CopyButton
+│   │       └── _components/    One file per section and sheet. Connected AI is ConnectedAiSection, with ConnectionRows, CreateConnectionSheet, AccessLevelField, KeyRevealSheet, ConnectionInstructions, CopyButton, ConnectionActivitySheet (a connection's record, a page at a time) and changeText.ts (one recorded change as a headline and its lines, and as one sentence for a screen reader)
 │   └── api/auth/               The session route handlers
 │       ├── _constants.ts       Cookie names, paths, lifetimes and attributes
 │       ├── _guard.ts           The same-origin guard every POST handler runs first
@@ -59,7 +59,7 @@ src/
 │   │   ├── EstimateFields.tsx  An estimate's name, four figures and note
 │   │   ├── FigureFields.tsx    Four typed figures two by two, with one shared line under them
 │   │   ├── StateChoice.tsx     Eaten or Planned, with Eaten unavailable on a future date
-│   │   ├── portionLabel.ts     A portion's name for a reader
+│   │   ├── portionLabel.ts     portionName(): a portion's name for a reader, its Fineli unit first, and the hook that uses it
 │   │   ├── amount.ts           An amount as typed: grams or a count, its parsing, its grams and chip switches
 │   │   └── entryForm.ts        The sheet's fields, the PATCH of changed fields, its exact inverse and the preview
 │   ├── figures/                MacroFigures, the four figures in rows or in one row, and MacroDot, the dot in a macro's hue
@@ -193,7 +193,7 @@ src/
 │   ├── errors.ts               getErrorCode, getErrorStatus, AuthRequestError
 │   ├── errorCopy.ts            Which error codes have catalog copy
 │   ├── decimalInput.ts         parseDecimalInput(): a typed number with a comma or a point, no sign, no grouping
-│   ├── localDate.ts            YYYY-MM-DD dates in UTC, addDays() from packages/types, formatDay() and formatDayShort() in the device's language, formatMomentDay() for a moment in a zone, todayIn() and dayLabel()
+│   ├── localDate.ts            YYYY-MM-DD dates in UTC, addDays() from packages/types, formatDay() and formatDayShort() in the device's language, formatMomentDay() and formatMomentTime() for a moment in a zone, todayIn() and dayLabel()
 │   ├── week.ts                 The Monday to Sunday week: weekOf() from packages/types, stepWeek() and weekDates()
 │   ├── targetFormat.ts         formatTarget(): a target's figure, with no digit grouping
 │   ├── foodFormat.ts           formatKcal(), formatMacroGrams() and formatGrams() for display, and formatDecimalForField() for a saved value as typed
@@ -210,6 +210,8 @@ src/
 │   ├── connectionCache.ts      Edits to the cached connections list from a connection write's own answer
 │   ├── revealRefused.ts        Brings a form sheet's first refused field, its label and line where they fit, into view in its body
 │   ├── invalidation.ts         What each write makes stale
+│   ├── connectionInvalidation.ts  What each write to the connections makes stale, named through invalidation.ts
+│   ├── refreshReads.ts         refresh(): cancels the reads in flight under some keys, then reads them again
 │   ├── settledWithin.ts        Whether a promise settles within a time, giving up at once while offline
 │   ├── forgetDevice.ts         Drops the cached signed-in pages after the account is deleted
 │   ├── googleLink.ts           The results a Google link comes back with
@@ -330,7 +332,7 @@ The production cookie is `Secure`. Browsers accept it on `http://localhost`, and
 
 Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with React Testing Library.
 
-- A test of the Connected AI section talks to `fakeConnectionsServer()`, which stands behind the real API client and remembers what it was sent. Keys come from `testConnectionKey()` at run time, never as literals, because a secret scan reads every committed file.
+- A test of the Connected AI section talks to `fakeConnectionsServer()`, which stands behind the real API client and remembers what it was sent. Keys come from `testConnectionKey()` at run time, never as literals, because a secret scan reads every committed file. The fake server also holds each connection's record and pages it as the route does: a cursor names the last change a page showed, and one it never issued, or whose change has left the record, is refused. It records each request's query parameters, so a test can check the cursor a read sent.
 - Component tests mock `next/navigation` and `useAuth`. `src/__tests__/helpers/auth.ts` has `fakeAuth(status)` and `testPassword()`, which makes a password at run time, so no test holds a literal one.
 - Every `render` and `renderHook` gets the real catalog and its own query client from `src/__tests__/setup.ts`. Never mock `next-intl`.
 - Every test formats figures and dates in `en-US`, whatever the machine's locale. The app formats in the device's language, which under jest would be the machine's. `src/__tests__/helpers/locale.ts` pins it, and `setTestLocale("fi-FI")` shows a screen as a device in another language would, for that test only.
