@@ -25,7 +25,7 @@ const TOMORROW = "2026-11-20";
 
 await describeWithDb("mcp cook tools", (suite) => {
   const t = recipeToolSuite(suite);
-  const { d, food, records, lastRecord, createRecipe } = t;
+  const { d, food, portion, records, lastRecord, createRecipe } = t;
   let client: Client;
   let w: Writer;
   beforeAll(() => {
@@ -111,9 +111,16 @@ await describeWithDb("mcp cook tools", (suite) => {
               reordered: false,
             },
           ],
+          lineNotes: [],
           entries: [
-            { kind: "recipe", date: TODAY, status: "eaten", amount: { servings: 1, asMade: true } },
-            { kind: "recipe", date: "2026-11-21", status: "planned", amount: { servings: 2, asMade: true } },
+            { kind: "recipe", date: TODAY, status: "eaten", amount: { servings: 1, asMade: true }, attached: true },
+            {
+              kind: "recipe",
+              date: "2026-11-21",
+              status: "planned",
+              amount: { servings: 2, asMade: true },
+              attached: false,
+            },
           ],
         },
       });
@@ -123,6 +130,44 @@ await describeWithDb("mcp cook tools", (suite) => {
       expect(again).toMatchObject({ outcome: "replayed", note: REPLAYED, cook: { id: cook.id } });
       expect(again.entries.map((e: { id: string }) => e.id)).toEqual([entries[0].id, entries[1].id]);
       expect((await records()).length).toBe(before);
+    });
+
+    it("records what the day's differs counts as a change, a line's own note apart, and which entries were attached", async () => {
+      const recipe = await createRecipe(`Eggs ${randomUUID().slice(0, 6)}`, {
+        lines: [
+          { counted: true, foodId: food.egg, amount: { portionId: portion.egg, count: 4 } },
+          { counted: true, foodId: food.feta, amount: { grams: 100 } },
+        ],
+      });
+      const planned = await written(client, "log_recipe", {
+        requestKey: newRequestKey(),
+        recipeId: recipe.id,
+        servings: 1,
+        date: TOMORROW,
+        status: "planned",
+      });
+      const [egg, feta] = recipe.lines as { id: string; grams: number }[];
+      const answer = await written(client, "log_cook", {
+        requestKey: newRequestKey(),
+        recipeId: recipe.id,
+        date: "today",
+        servings: 2,
+        lines: [
+          // The same grams typed another way, and the same feta with a note of the batch's own.
+          { counted: true, foodId: food.egg, amount: { grams: egg!.grams }, fromLineId: egg!.id },
+          { counted: true, foodId: food.feta, amount: { grams: 100 }, note: "Crumbled", fromLineId: feta!.id },
+        ],
+        attach: [planned.entry.id],
+        add: [{ date: "today", status: "eaten", servings: 1 }],
+      });
+      expect(answer.cook.diff).toEqual({ servings: null, changed: [], added: [], leftOut: [] });
+      expect(answer.entries.map((e: { cook: { differs: boolean } }) => e.cook.differs)).toEqual([false, false]);
+      const summary = (await lastRecord())!.summary as { entries: { date: string; attached: boolean }[] };
+      expect(summary).toMatchObject({ changes: [], lineNotes: ["Fetajuusto"] });
+      expect(summary.entries.map((e) => [e.date, e.attached])).toEqual([
+        [TODAY, false],
+        [TOMORROW, true],
+      ]);
     });
 
     it("reads every line as added and every recipe line as left out when no line names its fromLineId", async () => {
@@ -238,7 +283,7 @@ await describeWithDb("mcp cook tools", (suite) => {
       expect(await lastRecord()).toMatchObject({
         action: "recipe.created",
         entityIds: [saved.recipe.id],
-        summary: { entity: "recipe", name: "Feta pasta" },
+        summary: { entity: "recipe", name: "Feta pasta", fromCook: { recipeName: recipe.name, date: TODAY } },
       });
       const again = await written(client, "save_cook_as_recipe", {
         requestKey,

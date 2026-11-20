@@ -1,5 +1,6 @@
 import type {
   Cook,
+  CookFieldChange,
   Recipe,
   RecipeFieldChange,
   RecipeLine,
@@ -192,30 +193,50 @@ export function editedChanges(before: Recipe, after: Recipe): RecipeFieldChange[
   return changes.filter((c) => c !== null);
 }
 
+/** What the record keeps of a batch against its recipe. */
+export interface CookRecord {
+  changes: CookFieldChange[];
+  lineNotes: string[];
+}
+
 /**
  * What a batch logged as made changed from its recipe as the recipe was
- * then, in a recipe change's own shapes: its servings when they differ, and
- * its lines. A cook's line that started as a recipe line is matched to it,
- * so it reads as that line changed, or not at all. A line the batch added
- * is added, and a recipe line it left out is under `removed`. The order of
- * the lines is not a change of a batch.
+ * then, as the batch's `diff` counts a change, so the record and the day's
+ * `differs` say the same thing: its servings when they differ, the lines it
+ * added, the recipe lines it left out (under `removed`), and each line
+ * `cookDiff` names as changed, with its parts as a recipe line's change. A
+ * line's portion counts only beside its grams, and its note never: the same
+ * grams typed another way made the same dish. `lineNotes` names apart the
+ * lines from the recipe on which the batch wrote a note of its own, since
+ * the assistant sent one, without calling it a change from the recipe.
  */
-export function cookChanges(recipe: Recipe, cook: Cook): RecipeFieldChange[] {
-  const held = new Set(recipe.lines.map((l) => l.id));
-  const matched = new Set<string>();
-  const lines = cook.lines.map(({ fromLineId, ...line }): RecipeLine => {
-    if (fromLineId === null || !held.has(fromLineId) || matched.has(fromLineId)) return line;
-    matched.add(fromLineId);
-    return { ...line, id: fromLineId };
+export function cookChanges(recipe: Recipe, cook: Cook): CookRecord {
+  const recipeLines = new Map(recipe.lines.map((l) => [l.id, l]));
+  const cookLines = new Map(cook.lines.map((l) => [l.id, l]));
+  const { diff } = cook;
+  const added = new Set(diff.added);
+  const leftOut = new Set(diff.leftOut);
+  const changed = diff.changed.map(({ lineId, fromLineId, fields }): RecipeLineChange => {
+    const line: RecipeLine = { ...cookLines.get(lineId)!, id: fromLineId };
+    const change = lineChange(recipeLines.get(fromLineId)!, line) ?? { name: lineName(line) };
+    delete change.note;
+    if (!fields.includes("amount")) delete change.portion;
+    return change;
   });
-  const change = linesChange(recipe.lines, lines);
-  const kept =
-    change?.field === "lines" && change.added.length + change.removed.length + change.changed.length > 0
-      ? { ...change, reordered: false }
-      : null;
-  const changes: (RecipeFieldChange | null)[] = [
-    recipe.servings === cook.servings ? null : { field: "servings", from: recipe.servings, to: cook.servings },
-    kept,
+  const lines: CookFieldChange = {
+    field: "lines",
+    added: cook.lines.filter((l) => added.has(l.id)).map(lineRecord),
+    removed: recipe.lines.filter((l) => leftOut.has(l.id)).map(lineRecord),
+    changed,
+    reordered: false,
+  };
+  const changes: (CookFieldChange | null)[] = [
+    diff.servings === null ? null : { field: "servings", from: diff.servings.recipe, to: diff.servings.cook },
+    lines.added.length + lines.removed.length + lines.changed.length > 0 ? lines : null,
   ];
-  return changes.filter((c) => c !== null);
+  const noted = cook.lines.filter((l) => {
+    const from = l.fromLineId === null || added.has(l.id) ? undefined : recipeLines.get(l.fromLineId);
+    return from !== undefined && l.note !== null && l.note !== from.note;
+  });
+  return { changes: changes.filter((c) => c !== null), lineNotes: noted.map(lineName) };
 }

@@ -9,6 +9,7 @@ import {
   type AssistantChangeSummary,
   type AssistantEntryLine,
   type AssistantFieldChange,
+  type CookEntryLine,
   type TargetRanges,
 } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
@@ -42,7 +43,7 @@ export interface ChangeWords {
 export interface ChangeLine {
   label: string | null;
   parts: string[];
-  /** The parts are names alone, which may hold commas, so a screen reader hears "and" between them. */
+  /** The parts may hold names, which may hold commas, so a screen reader hears "and" between them. */
   names?: true;
 }
 
@@ -186,6 +187,35 @@ function entryLine(entry: AssistantEntryLine, words: ChangeWords): ChangeLine {
   ]);
 }
 
+/**
+ * The line of an entry a batch fed: whether it is eaten or planned and the
+ * day, that it was already on the day when the batch took it, its servings,
+ * its energy and its protein. The headline names the batch, so the servings
+ * do not say again that they are as made.
+ */
+function cookEntryLine(entry: CookEntryLine, words: ChangeWords): ChangeLine {
+  const { t } = words;
+  const date = formatDay(entry.date);
+  const amount = amountParts(isRecord(entry.amount) ? { ...entry.amount, asMade: false } : entry.amount, words);
+  return line([
+    entry.status === "eaten" ? t("part.loggedFor", { date }) : t("part.plannedFor", { date }),
+    ...(entry.attached ? [t("part.alreadyOnDay")] : []),
+    ...(amount ?? []),
+    t("part.kcal", { value: formatKcal(entry.figures.energyKcal) }),
+    t("part.protein", { value: formatGrams(entry.figures.proteinG) }),
+  ]);
+}
+
+/** A batch: the day it was made, the servings it gave, and the recipe's when the two differ. */
+function batchLine(s: Summary<"cook">, t: T): ChangeLine {
+  const recipe = s.changes.find((c) => c.field === "servings");
+  return line([
+    t("part.batchMade", { date: formatDay(s.date) }),
+    t("part.batchGave", { count: s.servings }),
+    ...(recipe ? [t("part.recipeMakes", { count: formatCount(recipe.from) })] : []),
+  ]);
+}
+
 /** Entries by name and the day each is for. */
 const entriesFor = (entries: AssistantEntryLine[], t: T): ChangeLine[] =>
   entries.length === 0 ? [] : [line(entries.map((e) => t("part.entryFor", { name: e.name, date: formatDay(e.date) })))];
@@ -307,9 +337,12 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
     case "recipe.created": {
       const s = of(summary, "recipe");
       if (!s) return unreadable(t);
+      const from = s.fromCook
+        ? [line([t("part.fromBatch", { name: s.fromCook.recipeName, date: formatDay(s.fromCook.date) })])]
+        : [];
       return {
         headline: t("headline.recipeCreated", { name: s.name }),
-        lines: recipeChangeLines(s.changes, words, true),
+        lines: [...from, ...recipeChangeLines(s.changes, words, true)],
       };
     }
     case "recipe.changed": {
@@ -340,8 +373,12 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
       const s = of(summary, "cook");
       if (!s) return unreadable(t);
       return {
-        headline: t("headline.cookLogged", { name: s.recipeName }),
-        lines: [...s.entries.map((e) => entryLine(e, words)), ...cookChangeLines(s.changes, words)],
+        headline: t("headline.cookMade", { name: s.recipeName }),
+        lines: [
+          batchLine(s, t),
+          ...s.entries.map((e) => cookEntryLine(e, words)),
+          ...cookChangeLines(s.changes, s.lineNotes, words),
+        ],
       };
     }
     case "targets.set": {

@@ -1,7 +1,7 @@
 import { portionName } from "@/components/entries/portionLabel";
 import { formatCount } from "@/lib/entryFormat";
 import { formatGrams } from "@/lib/foodFormat";
-import type { RecipeFieldChange, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
+import type { CookFieldChange, RecipeFieldChange, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
 import type { ChangeLine, ChangeWords } from "./changeText";
 
@@ -112,7 +112,8 @@ function linesLines(change: Lines, words: ChangeWords, created: boolean, leftOut
         ),
       );
     }
-    for (const c of changed) out.push(line(lineChangeParts(c, words), c.name));
+    // A part may hold a food's name ("in place of Leipä, ruis"), so the parts are read with "and".
+    for (const c of changed) out.push(line(lineChangeParts(c, words), c.name, true));
   }
   const shown = added.length + removed.length + changed.length;
   // An edit's rest mixes lines added, removed and changed, so it counts them as changes.
@@ -183,19 +184,14 @@ function fieldLines(change: RecipeFieldChange, words: ChangeWords, created: bool
 
 /**
  * What a batch logged as made changed from its recipe, as the record keeps
- * it in a recipe change's shapes: the servings it gave beside the recipe's,
- * and its lines, a recipe line it left out read as left out.
+ * it: its lines, a recipe line it left out read as left out, then the lines
+ * it wrote a note of its own on. The servings it gave read with the batch.
  */
-export function cookChangeLines(changes: RecipeFieldChange[], words: ChangeWords): ChangeLine[] {
+export function cookChangeLines(changes: CookFieldChange[], lineNotes: string[], words: ChangeWords): ChangeLine[] {
   const { t } = words;
-  return changes.flatMap((change) => {
-    if (change.field === "servings" && change.from !== null) {
-      const parts = [t("part.batchServings", { cook: formatCount(change.to), recipe: formatCount(change.from) })];
-      return [line(parts, t("field.servings"))];
-    }
-    if (change.field === "lines") return linesLines(change, words, false, true);
-    return fieldLines(change, words, false);
-  });
+  const lines = changes.flatMap((change) => (change.field === "lines" ? linesLines(change, words, false, true) : []));
+  const notes = lineNotes.length > 0 ? [line(lineNotes, t("label.batchNotes"), true)] : [];
+  return [...lines, ...notes];
 }
 
 /** A recipe change's lines, for a create or an edit. */

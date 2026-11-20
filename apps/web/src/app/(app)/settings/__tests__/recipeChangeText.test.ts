@@ -249,26 +249,28 @@ describe("update_recipe", () => {
 });
 
 describe("log_cook", () => {
-  const cook = (changes: unknown[]): AssistantChangeSummary =>
+  const entry = (date: string, status: "planned" | "eaten", attached: boolean) => ({
+    name: "Shakshuka",
+    date,
+    status,
+    kind: "recipe",
+    amount: { servings: 1, asMade: true },
+    figures: { energyKcal: 241, proteinG: 17.2, carbsG: 8.1, fatG: 15.1 },
+    attached,
+  });
+  const cook = (changes: unknown[], over: object = {}): AssistantChangeSummary =>
     ({
       entity: "cook",
       recipeName: "Shakshuka",
       date: "2026-11-21",
       servings: 3,
       changes,
-      entries: [
-        {
-          name: "Shakshuka",
-          date: "2026-11-21",
-          status: "eaten",
-          kind: "recipe",
-          amount: { servings: 1, asMade: true },
-          figures: { energyKcal: 241, proteinG: 17.2, carbsG: 8.1, fatG: 15.1 },
-        },
-      ],
+      lineNotes: [],
+      entries: [entry("2026-11-21", "eaten", false)],
+      ...over,
     }) as AssistantChangeSummary;
 
-  it("reads the entries it fed, the servings beside the recipe's, and the lines added, left out and changed", () => {
+  it("names the batch, the day it was made and what it gave beside the recipe, its entries, and the lines added, left out and changed", () => {
     const summary = cook([
       { field: "servings", from: 2, to: 3 },
       lines({
@@ -278,19 +280,65 @@ describe("log_cook", () => {
       }),
     ]);
     expect(read(change("cook.logged", summary))).toEqual([
-      "Logged Shakshuka as made",
-      "For 21 November 2026 · 1 serving as made · 241 kcal · 17.2 g protein",
-      "Servings: Gave 3, the recipe makes 2",
+      "Made a batch of Shakshuka",
+      "Made 21 November 2026 · gave 3 servings · the recipe makes 2",
+      "Logged for 21 November 2026 · 1 serving · 241 kcal · 17.2 g protein",
       "Ingredient added: Pinaatti 80 g",
       "Ingredient left out: Oliiviöljy 15 g",
       "Fetajuusto: 60 g to 100 g",
     ]);
   });
 
-  it("reads a batch made as written by its entries alone", () => {
-    expect(read(change("cook.logged", cook([])))).toEqual([
-      "Logged Shakshuka as made",
-      "For 21 November 2026 · 1 serving as made · 241 kcal · 17.2 g protein",
+  it("says what a batch made as written gave, and reads its entries", () => {
+    expect(read(change("cook.logged", cook([], { servings: 2 })))).toEqual([
+      "Made a batch of Shakshuka",
+      "Made 21 November 2026 · gave 2 servings",
+      "Logged for 21 November 2026 · 1 serving · 241 kcal · 17.2 g protein",
+    ]);
+  });
+
+  it("reads a batch whose entries are all planned as planned, never as logged", () => {
+    const entries = [entry("2026-11-22", "planned", true), entry("2026-11-23", "planned", false)];
+    const rows = read(change("cook.logged", cook([], { entries })));
+    expect(rows.slice(2)).toEqual([
+      "Planned for 22 November 2026 · already on the day · 1 serving · 241 kcal · 17.2 g protein",
+      "Planned for 23 November 2026 · 1 serving · 241 kcal · 17.2 g protein",
+    ]);
+    expect(rows.join(" ")).not.toMatch(/Logged/);
+  });
+
+  it("reads each entry of a mixed batch by its own status, and an attached one apart from one the batch added", () => {
+    const entries = [entry("2026-11-21", "eaten", true), entry("2026-11-21", "eaten", false)];
+    expect(read(change("cook.logged", cook([], { entries }))).slice(2)).toEqual([
+      "Logged for 21 November 2026 · already on the day · 1 serving · 241 kcal · 17.2 g protein",
+      "Logged for 21 November 2026 · 1 serving · 241 kcal · 17.2 g protein",
+    ]);
+    const mixed = [entry("2026-11-21", "eaten", true), entry("2026-11-22", "planned", false)];
+    expect(read(change("cook.logged", cook([], { entries: mixed }))).slice(2)).toEqual([
+      "Logged for 21 November 2026 · already on the day · 1 serving · 241 kcal · 17.2 g protein",
+      "Planned for 22 November 2026 · 1 serving · 241 kcal · 17.2 g protein",
+    ]);
+  });
+
+  it("says as made nowhere, and names the lines the batch noted apart from its changes", () => {
+    const rows = read(change("cook.logged", cook([], { lineNotes: ["Fetajuusto", "Kananmuna, keitetty"] })));
+    expect(rows.at(-1)).toBe("Notes for this batch: Fetajuusto · Kananmuna, keitetty");
+    expect(rows.join(" ")).not.toMatch(/as made/);
+  });
+});
+
+describe("save_cook_as_recipe", () => {
+  it("says the recipe came from a batch, and a recipe from no batch says nothing of one", () => {
+    const fromCook = { recipeName: "Shakshuka", date: "2026-11-21" };
+    const saved = { ...recipe([{ field: "servings", from: null, to: 3 }]), name: "Shakshuka, spicy", fromCook };
+    expect(read(change("recipe.created", saved as AssistantChangeSummary))).toEqual([
+      "Created the recipe Shakshuka, spicy",
+      "From a batch of Shakshuka made 21 November 2026",
+      "Servings: 3",
+    ]);
+    expect(read(change("recipe.created", recipe([{ field: "servings", from: null, to: 3 }])))).toEqual([
+      "Created the recipe Shakshuka",
+      "Servings: 3",
     ]);
   });
 });
@@ -317,10 +365,15 @@ describe("spokenText of a recipe change", () => {
     );
   });
 
-  it("reads a changed line under its own name", () => {
+  it("reads a changed line under its own name, its parts joined with and, so a comma in a name stays inside it", () => {
     const summary = recipe([lines({ changed: [egg({ note: "added", grams: { from: 240, to: 300 } })] })]);
     expect(spoken(change("recipe.changed", summary))).toBe(
-      "Changed the recipe Shakshuka. Kananmuna, keitetty: 240 g to 300 g, note added. 19 November 2026 at 14:32.",
+      "Changed the recipe Shakshuka. Kananmuna, keitetty: 240 g to 300 g and note added. 19 November 2026 at 14:32.",
+    );
+    const swapped = recipe([lines({ changed: [egg({ food: { from: "Leipä, ruis" }, grams: { from: 120, to: 5 } })] })]);
+    expect(spoken(change("recipe.changed", swapped))).toBe(
+      "Changed the recipe Shakshuka. Kananmuna, keitetty: in place of Leipä, ruis and 120 g to 5 g. " +
+        "19 November 2026 at 14:32.",
     );
   });
 });

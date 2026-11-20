@@ -145,7 +145,10 @@ export const EVERY_ACTION: Record<AssistantChangeAction, () => AssistantChange> 
       date: "2026-11-21",
       servings: 3,
       changes: [{ field: "servings", from: 2, to: 3 }],
-      entries: [{ ...porridge, name: "Shakshuka", kind: "recipe", amount: { servings: 1, asMade: true } }],
+      lineNotes: [],
+      entries: [
+        { ...porridge, name: "Shakshuka", kind: "recipe", amount: { servings: 1, asMade: true }, attached: true },
+      ],
     }),
   "targets.set": () =>
     change("targets.set", { entity: "targets", effectiveFrom: "2026-12-01", before: null, after: ranges }),

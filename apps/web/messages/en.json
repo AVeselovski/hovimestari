@@ -235,7 +235,7 @@
           "recipeRestored": "Put the recipe {name} back from the archive",
           "recipeFavouriteSet": "Marked the recipe {name} as a favourite",
           "recipeFavouriteUnset": "Took the recipe {name} off the favourites",
-          "cookLogged": "Logged {name} as made",
+          "cookMade": "Made a batch of {name}",
           "targetsSet": "Set targets from {date}",
           "targetsRemoved": "Removed the targets from {date}",
           "deletionRequested": "Asked to delete {name}",
@@ -243,12 +243,18 @@
         },
         "part": {
           "forDay": "For {date}",
+          "loggedFor": "Logged for {date}",
+          "plannedFor": "Planned for {date}",
+          "alreadyOnDay": "already on the day",
+          "batchMade": "Made {date}",
+          "batchGave": "{count, plural, one {gave # serving} other {gave # servings}}",
+          "recipeMakes": "the recipe makes {count}",
+          "fromBatch": "From a batch of {name} made {date}",
           "grams": "{value} g",
           "portion": "{count} × {portion}",
           "meals": "{count, plural, one {# meal} other {# meals}}",
           "servings": "{count, plural, one {# serving} other {# servings}}",
           "servingsAsMade": "{count, plural, one {# serving as made} other {# servings as made}}",
-          "batchServings": "Gave {cook}, the recipe makes {recipe}",
           "estimate": "Estimate",
           "kcal": "{value} kcal",
           "protein": "{value} g protein",
@@ -309,7 +315,8 @@
           "portion": "Portion",
           "linesAdded": "{count, plural, one {Ingredient added} other {Ingredients added}}",
           "linesRemoved": "{count, plural, one {Ingredient removed} other {Ingredients removed}}",
-          "linesLeftOut": "{count, plural, one {Ingredient left out} other {Ingredients left out}}"
+          "linesLeftOut": "{count, plural, one {Ingredient left out} other {Ingredients left out}}",
+          "batchNotes": "Notes for this batch"
         },
         "writtenUnit": {
           "g": "{amount} g",
