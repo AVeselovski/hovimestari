@@ -144,6 +144,30 @@ describe("WeekSheet, the figures", () => {
     expect(row("2026-11-16").querySelector("th")).toHaveTextContent("1 planned entry was never marked eaten.");
   });
 
+  it("speaks no position for a past row's eaten cells when it holds only planned entries, and keeps the Planned one", async () => {
+    const server = weekServer();
+    server.entries.push(foodEntry("Rahka", 250, { date: "2026-11-17", status: "planned" }));
+    serveRange(server);
+    renderWeek();
+    await loaded();
+    // 250 g of quark is 148 kcal and 31.1 g protein, planned on Tuesday and never marked eaten.
+    expect(cell("2026-11-17", "energy-eaten")).toHaveTextContent(/^0$/);
+    expect(cell("2026-11-17", "protein-eaten")).toHaveTextContent(/^0\.0$/);
+    expect(cell("2026-11-17", "energy-withPlan")).toHaveTextContent(/^148 below the range$/);
+    expect(cell("2026-11-17", "protein-withPlan")).toHaveTextContent(/^31\.1 below the floor$/);
+  });
+
+  it('says "No entries" on an empty past row, muted, in the words the Day summary uses', async () => {
+    serveRange(weekServer());
+    renderWeek();
+    await loaded();
+    // Tuesday 17 November is past and empty.
+    const empty = row("2026-11-17").querySelector<HTMLElement>("[data-week-empty]")!;
+    expect(empty).toHaveTextContent(/^No entries$/);
+    expect(empty.className.split(/\s+/)).toContain("text-ink-muted");
+    expect(row("2026-11-17").querySelectorAll("[data-week-figure]")).toHaveLength(0);
+  });
+
   it("tells a screen reader each figure's position and an estimate, and names each row's button by its date alone", async () => {
     serveRange(weekServer());
     renderWeek();

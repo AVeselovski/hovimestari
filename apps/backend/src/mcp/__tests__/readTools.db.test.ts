@@ -1,3 +1,4 @@
+import type { Day } from "@hovimestari/types";
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import type { Client } from "@modelcontextprotocol/client";
 import { randomUUID } from "node:crypto";
@@ -173,6 +174,23 @@ await describeWithDb("mcp read tools", (suite) => {
           null,
         ]);
         expect(day.eaten.figures.energyKcal).toBe(89);
+      });
+
+      it("get_day on a past day with targets and no entries answers null positions, the targets and the route's answer", async () => {
+        const date = "2026-11-17"; // after the first change, before today, nothing logged
+        const day = (await data("get_day", { date })) as Day;
+        expect(day).toEqual(await route(`/days/${date}`));
+        expect([day.relation, day.entryCount, day.targets?.energyKcal.lower]).toEqual([
+          "past",
+          0,
+          FIRST_RANGES.energy[0],
+        ]);
+        expect([day.eaten.energy, day.eaten.protein, day.withPlan.energy, day.withPlan.protein]).toEqual([
+          null,
+          null,
+          null,
+          null,
+        ]);
       });
 
       it("never answers a nearby change's numbers for a day before the first change", async () => {

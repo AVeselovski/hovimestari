@@ -151,6 +151,12 @@ describe("APP_RULES", () => {
     expect(APP_RULES).toContain("Never fill a day without targets with a nearby change's numbers");
     expect(APP_RULES).toContain("Planned is not eaten.");
   });
+
+  it("says how to read a past day with nothing recorded, and that today and later days keep their positions", () => {
+    expect(APP_RULES).toContain("On a past day, a reading that holds no entries has no position either");
+    expect(APP_RULES).toContain("never quote its zero as what the person ate");
+    expect(APP_RULES).toContain("On today and later days an empty reading keeps its position");
+  });
 });
 
 describe("appRulesFor", () => {
