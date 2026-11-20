@@ -119,7 +119,8 @@ export function RecipeEditorSheet(props: RecipeEditorSheetProps): ReactElement {
     (a, b) => a.localeCompare(b, "fi"),
   );
 
-  const figures = liveFigures(draft.lines, servingsOf(draft.servings));
+  // No figures, not zeros, until the recipe has a line.
+  const figures = draft.lines.length === 0 ? null : liveFigures(draft.lines, servingsOf(draft.servings));
   const remove = useRecipeDelete({
     onDone: (gone) => {
       onClose();
@@ -214,7 +215,7 @@ export function RecipeEditorSheet(props: RecipeEditorSheetProps): ReactElement {
       <p id={fieldId("figures")} tabIndex={-1} className={`${fieldErrorClass}`}>
         {errorCopy.forCode(errors.figures)}
       </p>
-    ) : figures === null ? (
+    ) : figures === null && draft.lines.length > 0 ? (
       <p className={fieldHintClass}>{t("figuresWait")}</p>
     ) : null;
 
@@ -359,7 +360,7 @@ export function RecipeEditorSheet(props: RecipeEditorSheetProps): ReactElement {
             <textarea
               id={fieldId("method")}
               name="method"
-              rows={6}
+              rows={4}
               value={draft.method}
               onChange={(e) => change("method", e.target.value)}
               aria-invalid={errors.method !== undefined || undefined}

@@ -4,7 +4,7 @@ import { MacroDot } from "@/components/figures/MacroDot";
 import { Icon } from "@/components/Icon";
 import { focusRing } from "@/components/ui/styles";
 import { formatKcal, formatMacroGrams } from "@/lib/foodFormat";
-import { markOpenedInApp } from "@/lib/recipeNav";
+import { keepListScroll, markOpenedInApp } from "@/lib/recipeNav";
 import type { RecipeSummary } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
@@ -29,7 +29,10 @@ export function RecipeRow({ recipe }: { recipe: RecipeSummary }): ReactElement {
     <li className="border-b border-rule last:border-b-0">
       <Link
         href={`/recipes/${recipe.id}`}
-        onClick={markOpenedInApp}
+        onClick={() => {
+          markOpenedInApp();
+          keepListScroll();
+        }}
         {...{ [RECIPE_ROW_ATTRIBUTE]: recipe.id }}
         className={`flex min-h-14 items-center gap-3 py-3 hover:bg-surface-raised active:bg-surface-raised ${focusRing}`}
       >

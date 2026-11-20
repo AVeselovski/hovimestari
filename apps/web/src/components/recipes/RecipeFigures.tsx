@@ -82,7 +82,7 @@ export function RecipeFigures({ perServing, whole, stepper, headingId, note }: R
       <table className="w-full table-fixed border-collapse text-base">
         <thead>
           <tr className="text-sm text-ink-muted">
-            <td className="w-[38%] pb-2" />
+            <td className="w-[34%] pb-2" />
             <th scope="col" className="pb-2 text-right font-semibold whitespace-nowrap">
               {t("perServing")}
             </th>
@@ -100,8 +100,13 @@ export function RecipeFigures({ perServing, whole, stepper, headingId, note }: R
                   <span className="truncate">{labelOf(row.macro)}</span>
                 </span>
               </th>
-              <td className="py-2 text-right font-mono text-ink tabular-nums">{cell(perServing, row)}</td>
-              <td className="py-2 text-right font-mono text-ink tabular-nums">{cell(whole, row)}</td>
+              {/* One line always, at every number of servings up to 100, so stepping never grows a row. */}
+              <td className="py-2 text-right font-mono text-sm whitespace-nowrap text-ink tabular-nums md:text-base">
+                {cell(perServing, row)}
+              </td>
+              <td className="py-2 text-right font-mono text-sm whitespace-nowrap text-ink tabular-nums md:text-base">
+                {cell(whole, row)}
+              </td>
             </tr>
           ))}
         </tbody>

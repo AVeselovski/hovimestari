@@ -21,7 +21,7 @@ import { getErrorCode } from "@/lib/errors";
 import { formatDayShort } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import { recipeQuery } from "@/lib/queryOptions";
-import { markOpenedInApp, setFocusAfterDelete, takeOpenedInApp } from "@/lib/recipeNav";
+import { markOpenedInApp, scrollPageToTop, setFocusAfterDelete, takeOpenedInApp } from "@/lib/recipeNav";
 import {
   entryFigures,
   scaleRecipe,
@@ -33,7 +33,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useId, useState, type ReactElement } from "react";
+import { useId, useLayoutEffect, useState, type ReactElement } from "react";
 import { IngredientRows } from "./IngredientRows";
 import { servingsOf } from "./recipeDraft";
 import { RecipeEditorSheet } from "./RecipeEditorSheet";
@@ -74,6 +74,8 @@ export function RecipePage({ id }: { id: string }): ReactElement {
   const meta = useRecipeMeta();
   const headingId = useId();
   const [openedInApp] = useState(takeOpenedInApp);
+  // The page opens at its top: <main> keeps the scroll of the list it was opened from.
+  useLayoutEffect(scrollPageToTop, []);
   const query = useQuery(recipeQuery(id));
   const listed = (client.getQueryData<RecipeList>(queryKeys.recipeList(false))?.recipes ?? [])
     .concat(client.getQueryData<RecipeList>(queryKeys.recipeList(true))?.recipes ?? [])

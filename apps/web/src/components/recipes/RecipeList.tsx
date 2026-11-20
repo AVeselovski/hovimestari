@@ -12,7 +12,7 @@ import {
   sheetChipRowWrapping,
 } from "@/components/ui/styles";
 import { recipesQuery } from "@/lib/queryOptions";
-import { takeFocusAfterDelete } from "@/lib/recipeNav";
+import { restoreListScroll, takeFocusAfterDelete } from "@/lib/recipeNav";
 import { filterRecipes, fold, sortRecipes, type RecipeSummary } from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -58,6 +58,10 @@ export function RecipeList({ query, onClearQuery, newRecipe }: RecipeListProps):
   // After a delete on a recipe's page, the row it named takes focus once the list is on screen.
   const [focusTarget] = useState(takeFocusAfterDelete);
   const focused = useRef(false);
+  // Back from a recipe's page: the list where the row left it, once its rows are on screen.
+  useLayoutEffect(() => {
+    if (recipes !== undefined) restoreListScroll();
+  }, [recipes]);
   useLayoutEffect(() => {
     if (focusTarget === null || focused.current || recipes === undefined) return;
     focused.current = true;
