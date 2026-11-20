@@ -20,6 +20,9 @@ export const READ_TOOL_NAMES = [
   "list_recent_items",
   "list_saved_meals",
   "get_saved_meal",
+  "list_recipes",
+  "get_recipe",
+  "preview_recipe",
   "look_up_barcode",
 ];
 
@@ -40,6 +43,10 @@ export const WRITE_TOOL_NAMES = [
   "create_saved_meal",
   "update_saved_meal",
   "set_saved_meal_archived",
+  "create_recipe",
+  "update_recipe",
+  "set_recipe_archived",
+  "set_recipe_favourite",
   "set_targets",
   "remove_targets",
 ];

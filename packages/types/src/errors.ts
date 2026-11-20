@@ -88,6 +88,23 @@ export const ERROR_CODES = [
   "request_key_reused",
   "assistant_writes_per_minute",
   "assistant_changes_per_hour",
+  "recipe_not_found",
+  "recipe_id_taken",
+  "ingredient_id_taken",
+  "recipe_lines_required",
+  "recipe_lines_too_many",
+  "recipe_servings_invalid",
+  "recipe_time_invalid",
+  "recipe_serving_too_large",
+  "step_too_long",
+  "steps_too_many",
+  "notes_too_long",
+  "tag_invalid",
+  "tags_too_many",
+  "line_name_required",
+  "line_name_too_long",
+  "line_note_too_long",
+  "written_amount_invalid",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -96,6 +113,8 @@ export type ErrorCode = (typeof ERROR_CODES)[number];
 export interface ApiError {
   message: string;
   code?: ErrorCode;
+  /** The index from 0 of the recipe line a refusal is about, when it is about one. */
+  line?: number;
 }
 
 const CODES: ReadonlySet<string> = new Set(ERROR_CODES);

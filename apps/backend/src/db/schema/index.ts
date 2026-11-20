@@ -3,6 +3,7 @@ export * from "./assistantConnections.js";
 export * from "./entries.js";
 export * from "./foods.js";
 export * from "./password-reset-tokens.js";
+export * from "./recipes.js";
 export * from "./refresh-tokens.js";
 export * from "./removedEntries.js";
 export * from "./savedMeals.js";

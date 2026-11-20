@@ -150,6 +150,18 @@ async function main(): Promise<void> {
     );
     await rest("POST", "/entries", entry("saved_meal", { savedMealId: mealId, count: 1, status: "planned" }));
     await rest("POST", "/entries", entry("estimate", { name: "Smoke kahvila", figures: MEAL, status: "eaten" }));
+    const recipeLines = [
+      { id: randomUUID(), counted: true, foodId: food.id, amount: { portionId: portion.id, count: 1 } },
+      { id: randomUUID(), counted: true, foodId: food.id, amount: { grams: 50 }, written: { amount: 2, unit: "tbsp" } },
+      { id: randomUUID(), counted: false, name: "Salt" },
+    ];
+    const recipe = await rest("POST", "/recipes", {
+      id: randomUUID(),
+      name: "Smoke shakshuka",
+      servings: 2,
+      lines: recipeLines,
+      tags: ["Brunch"],
+    });
 
     // --- the read leg --------------------------------------------------------
     console.log("\n== read leg");
@@ -200,6 +212,21 @@ async function main(): Promise<void> {
       await call("get_saved_meal", { savedMealId: mealId }),
       await rest("GET", `/saved-meals/${mealId}`),
     );
+    same("list_recipes", await call("list_recipes"), await rest("GET", "/recipes"));
+    same(
+      "list_recipes with a filter",
+      await call("list_recipes", { tags: ["brunch"], minProteinG: 1, sort: "protein" }),
+      await rest("GET", "/recipes?tags=brunch&minProteinG=1&sort=protein"),
+    );
+    same("list_recipes finds the recipe", (await call("list_recipes", { q: "smoke" })).recipes[0]?.id, recipe.id);
+    same("get_recipe", await call("get_recipe", { recipeId: recipe.id }), await rest("GET", `/recipes/${recipe.id}`));
+    same(
+      "get_recipe with servings",
+      await call("get_recipe", { recipeId: recipe.id, servings: 3 }),
+      await rest("GET", `/recipes/${recipe.id}?servings=3`),
+    );
+    const draft = { servings: 2, lines: recipeLines.map(({ id: _id, ...line }) => line) };
+    same("preview_recipe", await call("preview_recipe", draft), await rest("POST", "/recipes/preview", draft));
     same(
       "look_up_barcode",
       await call("look_up_barcode", { barcode: BARCODE }),

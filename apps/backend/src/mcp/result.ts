@@ -59,12 +59,14 @@ export function text(value: string, isError = false): CallToolResult {
 
 /**
  * An AppError as the model reads it: its client-safe message, then its code,
- * and for a limit the seconds until a retry can work. A tool never answers
- * HTTP 429, which a bridge would retry on its own.
+ * the recipe line it is about by its index, and for a limit the seconds
+ * until a retry can work. A tool never answers HTTP 429, which a bridge
+ * would retry on its own.
  */
 export function refusalText(err: AppError): string {
   const notes = [
     err.code,
+    err.line === undefined ? undefined : `line: ${err.line}`,
     err.retryAfterSeconds === undefined ? undefined : `retryAfterSeconds: ${err.retryAfterSeconds}`,
   ]
     .filter((note) => note !== undefined)
