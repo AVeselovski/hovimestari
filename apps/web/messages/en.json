@@ -639,6 +639,7 @@
       "servings": "{count, plural, one {# serving} other {# servings}}",
       "estimate": "Estimate",
       "withSource": "{amount} · {source}",
+      "asMade": "{amount} · as made",
       "kcal": "{value} kcal",
       "protein": "{value} g",
       "approx": "≈",
