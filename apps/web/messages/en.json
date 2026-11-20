@@ -573,7 +573,7 @@
     "cook_not_found": "This batch is no longer there. Close this and open it again.",
     "cook_id_taken": "This batch was already logged. Close this and open it again.",
     "cook_entries_required": "Choose at least one serving from this batch.",
-    "cook_entry_invalid": "One of these servings changed on another device. Close this and open it again.",
+    "cook_entry_invalid": "One of these servings can no longer be added to this batch. Close this and open it again.",
     "written_amount_invalid": "Enter an amount above zero, with at most two decimals."
   },
   "day": {

@@ -1,7 +1,6 @@
 import {
   CookLineDraftSchema,
   distinctFromLines,
-  distinctLineIds,
   ENTRY_STATUSES,
   EntryCountSchema,
   linesOf,
@@ -32,7 +31,6 @@ export const logCookTool = defineWriteTool({
     date: DayDate.describe("The day the batch was made, YYYY-MM-DD, or today."),
     servings: RecipeServingsSchema.describe("How many servings the batch gave, a whole number from 1 to 100."),
     lines: linesOf(CookLineDraftSchema)
-      .refine(distinctLineIds, { error: "Give each line id once." })
       .refine(distinctFromLines, { error: "Give each fromLineId once." })
       .describe(
         "The batch's lines, as create_recipe takes them, each with fromLineId: the id of the recipe line it started as, from get_recipe, or null for a line the batch added. Leave out a line the batch left out. The app makes each line's id.",

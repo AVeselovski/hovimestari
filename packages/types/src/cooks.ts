@@ -34,12 +34,12 @@ export const CookLineBodySchema = z.discriminatedUnion(
   { error: "invalid_request" },
 );
 
-/** A cook's line as an assistant sends it, its id left out: the app makes one. */
+/** A new batch's line as an assistant sends it, with no id: the app makes every line's id. */
 export const CookLineDraftSchema = z.discriminatedUnion(
   "counted",
   [
-    z.strictObject({ id: z.uuid().optional(), ...countedLineFields, fromLineId: FromLineIdSchema }),
-    z.strictObject({ id: z.uuid().optional(), ...notCountedLineFields, fromLineId: FromLineIdSchema }),
+    z.strictObject({ ...countedLineFields, fromLineId: FromLineIdSchema }),
+    z.strictObject({ ...notCountedLineFields, fromLineId: FromLineIdSchema }),
   ],
   { error: "invalid_request" },
 );

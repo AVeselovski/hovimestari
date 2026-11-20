@@ -21,7 +21,8 @@ import { ownMeal } from "./reads/savedMeals.js";
 import { ownRecipe } from "./recipeScope.js";
 import { figuresPastCap, fitsEntry, readRecipeServings, servingOf } from "./recipeValues.js";
 
-// The only place an entry's basis is taken from its source. A source is read
+// Where an added entry's basis is taken from a food or a saved meal (a
+// recipe's and a batch's are read in recipeValues.ts). A source is read
 // FOR SHARE, so an edit of it waits until the add commits, and the edit's
 // rewrite of planned entries (a later statement) then sees the new entry. An
 // add that comes second waits for the edit and reads the new values.
@@ -128,8 +129,9 @@ export const restoreCutoff = (ctx: ReadContext): Date => new Date(ctx.now.getTim
  * hidden food costs nothing, and a deleted one would take the line from under
  * a cook. A recipe counts its entries and removed entries only: every entry
  * of a cook names the cook's recipe too, so a cook still in use already
- * counts through its entry, and an orphan cook must not keep its recipe. A new statement: called after the source's row lock,
- * it sees an add or a recipe save that committed while the lock waited.
+ * counts through its entry, and an orphan cook must not keep its recipe.
+ * A new statement: called after the source's row lock, it sees an add or a
+ * recipe save that committed while the lock waited.
  */
 export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cutoff: Date): Promise<boolean> {
   const [column, key] = SOURCE_COLUMNS[source.kind];

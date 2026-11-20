@@ -79,7 +79,7 @@ export async function recordedLogCook(ctx: WriteContext, via: AssistantActor, ar
   const body = parseBody(CookBodySchema, {
     ...args,
     id: randomUUID(),
-    lines: args.lines.map((line) => ({ ...line, id: line.id ?? randomUUID() })),
+    lines: args.lines.map((line) => ({ ...line, id: randomUUID() })),
     add: args.add.map((add) => ({ ...add, id: randomUUID() })),
   });
   return recordedWrite(ctx, via, {

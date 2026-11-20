@@ -198,6 +198,11 @@ await describeWithDb("mcp cook tools", (suite) => {
         [{ attach: [other.entryId] }, "(cook_entry_invalid)"],
         [{ add: [{ date: TOMORROW, status: "eaten", servings: 1 }] }, "(entry_eaten_in_future)"],
         [{}, "(cook_entries_required)"],
+        // The app makes every line's id: a line sent with one is refused before anything is read.
+        [
+          { lines: [{ ...lines[0], id: randomUUID() }], add: [{ date: "today", status: "planned", servings: 1 }] },
+          'Unrecognized key: "id"',
+        ],
       ];
       for (const [extra, code] of tries) {
         const refused = await call(client, "log_cook", { requestKey: newRequestKey(), ...base, ...extra });

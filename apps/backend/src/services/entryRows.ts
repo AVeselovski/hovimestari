@@ -119,7 +119,10 @@ function nameOf(row: EntryRow): string {
   }
 }
 
-/** No cook differs: for a read that answers no entry, such as a week's summaries. */
+/**
+ * No cook differs. Only for a read that answers no entry, such as a week's
+ * summaries: a read that answers entries runs `cookDiffersOf` instead.
+ */
 export const NO_COOKS: ReadonlyMap<string, boolean> = new Map();
 
 /**

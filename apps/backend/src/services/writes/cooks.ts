@@ -118,7 +118,7 @@ async function addServings(tx: Tx, ctx: WriteContext, cookId: string, basis: Fig
     const inserted = await tx
       .insert(entries)
       .values({
-        id: add.id,
+        id: add.id.toLowerCase(),
         userId: ctx.userId,
         date: add.date,
         status: add.status,
@@ -159,8 +159,10 @@ async function answerOf(ctx: WriteContext, body: CookBody): Promise<Omit<CookWri
  * and the new servings it adds, in one transaction. Its basis is one serving
  * of its lines from their foods now, and every entry it attaches or adds
  * takes it. Nothing else of the day changes, and the recipe is not written.
- * A repeated id of the user's answers the cook with `replayed` and ignores
- * the body. Another user's id: 409 `cook_id_taken`. A recipe the user cannot
+ * A repeated id of the user's answers the cook as it is now with `replayed`,
+ * and writes nothing of the body: its `entries` are the cook's entries the
+ * repeat's body names, as a repeated copy answers the ids its body names.
+ * Another user's id: 409 `cook_id_taken`. A recipe the user cannot
  * see: 404 `recipe_not_found`. A line refused: its code with its `line`. A
  * serving past what an entry holds: 400 `recipe_serving_too_large`.
  */
@@ -205,7 +207,7 @@ export async function createCook(ctx: WriteContext, body: CookBody): Promise<Wri
       const [cook] = await tx
         .insert(cooks)
         .values({
-          id: body.id,
+          id: body.id.toLowerCase(),
           userId: ctx.userId,
           recipeId: recipe.id,
           date: body.date,
