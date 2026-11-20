@@ -12,6 +12,7 @@ import {
   type TargetRanges,
 } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
+import { recipeChangeLines } from "./recipeChangeText";
 
 // ---------------------------------------------------------------------------
 // One change in a connection's record, as the Activity sheet reads it: a
@@ -297,6 +298,38 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
     case "saved_meal.restored": {
       const s = of(summary, "saved_meal");
       return s ? { headline: t("headline.mealRestored", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "recipe.created": {
+      const s = of(summary, "recipe");
+      if (!s) return unreadable(t);
+      return {
+        headline: t("headline.recipeCreated", { name: s.name }),
+        lines: recipeChangeLines(s.changes, words, true),
+      };
+    }
+    case "recipe.changed": {
+      const s = of(summary, "recipe");
+      if (!s) return unreadable(t);
+      return {
+        headline: t("headline.recipeChanged", { name: s.name }),
+        lines: recipeChangeLines(s.changes, words, false),
+      };
+    }
+    case "recipe.archived": {
+      const s = of(summary, "recipe");
+      return s ? { headline: t("headline.recipeArchived", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "recipe.restored": {
+      const s = of(summary, "recipe");
+      return s ? { headline: t("headline.recipeRestored", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "recipe.favourite_set": {
+      const s = of(summary, "recipe");
+      return s ? { headline: t("headline.recipeFavouriteSet", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "recipe.favourite_unset": {
+      const s = of(summary, "recipe");
+      return s ? { headline: t("headline.recipeFavouriteUnset", { name: s.name }), lines: [] } : unreadable(t);
     }
     case "targets.set": {
       const s = of(summary, "targets");
