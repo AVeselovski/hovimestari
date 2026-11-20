@@ -52,6 +52,8 @@ This runbook serves the local web app and backend over https on your home networ
 
    In `apps/backend/.env`, add `https://<address>:3443` to `CORS_ORIGIN`, comma separated after the localhost origin. `BACKEND_URL` stays `http://localhost:3001`, because the web server reaches the backend on this machine.
 
+   The setup steps for an AI assistant in Settings then show the https address too. An assistant on the Mac needs another one, as [An assistant on the Mac](#an-assistant-on-the-mac) says.
+
 8. Start the backend and the web app as steps 7 and 8 of [the local development runbook](local-development.md) say. Both read these values at start, so restart a server that is already running.
 
 9. Start Caddy in a third terminal, from the repository root:
@@ -69,6 +71,20 @@ This runbook serves the local web app and backend over https on your home networ
 Google sign-in does not work from the phone over this setup. Email and password do. After Google's consent screen, Google sends the browser to `GOOGLE_CALLBACK_URL`, and the backend then sends it on to `FRONTEND_URL`. Both point at `localhost`, which on the phone is the phone itself. Google accepts a callback on `localhost` or on a public domain over https, and neither an address like `192.168.1.23` nor a `.local` name is one, so no setting makes it work here.
 
 `FRONTEND_URL` also builds the reset links the backend prints in its console. A reset link opens on the Mac. To open one on the phone, replace `http://localhost:3000` in it with `https://<address>:3443`.
+
+### An assistant on the Mac
+
+With `NEXT_PUBLIC_API_URL` on the https address, the setup steps under [Connected AI](../app/settings.md#connected-ai) in Settings show the server as `https://<address>:3444/mcp`. An assistant on the Mac cannot connect to it. Claude Desktop reaches the server through `mcp-remote`, a Node program, and Node does not read the Mac's keychain, where mkcert's root is. Claude Desktop then fails to connect, and its log says `unable to verify the first certificate`, with the code `UNABLE_TO_VERIFY_LEAF_SIGNATURE`.
+
+An assistant on the same Mac as the backend uses `http://localhost:3001/mcp` in place of the address the steps show. The key stays the same. For Claude Desktop:
+
+1. Copy the Claude Desktop entry from Settings and add it to Claude's config file, as the steps there say. The file is `~/Library/Application Support/Claude/claude_desktop_config.json`.
+2. In the `hovimestari` entry's `args`, replace `https://<address>:3444/mcp` with `http://localhost:3001/mcp`. Leave the `env` block with `AUTH_HEADER` as it is.
+3. Save the file. Quit Claude Desktop and open it again.
+
+Ask Claude for today's figures to check it. With a read-and-write key, an entry it logs shows under **Activity** on the key's row in Settings.
+
+For Claude Code, put `http://localhost:3001/mcp` in place of the https address in the `claude mcp add` command. That has not been tried with this setup yet. The localhost address stays the same when the network address changes, so the entry needs no change then.
 
 ### When the address changes
 
