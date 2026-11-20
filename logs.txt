@@ -638,3 +638,23 @@
 [backend-engineer DONE] (2026-11-20T13:44:30Z) unlogged days (PR 1) small fixes at ee09d66: all seven items from the three checks; the requirement wordings for the average moved to their own item. Types 209, backend 1314, web 1987; smoke 57 of 57.
 [documentation-specialist STARTED] (2026-11-20T13:44:30Z) unlogged days (PR 1): docs pass on the branch brought onto master.
 [documentation-specialist DONE] (2026-11-20T13:46:15Z) unlogged days (PR 1) docs pass at 7d05c0f: one sentence in docs/app/day.md corrected (a planned-only past day's gauge still draws its plan), build-progress.md current, the carried wording in TODO.md. docs:check 0 findings.
+[backend-engineer STARTED] (2026-11-20T12:22:29Z) recipes slice R1a: the recipe library (tables, figures, routes, read and write tools, app rules section 9) from docs/design/recipes.md.
+[backend-engineer DONE] (2026-11-20T12:54:15Z) recipes slice R1a at 14a6a77: three tables and migration 0009, figures in packages/types pinned to the worked example, routes under /recipes with preview, three read tools and four recorded write tools, app rules section 9, the Activity sheet's sentences for the six recipe actions. Types 231, backend 1365, web 1985 tests; smoke 69 of 69.
+[validator STARTED] (2026-11-20T12:54:15Z) recipes slice R1a against the requirements and the design, at 14a6a77.
+[reviewer STARTED] (2026-11-20T12:54:15Z) recipes slice R1a code review, at 14a6a77.
+[ui-validator STARTED] (2026-11-20T12:54:15Z) recipes slice R1a: the Activity sheet's recipe sentences in a real browser, at 14a6a77.
+[validator DONE] (2026-11-20T13:07:44Z) recipes slice R1a: pass; no blockers or majors, three minors, seven nits; 128 end to end checks through REST and /mcp, the figures match a hand calculation, the migration applies on a fresh database and on one with data.
+[reviewer DONE] (2026-11-20T13:07:44Z) recipes slice R1a: approve after fixes; one major (a recipe edit's record can show no difference, and its shape is permanent once rows exist), ten minors, seven nits.
+[ui-validator DONE] (2026-11-20T13:07:44Z) recipes slice R1a, Activity: pass with findings; the same major seen on screen, three minors, two nits.
+[backend-engineer STARTED] (2026-11-20T13:07:44Z) recipes slice R1a fix batch: the edit record's shape and its sentences, and the minors of the three checks.
+[backend-engineer DONE] (2026-11-20T13:43:22Z) recipes slice R1a fix batch at 2605d9b: a recipe change records only what differs (lines added, removed and changed with the parts that differ, the steps that changed by number, notes as added, changed or removed), with its sentences in recipeChangeText.ts; every minor and nit taken. Types 232, backend 1376, web 2012 tests; smoke 69 of 69.
+[reviewer STARTED] (2026-11-20T13:43:22Z) delta review of recipes slice R1a at 2605d9b.
+[ui-validator STARTED] (2026-11-20T13:43:22Z) delta check of the Activity sheet's recipe rows at 2605d9b.
+[reviewer DONE] (2026-11-20T13:58:13Z) delta review of recipes slice R1a: approve; no blockers, majors or minors, four optional nits; the record's shape is ready to be permanent.
+[ui-validator DONE] (2026-11-20T13:58:13Z) delta check of the Activity sheet's recipe rows: pass; one minor (a step added at the start reads as every later step changed), four nits; eight owner screenshots.
+[backend-engineer STARTED] (2026-11-20T13:58:13Z) recipes slice R1a: steps compared by content, not position, and a kept line re-sent without its id no longer reads as added and removed.
+[backend-engineer DONE] (2026-11-20T16:17:02Z) recipes slice R1a at 8062854: steps compared by content (added, removed, changed by number, reordered), and an identical line re-sent without its id keeps its id at the save, so a recipe re-sent unchanged answers unchanged and records nothing. Types 232, backend 1395, web 2020 tests; smoke 69 of 69.
+[reviewer STARTED] (2026-11-20T16:17:02Z) delta review of the last nine commits of recipes slice R1a, at 8062854.
+[reviewer DONE] (2026-11-20T16:29:20Z) delta review of the last R1a fixes: approve; no blockers or majors, four minors, four nits; the steps record and the kept line ids are right as they stand.
+[documentation-specialist DONE] (2026-11-20T16:29:20Z) recipes slice R1a docs pass at 1e1a26e on the branch brought onto master: recipes.md claims no web code, the food rule has one home, two requirement wording items merged, build-progress.md current. docs:check 0 findings.
+[backend-engineer DONE] (2026-11-20T16:29:20Z) recipes slice R1a at 6a2ab41: the four minors and four nits of the last review; a step added before a reworded one is counted as added and removed, never numbered wrongly. Types 246, backend 1406, web 2027 tests; smoke 69 of 69.

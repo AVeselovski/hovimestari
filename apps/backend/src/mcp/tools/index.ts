@@ -10,6 +10,7 @@ import {
   searchFoodsTool,
 } from "./foods.js";
 import { getSavedMealTool, listSavedMealsTool } from "./meals.js";
+import { getRecipeTool, listRecipesTool, previewRecipeTool } from "./recipes.js";
 
 // The read tools every key lists. One file per area under tools/, each tool
 // defined with defineTool and added here.
@@ -30,5 +31,8 @@ export const READ_TOOLS: readonly AnyTool[] = [
   listRecentItemsTool,
   listSavedMealsTool,
   getSavedMealTool,
+  listRecipesTool,
+  getRecipeTool,
+  previewRecipeTool,
   lookUpBarcodeTool,
 ];

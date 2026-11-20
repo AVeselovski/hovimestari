@@ -4,6 +4,7 @@ import {
   entries,
   foodPortions,
   foods,
+  recipeIngredients,
   removedEntries,
   RESTORE_WINDOW_MS,
   savedMeals,
@@ -110,17 +111,25 @@ export const restoreCutoff = (ctx: ReadContext): Date => new Date(ctx.now.getTim
 
 /**
  * Whether the user's entries use `source`, or an entry they removed after
- * `cutoff` did, so a restore would need it. A new statement: called after the
- * source's row lock, it sees an add that committed while the lock waited.
+ * `cutoff` did, so a restore would need it. A food is also used while a line
+ * of one of the user's recipes names it. A new statement: called after the
+ * source's row lock, it sees an add or a recipe save that committed while
+ * the lock waited.
  */
 export async function isUsed(tx: Tx, ctx: ReadContext, source: EntrySource, cutoff: Date): Promise<boolean> {
   const [column, key] = source.kind === "food" ? [entries.foodId, "food_id"] : [entries.savedMealId, "saved_meal_id"];
+  const onRecipe =
+    source.kind === "food"
+      ? sql`OR EXISTS (SELECT 1 FROM ${recipeIngredients}
+                        WHERE ${recipeIngredients.foodId} = ${source.id} AND ${recipeIngredients.userId} = ${ctx.userId})`
+      : sql``;
   const { rows } = await tx.execute<{ used: boolean }>(sql`
     SELECT EXISTS (SELECT 1 FROM ${entries} WHERE ${column} = ${source.id} AND ${entries.userId} = ${ctx.userId})
         OR EXISTS (SELECT 1 FROM ${removedEntries}
                     WHERE ${removedEntries.userId} = ${ctx.userId}
                       AND ${removedEntries.removedAt} >= ${cutoff}
-                      AND ${removedEntries.row}->>${key} = ${source.id}) AS used`);
+                      AND ${removedEntries.row}->>${key} = ${source.id})
+        ${onRecipe} AS used`);
   return rows[0].used;
 }
 

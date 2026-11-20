@@ -286,6 +286,14 @@ describe("changeText: one line per recorded action", () => {
     expect(read(change("saved_meal.restored", summary))).toEqual(["Put the meal Chicken bowl back from the archive"]);
   });
 
+  it("set_recipe_archived and set_recipe_favourite, each way", () => {
+    const summary: AssistantChangeSummary = { entity: "recipe", name: "Shakshuka", changes: [] };
+    expect(read(change("recipe.archived", summary))).toEqual(["Archived the recipe Shakshuka"]);
+    expect(read(change("recipe.restored", summary))).toEqual(["Put the recipe Shakshuka back from the archive"]);
+    expect(read(change("recipe.favourite_set", summary))).toEqual(["Marked the recipe Shakshuka as a favourite"]);
+    expect(read(change("recipe.favourite_unset", summary))).toEqual(["Took the recipe Shakshuka off the favourites"]);
+  });
+
   it("set_targets, new and replacing a change on the same date", () => {
     const after = { energyKcal: { lower: 2000, upper: 2400 }, proteinG: { lower: 140, upper: 180 } };
     const before = { energyKcal: { lower: 1900, upper: 2300 }, proteinG: { lower: 130, upper: 170 } };

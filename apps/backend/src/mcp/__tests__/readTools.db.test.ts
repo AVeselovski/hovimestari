@@ -39,6 +39,9 @@ const READ_TOOL_NAMES = [
   "list_recent_items",
   "list_saved_meals",
   "get_saved_meal",
+  "list_recipes",
+  "get_recipe",
+  "preview_recipe",
   "look_up_barcode",
 ];
 
@@ -125,7 +128,7 @@ await describeWithDb("mcp read tools", (suite) => {
 
     describe("the list", () => {
       // Their annotations are pinned in router.test.ts, which needs no database.
-      it("is exactly the 12 read tools", async () => {
+      it("is exactly the 15 read tools", async () => {
         const { READ_TOOLS } = await import("../tools/index.js");
         const { tools } = await client.listTools();
         expect(tools.map((t) => t.name).sort()).toEqual([...READ_TOOL_NAMES].sort());

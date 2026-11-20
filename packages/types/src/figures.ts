@@ -28,16 +28,24 @@ export const RangePositionSchema = z.object({
 export type Figures = z.infer<typeof FiguresSchema>;
 export type RangePosition = z.infer<typeof RangePositionSchema>;
 
-/** What a basis is per: 100 g of a food, one saved meal, or the whole entry (an estimate). */
-export type Scale = { per: "100g"; grams: number } | { per: "meal"; count: number } | { per: "whole" };
+/**
+ * What a basis is per: 100 g of a food, one saved meal, one serving of a
+ * recipe, or the whole entry (an estimate). A serving uses the meal's
+ * arithmetic under its own name.
+ */
+export type Scale =
+  | { per: "100g"; grams: number }
+  | { per: "meal"; count: number }
+  | { per: "serving"; count: number }
+  | { per: "whole" };
 
 const KEYS = ["energyKcal", "proteinG", "carbsG", "fatG"] as const;
 
 /** `v` as an integer count of 10^-`decimals`. Exact for a value with at most that many decimals. */
-const scaled = (v: number, decimals: number): number => Math.round(v * 10 ** decimals);
+export const scaled = (v: number, decimals: number): number => Math.round(v * 10 ** decimals);
 
 /** `n / d` rounded to an integer, halves away from zero, computed exactly for integers below 2^53. */
-function divRound(n: number, d: number): number {
+export function divRound(n: number, d: number): number {
   const sign = n < 0 ? -1 : 1;
   const a = Math.abs(n);
   let q = Math.floor(a / d);
@@ -60,6 +68,7 @@ function amountOf(scale: Scale): { amount: number; divisor: number } {
       // thousandths x tenths of a gram / 100 g = 10^3 x 10 x 100
       return { amount: scaled(scale.grams, 1), divisor: 1_000_000 };
     case "meal":
+    case "serving":
       // thousandths x hundredths of a count = 10^3 x 10^2
       return { amount: scaled(scale.count, 2), divisor: 100_000 };
     case "whole":

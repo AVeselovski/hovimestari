@@ -3,6 +3,7 @@ import { IsoDateSchema } from "./dates.js";
 import { ENTRY_KINDS, ENTRY_STATUSES } from "./entries.js";
 import { FiguresSchema } from "./figures.js";
 import { FINELI_PORTION_UNITS } from "./foods.js";
+import { INGREDIENT_UNITS } from "./recipes.js";
 import { TargetRangesSchema } from "./targets.js";
 
 /**
@@ -29,6 +30,12 @@ export const ASSISTANT_CHANGE_ACTIONS = [
   "targets.set",
   "targets.removed",
   "deletion.requested",
+  "recipe.created",
+  "recipe.changed",
+  "recipe.archived",
+  "recipe.restored",
+  "recipe.favourite_set",
+  "recipe.favourite_unset",
 ] as const;
 
 export const AssistantChangeActionSchema = z.enum(ASSISTANT_CHANGE_ACTIONS);
@@ -75,6 +82,69 @@ export const AssistantFieldChangeSchema = z.object({
   to: z.unknown(),
 });
 
+/** A recipe line the record names whole: its food's name, or its own when it does not count, and its grams when it counts. */
+export const RecipeLineRecordSchema = z.object({ name: z.string(), grams: z.number().nullable() });
+
+/** A value before and after. The record holds one only when the two differ. */
+const fromTo = <T extends z.ZodType>(value: T) => z.object({ from: value, to: value });
+
+/** How a piece of text changed, its words left out: notes run long. */
+export const TextChangeSchema = z.enum(["added", "changed", "removed"]);
+
+/**
+ * A line an edit kept, by its id, and what about it changed. `name` is the
+ * line's name after the edit. Each other key is there only when that part
+ * changed: `food` the food it points at (its name before), `grams`, the
+ * portion and its count, the amount as written, and the note. A line whose
+ * change none of them shows, such as another portion of the same name and
+ * count, has none.
+ */
+export const RecipeLineChangeSchema = z.object({
+  name: z.string(),
+  food: z.object({ from: z.string() }).optional(),
+  grams: fromTo(z.number().nullable()).optional(),
+  portion: fromTo(
+    z
+      .object({ count: z.number(), unit: z.enum(FINELI_PORTION_UNITS).nullable(), name: z.string().nullable() })
+      .nullable(),
+  ).optional(),
+  written: fromTo(z.object({ amount: z.number(), unit: z.enum(INGREDIENT_UNITS) }).nullable()).optional(),
+  note: TextChangeSchema.optional(),
+});
+
+/**
+ * One field of a recipe a change set. `from` is null on a create. The lines
+ * are the ones added, removed and changed, and whether the kept ones moved:
+ * a create adds them all. Lines are matched by id. The method is compared by
+ * its steps' text: its count of steps before and after, how many steps
+ * were added and how many removed, the numbers, from 1 as in the method
+ * after, of the steps reworded in place, and whether the steps both sides
+ * hold moved. A create adds every step. The notes say only how they changed.
+ */
+export const RecipeFieldChangeSchema = z.discriminatedUnion("field", [
+  z.object({ field: z.literal("name"), from: z.string(), to: z.string() }),
+  z.object({ field: z.literal("servings"), from: z.number().int().nullable(), to: z.number().int() }),
+  z.object({ field: z.literal("time"), from: z.number().int().nullable(), to: z.number().int().nullable() }),
+  z.object({
+    field: z.literal("lines"),
+    added: z.array(RecipeLineRecordSchema),
+    removed: z.array(RecipeLineRecordSchema),
+    changed: z.array(RecipeLineChangeSchema),
+    reordered: z.boolean(),
+  }),
+  z.object({
+    field: z.literal("steps"),
+    from: z.number().int().nonnegative().nullable(),
+    to: z.number().int().nonnegative(),
+    added: z.number().int().nonnegative(),
+    removed: z.number().int().nonnegative(),
+    changed: z.array(z.number().int().positive()),
+    reordered: z.boolean(),
+  }),
+  z.object({ field: z.literal("notes"), change: TextChangeSchema }),
+  z.object({ field: z.literal("tags"), from: z.array(z.string()).nullable(), to: z.array(z.string()) }),
+]);
+
 /**
  * What a person needs to read one line of the record. Values as the change's
  * answer had them, never a value the record computes. Names are data.
@@ -101,6 +171,8 @@ export const AssistantChangeSummarySchema = z.discriminatedUnion("entity", [
     changes: z.array(AssistantFieldChangeSchema),
   }),
   z.object({ entity: z.literal("saved_meal"), name: z.string(), changes: z.array(AssistantFieldChangeSchema) }),
+  // recipe.created, recipe.changed, recipe.archived, recipe.restored, recipe.favourite_set, recipe.favourite_unset
+  z.object({ entity: z.literal("recipe"), name: z.string(), changes: z.array(RecipeFieldChangeSchema) }),
   z.object({
     entity: z.literal("targets"),
     effectiveFrom: IsoDateSchema,
@@ -154,6 +226,9 @@ export const AssistantChangePageSchema = z.object({
 export type AssistantChangeAction = z.infer<typeof AssistantChangeActionSchema>;
 export type AssistantEntryLine = z.infer<typeof AssistantEntryLineSchema>;
 export type AssistantFieldChange = z.infer<typeof AssistantFieldChangeSchema>;
+export type RecipeLineRecord = z.infer<typeof RecipeLineRecordSchema>;
+export type RecipeLineChange = z.infer<typeof RecipeLineChangeSchema>;
+export type RecipeFieldChange = z.infer<typeof RecipeFieldChangeSchema>;
 export type AssistantChangeSummary = z.infer<typeof AssistantChangeSummarySchema>;
 export type AssistantChange = z.infer<typeof AssistantChangeSchema>;
 export type AssistantChangePageQuery = z.input<typeof AssistantChangePageQuerySchema>;

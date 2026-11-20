@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. A barcode typed in the log sheet's search, or read there by the camera on the device, is looked up among a user's own foods, then at Open Food Facts. A product found there is kept for every later lookup, and one not found is added from its label.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. An own food a recipe uses is hidden when its owner deletes it, and the recipe keeps it. A barcode typed in the log sheet's search, or read there by the camera on the device, is looked up among a user's own foods, then at Open Food Facts. A product found there is kept for every later lookup, and one not found is added from its label.
 
 ## Days and logging
 
@@ -22,9 +22,13 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 - **[Quick logging](features/quick-logging.md)**: adding, editing, moving, marking, copying, removing and restoring entries, each with an undo, and recent items to log again with the amount of the last time. Marking eaten, editing, moving and removing, each with Undo, are on the Day tab. Adding a food, a saved meal or an estimate, saving a new meal and logging it in one action, and logging a recent item again in one press are in the log sheet. Copying entries to another day, with Undo, is on the Day tab.
 - **[Saved meals](features/saved-meals.md)**: a meal eaten again and again, saved once with its source and its figures for one meal, and logged by count. The log sheet lists them with a filter by source and logs them, and the log sheet and the Recipes tab both save, edit, archive, restore and delete them.
 
+## Recipes
+
+- **[Recipes](features/recipes.md)**: a dish written once with its servings, ingredient lines that point at foods, lines not counted such as salt, a method, notes and tags, with figures per serving and for the whole recipe computed from its foods and never typed. A recipe reads at another number of servings, is found by words, tags and figures per serving, marked as a favourite, archived and deleted. Recipes are kept through the API and by a connected assistant, with no screen yet, and cannot be put on a day yet.
+
 ## Connected AI
 
-- **[Connected AI](features/connected-ai.md)**: named connection keys a person makes to give their own AI assistant access, read only or read and write, each with a lifetime, shown once and revoked at will. Keys are made, listed and revoked in Settings. An assistant connects with one over the Model Context Protocol and reads what the screens show: targets, days with both readings, foods, recent items and saved meals, a barcode lookup, and the rules for reading every figure. With a writing key it logs, plans, changes, marks, copies, removes and restores entries, adds and edits the person's own foods and portions, marks favourites, saves, edits and archives saved meals, and sets and removes targets. Every change it makes is recorded under the connection's name, and the person reads that record in Settings under Activity.
+- **[Connected AI](features/connected-ai.md)**: named connection keys a person makes to give their own AI assistant access, read only or read and write, each with a lifetime, shown once and revoked at will. Keys are made, listed and revoked in Settings. An assistant connects with one over the Model Context Protocol and reads what the screens show: targets, days with both readings, foods, recent items, saved meals and recipes, a barcode lookup, a recipe draft's preview, and the rules for reading every figure. With a writing key it logs, plans, changes, marks, copies, removes and restores entries, adds and edits the person's own foods and portions, marks favourites, saves, edits and archives saved meals, creates, edits, tags and archives recipes and marks them as favourites, and sets and removes targets. Every change it makes is recorded under the connection's name, and the person reads that record in Settings under Activity.
 
 ## The app
 

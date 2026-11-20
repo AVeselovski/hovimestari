@@ -1,4 +1,4 @@
-import type { SavedMeal } from "@hovimestari/types";
+import { fold, type SavedMeal } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
 // The log sheet finds saved meals on the device: the list is the user's own
@@ -9,11 +9,6 @@ import type { SavedMeal } from "@hovimestari/types";
 // or more, so a chosen source counts only then (`activeSource`): no filter is
 // ever in force that the user cannot see and clear.
 // ---------------------------------------------------------------------------
-
-/** Lower case with accents taken off: "Pähkinä" reads "pahkina". */
-export function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("fi");
-}
 
 /** The meals whose name or source holds every word of `query`, from `source` alone when one is chosen. */
 export function mealFilter(meals: readonly SavedMeal[], query: string, source: string | null = null): SavedMeal[] {

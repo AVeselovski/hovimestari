@@ -13,6 +13,8 @@ export class AppError extends Error {
   public readonly code?: ErrorCode;
   /** When to try again, in seconds. The error middleware sends it as `Retry-After`. */
   public readonly retryAfterSeconds?: number;
+  /** The index from 0 of the recipe line the refusal is about. The error middleware sends it as `line`. */
+  public readonly line?: number;
 
   constructor(
     public override readonly message: string,
@@ -23,12 +25,13 @@ export class AppError extends Error {
      * a failed write). The error middleware never returns the cause to the
      * client: it is for logs and debuggers.
      */
-    options: { code?: ErrorCode; cause?: unknown; retryAfterSeconds?: number } = {},
+    options: { code?: ErrorCode; cause?: unknown; retryAfterSeconds?: number; line?: number } = {},
   ) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
     this.name = "AppError";
     this.code = options.code;
     this.retryAfterSeconds = options.retryAfterSeconds;
+    this.line = options.line;
   }
 }
 
@@ -121,8 +124,29 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     "Too many changes in a minute. Wait a minute, then send the same call again with the same requestKey. A change that already landed is not made twice.",
   assistant_changes_per_hour:
     "This account has had 300 changes by assistants in the last hour. Make the rest in the app, or wait.",
+  recipe_not_found: "This recipe is no longer available.",
+  recipe_id_taken: "This recipe id is already in use.",
+  ingredient_id_taken: "This ingredient line id is already in use.",
+  recipe_lines_required: "Add at least one ingredient.",
+  recipe_lines_too_many: "A recipe has at most 60 ingredient lines.",
+  recipe_servings_invalid: "Enter a whole number of servings from 1 to 100.",
+  recipe_time_invalid: "Enter a whole number of minutes from 1 to 1440.",
+  recipe_serving_too_large: "One serving comes to more than 10000 kcal or 1000 g of a macro.",
+  step_too_long: "Use at most 1000 characters in a step.",
+  steps_too_many: "A recipe has at most 40 steps.",
+  notes_too_long: "Use at most 2000 characters.",
+  tag_invalid: "A tag has 1 to 30 characters.",
+  tags_too_many: "A recipe has at most 10 tags.",
+  line_name_required: "Give the ingredient a name.",
+  line_name_too_long: "Use at most 80 characters.",
+  line_note_too_long: "Use at most 80 characters.",
+  written_amount_invalid: "Enter an amount above zero with at most two decimals, and a unit from the list.",
 };
 
 /** An AppError for `code`, with the code's fixed message, and when to try again if that is known. */
 export const appError = (code: ErrorCode, status: number, retryAfterSeconds?: number): AppError =>
   new AppError(ERROR_MESSAGES[code], status, { code, retryAfterSeconds });
+
+/** An AppError for `code` about the recipe line at `line`, its index from 0. */
+export const lineError = (code: ErrorCode, status: number, line: number): AppError =>
+  new AppError(ERROR_MESSAGES[code], status, { code, line });

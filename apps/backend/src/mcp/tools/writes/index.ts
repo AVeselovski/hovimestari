@@ -10,6 +10,7 @@ import {
 } from "./entries.js";
 import { addPortionTool, createOwnFoodTool, setFavouriteTool, updateOwnFoodTool, updatePortionTool } from "./foods.js";
 import { createSavedMealTool, setSavedMealArchivedTool, updateSavedMealTool } from "./meals.js";
+import { createRecipeTool, setRecipeArchivedTool, setRecipeFavouriteTool, updateRecipeTool } from "./recipes.js";
 import type { WriteTool } from "./run.js";
 import { removeTargetsTool, setTargetsTool } from "./targets.js";
 
@@ -38,6 +39,10 @@ export const WRITE_TOOLS: readonly AnyWriteTool[] = [
   createSavedMealTool,
   updateSavedMealTool,
   setSavedMealArchivedTool,
+  createRecipeTool,
+  updateRecipeTool,
+  setRecipeArchivedTool,
+  setRecipeFavouriteTool,
   setTargetsTool,
   removeTargetsTool,
 ];
