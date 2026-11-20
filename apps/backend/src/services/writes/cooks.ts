@@ -241,7 +241,9 @@ export async function createCook(ctx: WriteContext, body: CookBody): Promise<Wri
  * and its recipe's time, steps, notes and tags. No image. The cook and its
  * entries keep pointing where they did. A repeated id of the user's answers
  * the recipe with `replayed`. Another user's: 409 `recipe_id_taken`.
- * Unknown cook: 404 `cook_not_found`.
+ * Unknown cook: 404 `cook_not_found`. A serving of its lines from their
+ * foods now past what an entry holds: 400 `recipe_serving_too_large`, as
+ * `createRecipe` refuses it.
  */
 export async function saveCookAsRecipe(
   ctx: WriteContext,
@@ -261,6 +263,24 @@ export async function saveCookAsRecipe(
       .where(and(eq(cooks.id, cookId), eq(cooks.userId, ctx.userId)))
       .for("share");
     if (!cook) throw appError("cook_not_found", 404);
+    // The new recipe must be one createRecipe would take: one serving of its
+    // lines from their foods now within an entry's cap. Its own foods FOR
+    // SHARE in id order, as every write that reads foods into lines. A line
+    // keeps its food, hidden or retired since, as a line kept on a recipe does.
+    const counted = await tx
+      .select({ foodId: cookIngredients.foodId, grams: cookIngredients.grams })
+      .from(cookIngredients)
+      .where(
+        and(
+          eq(cookIngredients.cookId, cook.id),
+          eq(cookIngredients.userId, ctx.userId),
+          isNotNull(cookIngredients.foodId),
+        ),
+      );
+    const foodIds = counted.map((l) => l.foodId!);
+    const lineFoods = await readLineFoods(tx, ctx, foodIds, foodIds, { lock: true });
+    const basisLines = counted.map((l) => ({ food: lineFoods.get(l.foodId!)!, grams: l.grams }));
+    if (cappedServingBasis(basisLines, cook.servings) === null) throw appError("recipe_serving_too_large", 400);
     const [source] = await tx.select().from(recipes).where(eq(recipes.id, cook.recipeId));
     const [recipe] = await tx
       .insert(recipes)

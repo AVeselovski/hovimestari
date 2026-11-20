@@ -188,6 +188,42 @@ await describeWithDb("cookReads", (suite) => {
       expect([blank.status, blank.body.code]).toEqual([400, "name_required"]);
     });
 
+    it("refuses a cook whose serving an own food edited since takes past an entry's cap, as a recipe save does", async () => {
+      const user = await signUp(suite.client);
+      const food = await d.ownFood(user, OWN);
+      const body = recipeBody([counted(food, { grams: 5000 }), counted(food, { grams: 5000 })], { servings: 1 });
+      await r.created(user, body);
+      const made = await cookOf(user, body, asMade(body.lines), 1);
+      const edit = await d
+        .api()
+        .put(d.v1(`/foods/${food}`))
+        .set(user.auth)
+        .send({ name: "Oma ruoka", per100g: { ...OWN, energyKcal: OWN.energyKcal + 1 }, barcode: null });
+      expect(edit.status).toBe(200);
+      const id = randomUUID();
+      const res = await c.saveAsRecipe(user, made.cook.id, { id, name: "Too much" });
+      expect([res.status, res.body.code]).toEqual([400, "recipe_serving_too_large"]);
+      expect((await r.get(user, id)).status).toBe(404);
+    });
+
+    it("copies a line whose own food was deleted since, the food kept hidden on it, as a recipe line keeps its food", async () => {
+      const user = await signUp(suite.client);
+      const { food, body } = await recipe(user);
+      const made = await cookOf(user, body, asMade(body.lines));
+      expect(
+        (
+          await d
+            .api()
+            .delete(d.v1(`/foods/${food}`))
+            .set(user.auth)
+        ).status,
+      ).toBe(204);
+      const res = await c.saveAsRecipe(user, made.cook.id, { id: randomUUID(), name: "Shakshuka again" });
+      expect(res.status).toBe(201);
+      expect(res.body.lines[0].food).toMatchObject({ id: food, deleted: true });
+      expect(res.body.perServing).toEqual(made.cook.perServing);
+    });
+
     it("works for a cook whose recipe was deleted since", async () => {
       const user = await signUp(suite.client);
       const { body } = await recipe(user);

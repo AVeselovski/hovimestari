@@ -101,7 +101,7 @@ export const APP_RULES_SOURCES: Record<string, string> = {
   "foods.md": "39dd17b2958a68fc8599b5a629466fc8b2ef2421f2f49042be20ecada6c2a374",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "780098a72f8f32607603e71c6a3c79115f1371cd15cfd4dd82bbbcaa9a55e4cd",
-  "recipes.md": "657de6ba850abc9fdd0056ce2acbcfc6ef1cacd63cc9ebf01297831f5500b266",
+  "recipes.md": "fcfd922d07fc391111044d15665cf155bc79a5ba02af8786a8d52f8a23417fa6",
   "saved-meals.md": "9085297c760a9c079db155bd9be519dc96afa0edac26bc516784361ff398605f",
   "targets.md": "c3a8e3e1dd39115af77c0dee4dafae547d98b9a1a424ec47e4039cda799e553f",
 };
