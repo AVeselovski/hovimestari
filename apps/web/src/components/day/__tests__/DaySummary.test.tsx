@@ -1,3 +1,4 @@
+import { clockFrom } from "@/__tests__/helpers/clock";
 import { render, screen } from "@testing-library/react";
 import { DaySummary } from "../DaySummary";
 import { dayOf, estimateEntry, foodEntry, RANGES, TODAY } from "./support";
@@ -70,16 +71,21 @@ describe("DaySummary", () => {
     // Six lines keep their room: four distances, the estimate note and the unmarked note.
     expect(forms).toHaveLength(6);
     expect(forms.every((f) => f.length > 0)).toBe(true);
-    // Each distance keeps the room of its macro's three shown forms at the longest distance, in both columns.
+    // Each distance keeps the room of its macro's three shown forms at the longest distance, and of the
+    // words a past reading with nothing recorded shows, in both columns.
     const energy = [
       "8888.8\u00a0kcal below the range",
       "8888.8\u00a0kcal to the upper bound",
       "8888.8\u00a0kcal above the range",
+      "No entries",
+      "Nothing marked eaten",
     ];
     const protein = [
       "8888.8\u00a0g below the floor",
       "8888.8\u00a0g to the upper bound",
       "8888.8\u00a0g above the range",
+      "No entries",
+      "Nothing marked eaten",
     ];
     expect(forms.slice(0, 4)).toEqual([energy, energy, protein, protein]);
     expect(forms[4]).toEqual(["These totals include an estimate.", "Planned entries include an estimate."]);
@@ -127,8 +133,7 @@ describe("DaySummary", () => {
     const at = (kcal: number, protein: number) =>
       foodEntry("Mixed", 100, { basis: { energyKcal: kcal, proteinG: protein, carbsG: 0, fatG: 0 } });
     // A range bound with a decimal gives a distance with one: 959.5 kcal from 1899.5 kcal.
-    const halfway = dayOf([at(940, 20)]);
-    for (const reading of [halfway.eaten, halfway.withPlan]) reading.energy = { position: "below", distance: 959.5 };
+    const halfway = dayOf([at(940, 20)], TODAY, TODAY, { ...RANGES, energyKcal: { lower: 1899.5, upper: 2200 } });
     const { rerender } = render(<DaySummary date={TODAY} day={halfway} past={false} />);
     const distances = () => [...document.querySelectorAll("[data-distance]")].map((d) => d.textContent);
     expect(distances()).toEqual([
@@ -296,5 +301,83 @@ describe("DaySummary", () => {
       "withPlan",
     ]);
     expect([...energy.querySelectorAll("dt")].map((dt) => dt.textContent)).toEqual(["Eaten", "Planned"]);
+  });
+
+  describe("a past day with nothing recorded", () => {
+    // The fixtures' today is Monday 16 November 2026. The clock reads that day, so nothing here moves with the real date.
+    const yesterday = "2026-11-15";
+    beforeEach(() => clockFrom(`${TODAY}T10:00:00Z`));
+    afterEach(() => jest.restoreAllMocks());
+
+    const words = () => [...document.querySelectorAll("[data-distance-none]")].map((w) => w.textContent);
+
+    it('says "No entries" in all four distance slots of an empty past day, muted, and reads it after the figure', () => {
+      render(<DaySummary date={yesterday} day={dayOf([], yesterday)} past />);
+      expect(document.querySelectorAll("[data-distance]")).toHaveLength(4);
+      expect([...document.querySelectorAll("[data-distance]")].map((d) => d.textContent)).toEqual(["", "", "", ""]);
+      expect(words()).toEqual(["No entries", "No entries", "No entries", "No entries"]);
+      for (const w of document.querySelectorAll("[data-distance-none]")) {
+        expect(w.className.split(/\s+/)).toContain("text-ink-muted");
+        expect(w).not.toHaveAttribute("aria-hidden");
+      }
+      expect(cells("energy")).toEqual(["0 kcalNo entries", "0 kcalNo entries"]);
+      expect(spokenCells("energy")).toEqual(["Eaten0 kcalNo entries", "Planned0 kcalNo entries"]);
+      expect(spokenCells("protein")).toEqual(["Eaten0 gNo entries", "Planned0 gNo entries"]);
+      // Never the gap a plan is made from: nothing was recorded.
+      const summary = shownText(document.querySelector("[data-day-summary]")!);
+      expect(summary).not.toMatch(/below the (range|floor)/);
+      // The gauge keeps its band and ticks, with no fill.
+      expect(part("energy", "band")).not.toBeNull();
+      expect(part("energy", "tick-lower")).not.toBeNull();
+      expect(part("energy", "eaten")).toBeNull();
+      expect(part("energy", "plan")).toBeNull();
+    });
+
+    it('says "Nothing marked eaten" under Eaten only on a past day holding only planned entries', () => {
+      const planned = [foodEntry("A", 100, { status: "planned" }), foodEntry("B", 100, { status: "planned" })];
+      render(<DaySummary date={yesterday} day={dayOf(planned, yesterday)} past />);
+      expect(words()).toEqual(["Nothing marked eaten", "Nothing marked eaten"]);
+      expect(cells("energy")).toEqual(["0 kcalNothing marked eaten", "118 kcal1782 kcal below the range"]);
+      expect(spokenCells("protein")).toEqual(["Eaten0 gNothing marked eaten", "Planned24.8 g115.2 g below the floor"]);
+      expect(document.querySelector('[data-note="unmarked"]')).toHaveTextContent(
+        "2 planned entries were never marked eaten.",
+      );
+    });
+
+    it("keeps its distances on an empty today, and has no words", () => {
+      render(<DaySummary date={TODAY} day={dayOf([])} past={false} />);
+      expect(words()).toEqual([]);
+      expect(cells("energy")).toEqual(["0 kcal1900 kcal below the range", "0 kcal1900 kcal below the range"]);
+    });
+
+    it("keeps every line's room the same on a day with distances, an empty past day, a planned-only past day, an empty today and the frame", () => {
+      const planned = foodEntry("A", 100, { status: "planned" });
+      const { rerender } = render(
+        <DaySummary date={yesterday} day={dayOf([foodEntry("Quark", 250)], yesterday)} past />,
+      );
+      const forms = reservedForms();
+      // Each distance slot keeps room for the words as for its distances, so neither can make it taller.
+      for (const slot of forms.slice(0, 4))
+        expect(slot).toEqual(expect.arrayContaining(["No entries", "Nothing marked eaten"]));
+      const wordsInSlot = () =>
+        [...document.querySelectorAll("[data-distance-none]")].every((w) => w.closest("[data-reserved]") !== null);
+      rerender(<DaySummary date={yesterday} day={dayOf([], yesterday)} past />);
+      expect(reservedForms()).toEqual(forms);
+      expect(wordsInSlot()).toBe(true);
+      rerender(<DaySummary date={yesterday} day={dayOf([planned], yesterday)} past />);
+      expect(reservedForms()).toEqual(forms);
+      expect(wordsInSlot()).toBe(true);
+      rerender(<DaySummary date={yesterday} day={null} past />);
+      expect(reservedForms()).toEqual(forms);
+      rerender(<DaySummary date={TODAY} day={dayOf([])} past={false} />);
+      // Today has no unmarked line: the four distances and the estimate note keep the same room.
+      expect(reservedForms()).toEqual(forms.slice(0, 5));
+    });
+
+    it("has no slot and no words on a past day without targets", () => {
+      render(<DaySummary date={yesterday} day={dayOf([], yesterday, TODAY, null)} past noTargets={{ kind: "none" }} />);
+      expect(words()).toEqual([]);
+      expect(document.querySelectorAll("[data-distance]")).toHaveLength(0);
+    });
   });
 });

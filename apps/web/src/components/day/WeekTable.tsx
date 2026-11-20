@@ -250,7 +250,7 @@ function WeekRow({ date, day, isToday, shown, autoFocus, predictedWithout, onPic
             data-week-empty=""
             className="h-6.5 pt-1.5 pl-3 align-top text-sm leading-5 whitespace-nowrap text-ink-muted md:h-8 md:pt-2 md:text-base md:leading-6"
           >
-            {t("week.empty")}
+            {t("reading.noEntries")}
           </td>
         ) : (
           MACROS.flatMap((macro) => READINGS.map((which) => figureCell(macro, which)))

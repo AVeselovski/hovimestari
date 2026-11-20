@@ -97,6 +97,47 @@ await describeWithDb("days", (suite) => {
       expect([now.date, now.relation, now.plannedCount, now.unmarkedCount]).toEqual([today(), "today", 1, 0]);
     });
 
+    it("a past day with no entries has no positions, and keeps its targets", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, "2026-01-01", [1900, 2200], [130, 170]);
+      const { body } = await d.day(user, addDays(today(), -1));
+      expect([body.relation, body.entryCount]).toEqual(["past", 0]);
+      expect(body.targets).toEqual({ energyKcal: { lower: 1900, upper: 2200 }, proteinG: { lower: 130, upper: 170 } });
+      for (const reading of [body.eaten, body.withPlan]) {
+        expect(reading).toEqual({
+          figures: { energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+          energy: null,
+          protein: null,
+          includesEstimate: false,
+        });
+      }
+    });
+
+    it("a past day with only planned entries has no eaten position, and a Planned one", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, "2026-01-01", [1900, 2200], [130, 170]);
+      const meal = await d.meal(user, { energyKcal: 2310, proteinG: 148.4, carbsG: 0, fatG: 0 });
+      const yesterday = addDays(today(), -1);
+      await d.added(user, d.mealBody(meal, 1, { date: yesterday, status: "planned" }));
+      const { body } = await d.day(user, yesterday);
+      expect([body.eaten.energy, body.eaten.protein]).toEqual([null, null]);
+      expect(body.withPlan.energy).toEqual({ position: "above", distance: 110 });
+      expect(body.withPlan.protein).toEqual({ position: "within", distance: 21.6 });
+      expect(body.unmarkedCount).toBe(1);
+    });
+
+    it("today and a future day keep their positions while empty: the distance to the lower bound", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, "2026-01-01", [1900, 2200], [130, 170]);
+      for (const date of [today(), addDays(today(), 1)]) {
+        const { body } = await d.day(user, date);
+        for (const reading of [body.eaten, body.withPlan]) {
+          expect(reading.energy).toEqual({ position: "below", distance: 1900 });
+          expect(reading.protein).toEqual({ position: "below", distance: 130 });
+        }
+      }
+    });
+
     it("never holds another user's entries", async () => {
       const user = await signUp(suite.client);
       const other = await signUp(suite.client);
@@ -126,6 +167,16 @@ await describeWithDb("days", (suite) => {
       expect((await getDay(ctx, addDays(date, -1))).relation).toBe("past");
       expect((await getDay(ctx, date)).relation).toBe("today");
       expect((await getDay(ctx, addDays(date, 1))).relation).toBe("future");
+    });
+
+    it("an empty day loses its positions at the person's midnight, when it becomes a past day", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, "2026-01-01", [1900, 2200], [130, 170]);
+      const { getDay } = await import("../../services/reads/days.js");
+      const before = await getDay(await d.contextAt(user.id, new Date("2026-03-28T21:59:59Z")), "2026-03-28");
+      expect([before.relation, before.eaten.energy]).toEqual(["today", { position: "below", distance: 1900 }]);
+      const after = await getDay(await d.contextAt(user.id, new Date("2026-03-28T22:00:00Z")), "2026-03-28");
+      expect([after.relation, after.eaten.energy, after.withPlan.protein]).toEqual(["past", null, null]);
     });
   });
 
@@ -161,6 +212,21 @@ await describeWithDb("days", (suite) => {
       expect(res.body.days[1].withPlan.figures.energyKcal).toBe(1100); // the figures stay
       expect(res.body.days[2].targets.energyKcal.lower).toBe(1800);
       expect(res.body.days[11].targets.energyKcal.lower).toBe(2000);
+    });
+
+    it("equals getDay on an empty past day, an empty today and an empty future day", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, "2026-01-01", [1900, 2200], [130, 170]);
+      const from = addDays(today(), -1);
+      const res = await d.range(user, from, addDays(today(), 1));
+      expect(res.body.days.map((day: { relation: string }) => day.relation)).toEqual(["past", "today", "future"]);
+      for (const summary of res.body.days) {
+        const { entries, ...day } = (await d.day(user, summary.date)).body;
+        expect(summary).toEqual(day);
+        expect(entries).toEqual([]);
+      }
+      expect(res.body.days[0].eaten.energy).toBeNull();
+      expect(res.body.days[1].eaten.energy).toEqual({ position: "below", distance: 1900 });
     });
 
     it("pins inForceOn to targetsOn on every date around three changes", async () => {

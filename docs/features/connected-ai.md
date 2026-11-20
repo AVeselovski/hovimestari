@@ -48,7 +48,7 @@ Then it can read the rest, each from the same read the app's own screens use:
 - `list_saved_meals` and `get_saved_meal`: the saved meals, active or archived, and one of them.
 - `look_up_barcode`: the [barcode lookup](foods.md#looking-up-a-barcode) the log sheet runs. It may call Open Food Facts, and it spends the person's own budget of lookups, shared with their own lookups in the app. A product it finds there is kept, and from then on it turns up in the person's food search. The answer says when this lookup did that. It changes none of the person's data.
 
-Every day an assistant reads carries both readings, what was eaten and what the day comes to with the plan. A day before the first change of targets, or of a person with none, answers no targets and no positions, and its figures stand alone. No figure is filled in from a nearby change. A date may be `today`, which is the person's today in their time zone.
+Every day an assistant reads carries both readings, what was eaten and what the day comes to with the plan. A day before the first change of targets, or of a person with none, answers no targets and no positions, and its figures stand alone. No figure is filled in from a nearby change. A past day's reading with no entries answers no position and keeps its targets, as [where a day stands](days.md#where-a-day-stands) describes. The app rules tell the assistant that such a reading records nothing, so its zero is not what the person ate. A date may be `today`, which is the person's today in their time zone.
 
 The assistant reads only the data of the person who made the key. Nothing it sends can name another person. Names of foods and meals come back as data, exactly as typed.
 

@@ -19,7 +19,10 @@ import type { NoTargets } from "./noTargets";
 // screen reader hears each figure's reading (`sr-only` terms), and the two
 // columns never merge, also when they are equal. For calories and protein a
 // gauge and, under it, each reading's figure and its distance from the
-// range. Carbohydrates and fat as a two-row table in the same columns. Then
+// range. A past reading with nothing recorded has no distance: its slot
+// says so in muted words, "No entries" on an empty day and "Nothing marked
+// eaten" under Eaten on a day holding only planned entries. Carbohydrates
+// and fat as a two-row table in the same columns. Then
 // two notes: whether a reading includes an estimate, and how many planned
 // entries a past day never had marked eaten.
 //
@@ -149,13 +152,20 @@ function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactEl
   const value = (r: DayReading) => (macro === "energy" ? r.figures.energyKcal : r.figures.proteinG);
   const format = macro === "energy" ? formatKcal : formatGrams;
   const unit = macro === "energy" ? t("kcal") : t("grams");
-  // The same room in both columns: the longest of this macro's three forms.
-  const longest = POSITIONS.map((p) => distanceCopy(t, macro, p, LONGEST_DISTANCE).shown);
+  const noEntries = names("noEntries");
+  const noneEaten = names("noneEaten");
+  // The same room in both columns: the longest of this macro's three forms, and the words a past
+  // reading with nothing recorded shows, so neither kind of slot is ever taller than the other.
+  const longest = [...POSITIONS.map((p) => distanceCopy(t, macro, p, LONGEST_DISTANCE).shown), noEntries, noneEaten];
 
   const cell = (which: "eaten" | "withPlan") => {
     const reading = readingOf(day, which);
     const position = reading ? (macro === "energy" ? reading.energy : reading.protein) : null;
     const copy = position ? distanceCopy(t, macro, position.position, formatTarget(position.distance)) : null;
+    // A day with targets whose reading has no position: a past reading with nothing recorded. The
+    // server positions every other reading of a day with targets. Only Eaten can be empty on a day
+    // that holds entries, so the day's own count picks the words.
+    const unrecorded = day?.targets && reading && !position ? (day.entryCount === 0 ? noEntries : noneEaten) : null;
     return (
       <div data-reading={which}>
         <dt className="sr-only">{which === "eaten" ? names("eaten") : names("planned")}</dt>
@@ -171,6 +181,12 @@ function MacroBlock({ macro, date, day, figuresOnly }: MacroBlockProps): ReactEl
                 {copy?.shown}
               </span>
               {copy && <span className="sr-only">{copy.spoken}</span>}
+              {/* Shown and spoken alike: "Eaten, 0 kcal, No entries". */}
+              {unrecorded && (
+                <span data-distance-none="" className="text-ink-muted">
+                  {unrecorded}
+                </span>
+              )}
             </Reserved>
           )}
         </dd>

@@ -16,4 +16,5 @@
 - [Connected AI design](project_connected_ai_design.md): record wrapper plus services/writes/recorded, entity ids, writes off by default, per-user limits, reveal store
 - [MCP clients and SDK, 2026-11](reference_mcp_clients_2026_11.md): SDK pins vs npm, which Claude clients take a static key, mcp-remote
 - [Design review round trips](feedback_design_review_round_trips.md): checks to run before review: slice tables, real primitives, no-op outcomes, per-user limits
+- [Week average and unlogged days](project_week_average_unlogged.md): past empty readings unpositioned, per-reading day sets, marks gauge
 - [Recipes design](project_recipes_design.md): per-serving basis, cooks only as made, copy detaches, images in Postgres

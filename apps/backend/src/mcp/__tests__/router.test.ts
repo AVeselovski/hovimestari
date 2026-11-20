@@ -375,6 +375,16 @@ describe("/mcp through the MCP client", () => {
     await client.close();
   });
 
+  it("says in both day tools that a past day's reading with no entries has no position", async () => {
+    const client = await connect(server.url, READ_KEY);
+    const { tools } = await client.listTools();
+    for (const name of ["get_day", "get_days"]) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool?.description).toContain("A past day's reading with no entries has no position.");
+    }
+    await client.close();
+  });
+
   it.each(["legacy", "modern"] as const)("serves the app rules as a resource (%s era)", async (era) => {
     const client = await connect(server.url, READ_KEY, era);
     const { resources } = await client.listResources();

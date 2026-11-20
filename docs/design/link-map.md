@@ -124,34 +124,34 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Days and logging
 
-| Concept                                         | Home                                                         | Heading                                |
-| ----------------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
-| day, entry, food entry, saved meal entry        | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
-| planned and eaten, unmarked                     | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
-| the two totals, eaten, planned, rounding        | `features/days.md#the-two-totals`                            | `### The two totals`                   |
-| position, distance, where a day stands          | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
-| figures that stay, basis, hidden source         | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
-| the week, a range of days                       | `features/days.md#the-week`                                  | `### The week`                         |
-| estimate                                        | `features/days.md#estimates`                                 | `### Estimates`                        |
-| the figure computation                          | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
-| adding, editing and moving an entry             | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
-| marking eaten, marking planned                  | `features/quick-logging.md#marking-eaten`                    | `### Marking eaten`                    |
-| copying entries                                 | `features/quick-logging.md#copying-entries`                  | `### Copying entries`                  |
-| recent items, the last amount                   | `features/quick-logging.md#recent-items-and-the-last-amount` | `### Recent items and the last amount` |
-| logging again                                   | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
-| client-chosen ids, replays                      | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
-| undo, removing and restoring an entry           | `features/quick-logging.md#undo`                             | `### Undo`                             |
-| without a connection, refused writes            | `features/quick-logging.md#without-a-connection`             | `### Without a connection`             |
-| web entry writes, counted writes, held          | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
-| the log sheet                                   | `features/quick-logging.md#the-log-sheet`                    | `### The log sheet`                    |
-| pending ids, one-tap adds                       | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
-| user row lock, write races                      | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
-| saved meal, meal source                         | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
-| a save that could not confirm, saved meal retry | `features/saved-meals.md#a-save-that-could-not-confirm`      | `### A save that could not confirm`    |
-| archiving and deleting a saved meal             | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |
-| source filter, finding a meal by its source     | `features/saved-meals.md#finding-a-meal-by-its-source`       | `### Finding a meal by its source`     |
-| saving and logging a meal, editing a meal       | `features/saved-meals.md#saving-and-logging-a-meal`          | `### Saving and logging a meal`        |
-| saved meal writes from the web, the meal cache  | `features/saved-meals.md#writes-from-the-web-app`            | `### Writes from the web app`          |
+| Concept                                                  | Home                                                         | Heading                                |
+| -------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| day, entry, food entry, saved meal entry                 | `features/days.md#a-day-and-its-entries`                     | `### A day and its entries`            |
+| planned and eaten, unmarked                              | `features/days.md#planned-and-eaten`                         | `### Planned and eaten`                |
+| the two totals, eaten, planned, rounding                 | `features/days.md#the-two-totals`                            | `### The two totals`                   |
+| position, distance, where a day stands, nothing recorded | `features/days.md#where-a-day-stands`                        | `### Where a day stands`               |
+| figures that stay, basis, hidden source                  | `features/days.md#figures-that-stay`                         | `### Figures that stay`                |
+| the week, a range of days                                | `features/days.md#the-week`                                  | `### The week`                         |
+| estimate                                                 | `features/days.md#estimates`                                 | `### Estimates`                        |
+| the figure computation                                   | `features/days.md#how-figures-are-computed`                  | `### How figures are computed`         |
+| adding, editing and moving an entry                      | `features/quick-logging.md#adding-and-changing-an-entry`     | `### Adding and changing an entry`     |
+| marking eaten, marking planned                           | `features/quick-logging.md#marking-eaten`                    | `### Marking eaten`                    |
+| copying entries                                          | `features/quick-logging.md#copying-entries`                  | `### Copying entries`                  |
+| recent items, the last amount                            | `features/quick-logging.md#recent-items-and-the-last-amount` | `### Recent items and the last amount` |
+| logging again                                            | `features/quick-logging.md#logging-again`                    | `### Logging again`                    |
+| client-chosen ids, replays                               | `features/quick-logging.md#a-request-sent-twice`             | `### A request sent twice`             |
+| undo, removing and restoring an entry                    | `features/quick-logging.md#undo`                             | `### Undo`                             |
+| without a connection, refused writes                     | `features/quick-logging.md#without-a-connection`             | `### Without a connection`             |
+| web entry writes, counted writes, held                   | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
+| the log sheet                                            | `features/quick-logging.md#the-log-sheet`                    | `### The log sheet`                    |
+| pending ids, one-tap adds                                | `features/quick-logging.md#writes-from-the-web-app`          | `### Writes from the web app`          |
+| user row lock, write races                               | `features/quick-logging.md#locks-and-races`                  | `### Locks and races`                  |
+| saved meal, meal source                                  | `features/saved-meals.md#a-saved-meal`                       | `### A saved meal`                     |
+| a save that could not confirm, saved meal retry          | `features/saved-meals.md#a-save-that-could-not-confirm`      | `### A save that could not confirm`    |
+| archiving and deleting a saved meal                      | `features/saved-meals.md#archiving-and-deleting`             | `### Archiving and deleting`           |
+| source filter, finding a meal by its source              | `features/saved-meals.md#finding-a-meal-by-its-source`       | `### Finding a meal by its source`     |
+| saving and logging a meal, editing a meal                | `features/saved-meals.md#saving-and-logging-a-meal`          | `### Saving and logging a meal`        |
+| saved meal writes from the web, the meal cache           | `features/saved-meals.md#writes-from-the-web-app`            | `### Writes from the web app`          |
 
 ## Connected AI
 

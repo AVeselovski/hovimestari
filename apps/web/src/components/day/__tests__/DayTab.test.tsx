@@ -21,7 +21,7 @@ import {
   serve,
   toasts,
 } from "./harness";
-import { TODAY, estimateEntry, foodEntry, mealEntry } from "./support";
+import { TODAY, dayOf, estimateEntry, foodEntry, mealEntry } from "./support";
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
@@ -381,7 +381,7 @@ describe("DayTab, today", () => {
     jest.mocked(getDay).mockImplementation(async (date) => {
       const day = server.day(date);
       const ranges = { energyKcal: { lower: 1500, upper: 1700 }, proteinG: day.targets!.proteinG };
-      return { ...day, targets: ranges, eaten: { ...day.eaten, energy: { position: "below", distance: 1352 } } };
+      return dayOf(day.entries, date, day.today, ranges);
     });
     await act(() => afterTargetsChange(view.client));
     expect(await screen.findByText(range("1500 to 1700\u00a0kcal"))).toBeInTheDocument();
