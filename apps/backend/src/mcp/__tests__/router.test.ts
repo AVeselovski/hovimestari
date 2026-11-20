@@ -277,7 +277,7 @@ describe("/mcp through the MCP client", () => {
     const client = await connect(server.url, READ_KEY, era);
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual(READ_TOOLS.map((t) => t.name));
-    expect(tools).toHaveLength(12);
+    expect(tools).toHaveLength(15);
     await client.close();
   });
 
@@ -288,7 +288,7 @@ describe("/mcp through the MCP client", () => {
       const client = await connect(server.url, WRITE_KEY, era);
       const { tools } = await client.listTools();
       expect(tools.map((t) => t.name)).toEqual([...READ_TOOLS, ...WRITE_TOOLS].map((t) => t.name));
-      expect(tools).toHaveLength(30);
+      expect(tools).toHaveLength(37);
       await client.close();
     },
   );
@@ -298,7 +298,7 @@ describe("/mcp through the MCP client", () => {
     const client = await connect(server.url, WRITE_KEY);
     const { tools } = await client.listTools();
     const writes = tools.filter((t) => WRITE_TOOLS.some((w) => w.name === t.name));
-    expect(writes).toHaveLength(18);
+    expect(writes).toHaveLength(22);
     const destructive = [
       "update_entry",
       "set_entries_status",
@@ -307,6 +307,9 @@ describe("/mcp through the MCP client", () => {
       "update_portion",
       "update_saved_meal",
       "set_saved_meal_archived",
+      "update_recipe",
+      "set_recipe_archived",
+      "set_recipe_favourite",
       "set_targets",
       "remove_targets",
     ];

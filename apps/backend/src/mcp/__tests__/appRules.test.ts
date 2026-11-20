@@ -116,7 +116,7 @@ describe("APP_RULES", () => {
 
   it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {
     expect(WRITE_RULES).toContain(
-      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, and change targets.",
+      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes and mark them as favourites, and change targets.",
     );
     expect(WRITE_RULES).toContain("Values the person reads from a label go in with create_own_food.");
     expect(WRITE_RULES).toContain("Set them only with the numbers the person gave, from the date they gave");
@@ -131,7 +131,7 @@ describe("APP_RULES", () => {
 
   it("names no deletion tool while no tool can delete", () => {
     expect(`${APP_RULES}${WRITE_RULES}`).not.toContain("request_deletion");
-    expect(WRITE_RULES).toContain("This connection cannot delete foods or saved meals.");
+    expect(WRITE_RULES).toContain("This connection cannot delete foods, saved meals or recipes.");
   });
 
   it("never reads as leave to change anything the person did not ask for", () => {
@@ -140,6 +140,15 @@ describe("APP_RULES", () => {
       expect(WRITE_RULES.toLowerCase()).not.toContain(phrase);
     }
     expect(WRITE_RULES).toContain("Like every change, remove entries only when the person has asked for it.");
+  });
+
+  it("tells the assistant to quote a recipe's figures, and to enter a recipe from its foods through a preview", () => {
+    expect(APP_RULES).toContain("Quote them, never add up the lines yourself.");
+    expect(WRITE_RULES).toContain("never for a food you could not find");
+    expect(WRITE_RULES).toContain(
+      "Call preview_recipe, show each line's food and grams and the figures per serving from its answer, and create on their yes.",
+    );
+    expect(WRITE_RULES).toContain("A refusal names its line by index.");
   });
 
   it("gives a read key the estimate rule too", () => {

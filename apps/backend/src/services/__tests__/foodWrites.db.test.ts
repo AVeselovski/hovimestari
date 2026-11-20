@@ -1,4 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
+import { randomUUID } from "node:crypto";
 import { signUp } from "../../__tests__/support/apiUser.js";
 import { insertFineliFood } from "../../db/__tests__/support/seedOneOfEach.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
@@ -184,6 +185,33 @@ await describeWithDb("foodWrites", (suite) => {
       code: "target_change_not_found",
       status: 404,
     });
+  });
+
+  it("hides an own food a recipe line uses rather than deleting it, and the recipe still computes with it", async () => {
+    const { a, writes, food } = await setUp();
+    const ctx = await contextOf(a.id);
+    const { createRecipe } = await import("../writes/recipes.js");
+    const { getRecipe } = await import("../reads/recipes.js");
+    const id = randomUUID();
+    await createRecipe(ctx, {
+      id,
+      name: "Rahkapiirakka",
+      servings: 2,
+      timeMinutes: null,
+      lines: [{ id: randomUUID(), counted: true, foodId: food.id, amount: { grams: 300 }, written: null, note: null }],
+      steps: [],
+      notes: null,
+      tags: [],
+    });
+    expect((await writes.deleteOwnFood(ctx, food.id)).outcome).toBe("deleted");
+    const { rows } = await suite.client.query("SELECT deleted_at IS NOT NULL AS hidden FROM foods WHERE id = $1", [
+      food.id,
+    ]);
+    expect(rows).toEqual([{ hidden: true }]);
+    const recipe = await getRecipe(ctx, id);
+    expect(recipe.lines[0].food).toMatchObject({ id: food.id, deleted: true });
+    // 300 g at 100 kcal and 10 g per 100 g, halved.
+    expect(recipe.perServing).toMatchObject({ energyKcal: 150, proteinG: 15 });
   });
 
   it("answers no portions of a food the user cannot see", async () => {

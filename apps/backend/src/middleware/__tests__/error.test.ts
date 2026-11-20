@@ -3,7 +3,7 @@ import express, { type NextFunction, type Request, type Response } from "express
 import { randomUUID } from "node:crypto";
 import { format } from "node:util";
 import request from "supertest";
-import { AppError, appError, ERROR_MESSAGES } from "../../lib/errors.js";
+import { AppError, appError, ERROR_MESSAGES, lineError } from "../../lib/errors.js";
 import { errorHandler } from "../error.js";
 
 function mockRes() {
@@ -49,6 +49,19 @@ describe("errorHandler", () => {
     );
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ message: "Invalid email or password.", code: "invalid_credentials" });
+  });
+
+  it("sends the recipe line a refusal is about as line, and no line without one", () => {
+    const res = mockRes();
+    errorHandler(lineError("portion_not_found", 404, 3), req, res as unknown as Response, next);
+    expect(res.json).toHaveBeenCalledWith({
+      message: ERROR_MESSAGES.portion_not_found,
+      code: "portion_not_found",
+      line: 3,
+    });
+    const plain = mockRes();
+    errorHandler(appError("portion_not_found", 404), req, plain as unknown as Response, next);
+    expect(plain.json).toHaveBeenCalledWith({ message: ERROR_MESSAGES.portion_not_found, code: "portion_not_found" });
   });
 
   it("sends an AppError's retryAfterSeconds as Retry-After, and no header without one", () => {

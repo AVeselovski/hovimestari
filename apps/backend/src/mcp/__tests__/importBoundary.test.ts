@@ -125,6 +125,7 @@ describe("src/mcp import boundary", () => {
         "tools/writes/entries.ts",
         "tools/writes/foods.ts",
         "tools/writes/meals.ts",
+        "tools/writes/recipes.ts",
         "tools/writes/targets.ts",
       ]),
     );

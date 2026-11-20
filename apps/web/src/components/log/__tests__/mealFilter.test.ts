@@ -1,5 +1,6 @@
 import type { SavedMeal } from "@hovimestari/types";
-import { activeSource, fold, mealFilter, sortedSources, sourcesOf } from "../mealFilter";
+import { fold } from "@hovimestari/types";
+import { activeSource, mealFilter, sortedSources, sourcesOf } from "../mealFilter";
 
 const meal = (name: string, source: string | null): SavedMeal => ({
   id: name,

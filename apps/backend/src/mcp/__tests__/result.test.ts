@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { z } from "zod";
-import { appError } from "../../lib/errors.js";
+import { appError, lineError } from "../../lib/errors.js";
 import { defineTool, envelope, GENERIC_ERROR, runTool, UNITS, type ToolContext } from "../result.js";
 import { CONNECTION_ID, CONNECTION_NAME, TIME_ZONE, USER_ID } from "./harness.js";
 
@@ -81,6 +81,26 @@ describe("runTool", () => {
       content: [{ type: "text", text: "These targets no longer exist. (target_change_not_found)" }],
     });
     expect(log.mock.calls[0][0]).toMatch(/ refused$/);
+  });
+
+  it("names the recipe line a refusal is about by its index, and reads as before without one", async () => {
+    jest.spyOn(console, "log").mockImplementation(() => undefined);
+    const refused = (err: Error) =>
+      runTool(
+        echo(async () => {
+          throw err;
+        }),
+        ARGS,
+        ctx,
+      );
+    expect(await refused(lineError("food_not_found", 404, 3))).toEqual({
+      isError: true,
+      content: [{ type: "text", text: "This food is no longer available. (food_not_found, line: 3)" }],
+    });
+    expect(await refused(appError("food_not_found", 404))).toEqual({
+      isError: true,
+      content: [{ type: "text", text: "This food is no longer available. (food_not_found)" }],
+    });
   });
 
   it("adds the seconds until a retry to a limit's refusal, and never answers HTTP 429", async () => {

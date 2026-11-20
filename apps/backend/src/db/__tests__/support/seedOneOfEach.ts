@@ -15,6 +15,9 @@ export const SEEDED_TABLES = [
   "food_portions",
   "foods",
   "password_reset_tokens",
+  "recipe_ingredients",
+  "recipe_tags",
+  "recipes",
   "refresh_tokens",
   "removed_entries",
   "saved_meals",
@@ -75,6 +78,19 @@ export async function seedOneOfEach(client: pg.Client, userId: string): Promise<
     [userId],
   );
   await insertMealEntry(client, userId, meal.rows[0].id as string);
+  // One recipe, with one line on the user's own food and one tag.
+  const recipe = await client.query(
+    "INSERT INTO recipes (user_id, name, servings) VALUES ($1, 'Cascade recipe', 2) RETURNING id",
+    [userId],
+  );
+  await client.query(
+    "INSERT INTO recipe_ingredients (id, user_id, recipe_id, position, food_id, grams) VALUES (gen_random_uuid(), $1, $2, 0, $3, 100)",
+    [userId, recipe.rows[0].id, foodId],
+  );
+  await client.query("INSERT INTO recipe_tags (user_id, recipe_id, tag) VALUES ($1, $2, 'Cascade')", [
+    userId,
+    recipe.rows[0].id,
+  ]);
   await client.query(
     `INSERT INTO removed_entries (id, user_id, row) VALUES (gen_random_uuid(), $1, '{"kind": "estimate"}')`,
     [userId],
