@@ -33,7 +33,7 @@ export const getTargetsTool = defineTool({
 export const getDayTool = defineTool({
   name: "get_day",
   description:
-    "One day as the Day tab shows it: its targets, its two readings (eaten, and withPlan with the planned entries too), each with a position for energy and protein, its counts, and every entry with its figures.",
+    "One day as the Day tab shows it: its targets, its two readings (eaten, and withPlan with the planned entries too), each with a position for energy and protein, its counts, and every entry with its figures. A past day's reading with no entries has no position.",
   inputSchema: z.strictObject({ date: DayDate }),
   run: ({ date }, ctx) => getDay(ctx.service, dateOf(date, ctx)),
 });
@@ -89,7 +89,7 @@ function rangeOf(input: z.output<typeof DaysInput>, ctx: ToolContext): { from: s
 export const getDaysTool = defineTool({
   name: "get_days",
   description:
-    "Several days without their entries: each day's targets, its two readings with their positions, and its counts. From from to to, at most 42 days with both ends counted, or the Monday-to-Sunday week holding weekOf.",
+    "Several days without their entries: each day's targets, its two readings with their positions, and its counts. From from to to, at most 42 days with both ends counted, or the Monday-to-Sunday week holding weekOf. A past day's reading with no entries has no position.",
   inputSchema: DaysInput,
   async run(input, ctx) {
     return { days: await listDaySummaries(ctx.service, rangeOf(input, ctx)) };

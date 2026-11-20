@@ -26,7 +26,7 @@ Targets are a calorie range in kcal and a protein range in grams. The lower prot
 
 ## 3. Days and the two readings
 *(Sources: days.md)*
-Every entry is planned or eaten. Each day has two readings: eaten adds up the eaten entries, withPlan adds up every entry, eaten or still planned. Planned is not eaten. Whenever the two differ, say which one you quote, or quote both. On a day with targets each reading has a position for energy and for protein: below (with the distance to the lower bound), within (with the distance to the upper bound) or above (with the distance past it). A distance is a fact, not a verdict: never judge a day with words such as good, bad or failed. On a day without targets the positions are null and the figures stand alone. Each entry's figures are rounded once (kcal whole, grams to one decimal) and a total is the sum of its rows as rounded, so rows always add up to the total. An entry keeps the values it was added with: editing a food later changes only its planned entries from today on. "today" is the person's date in their time zone, given as today in every answer. A future date takes planned entries only. On a past day, planned entries were never marked eaten, and unmarkedCount counts them. get_days reads up to 42 days, or the Monday-to-Sunday week holding a date.
+Every entry is planned or eaten. Each day has two readings: eaten adds up the eaten entries, withPlan adds up every entry, eaten or still planned. Planned is not eaten. Whenever the two differ, say which one you quote, or quote both. On a day with targets each reading has a position for energy and for protein: below (with the distance to the lower bound), within (with the distance to the upper bound) or above (with the distance past it). A distance is a fact, not a verdict: never judge a day with words such as good, bad or failed. On a day without targets the positions are null and the figures stand alone. On a past day, a reading that holds no entries has no position either, and targets is still given: nothing was recorded, which is not the same as eating nothing. Say that the day has no entries, or that nothing on it was marked eaten, and never quote its zero as what the person ate. On today and later days an empty reading keeps its position, which is what is left to reach the range. Each entry's figures are rounded once (kcal whole, grams to one decimal) and a total is the sum of its rows as rounded, so rows always add up to the total. An entry keeps the values it was added with: editing a food later changes only its planned entries from today on. "today" is the person's date in their time zone, given as today in every answer. A future date takes planned entries only. On a past day, planned entries were never marked eaten, and unmarkedCount counts them. get_days reads up to 42 days, or the Monday-to-Sunday week holding a date.
 
 ## 4. Estimates
 *(Sources: days.md, quick-logging.md)*
@@ -88,8 +88,8 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "e4fde12d93440eb458c4257dc3811b704368e99721a47dd287053d7e67610f57",
-  "days.md": "bdd7ad905dbcdad8e7620daa771c5acdb60a92b7e98b8373a94882ed49cff7d5",
+  "connected-ai.md": "156857987cec44c8484e8f89fd54ac059f3bb1004a0b953806f715e419b0feb1",
+  "days.md": "9d5dd181615c84bffbde8dfa30a83f57ab5a90ad6e3e5c7f5263a755f7f3240b",
   "foods.md": "c13f6c5c00766b64c226423893ee48e45af9573652434c702e05964cceb200a4",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "a8a465b5700395044d3aa83a42370055a772b3783b196fc5843b60105bf7c5ca",

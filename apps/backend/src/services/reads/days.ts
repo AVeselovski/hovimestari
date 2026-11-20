@@ -1,54 +1,13 @@
-import {
-  daysBetween,
-  positionOf,
-  totalOf,
-  type Day,
-  type DayReading,
-  type DaySummary,
-  type Entry,
-  type TargetRanges,
-} from "@hovimestari/types";
+import { daysBetween, summarizeDay, type Day, type DaySummary, type Entry } from "@hovimestari/types";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { entries } from "../../db/schema/index.js";
 import { entryOf, selectEntries } from "../entryRows.js";
 import type { ReadContext } from "./context.js";
 import { inForceOn, listTargetChanges, targetsOn } from "./targets.js";
 
-// A day is the user's entries on one date. Its two readings, eaten and with
-// plan, are each the sum of their rows' rounded figures, so the rows on
-// screen always add up to the total. A position compares a total with a
-// range in integer tenths (packages/types figures.ts).
-
-/** One reading of `rows`: their total and where it stands against `targets`. */
-function readingOf(rows: Entry[], targets: TargetRanges | null): DayReading {
-  const figures = totalOf(rows.map((r) => r.figures));
-  return {
-    figures,
-    energy: targets ? positionOf(figures.energyKcal, targets.energyKcal) : null,
-    protein: targets ? positionOf(figures.proteinG, targets.proteinG) : null,
-    includesEstimate: rows.some((r) => r.isEstimate),
-  };
-}
-
-/** The summary of `date` from its entries, in position order, and the targets in force on it. */
-function summaryOf(ctx: ReadContext, date: string, rows: Entry[], targets: TargetRanges | null): DaySummary {
-  const relation = date < ctx.today ? "past" : date === ctx.today ? "today" : "future";
-  const planned = rows.filter((r) => r.status === "planned").length;
-  return {
-    date,
-    today: ctx.today,
-    relation,
-    targets,
-    eaten: readingOf(
-      rows.filter((r) => r.status === "eaten"),
-      targets,
-    ),
-    withPlan: readingOf(rows, targets),
-    entryCount: rows.length,
-    plannedCount: planned,
-    unmarkedCount: relation === "past" ? planned : 0,
-  };
-}
+// A day is the user's entries on one date. Its two readings and their
+// positions come from summarizeDay, the one day summary, shared through
+// packages/types.
 
 /** The user's entry `id` as the API shows it, or null when it is not theirs or not there. */
 export async function getEntry(ctx: ReadContext, id: string): Promise<Entry | null> {
@@ -63,7 +22,7 @@ export async function getDay(ctx: ReadContext, date: string): Promise<Day> {
     selectEntries(ctx.db, ctx.userId, eq(entries.date, date)),
   ]);
   const list = rows.map(entryOf);
-  return { ...summaryOf(ctx, date, list, inForce?.ranges ?? null), entries: list };
+  return { ...summarizeDay(date, ctx.today, list, inForce?.ranges ?? null), entries: list };
 }
 
 /** The dates from `from` to `to`, both included. */
@@ -91,7 +50,7 @@ export async function listDaySummaries(ctx: ReadContext, range: { from: string; 
     else byDate.set(entry.date, [entry]);
   }
   return datesOf(range.from, range.to).map((date) =>
-    summaryOf(ctx, date, byDate.get(date) ?? [], inForceOn(changes, date)?.ranges ?? null),
+    summarizeDay(date, ctx.today, byDate.get(date) ?? [], inForceOn(changes, date)?.ranges ?? null),
   );
 }
 
