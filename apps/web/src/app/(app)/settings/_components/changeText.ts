@@ -95,7 +95,8 @@ function amountPortionName(amount: Record<string, unknown>, units: PortionUnitNa
 }
 
 /**
- * An entry's amount: "150 g", "2 × Medium piece" and "110 g", or "1 meal".
+ * An entry's amount: "150 g", "2 × Medium piece" and "110 g", "1 meal", or
+ * "1.5 servings".
  * A portion with no name this app can give reads as its grams alone.
  */
 function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | null {
@@ -106,6 +107,7 @@ function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | nul
     const portion = amountPortionName(amount, units);
     return portion === null ? [grams] : [t("part.portion", { count: formatCount(amount.count), portion }), grams];
   }
+  if (typeof amount.servings === "number") return [t("part.servings", { count: amount.servings })];
   if (typeof amount.count === "number") return [t("part.meals", { count: amount.count })];
   return null;
 }

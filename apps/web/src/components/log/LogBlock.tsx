@@ -1,7 +1,7 @@
 "use client";
 
 import { AmountField } from "@/components/entries/AmountField";
-import { MealCount } from "@/components/entries/MealCount";
+import { CountField } from "@/components/entries/CountField";
 import { StateChoice } from "@/components/entries/StateChoice";
 import { MacroFigures } from "@/components/figures/MacroFigures";
 import { useTranslations } from "next-intl";
@@ -47,8 +47,9 @@ export function LogBlock({ form, autoFocus }: { form: LogForm; autoFocus: boolea
           layout="beside"
         />
       ) : (
-        <MealCount
+        <CountField
           id={form.fieldId}
+          of="meals"
           value={form.amount}
           onChange={form.setAmount}
           error={form.error}

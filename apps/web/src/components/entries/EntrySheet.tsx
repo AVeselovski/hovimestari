@@ -19,6 +19,7 @@ import { useTranslations } from "next-intl";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { GRAMS, switchUnit, type UnitChip } from "./amount";
 import { AmountField } from "./AmountField";
+import { CountField } from "./CountField";
 import {
   buildPatch,
   fieldsOf,
@@ -29,7 +30,6 @@ import {
   type EntryFields,
 } from "./entryForm";
 import { EstimateFields, estimateFieldId } from "./EstimateFields";
-import { MealCount } from "./MealCount";
 import { usePortionChipLabel } from "./portionLabel";
 import { StateChoice } from "./StateChoice";
 
@@ -246,6 +246,7 @@ export function EntrySheet({
         <>
           {entry.kind === "food" && entry.food?.deleted && <p className={noticeClass}>{t("foodGone")}</p>}
           {entry.kind === "saved_meal" && entry.savedMeal?.deleted && <p className={noticeClass}>{t("mealGone")}</p>}
+          {entry.kind === "recipe" && entry.recipe?.deleted && <p className={noticeClass}>{t("recipeGone")}</p>}
           {/* Eaten or planned comes first, for every kind: marking a planned
               entry eaten is this sheet's main job, so it is in the first
               screen of a phone even over an estimate's six fields. */}
@@ -271,9 +272,10 @@ export function EntrySheet({
               autoFocus={autoFocus}
             />
           )}
-          {entry.kind === "saved_meal" && (
-            <MealCount
+          {(entry.kind === "saved_meal" || entry.kind === "recipe") && (
+            <CountField
               id={fieldId("amount")}
+              of={entry.kind === "recipe" ? "servings" : "meals"}
               value={fields.amount}
               onChange={(amount) => change({ amount })}
               error={errors.amount}

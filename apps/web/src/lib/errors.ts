@@ -52,6 +52,22 @@ export function getErrorCode(err: unknown): ErrorCode | undefined {
   return undefined;
 }
 
+/**
+ * The values a refusal's catalog line reads: the strings and numbers in the
+ * answer's `details`, such as the recipe a refused food edit names. Empty for
+ * an answer without details.
+ */
+export function getErrorValues(err: unknown): Record<string, string | number> {
+  if (!axios.isAxiosError(err)) return {};
+  const details = (err.response?.data as { details?: unknown } | undefined)?.details;
+  if (typeof details !== "object" || details === null) return {};
+  return Object.fromEntries(
+    Object.entries(details).filter((pair): pair is [string, string | number] =>
+      ["string", "number"].includes(typeof pair[1]),
+    ),
+  );
+}
+
 /** The HTTP status of a failed call, or undefined for one that never got an answer. */
 export function getErrorStatus(err: unknown): number | undefined {
   if (err instanceof AuthRequestError) return err.status;

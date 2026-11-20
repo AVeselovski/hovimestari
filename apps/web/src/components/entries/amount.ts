@@ -46,9 +46,17 @@ export function parseAmount(raw: string, unit: string): number | EntryFieldError
   return parseCount(raw);
 }
 
-/** A portion or meal count as typed. */
+/**
+ * A count as typed: of a food's portions, of meals or of servings. A count is
+ * at most 100 with two decimals, so a number that may hold a thousands group
+ * ("1,255") is out of range whichever way it reads. It takes the range's
+ * code, never `digit_group`, whose line would tell a comma keypad not to use
+ * its comma although "1,5" is a count.
+ */
 export function parseCount(raw: string): number | EntryFieldError {
-  const n = numberOrError(parseDecimalInput(raw, { maxDecimals: 2 }), "entry_count_invalid", "entry_count_invalid");
+  const parsed = parseDecimalInput(raw, { maxDecimals: 2 });
+  if (parsed.kind === "group") return "entry_count_invalid";
+  const n = numberOrError(parsed, "entry_count_invalid", "entry_count_invalid");
   if (typeof n !== "number") return n;
   return EntryCountSchema.safeParse(n).success ? n : "entry_count_invalid";
 }
