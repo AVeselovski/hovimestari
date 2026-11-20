@@ -96,7 +96,7 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "26bb21a64a88ecaf142d94f04993ce99320e7b69949a29c1b68f16532af11120",
+  "connected-ai.md": "8d1f86dd248e4f1afa2ec02cdb081a54004327bfdefdf738d0b28bd03826630a",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
   "foods.md": "39dd17b2958a68fc8599b5a629466fc8b2ef2421f2f49042be20ecada6c2a374",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",

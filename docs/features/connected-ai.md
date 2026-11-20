@@ -258,7 +258,7 @@ The write tools are `WRITE_TOOLS` in `mcp/tools/writes/index.ts`, defined with `
 A tool takes its input, calls one function in `apps/backend/src/services/writes/recorded/` and selects fields from its answer. `runWriteTool` hands the tool its arguments without the request key, which only it reads. `runWriteTool` in `tools/writes/run.ts` runs every call in this order:
 
 1. The per-minute limit, in memory, keyed by the key's user (`mcp/writeBrake.ts`). A call the SDK refuses at input validation never reaches it, so it does not count.
-2. The actor: the connection's id and name, the request key, and the request hash, the SHA-256 of the tool's name and the call's other arguments as canonical JSON. `entryIds` hash as a set, sorted, lower-cased and without repeats. A date hashes as sent, so a retry the next day with `today` and the same key replays the first change.
+2. The actor: the connection's id and name, the request key, and the request hash, the SHA-256 of the tool's name and the call's other arguments as canonical JSON. `entryIds` and `log_cook`'s `attach` hash as a set, sorted, lower-cased and without repeats. `attachStatus` hashes sorted by its entry ids. A date hashes as sent, so a retry the next day with `today` and the same key replays the first change.
 3. `findReplay`: the record row of this connection and request key. The same hash answers the replay. Another hash is refused 409 `request_key_reused`.
 4. The hourly limit, only when there is no replay: `countRecentChanges` counts the user's rows of the last hour on the index `assistant_changes_user_idx`. It reads before the write's transaction, so calls in flight together can each pass at 299 and land past 300. The per-minute limit bounds that to one minute's calls.
 5. The recorded write.
