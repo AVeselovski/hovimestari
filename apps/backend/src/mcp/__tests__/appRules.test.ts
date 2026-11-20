@@ -166,6 +166,16 @@ describe("APP_RULES", () => {
     expect(APP_RULES).toContain("never quote its zero as what the person ate");
     expect(APP_RULES).toContain("On today and later days an empty reading keeps its position");
   });
+
+  it("says how to read a range's average day, and never to average days itself", () => {
+    expect(APP_RULES).toContain("and answers the average day over them");
+    expect(APP_RULES).toContain("today and planned days included. Today counts toward eaten only once it is over.");
+    expect(APP_RULES).toContain(
+      "A day counts whole however little is on it, and a day with no entries counts toward neither.",
+    );
+    expect(APP_RULES).toContain("An average has a position only when every day it counts has the same targets");
+    expect(APP_RULES).toContain("Never average or add up days yourself.");
+  });
 });
 
 describe("appRulesFor", () => {

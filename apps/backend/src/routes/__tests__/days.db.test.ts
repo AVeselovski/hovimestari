@@ -1,3 +1,4 @@
+import { averageOfDays } from "@hovimestari/types";
 import { describe, expect, it } from "@jest/globals";
 import { signUp } from "../../__tests__/support/apiUser.js";
 import { addDays, daysApi, helsinkiToday } from "../../__tests__/support/daysApi.js";
@@ -227,6 +228,36 @@ await describeWithDb("days", (suite) => {
       }
       expect(res.body.days[0].eaten.energy).toBeNull();
       expect(res.body.days[1].eaten.energy).toEqual({ position: "below", distance: 1900 });
+    });
+
+    it("answers the range's average day, averageOfDays of its days, with an empty past day outside both dates", async () => {
+      const user = await signUp(suite.client);
+      await d.targets(user, addDays(today(), -30), [1900, 2200], [130, 170]);
+      const meal = await d.meal(user, { energyKcal: 600, proteinG: 40, carbsG: 60, fatG: 20 });
+      const [empty, logged, mixed, after] = [-3, -2, -1, 1].map((n) => addDays(today(), n));
+      await d.added(user, d.mealBody(meal, 1, { date: logged }));
+      await d.added(user, d.mealBody(meal, 2, { date: mixed }));
+      await d.added(user, d.mealBody(meal, 1, { date: mixed, status: "planned" }));
+      await d.added(user, d.mealBody(meal, 1, { date: today() }));
+      await d.added(user, d.mealBody(meal, 4, { date: after, status: "planned" }));
+      const res = await d.range(user, empty, after);
+      expect(res.status).toBe(200);
+      expect(Object.keys(res.body).sort()).toEqual(["average", "days"]);
+      expect(res.body.average).toEqual(averageOfDays(res.body.days));
+      const { eaten, withPlan } = res.body.average;
+      // Eaten: the past days with eaten entries, today left out. Planned: every day with an entry.
+      expect(eaten.dates).toEqual([logged, mixed]);
+      expect(withPlan.dates).toEqual([logged, mixed, today(), after]);
+      expect([...eaten.dates, ...withPlan.dates]).not.toContain(empty);
+      // (600 + 1200) / 2 = 900 kcal and (40 + 80) / 2 = 60 g, never 600 with the empty day as zero.
+      expect(eaten.figures).toEqual({ energyKcal: 900, proteinG: 60, carbsG: 90, fatG: 30 });
+      expect(eaten.energy).toEqual({ position: "below", distance: 1000 });
+      // (600 + 1800 + 600 + 2400) / 4 = 1350 kcal.
+      expect(withPlan.figures.energyKcal).toBe(1350);
+      expect(withPlan.targets).toEqual({
+        energyKcal: { lower: 1900, upper: 2200 },
+        proteinG: { lower: 130, upper: 170 },
+      });
     });
 
     it("pins inForceOn to targetsOn on every date around three changes", async () => {

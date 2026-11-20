@@ -1,4 +1,4 @@
-import { gaugeGeometry, planStyle, scaleOf } from "../gaugeGeometry";
+import { averageMarks, gaugeGeometry, markLeft, MINI_MIN_BAND_PERCENT, planStyle, scaleOf } from "../gaugeGeometry";
 
 const CALORIES = { lower: 1900, upper: 2200 };
 const PROTEIN = { lower: 140, upper: 142 };
@@ -91,5 +91,49 @@ describe("gaugeGeometry with a wider narrowest band", () => {
     const a = gaugeGeometry({ lower: 140, upper: 180 }, 20, 90, { minBandPercent: 6 });
     const b = gaugeGeometry({ lower: 140, upper: 180 }, 170, 400, { minBandPercent: 6 });
     expect(a.ticks).toEqual(b.ticks);
+  });
+});
+
+describe("averageMarks", () => {
+  it("puts each mark at its value's share of the scale: 2013 and 2328 kcal on 1900 to 2200", () => {
+    const m = averageMarks(CALORIES, 2013, 2328);
+    expect(m.scale).toBe(2750);
+    expect(m.eaten).toBeCloseTo((2013 / 2750) * 100, 10);
+    expect(m.withPlan).toBeCloseTo((2328 / 2750) * 100, 10);
+  });
+
+  it("draws Planned below Eaten when its average is lower, which a fill could not", () => {
+    const m = averageMarks(CALORIES, 2100, 1600);
+    expect(m.withPlan!).toBeLessThan(m.eaten!);
+  });
+
+  it("clamps a value past the track's end to the end, and a negative one to the start", () => {
+    expect(averageMarks(CALORIES, 9000, 3000).eaten).toBe(100);
+    expect(averageMarks(CALORIES, 9000, 3000).withPlan).toBe(100);
+    expect(averageMarks(CALORIES, -5, 0).eaten).toBe(0);
+  });
+
+  it("has no mark for a reading with no position", () => {
+    const m = averageMarks(CALORIES, null, 2328);
+    expect(m.eaten).toBeNull();
+    expect(m.withPlan).not.toBeNull();
+    expect(averageMarks(CALORIES, null, null)).toMatchObject({ eaten: null, withPlan: null });
+  });
+
+  it.each([
+    ["calories", CALORIES, {}],
+    ["a narrow protein range on the mini track", PROTEIN, { minBandPercent: MINI_MIN_BAND_PERCENT }],
+  ] as const)("gives the same scale, band and ticks as a day's gauge: %s", (_, range, options) => {
+    const day = gaugeGeometry(range, 1234, 1500, options);
+    const m = averageMarks(range, 10, 20, options);
+    expect({ scale: m.scale, band: m.band, ticks: m.ticks }).toEqual({
+      scale: day.scale,
+      band: day.band,
+      ticks: day.ticks,
+    });
+  });
+
+  it("keeps a mark's centre its radius from each end of the track", () => {
+    expect(markLeft(42.5, 5)).toBe("clamp(5px, 42.5%, calc(100% - 5px))");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { entryFigures, gramsForPortion, positionOf, totalOf, type Figures } from "../index.js";
+import { averageOf, entryFigures, gramsForPortion, positionOf, totalOf, type Figures } from "../index.js";
 
 // The one figure computation the server and the web's live preview share.
 // Each case is a number a float implementation gets wrong, or one the
@@ -113,5 +113,35 @@ describe("gramsForPortion", () => {
     expect(gramsForPortion(0.25, 12.2)).toBe(3.1); // 3.05 exactly
     expect(gramsForPortion(1.15, 10)).toBe(11.5);
     expect(gramsForPortion(0.33, 100)).toBe(33);
+  });
+});
+
+describe("averageOf", () => {
+  it("averages kcal to a whole number, halves away from zero: 2001 and 2002 give 2002, never 2001", () => {
+    expect(averageOf([figures(2001, 0), figures(2002, 0)]).energyKcal).toBe(2002);
+  });
+
+  it("averages grams to one decimal, halves away from zero: 100.0 and 100.1 g give 100.1", () => {
+    expect(averageOf([figures(0, 100), figures(0, 100.1)]).proteinG).toBe(100.1);
+  });
+
+  it("rounds a third down: 2000, 2000 and 2001 kcal give 2000", () => {
+    expect(averageOf([figures(2000, 0), figures(2000, 0), figures(2001, 0)]).energyKcal).toBe(2000);
+  });
+
+  it("gets 2.3 and 2.4 g right: exactly 2.35, so 2.4, where the float average is 2.3499999999999996", () => {
+    expect((2.3 + 2.4) / 2).toBe(2.3499999999999996);
+    expect(averageOf([figures(0, 2.3), figures(0, 2.4)]).proteinG).toBe(2.4);
+  });
+
+  it("averages every key the same way, and one total is itself", () => {
+    expect(averageOf([figures(2050, 142.3, 0.1, 10), figures(1980, 135.5, 0.2, 20.1)])).toEqual(
+      figures(2015, 138.9, 0.2, 15.1),
+    );
+    expect(averageOf([figures(2013, 135.4, 1.1, 2.2)])).toEqual(figures(2013, 135.4, 1.1, 2.2));
+  });
+
+  it("refuses no totals at all, so a caller that skips the empty case fails loudly", () => {
+    expect(() => averageOf([])).toThrow();
   });
 });

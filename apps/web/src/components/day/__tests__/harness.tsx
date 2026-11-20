@@ -29,12 +29,14 @@ import { queryKeys } from "@/lib/queryKeys";
 import {
   CopyEntriesBodySchema,
   EntryRemoveManyBodySchema,
+  averageOfDays,
   entryFigures,
   gramsForPortion,
   type AddEntryBody,
   type CopyEntriesBody,
   type Day,
   type DaySummary,
+  type DaySummaryList,
   type Entry,
   type EntryPatchBody,
   type EntryStatus,
@@ -109,11 +111,14 @@ export class FakeDays {
     return dayOf(on, date, this.today, overview(this.changes, date, this.today).inForce?.ranges ?? null);
   }
 
-  /** `GET /days?from=&to=`: every day of the range, each the day's own summary, without its entries. */
-  range(from: string, to: string): { days: DaySummary[] } {
+  /**
+   * `GET /days?from=&to=`: every day of the range, each the day's own summary, without its entries, and
+   * their average day through `averageOfDays`, the computation the server answers with.
+   */
+  range(from: string, to: string): DaySummaryList {
     const days: DaySummary[] = [];
     for (let date = from; date <= to; date = addDays(date, 1)) days.push(daySummaryOf(this.day(date)));
-    return { days };
+    return { days, average: averageOfDays(days) };
   }
 
   status(ids: readonly string[], status: EntryStatus) {
