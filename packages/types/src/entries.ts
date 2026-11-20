@@ -100,7 +100,14 @@ export const AddEntryBodySchema = z.discriminatedUnion("kind", [
     note: NoteSchema.nullable().default(null),
     ...common,
   }),
-  z.object({ kind: z.literal("recipe"), recipeId: z.uuid(), servings: EntryCountSchema, ...common }),
+  z.object({
+    kind: z.literal("recipe"),
+    recipeId: z.uuid(),
+    servings: EntryCountSchema,
+    /** Servings from a batch logged as made: the entry takes the cook's figures. */
+    cookId: z.uuid().optional(),
+    ...common,
+  }),
 ]);
 
 /** What a PATCH may change. At least one field. A field that does not fit the entry's kind answers entry_kind_mismatch. */
@@ -174,16 +181,23 @@ export const EntrySchema = z.object({
   servings: z.number().nullable(),
   /** A recipe entry's recipe. A deleted one still opens by its id. */
   recipe: z.object({ id: z.uuid(), archived: z.boolean(), deleted: z.boolean() }).nullable(),
+  /**
+   * The batch a recipe entry came from, when it was logged as made: the day
+   * it was made, what it gave, and whether it differs from its recipe as the
+   * recipe is now. Null on a plain recipe entry and every other kind.
+   */
+  cook: z.object({ id: z.uuid(), date: IsoDateSchema, servings: z.number().int(), differs: z.boolean() }).nullable(),
   note: z.string().nullable(),
   /**
    * The values the entry's figures are computed from, as stored: set when the entry is
    * added, replaced when an estimate's figures are edited, and rewritten on planned
    * entries dated today or later when their own food, saved meal or recipe, or an own food
-   * on the recipe, is edited. Per kind:
+   * on the recipe, is edited. A cook's entry carries the cook's basis, which no edit of a
+   * food or the recipe rewrites. Per kind:
    * - food: per 100 g of the food. figures = entryFigures(basis, { per: "100g", grams })
    * - saved_meal: per one meal. figures = entryFigures(basis, { per: "meal", count })
    * - estimate: the whole entry, the typed figures. figures = entryFigures(basis, { per: "whole" })
-   * - recipe: one serving of the recipe. figures = entryFigures(basis, { per: "serving", count: servings })
+   * - recipe: one serving of the recipe, or of its cook. figures = entryFigures(basis, { per: "serving", count: servings })
    * Not rounded for display: kcal with up to two decimals, grams with up to three, as the
    * columns hold them.
    */

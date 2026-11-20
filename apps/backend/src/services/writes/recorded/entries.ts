@@ -18,7 +18,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { entries } from "../../../db/schema/index.js";
 import type { Tx } from "../../../db/types.js";
-import { entryOf, selectEntries } from "../../entryRows.js";
+import { entriesOf, selectEntries } from "../../entryRows.js";
 import type { ReadContext } from "../../reads/context.js";
 import { getDays, getEntry } from "../../reads/days.js";
 import { fieldChanges, recordedWrite, type AssistantActor, type ChangeRecord, type Replay } from "../changeRecord.js";
@@ -119,7 +119,8 @@ async function lockedEntries(tx: Tx, ctx: WriteContext, ids: string[]): Promise<
       locked.map((r) => r.id),
     ),
   );
-  return new Map(rows.map((row) => [row.entry.id, entryOf(row)]));
+  const list = await entriesOf(tx, ctx.userId, rows);
+  return new Map(list.map((entry) => [entry.id, entry]));
 }
 
 const none = async () => null;

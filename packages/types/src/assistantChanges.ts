@@ -36,6 +36,7 @@ export const ASSISTANT_CHANGE_ACTIONS = [
   "recipe.restored",
   "recipe.favourite_set",
   "recipe.favourite_unset",
+  "cook.logged",
 ] as const;
 
 export const AssistantChangeActionSchema = z.enum(ASSISTANT_CHANGE_ACTIONS);
@@ -47,7 +48,9 @@ export const DELETION_STATUSES = ["pending", "approved", "declined", "gone", "wi
  * An entry in a change's summary, with the values the answer had. A food's
  * amount is its grams, or a count of a portion with the portion's label and
  * the grams it came to. A saved meal's is its count, a recipe's its
- * servings. An estimate has none.
+ * servings, with `asMade` true when the servings come from a batch logged as
+ * made. Rows recorded before cooks existed have no `asMade`. An estimate has
+ * none.
  * The portion form is listed first, because a union takes the first form
  * that fits and would read a portion amount as grams alone.
  *
@@ -70,7 +73,7 @@ export const AssistantEntryLineSchema = z.object({
         grams: z.number(),
       }),
       z.object({ grams: z.number() }),
-      z.object({ servings: z.number() }),
+      z.object({ servings: z.number(), asMade: z.boolean().optional() }),
       z.object({ count: z.number() }),
     ])
     .nullable(),
@@ -175,6 +178,17 @@ export const AssistantChangeSummarySchema = z.discriminatedUnion("entity", [
   z.object({ entity: z.literal("saved_meal"), name: z.string(), changes: z.array(AssistantFieldChangeSchema) }),
   // recipe.created, recipe.changed, recipe.archived, recipe.restored, recipe.favourite_set, recipe.favourite_unset
   z.object({ entity: z.literal("recipe"), name: z.string(), changes: z.array(RecipeFieldChangeSchema) }),
+  // cook.logged: the batch, what differs from its recipe as the recipe was
+  // then (its servings and its lines, in the recipe change's own shapes, a
+  // line the batch left out under `removed`), and the entries it fed.
+  z.object({
+    entity: z.literal("cook"),
+    recipeName: z.string(),
+    date: IsoDateSchema,
+    servings: z.number().int(),
+    changes: z.array(RecipeFieldChangeSchema),
+    entries: z.array(AssistantEntryLineSchema),
+  }),
   z.object({
     entity: z.literal("targets"),
     effectiveFrom: IsoDateSchema,

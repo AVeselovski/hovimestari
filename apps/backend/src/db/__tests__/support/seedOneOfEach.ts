@@ -9,6 +9,8 @@ import type pg from "pg";
 export const SEEDED_TABLES = [
   "assistant_changes",
   "assistant_connections",
+  "cook_ingredients",
+  "cooks",
   "entries",
   "food_favourites",
   "food_lookups",
@@ -91,6 +93,16 @@ export async function seedOneOfEach(client: pg.Client, userId: string): Promise<
     userId,
     recipe.rows[0].id,
   ]);
+  // One cook of that recipe, with one line on the same food.
+  const cook = await client.query(
+    `INSERT INTO cooks (id, user_id, recipe_id, date, servings, basis_energy_kcal, basis_protein_g, basis_carbs_g, basis_fat_g)
+     VALUES (gen_random_uuid(), $1, $2, '2026-01-01', 3, 1, 1, 1, 1) RETURNING id`,
+    [userId, recipe.rows[0].id],
+  );
+  await client.query(
+    "INSERT INTO cook_ingredients (id, user_id, cook_id, position, food_id, grams) VALUES (gen_random_uuid(), $1, $2, 0, $3, 120)",
+    [userId, cook.rows[0].id, foodId],
+  );
   await client.query(
     `INSERT INTO removed_entries (id, user_id, row) VALUES (gen_random_uuid(), $1, '{"kind": "estimate"}')`,
     [userId],

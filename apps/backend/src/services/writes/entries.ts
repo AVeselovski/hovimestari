@@ -16,7 +16,7 @@ import type { Db, Tx } from "../../db/types.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { isForeignKeyViolation, isUniqueViolation, pgCodeOf } from "../../lib/pgErrors.js";
-import { basisColumnsOf, entryOf, selectEntries } from "../entryRows.js";
+import { basisColumnsOf, entriesOf, selectEntries } from "../entryRows.js";
 import { getDay, getDays, getEntry } from "../reads/days.js";
 import { readRecipeForEntry } from "../recipeValues.js";
 import { gramsOf, lockUserForWrite, readFoodForEntry, readMealForEntry, restoreCutoff } from "../sourceValues.js";
@@ -449,7 +449,7 @@ export async function copyEntries(
   const rows = await selectEntries(ctx.db, ctx.userId, inArray(entries.id, ids));
   const outcome = inserted > 0 ? "created" : "replayed";
   return {
-    value: { entries: rows.map(entryOf), days: [await getDay(ctx, toDate)], outcome },
+    value: { entries: await entriesOf(ctx.db, ctx.userId, rows), days: [await getDay(ctx, toDate)], outcome },
     outcome,
   };
 }

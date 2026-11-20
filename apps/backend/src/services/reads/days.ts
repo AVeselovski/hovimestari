@@ -9,7 +9,7 @@ import {
 } from "@hovimestari/types";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { entries } from "../../db/schema/index.js";
-import { entryOf, selectEntries } from "../entryRows.js";
+import { entriesOf, entryOf, NO_COOKS, selectEntries } from "../entryRows.js";
 import type { ReadContext } from "./context.js";
 import { inForceOn, listTargetChanges, targetsOn } from "./targets.js";
 
@@ -19,8 +19,9 @@ import { inForceOn, listTargetChanges, targetsOn } from "./targets.js";
 
 /** The user's entry `id` as the API shows it, or null when it is not theirs or not there. */
 export async function getEntry(ctx: ReadContext, id: string): Promise<Entry | null> {
-  const [row] = await selectEntries(ctx.db, ctx.userId, eq(entries.id, id));
-  return row ? entryOf(row) : null;
+  const rows = await selectEntries(ctx.db, ctx.userId, eq(entries.id, id));
+  const [entry] = await entriesOf(ctx.db, ctx.userId, rows);
+  return entry ?? null;
 }
 
 /** One day: its entries in the order added, its two readings, and where each stands against the targets in force. */
@@ -29,7 +30,7 @@ export async function getDay(ctx: ReadContext, date: string): Promise<Day> {
     targetsOn(ctx, date),
     selectEntries(ctx.db, ctx.userId, eq(entries.date, date)),
   ]);
-  const list = rows.map(entryOf);
+  const list = await entriesOf(ctx.db, ctx.userId, rows);
   return { ...summarizeDay(date, ctx.today, list, inForce?.ranges ?? null), entries: list };
 }
 
@@ -52,7 +53,8 @@ async function listDaySummaries(ctx: ReadContext, range: { from: string; to: str
   ]);
   const byDate = new Map<string, Entry[]>();
   for (const row of rows) {
-    const entry = entryOf(row);
+    // The summaries answer no entry, so whether a cook differs is not read.
+    const entry = entryOf(row, NO_COOKS);
     const list = byDate.get(entry.date);
     if (list) list.push(entry);
     else byDate.set(entry.date, [entry]);
