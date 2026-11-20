@@ -61,6 +61,21 @@ export function formatMomentDay(iso: string, timeZone: string | undefined, local
 }
 
 /**
+ * The instant `iso` as the time of day in `timeZone`, hours and minutes, in
+ * this device's language: "14.32" on a Finnish phone, "14:32" on a British
+ * one, "2:32 PM" on an American one. A zone the runtime does not know falls
+ * back to the device's own, as `formatMomentDay` does.
+ */
+export function formatMomentTime(iso: string, timeZone: string | undefined, locale?: string): string {
+  const options: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  try {
+    return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(new Date(iso));
+  } catch {
+    return new Intl.DateTimeFormat(locale, options).format(new Date(iso));
+  }
+}
+
+/**
  * The `YYYY-MM-DD` that the instant `now` falls on in `timeZone`. A zone the
  * runtime does not know reads as Helsinki, as the server reads it. Used only
  * to decide when to ask the server for today again, never as today itself.

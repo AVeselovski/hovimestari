@@ -5,10 +5,11 @@ import { queryKeys } from "./queryKeys";
 // Edits to the cached connections list from a connection write's own answer.
 // `lib/invalidation.ts` calls them. The list never holds a key.
 
-/** Puts a new connection at the head of the list, once. */
+/** Puts a new connection at the head of the list, once. A new key has made no change yet. */
 export function putNewConnection(client: QueryClient, connection: Connection): void {
+  const listed = { ...connection, changeCount: 0 };
   client.setQueryData<ConnectionList>(queryKeys.connections(), (prev) =>
-    prev ? { ...prev, connections: [connection, ...prev.connections.filter((c) => c.id !== connection.id)] } : prev,
+    prev ? { ...prev, connections: [listed, ...prev.connections.filter((c) => c.id !== connection.id)] } : prev,
   );
 }
 

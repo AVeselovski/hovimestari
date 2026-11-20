@@ -9,7 +9,7 @@ import { useConfirmedDelete } from "@/hooks/useConfirmedDelete";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { revokeConnection } from "@/lib/api/connections";
 import { getErrorCode } from "@/lib/errors";
-import { afterConnectionCreated, afterConnectionRevoked } from "@/lib/invalidation";
+import { afterActivityOpened, afterConnectionCreated, afterConnectionRevoked } from "@/lib/invalidation";
 import { restoreFocus } from "@/lib/lastInputModality";
 import { formatMomentDay } from "@/lib/localDate";
 import { mcpServerUrl } from "@/lib/mcpConnection";
@@ -18,8 +18,9 @@ import { MAX_LIVE_CONNECTIONS, type Connection } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
+import { ConnectionActivitySheet, type ActivityTarget } from "./ConnectionActivitySheet";
 import { ConnectionInstructions } from "./ConnectionInstructions";
-import { ConnectionRow } from "./ConnectionRows";
+import { ConnectionRow, PastConnectionRow } from "./ConnectionRows";
 import { CreateConnectionSheet } from "./CreateConnectionSheet";
 import { KeyRevealSheet } from "./KeyRevealSheet";
 
@@ -31,6 +32,11 @@ function rowIn(list: HTMLElement | null, id: string): HTMLElement | null {
 /**
  * "Connected AI" in Settings: the person's connections, a way to make one,
  * and how to set an assistant up. The one mount of the key reveal.
+ *
+ * A key that can make changes says how many it made and offers Activity,
+ * the record of them, in `ConnectionActivitySheet`, the one mount of that
+ * sheet. Revoked keys that made changes are listed under Past connections,
+ * so their record stays readable after the key is gone.
  *
  * The list also says what the server offers now. While connecting is off,
  * a line under the intro says no assistant can connect and no key works,
@@ -53,8 +59,10 @@ export function ConnectedAiSection(): ReactElement {
   const headingId = useId();
   const howToId = useId();
   const howToButtonId = useId();
+  const pastHeadingId = useId();
 
   const createSheet = useSheetTarget();
+  const activitySheet = useSheetTarget<ActivityTarget>();
   const connectRef = useRef<HTMLButtonElement>(null);
   const howToRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -146,6 +154,12 @@ export function ConnectedAiSection(): ReactElement {
     }
   }, [reveal, focusRow, data, list.isError, list.isFetching]);
 
+  function openActivity(connection: ActivityTarget, opener: HTMLElement): void {
+    activitySheet.open(opener, { id: connection.id, name: connection.name, changeCount: connection.changeCount });
+    // The sheet reads the record afresh, and the row's count is read again with it, so the two agree.
+    void afterActivityOpened(queryClient);
+  }
+
   const write = data?.availability.write ?? false;
   const connectOn = data?.availability.connect ?? false;
   const live = data ? data.connections.filter((c) => c.status === "active").length : 0;
@@ -165,6 +179,7 @@ export function ConnectedAiSection(): ReactElement {
               writesOff={!data.availability.write}
               formatDay={formatDay}
               onRevoke={revoke.open}
+              onActivity={openActivity}
             />
           ))}
         </ul>
@@ -242,6 +257,29 @@ export function ConnectedAiSection(): ReactElement {
         </>
       )}
 
+      {data && data.past.length > 0 && (
+        <section aria-labelledby={pastHeadingId} className="mt-6 border-t border-rule pt-5">
+          <h3 id={pastHeadingId} className="section-label mb-4">
+            {t("pastTitle")}
+          </h3>
+          <ul>
+            {data.past.map((c) => (
+              <PastConnectionRow key={c.id} connection={c} formatDay={formatDay} onActivity={openActivity} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {activitySheet.shown && (
+        <ConnectionActivitySheet
+          key={activitySheet.shown.key}
+          open={activitySheet.isOpen}
+          connection={activitySheet.shown.value}
+          openKey={activitySheet.shown.key}
+          returnFocusTo={activitySheet.shown.opener}
+          onClose={activitySheet.close}
+        />
+      )}
       {createSheet.shown && (
         <CreateConnectionSheet
           key={createSheet.shown.key}

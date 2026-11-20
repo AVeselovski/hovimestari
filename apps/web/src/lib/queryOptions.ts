@@ -1,5 +1,5 @@
 import { getProviders } from "@/lib/api/auth";
-import { getConnections } from "@/lib/api/connections";
+import { getConnectionChanges, getConnections } from "@/lib/api/connections";
 import { getDay, getDaySummaries } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
@@ -9,7 +9,7 @@ import { getMe } from "@/lib/api/users";
 import { forgetSeen } from "@/lib/pendingIds";
 import { STALE } from "@/lib/queryClient";
 import { foodSearchKey, queryKeys } from "@/lib/queryKeys";
-import { keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
+import { infiniteQueryOptions, keepPreviousData, queryOptions, type QueryClient } from "@tanstack/react-query";
 
 // ---------------------------------------------------------------------------
 // The options for every read, built once: the key, the fetch and how long
@@ -44,6 +44,27 @@ export function connectionsQuery() {
     queryKey: queryKeys.connections(),
     queryFn: ({ signal }) => getConnections({ signal }),
     refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * One connection's record of changes, newest first, a page at a time, for
+ * one open of the Activity sheet (`open` counts the opens). Read fresh on
+ * every open and never again while it is open: a change that lands meanwhile
+ * shows on the next open, at the top, and never moves or repeats a row
+ * already on screen. The pages after the first are read only by Show more.
+ * An open's pages are forgotten once the next open replaces it.
+ */
+export function connectionChangesQuery(id: string, open: number) {
+  return infiniteQueryOptions({
+    queryKey: queryKeys.connectionChanges(id, open),
+    queryFn: ({ pageParam, signal }) => getConnectionChanges(id, pageParam, { signal }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (page) => page.nextCursor,
+    staleTime: Infinity,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
