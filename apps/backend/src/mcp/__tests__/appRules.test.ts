@@ -108,11 +108,10 @@ describe("APP_RULES", () => {
     expect(named).toEqual(expect.arrayContaining(["log_estimate", "set_entries_status", "update_entry"]));
   });
 
-  it("promises nothing a writing key cannot do yet", () => {
-    // The record's screen comes with its own slice: until then the rules say where nothing is read.
-    for (const phrase of ["read it in Settings", "Activity"]) {
-      expect(WRITE_RULES).not.toContain(phrase);
-    }
+  it("says the person can read every change in Settings, where the record's screen is", () => {
+    expect(WRITE_RULES).toContain(
+      "7. Everything you change is recorded in the app under this connection's name, and the person can read it in Settings.",
+    );
   });
 
   it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {

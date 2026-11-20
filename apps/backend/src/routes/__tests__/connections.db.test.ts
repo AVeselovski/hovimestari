@@ -264,9 +264,11 @@ await describeWithDb("connections", (suite) => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual({
         connections: [
-          expect.objectContaining({ id: ids[2], name: "Third", status: "active" }),
-          expect.objectContaining({ id: ids[1], name: "Second", status: "expired" }),
+          expect.objectContaining({ id: ids[2], name: "Third", status: "active", changeCount: 0 }),
+          expect.objectContaining({ id: ids[1], name: "Second", status: "expired", changeCount: 0 }),
         ],
+        // A revoked key that made no change is not a past connection.
+        past: [],
         availability: { connect: true, write: false },
       });
     });

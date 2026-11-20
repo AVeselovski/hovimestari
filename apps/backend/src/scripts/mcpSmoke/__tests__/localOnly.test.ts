@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { refuseNonLocal } from "../localOnly.js";
+import { refuseNonLocal, smokeTarget } from "../localOnly.js";
 
 describe("refuseNonLocal", () => {
   it.each([
@@ -38,9 +38,42 @@ describe("refuseNonLocal", () => {
     expect(refuseNonLocal("postgresql://postgres@localhost:5432/hovimestari_smoke_old")).toMatch(/_smoke/);
   });
 
-  it("takes any local database name with the explicit opt-in, and still refuses a remote host", () => {
-    expect(refuseNonLocal("postgresql://postgres@localhost:5432/hovimestari", true)).toBeNull();
-    expect(refuseNonLocal("postgresql://postgres@db.example.com/hovimestari", true)).toEqual(expect.any(String));
-    expect(refuseNonLocal("postgresql://postgres@localhost/x?host=db.example.com", true)).toEqual(expect.any(String));
+  it("refuses a database name with a percent escape, which pg may read as another name", () => {
+    expect(refuseNonLocal("postgresql://postgres@localhost/hovimestari%2F_smoke")).toMatch(/unescaped/);
+    expect(refuseNonLocal("postgresql://postgres@localhost/hovimestari%5Fsmoke")).toMatch(/unescaped/);
+  });
+
+  describe("the opt-out of the name rule, for one run", () => {
+    const local = "postgresql://postgres@localhost:5432/hovimestari";
+
+    it("takes any local database name when the second variable repeats it exactly", () => {
+      expect(refuseNonLocal(local, { anyDatabase: true, confirmDatabase: "hovimestari" })).toBeNull();
+      expect(smokeTarget(local, { anyDatabase: true, confirmDatabase: "hovimestari" })).toEqual({
+        target: { host: "localhost", database: "hovimestari" },
+      });
+    });
+
+    it.each([undefined, "", "Hovimestari", "hovimestari ", "hovimestari_smoke", "other"])(
+      "refuses the flag with the name repeated as %p, and names the database to repeat",
+      (confirmDatabase) => {
+        expect(refuseNonLocal(local, { anyDatabase: true, confirmDatabase })).toMatch(
+          /MCP_SMOKE_CONFIRM_DATABASE .*exactly: hovimestari$/,
+        );
+      },
+    );
+
+    it("asks for the name with the flag set even on a _smoke database", () => {
+      const smoke = "postgresql://postgres@localhost:5432/hovimestari_smoke";
+      expect(refuseNonLocal(smoke, { anyDatabase: true })).toMatch(/exactly: hovimestari_smoke$/);
+      expect(refuseNonLocal(smoke, { anyDatabase: true, confirmDatabase: "hovimestari_smoke" })).toBeNull();
+    });
+
+    it("lifts the name rule only: a remote host or a query parameter is still refused", () => {
+      for (const url of [
+        "postgresql://postgres@db.example.com/hovimestari",
+        "postgresql://postgres@localhost/hovimestari?host=db.example.com",
+      ])
+        expect(refuseNonLocal(url, { anyDatabase: true, confirmDatabase: "hovimestari" })).toEqual(expect.any(String));
+    });
   });
 });

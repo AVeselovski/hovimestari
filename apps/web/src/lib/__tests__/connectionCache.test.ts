@@ -13,7 +13,8 @@ describe("connectionCache", () => {
   function clientWith(): QueryClient {
     const client = new QueryClient();
     client.setQueryData<ConnectionList>(queryKeys.connections(), {
-      connections: [older],
+      connections: [{ ...older, changeCount: 2 }],
+      past: [],
       availability: { connect: true, write: false },
     });
     return client;
@@ -24,6 +25,9 @@ describe("connectionCache", () => {
     putNewConnection(client, added);
     putNewConnection(client, added);
     expect(list(client)).toEqual(["New", "Older"]);
+    // A new key has made no change, and the others keep their counts.
+    const counts = client.getQueryData<ConnectionList>(queryKeys.connections())?.connections.map((c) => c.changeCount);
+    expect(counts).toEqual([0, 2]);
   });
 
   it("takes a connection off the list", () => {
