@@ -6,6 +6,7 @@ import {
   type FoodDetail,
   type Me,
   type Portion,
+  type Recipe,
   type SavedMeal,
   type TargetChange,
 } from "@hovimestari/types";
@@ -15,6 +16,7 @@ import { dropFood, dropPortion, putNewFoodInSearches, putNewOwnFood, putPortion,
 import { dropMeal, putMeal, putNewMeal, takeMealOutOf } from "./mealCache";
 import { forgetSeen } from "./pendingIds";
 import { queryKeys } from "./queryKeys";
+import { dropRecipe, moveRecipe, putRecipe } from "./recipeCache";
 import { refresh } from "./refreshReads";
 import { settledWithin } from "./settledWithin";
 import { putSavedChange } from "./targetsCache";
@@ -164,8 +166,9 @@ export async function afterOwnFoodSaved(client: QueryClient, food: FoodDetail, c
         client.invalidateQueries({ queryKey: queryKeys.foods() }),
         // Read at once, also while not on screen, for its order.
         change === "added" && client.invalidateQueries({ queryKey: queryKeys.foodOwn(), refetchType: "all" }),
-        // Its planned entries from today on take its new values.
+        // Its planned entries from today on take its new values, and so do the recipes that use it.
         change !== "added" && afterFoodChangeOnDays(client),
+        change !== "added" && client.invalidateQueries({ queryKey: queryKeys.recipes() }),
       ]),
   );
 }
@@ -183,7 +186,13 @@ export async function afterFoodGone(client: QueryClient, id: string): Promise<vo
       dropFood(client, id);
       releaseHeldLists(client);
     },
-    () => Promise.all([client.invalidateQueries({ queryKey: queryKeys.foods() }), afterFoodChangeOnDays(client)]),
+    () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: queryKeys.foods() }),
+        afterFoodChangeOnDays(client),
+        // A recipe line on it now reads "This food was deleted.".
+        client.invalidateQueries({ queryKey: queryKeys.recipes() }),
+      ]),
   );
 }
 
@@ -472,4 +481,55 @@ export async function afterSavedMealGone(client: QueryClient, id: string): Promi
     releaseHeldLists(client);
   };
   await editMeals(client, drop, [queryKeys.savedMeals(), queryKeys.days(), queryKeys.log()]);
+}
+
+// ---------------------------------------------------------------------------
+// Recipes. A write's answer goes into the lists and the recipe's page first,
+// so a row never moves under the thumb and the page shows the save at once,
+// then the reads that follow settle what only the server knows.
+// ---------------------------------------------------------------------------
+
+/** Cancels the recipe reads on their way, makes the edit, and reads `keys` again. */
+async function editRecipes(client: QueryClient, edit: () => void, keys: readonly QueryKey[]): Promise<void> {
+  await client.cancelQueries({ queryKey: queryKeys.recipes() });
+  edit();
+  await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
+}
+
+/**
+ * After a recipe is saved, new or edited: the answer goes into its page and
+ * its row at once. An edit took its planned entries from today on to the new
+ * figures, so the days are read again, and the log for its rows.
+ */
+export async function afterRecipeSaved(client: QueryClient, recipe: Recipe, created: boolean): Promise<void> {
+  await editRecipes(
+    client,
+    () => putRecipe(client, recipe),
+    created ? [queryKeys.recipeList(false)] : [queryKeys.recipes(), queryKeys.days(), queryKeys.log()],
+  );
+}
+
+/** After a recipe is archived or restored: it moves between the two lists in place, and both are read again. */
+export async function afterRecipeArchived(client: QueryClient, id: string, archived: boolean): Promise<void> {
+  await editRecipes(client, () => moveRecipe(client, id, archived), [queryKeys.recipes(), queryKeys.log()]);
+}
+
+/** After a favourite mark has settled: the lists and the page are read again, for the rest of what they show. */
+export async function afterRecipeFavourite(client: QueryClient, id: string): Promise<void> {
+  await refresh(client, [queryKeys.recipeList(false), queryKeys.recipeList(true), queryKeys.recipeDetail(id)]);
+}
+
+/**
+ * After a recipe is deleted, or found gone: it leaves both lists in place,
+ * and the lists are read again. Its page is only marked stale, never read
+ * now: the page it was deleted from is still leaving, and a read would show
+ * it as gone on its way out. An entry's Open recipe reads it afresh.
+ */
+export async function afterRecipeGone(client: QueryClient, id: string): Promise<void> {
+  await editRecipes(client, () => dropRecipe(client, id), [
+    queryKeys.recipeList(false),
+    queryKeys.recipeList(true),
+    queryKeys.log(),
+  ]);
+  await client.invalidateQueries({ queryKey: queryKeys.recipeDetail(id), exact: true, refetchType: "none" });
 }

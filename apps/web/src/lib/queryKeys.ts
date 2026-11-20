@@ -52,6 +52,14 @@ export const queryKeys = {
   /** The active saved meals, or the archived ones. */
   savedMealList: (archived: boolean) => ["savedMeals", "list", archived] as const,
 
+  // Recipes ----------------------------------------------------------------
+  /** Every recipe read. */
+  recipes: () => ["recipes"] as const,
+  /** The active recipes, or the archived ones. */
+  recipeList: (archived: boolean) => ["recipes", "list", archived] as const,
+  /** One recipe with its lines. */
+  recipeDetail: (id: string) => ["recipes", "detail", id] as const,
+
   // Connected AI -----------------------------------------------------------
   /** The user's connections and what the server offers. Never a key: the list answer holds none. */
   connections: () => ["connections"] as const,
