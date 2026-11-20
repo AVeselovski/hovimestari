@@ -52,6 +52,8 @@ export interface AddDeps {
   apply: (days: readonly Day[], zone: number) => Promise<void>;
   undo: (send: () => Promise<void>, options?: UndoOptions) => void;
   oneTapFailed: (err: unknown, retry: () => void) => void;
+  /** A date as a toast names it: "today", "tomorrow", "Sat 21 Nov". */
+  dayWord: (date: string) => string;
 }
 
 export interface AddActions {
@@ -70,6 +72,7 @@ export function useAddActions({
   apply,
   undo,
   oneTapFailed,
+  dayWord,
 }: AddDeps): AddActions {
   // "Log another" from a replay's toast. A ref, because an add's toast offers it and it sends an add.
   const addAgainRef = useRef<(request: AddRequest) => void>(() => {});
@@ -134,16 +137,21 @@ export function useAddActions({
       const name = res.entry?.name ?? request.name;
       const announce = (): void => {
         if (res.outcome === "replayed") return announceReplay(request.again, name, planned, res.entry === null);
+        const day = request.namesDay ? dayWord(date) : null;
         const message = planned
-          ? t("addedToPlan", { name })
+          ? day !== null
+            ? t("addedToPlanOn", { name, day })
+            : t("addedToPlan", { name })
           : request.body.kind === "estimate"
             ? t("loggedEstimate", { name })
-            : t("logged", { name, amount: request.amount });
+            : day !== null && day !== t("today")
+              ? t("loggedOn", { name, amount: request.amount, day })
+              : t("logged", { name, amount: request.amount });
         toast.show({ message, action: { label: t("undo"), onPress: (press) => undoAdd(id, date, press) } });
       };
       return { outcome: res.outcome === "replayed" ? "replayed" : "created", announce };
     },
-    [announceReplay, apply, client, ready, sendAdd, t, toast, undoAdd],
+    [announceReplay, apply, client, dayWord, ready, sendAdd, t, toast, undoAdd],
   );
 
   const saveAndLog = useCallback(

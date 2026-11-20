@@ -1,16 +1,18 @@
 "use client";
 
 import { OwnFoodSheet } from "@/components/foods/OwnFoodSheet";
+import { SearchField } from "@/components/foods/SearchField";
 import { sourcesOf } from "@/components/log/mealFilter";
 import { MEAL_ROW_ATTRIBUTE } from "@/components/log/SavedMealRow";
 import { SavedMealSheet, type EditSavedMeal } from "@/components/log/SavedMealSheet";
 import { sayIfFailed, useMealActions } from "@/components/log/useMealActions";
 import { PageContainer } from "@/components/ui/PageContainer";
-import { actionPair, actionPairButton } from "@/components/ui/styles";
+import { btnWide, segmentActive, segmentButton, segmentedTray, segmentInactive } from "@/components/ui/styles";
 import { useToast } from "@/components/ui/Toast";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFailureLine } from "@/hooks/useFailureLine";
 import { useKnownOffline } from "@/hooks/useKnownOffline";
+import { useRovingChoice } from "@/hooks/useRovingChoice";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
@@ -19,20 +21,31 @@ import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
 import { afterFoodGone, afterSavedMealGone } from "@/lib/invalidation";
 import { STALE } from "@/lib/queryClient";
 import { foodDetailQuery, savedMealsQuery } from "@/lib/queryOptions";
+import { markOpenedInApp } from "@/lib/recipeNav";
 import type { FoodDetail, FoodSummary, SavedMeal } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { useCallback, useRef, useState, type ReactElement } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useId, useRef, useState, type ReactElement } from "react";
 import { OwnFoodsSection } from "./OwnFoodsSection";
+import { RecipeEditorSheet } from "./RecipeEditorSheet";
+import { RecipeList } from "./RecipeList";
 import { SavedMealsSection } from "./SavedMealsSection";
 
 // ---------------------------------------------------------------------------
-// RecipesTab: where a person keeps their saved meals and their own foods.
-// One row of two actions at the top, "New saved meal" and "Add a food", so
-// each is in the same place however long the lists are. Then the saved meals
-// with the archived ones under them, then the own foods. A row opens its edit
-// sheet directly: this page keeps things, and the log sheet logs them.
+// RecipesTab: where a person keeps their recipes, their saved meals and
+// their own foods. Three segments, Recipes, Meals and Foods, one list at a
+// time, the segment in the address (`?show=recipes|meals|foods`, written
+// with `replace`, so Back and a reload keep it). Under the segments, in the
+// same place whatever the segment: its one action (New recipe, New saved
+// meal or Add a food), then its search field, which filters its list on the
+// device. Each segment keeps its own search while the page is open.
 //
+// - Recipes: the chips and the list (`RecipeList`). A row opens the recipe's
+//   page. New recipe opens the editor, and a saved recipe opens its page.
+// - Meals and Foods: the saved meals with the archived ones, and the own
+//   foods. A row opens its edit sheet directly: this page keeps things, and
+//   the log sheet logs them.
 // - The sheets are the log sheet's own, top-level here: `SavedMealSheet`
 //   without `logging` (save only) and with `archive`, and `OwnFoodSheet`.
 //   Each delete confirmation is stacked on its own sheet.
@@ -46,11 +59,21 @@ import { SavedMealsSection } from "./SavedMealsSection";
 //   since no sheet is open.
 // - Writes wait while the app asks the server for today, as on the Day tab.
 // - After a delete, focus goes to the next row of that list, else the row
-//   before, else that list's action at the top.
+//   before, else the segment's action.
 // ---------------------------------------------------------------------------
+
+const SEGMENTS = ["recipes", "meals", "foods"] as const;
+export type Segment = (typeof SEGMENTS)[number];
+
+/** The segment an address names, recipes by default. */
+export function segmentOf(show: string | null): Segment {
+  return (SEGMENTS as readonly string[]).includes(show ?? "") ? (show as Segment) : "recipes";
+}
 
 export function RecipesTab(): ReactElement {
   const t = useTranslations("recipes");
+  const tSegments = useTranslations("recipes.segments");
+  const tSearch = useTranslations("recipes.search");
   const tBrowse = useTranslations("log.browse");
   const tFoods = useTranslations("foods.sheet");
   const tLog = useTranslations("log");
@@ -62,8 +85,30 @@ export function RecipesTab(): ReactElement {
   const { holding } = useToday();
 
   const pageRef = useRef<HTMLDivElement>(null);
-  const newMealRef = useRef<HTMLButtonElement>(null);
-  const addFoodRef = useRef<HTMLButtonElement>(null);
+  const actionRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchId = `${useId()}-search`;
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  // The segment the address names. A tap on the tab bar's Recipes, with no ?show=, comes back to Recipes.
+  const named = segmentOf(params.get("show"));
+  const [segment, setSegment] = useState<Segment>(named);
+  const [seen, setSeen] = useState(named);
+  if (named !== seen) {
+    setSeen(named);
+    setSegment(named);
+  }
+  const [queries, setQueries] = useState<Record<Segment, string>>({ recipes: "", meals: "", foods: "" });
+  const query = queries[segment];
+  const setQuery = (text: string): void => setQueries((q) => ({ ...q, [segment]: text }));
+  const recipeEditor = useSheetTarget();
+  const roving = useRovingChoice(SEGMENTS, segment, choose);
+
+  function choose(next: Segment): void {
+    setSegment(next);
+    router.replace(next === "recipes" ? pathname : `${pathname}?show=${next}`, { scroll: false });
+  }
   // A meal to edit, or null for a new one. A food to edit, or null for a new one.
   const mealSheet = useSheetTarget<SavedMeal | null>();
   const ownSheet = useSheetTarget<FoodDetail | null>();
@@ -152,56 +197,107 @@ export function RecipesTab(): ReactElement {
       focusAfterDelete: () => {
         // The row may have moved between the two lists since the sheet opened.
         const row = pageRef.current?.querySelector<HTMLElement>(`[${MEAL_ROW_ATTRIBUTE}="${CSS.escape(meal.id)}"]`);
-        return focusAfterRowRemoval(row ?? null, newMealRef.current);
+        return focusAfterRowRemoval(row ?? null, actionRef.current);
       },
     };
   }
 
   return (
     <PageContainer clearToast>
-      <div ref={pageRef} className="space-y-8">
-        <div data-recipes-actions="" className={actionPair}>
-          <button
-            ref={newMealRef}
-            type="button"
-            onClick={(e) => {
-              opened();
-              mealSheet.open(e.currentTarget, null);
-            }}
-            className={actionPairButton}
-          >
-            {tBrowse("newMeal")}
-          </button>
-          <button
-            ref={addFoodRef}
-            type="button"
-            onClick={(e) => {
-              opened();
-              ownSheet.open(e.currentTarget, null);
-            }}
-            className={actionPairButton}
-          >
-            {t("addFood")}
-          </button>
+      <div ref={pageRef} className="space-y-4">
+        <div
+          role="tablist"
+          aria-label={tSegments("label")}
+          data-recipes-segments=""
+          className={`${segmentedTray} grid-cols-3`}
+        >
+          {SEGMENTS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              id={`${searchId}-${key}-tab`}
+              aria-selected={segment === key}
+              aria-controls={`${searchId}-panel`}
+              onClick={() => choose(key)}
+              {...roving.optionProps(key)}
+              className={`${segmentButton} min-h-12 ${segment === key ? segmentActive : segmentInactive}`}
+            >
+              {tSegments(key)}
+            </button>
+          ))}
         </div>
-        <SavedMealsSection
-          onOpenMeal={(meal, opener) => {
-            opened();
-            mealSheet.open(opener, meal);
-          }}
-          archivedOpen={archivedOpen}
-          onToggleArchived={() => setArchivedOpen((open) => !open)}
-          onRestore={(meal) => void meals.setArchived(meal, false).then((outcome) => sayIfFailed(outcome, say))}
-          busyId={meals.busyId}
-          held={holding}
-          rowDescription={rowOpens}
-        />
-        <OwnFoodsSection
-          onOpenFood={(food, opener) => void openFood(food, opener)}
-          openingId={openingId}
-          rowDescription={rowOpens}
-        />
+        <div
+          role="tabpanel"
+          id={`${searchId}-panel`}
+          aria-labelledby={`${searchId}-${segment}-tab`}
+          className="space-y-4"
+        >
+          <button
+            ref={actionRef}
+            type="button"
+            data-recipes-action=""
+            onClick={(e) => {
+              opened();
+              if (segment === "recipes") recipeEditor.open(e.currentTarget);
+              else if (segment === "meals") mealSheet.open(e.currentTarget, null);
+              else ownSheet.open(e.currentTarget, null);
+            }}
+            className={btnWide}
+          >
+            {segment === "recipes" ? t("newRecipe") : segment === "meals" ? tBrowse("newMeal") : t("addFood")}
+          </button>
+          <SearchField
+            key={segment}
+            id={searchId}
+            inputRef={searchRef}
+            value={query}
+            onChange={setQuery}
+            autoFocus={false}
+            label={tSearch(segment)}
+          />
+          <div className="pt-2">
+            {segment === "recipes" ? (
+              <RecipeList query={query} onClearQuery={() => setQuery("")} newRecipe={actionRef.current} />
+            ) : segment === "meals" ? (
+              <SavedMealsSection
+                onOpenMeal={(meal, opener) => {
+                  opened();
+                  mealSheet.open(opener, meal);
+                }}
+                archivedOpen={archivedOpen}
+                onToggleArchived={() => setArchivedOpen((open) => !open)}
+                onRestore={(meal) => void meals.setArchived(meal, false).then((outcome) => sayIfFailed(outcome, say))}
+                busyId={meals.busyId}
+                held={holding}
+                rowDescription={rowOpens}
+                query={query}
+                onClearQuery={() => setQuery("")}
+              />
+            ) : (
+              <OwnFoodsSection
+                onOpenFood={(food, opener) => void openFood(food, opener)}
+                openingId={openingId}
+                rowDescription={rowOpens}
+                query={query}
+                onClearQuery={() => setQuery("")}
+              />
+            )}
+          </div>
+        </div>
       </div>
+      {recipeEditor.shown && (
+        <RecipeEditorSheet
+          key={`recipe-${recipeEditor.shown.key}`}
+          open={recipeEditor.isOpen}
+          returnFocusTo={recipeEditor.shown.opener}
+          onClose={recipeEditor.close}
+          onSavedRecipe={(saved) => {
+            markOpenedInApp();
+            router.push(`/recipes/${saved.id}`);
+          }}
+        />
+      )}
       {mealOpen && (
         <SavedMealSheet
           key={`meal-${mealOpen.key}`}
@@ -220,7 +316,7 @@ export function RecipesTab(): ReactElement {
           onClose={ownSheet.close}
           food={ownSheet.shown.value ?? undefined}
           onFoodGone={foodGone}
-          focusAfterDelete={() => focusAfterRowRemoval(ownSheet.shown?.opener ?? null, addFoodRef.current)}
+          focusAfterDelete={() => focusAfterRowRemoval(ownSheet.shown?.opener ?? null, actionRef.current)}
         />
       )}
     </PageContainer>

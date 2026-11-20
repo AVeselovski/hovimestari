@@ -393,6 +393,7 @@ export function useEntryActions(shownDate: string | null): EntryActions {
     apply,
     undo,
     oneTapFailed,
+    dayWord,
   });
 
   const { copy, readDaysAgain } = useCopyActions({ client, toast, t, ready, counted, apply, undo, dayWord });

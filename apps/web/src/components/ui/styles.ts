@@ -130,6 +130,9 @@ export const linkClass = `rounded-sm font-medium text-ink underline decoration-f
 /** A field: 48px tall, 16px text so iOS Safari never zooms on focus. */
 export const inputClass = `block h-12 w-full rounded-control border border-field-rule bg-surface-raised px-3.5 text-base text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
 
+/** A text area for prose that runs over several lines, such as a recipe's method: the field recipe, taller, with its own padding. */
+export const textareaClass = `block min-h-32 w-full resize-y rounded-control border border-field-rule bg-surface-raised px-3.5 py-3 text-base leading-6 text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
+
 /**
  * The select itself: a field's box (48px, 16px text, so iOS Safari never
  * zooms on focus), with the browser's own arrow drawn away and room on the

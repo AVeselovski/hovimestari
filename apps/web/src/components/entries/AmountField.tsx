@@ -33,6 +33,8 @@ export interface AmountFieldProps {
   autoFocus: boolean;
   /** "beside" puts the field's label on its left, one row, for a block that must fit a first screen. */
   layout?: "stacked" | "beside";
+  /** A line under the field while it holds no refusal, such as how to weigh the amount. */
+  hint?: string;
 }
 
 export function AmountField({
@@ -45,6 +47,7 @@ export function AmountField({
   error,
   autoFocus,
   layout,
+  hint,
 }: AmountFieldProps): ReactElement {
   const t = useTranslations("entries.amount");
   const tSheet = useTranslations("entries.sheet");
@@ -57,7 +60,8 @@ export function AmountField({
   });
   const labelOf = (chip: UnitChip) =>
     chip.id === GRAMS ? t("grams") : t("portion", { portion: chip.label ?? "", grams: formatGrams(chip.grams ?? 0) });
-  const line = error === undefined ? null : error === "digit_group" ? tCommon("digitGroup") : errorCopy.forCode(error);
+  const line =
+    error === undefined ? (hint ?? null) : error === "digit_group" ? tCommon("digitGroup") : errorCopy.forCode(error);
   return (
     // 8 px under the chip row, whose own 4 px of focus-ring room makes 12 px:
     // the chips belong to the field, a little apart from its label.
