@@ -244,7 +244,8 @@ export async function afterBarcodeFound(client: QueryClient, food: FoodDetail, n
  * date on screen (a mark that changed nothing answers no days), that day is
  * read again, so the row shows what the server holds. An answered day whose
  * `today` is older than the app's (`appToday`) was answered before midnight,
- * so its `relation` and `unmarkedCount` are stale: it is read again too. Then
+ * so its `relation`, `unmarkedCount` and positions are stale (an empty
+ * reading loses its position once its day is past): it is read again too. Then
  * the ranges, recent items, saved meals, favourites and food details, whose
  * last amounts follow eaten entries. Before that, each answered day also goes
  * into every cached range that holds its date (`putDaysInRanges`), so a week
@@ -387,8 +388,9 @@ export function beginEntryWrite(client: QueryClient, dates: readonly string[]): 
 
 /**
  * After the server's today moved to a new date: every day answered under the
- * old today holds an old `relation` and `unmarkedCount`, so every day and
- * every targets read is read again.
+ * old today holds an old `relation`, `unmarkedCount` and positions (an empty
+ * reading loses its position once its day is past), so every day and every
+ * targets read is read again.
  */
 export async function afterDayChange(client: QueryClient): Promise<void> {
   await refresh(client, [queryKeys.targets(), queryKeys.days()]);

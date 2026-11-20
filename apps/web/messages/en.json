@@ -497,7 +497,9 @@
     "reading": {
       "eaten": "Eaten",
       "planned": "Planned",
-      "energy": "Calories"
+      "energy": "Calories",
+      "noEntries": "No entries",
+      "noneEaten": "Nothing marked eaten"
     },
     "dateBar": {
       "today": "Today",
@@ -567,7 +569,6 @@
       "nextShort": "Next",
       "protein": "Protein (g)",
       "today": "Today",
-      "empty": "No entries",
       "failed": "This week did not load.",
       "offline": "This week needs a connection.",
       "retry": "Try again",
