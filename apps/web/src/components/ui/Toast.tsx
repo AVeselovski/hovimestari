@@ -153,6 +153,8 @@ export function ToastRegion(): ReactElement {
     <Toast.Portal>
       <Toast.Viewport
         aria-label={t("region")}
+        // An open sheet leaves Tab in here to Base UI (lib/sheetTab.ts).
+        data-toast-region=""
         className={toastViewport}
         onFocus={(e) => {
           const from = e.relatedTarget;
