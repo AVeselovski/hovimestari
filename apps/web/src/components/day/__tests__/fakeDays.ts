@@ -192,6 +192,7 @@ export class FakeDays {
       note: null,
       servings: null,
       recipe: null,
+      cook: null,
       isEstimate: false,
     };
     let entry: Entry;

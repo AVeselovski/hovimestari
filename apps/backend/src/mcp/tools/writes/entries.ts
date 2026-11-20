@@ -176,7 +176,7 @@ export const setEntriesStatusTool = defineWriteTool({
 export const copyEntriesTool = defineWriteTool({
   name: "copy_entries",
   description:
-    "Copy entries to another day. Every copy is planned, with the figures of the entry it copies, and the copies keep the order the entries have on their days.",
+    "Copy entries to another day. Every copy is planned, with the figures of the entry it copies, and the copies keep the order the entries have on their days. A copy of an entry from a cook plans its recipe again, with the recipe's figures now and no cook.",
   inputSchema: writeInput({
     entryIds: EntryIdSet("The entries to copy"),
     toDate: DayDate.describe("The day to copy to, YYYY-MM-DD, or today."),

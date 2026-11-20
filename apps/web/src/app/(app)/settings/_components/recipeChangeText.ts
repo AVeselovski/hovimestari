@@ -69,7 +69,7 @@ function lineChangeParts(change: RecipeLineChange, words: ChangeWords): string[]
  * line on its own, then whether the order changed. At most `SHOWN_LINES`
  * lines are spelled out, and the rest are counted, never as "1 more".
  */
-function linesLines(change: Lines, words: ChangeWords, created: boolean): ChangeLine[] {
+function linesLines(change: Lines, words: ChangeWords, created: boolean, leftOut = false): ChangeLine[] {
   const { t } = words;
   const total = change.added.length + change.removed.length + change.changed.length;
   let room = total > SHOWN_LINES + 1 ? SHOWN_LINES : total;
@@ -102,7 +102,8 @@ function linesLines(change: Lines, words: ChangeWords, created: boolean): Change
       );
     }
     if (removed.length > 0) {
-      const label = t("label.linesRemoved", { count: change.removed.length });
+      const count = change.removed.length;
+      const label = leftOut ? t("label.linesLeftOut", { count }) : t("label.linesRemoved", { count });
       out.push(
         line(
           removed.map((l) => linePart(l, t)),
@@ -178,6 +179,23 @@ function fieldLines(change: RecipeFieldChange, words: ChangeWords, created: bool
       ];
     }
   }
+}
+
+/**
+ * What a batch logged as made changed from its recipe, as the record keeps
+ * it in a recipe change's shapes: the servings it gave beside the recipe's,
+ * and its lines, a recipe line it left out read as left out.
+ */
+export function cookChangeLines(changes: RecipeFieldChange[], words: ChangeWords): ChangeLine[] {
+  const { t } = words;
+  return changes.flatMap((change) => {
+    if (change.field === "servings" && change.from !== null) {
+      const parts = [t("part.batchServings", { cook: formatCount(change.to), recipe: formatCount(change.from) })];
+      return [line(parts, t("field.servings"))];
+    }
+    if (change.field === "lines") return linesLines(change, words, false, true);
+    return fieldLines(change, words, false);
+  });
 }
 
 /** A recipe change's lines, for a create or an edit. */

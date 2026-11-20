@@ -138,6 +138,15 @@ export const EVERY_ACTION: Record<AssistantChangeAction, () => AssistantChange> 
   "recipe.favourite_set": () => change("recipe.favourite_set", { entity: "recipe", name: "Shakshuka", changes: [] }),
   "recipe.favourite_unset": () =>
     change("recipe.favourite_unset", { entity: "recipe", name: "Shakshuka", changes: [] }),
+  "cook.logged": () =>
+    change("cook.logged", {
+      entity: "cook",
+      recipeName: "Shakshuka",
+      date: "2026-11-21",
+      servings: 3,
+      changes: [{ field: "servings", from: 2, to: 3 }],
+      entries: [{ ...porridge, name: "Shakshuka", kind: "recipe", amount: { servings: 1, asMade: true } }],
+    }),
   "targets.set": () =>
     change("targets.set", { entity: "targets", effectiveFrom: "2026-12-01", before: null, after: ranges }),
   "targets.removed": () =>

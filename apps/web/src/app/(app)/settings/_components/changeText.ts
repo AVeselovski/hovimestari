@@ -12,7 +12,7 @@ import {
   type TargetRanges,
 } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
-import { recipeChangeLines } from "./recipeChangeText";
+import { cookChangeLines, recipeChangeLines } from "./recipeChangeText";
 
 // ---------------------------------------------------------------------------
 // One change in a connection's record, as the Activity sheet reads it: a
@@ -95,8 +95,8 @@ function amountPortionName(amount: Record<string, unknown>, units: PortionUnitNa
 }
 
 /**
- * An entry's amount: "150 g", "2 × Medium piece" and "110 g", "1 meal", or
- * "1.5 servings".
+ * An entry's amount: "150 g", "2 × Medium piece" and "110 g", "1 meal",
+ * "1.5 servings", or "1 serving as made" for servings from a batch logged as made.
  * A portion with no name this app can give reads as its grams alone.
  */
 function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | null {
@@ -107,7 +107,10 @@ function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | nul
     const portion = amountPortionName(amount, units);
     return portion === null ? [grams] : [t("part.portion", { count: formatCount(amount.count), portion }), grams];
   }
-  if (typeof amount.servings === "number") return [t("part.servings", { count: amount.servings })];
+  if (typeof amount.servings === "number") {
+    const count = amount.servings;
+    return [amount.asMade === true ? t("part.servingsAsMade", { count }) : t("part.servings", { count })];
+  }
   if (typeof amount.count === "number") return [t("part.meals", { count: amount.count })];
   return null;
 }
@@ -332,6 +335,14 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
     case "recipe.favourite_unset": {
       const s = of(summary, "recipe");
       return s ? { headline: t("headline.recipeFavouriteUnset", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "cook.logged": {
+      const s = of(summary, "cook");
+      if (!s) return unreadable(t);
+      return {
+        headline: t("headline.cookLogged", { name: s.recipeName }),
+        lines: [...s.entries.map((e) => entryLine(e, words)), ...cookChangeLines(s.changes, words)],
+      };
     }
     case "targets.set": {
       const s = of(summary, "targets");

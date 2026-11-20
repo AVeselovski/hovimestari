@@ -158,6 +158,13 @@ describe("APP_RULES", () => {
     expect(APP_RULES).not.toContain("cannot be put on a day");
   });
 
+  it("says a cook's entries keep the cook's figures, and asks for a batch as made through log_cook with fromLineId", () => {
+    expect(APP_RULES).toContain("Editing a food or the recipe does not change a cook or its entries.");
+    expect(APP_RULES).toContain("A copy of an entry from a cook plans its recipe again");
+    expect(WRITE_RULES).toContain("Log a batch that came out different with log_cook, never by editing the recipe.");
+    expect(WRITE_RULES).toContain("Give each line from the recipe its fromLineId from get_recipe");
+  });
+
   it("gives a read key the estimate rule too", () => {
     expect(APP_RULES).toContain("A figure judged from a photo or a description is an estimate");
   });

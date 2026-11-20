@@ -97,4 +97,13 @@ describe("EntryList, a recipe entry's row", () => {
     expect(screen.getByText("1 serving")).toBeInTheDocument();
     expect(screen.getByText("1.5 servings")).toBeInTheDocument();
   });
+
+  it("reads an entry from a batch logged as made by its servings and the batch's figures, as a recipe entry", () => {
+    const batch = { energyKcal: 240.53, proteinG: 17.187, carbsG: 8.087, fatG: 15.073 };
+    const cook = { id: "00000000-0000-4000-9000-00000000c00c", date: TODAY, servings: 3, differs: true };
+    const { entries } = dayOf([recipeEntry("Shakshuka", 2, batch, { cook })]);
+    render(list(entries));
+    expect(screen.getByText("2 servings")).toBeInTheDocument();
+    expect(document.body.textContent).toContain("481");
+  });
 });

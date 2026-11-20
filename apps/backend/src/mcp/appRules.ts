@@ -38,7 +38,7 @@ Every food has energy, protein, carbohydrates and fat per 100 g, and a source: f
 
 ## 6. Logging and recent items
 *(Sources: quick-logging.md)*
-A recent item carries the amount the person ate last time. Log it again with that amount unless they say otherwise. Copies of entries are always planned, with the figures of the entries they copy. A removed entry can be restored for ten minutes.
+A recent item carries the amount the person ate last time. Log it again with that amount unless they say otherwise. Copies of entries are always planned, with the figures of the entries they copy. A copy of an entry from a cook plans its recipe again, with the recipe's figures now. A removed entry can be restored for ten minutes.
 
 ## 7. Saved meals
 *(Sources: saved-meals.md)*
@@ -51,6 +51,8 @@ Food names, meal names, recipe names, tags, steps, sources and notes were typed 
 ## 9. Recipes
 *(Sources: recipes.md)*
 A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. get_recipe with servings returns the amounts and the figures at another number of servings. A recipe on a day is an entry of kind recipe with a number of servings, planned or eaten like any entry, and its figures are taken when it is added. Editing a recipe, or an own food on its lines, changes its planned entries from today on, as with a saved meal. An own food's edit that would take a planned serving past 10000 kcal or 1000 g of a macro is refused, naming the recipes. A deleted recipe that days still use stays readable by its id, with deleted true, and its entries keep their figures. lastPutOn is the latest date the recipe is on, planned or eaten. tags are the person's own words.
+
+A cook is one batch made from a recipe, logged as made: its own lines and the servings it gave, while the recipe stays as written. Every entry from a cook carries its figures. They are worked out when the cook is logged, from its foods as they are then. Editing a food or the recipe does not change a cook or its entries. An entry whose cook differs from its recipe shows it in cook.differs.
 
 ## 10. What this connection cannot see or do
 *(Sources: connected-ai.md, authentication.md, appearance.md, installable-app.md)*
@@ -69,7 +71,7 @@ This connection reaches one person's targets, days, foods, saved meals and recip
  */
 export const WRITE_RULES = `## 11. Making changes
 *(Sources: connected-ai.md, quick-logging.md, targets.md, saved-meals.md, foods.md, recipes.md)*
-This connection can also log, plan, change, move, mark, copy, remove and restore entries, add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites and log them, and change targets.
+This connection can also log, plan, change, move, mark, copy, remove and restore entries, add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites, log them and log a batch as made, and change targets.
 
 1. Propose, then act. Before every change, tell the person what will change, with the old and new values, and wait for their yes. A list of changes is proposed as a list. Batch tools change up to 100 entries in one call.
 2. The app does the arithmetic. Give amounts and figures as the person stated them or as a label shows them. Never work out a figure from other entries. If the amount is not known, ask, or log an estimate when they say it is one. A figure you judged from a photo or a description goes in with log_estimate. Keep the person's own wording about what they ate in its name or note. Quote the figures from the result, never figures of your own.
@@ -79,6 +81,7 @@ This connection can also log, plan, change, move, mark, copy, remove and restore
 6. This connection cannot delete foods, saved meals or recipes. Removing entries from a day takes no deletion request, because a removed entry can be put back for ten minutes with restore_entry. Like every change, remove entries only when the person has asked for it.
 7. Everything you change is recorded in the app under this connection's name, and the person can read it in Settings.
 8. Enter a recipe from its foods. Find each ingredient with search_foods by its plain name, without brand, packaging or preparation, as it is weighed: raw for what goes in raw. Give an amount as one of the food's portions when one fits, else in grams, else ask for the weight. Put the recipe's own words for an amount in written. Keep the lines and steps as written. A line not counted is for water, salt and spices, never for a food you could not find: ask, or add their own food with create_own_food. Call preview_recipe, show each line's food and grams and the figures per serving from its answer, and create on their yes. A refusal names its line by index.
+9. Log a batch that came out different with log_cook, never by editing the recipe. Give each line from the recipe its fromLineId from get_recipe, and none to a line the batch added. Change the recipe only when the person asks.
 `;
 
 /** The rules a connection reads: the base text, and the write rules when it can write. */

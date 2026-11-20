@@ -248,6 +248,53 @@ describe("update_recipe", () => {
   });
 });
 
+describe("log_cook", () => {
+  const cook = (changes: unknown[]): AssistantChangeSummary =>
+    ({
+      entity: "cook",
+      recipeName: "Shakshuka",
+      date: "2026-11-21",
+      servings: 3,
+      changes,
+      entries: [
+        {
+          name: "Shakshuka",
+          date: "2026-11-21",
+          status: "eaten",
+          kind: "recipe",
+          amount: { servings: 1, asMade: true },
+          figures: { energyKcal: 241, proteinG: 17.2, carbsG: 8.1, fatG: 15.1 },
+        },
+      ],
+    }) as AssistantChangeSummary;
+
+  it("reads the entries it fed, the servings beside the recipe's, and the lines added, left out and changed", () => {
+    const summary = cook([
+      { field: "servings", from: 2, to: 3 },
+      lines({
+        added: [{ name: "Pinaatti", grams: 80 }],
+        removed: [{ name: "Oliiviöljy", grams: 15 }],
+        changed: [{ name: "Fetajuusto", grams: { from: 60, to: 100 } }],
+      }),
+    ]);
+    expect(read(change("cook.logged", summary))).toEqual([
+      "Logged Shakshuka as made",
+      "For 21 November 2026 · 1 serving as made · 241 kcal · 17.2 g protein",
+      "Servings: Gave 3, the recipe makes 2",
+      "Ingredient added: Pinaatti 80 g",
+      "Ingredient left out: Oliiviöljy 15 g",
+      "Fetajuusto: 60 g to 100 g",
+    ]);
+  });
+
+  it("reads a batch made as written by its entries alone", () => {
+    expect(read(change("cook.logged", cook([])))).toEqual([
+      "Logged Shakshuka as made",
+      "For 21 November 2026 · 1 serving as made · 241 kcal · 17.2 g protein",
+    ]);
+  });
+});
+
 describe("spokenText of a recipe change", () => {
   const spoken = (c: AssistantChange): string => {
     const w = words();
