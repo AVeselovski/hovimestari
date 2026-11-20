@@ -118,7 +118,8 @@ await describeWithDb("foodWrites", (suite) => {
   describe("an own food that changes owner between the check and the write", () => {
     it("is not edited, and the edit answers 404", async () => {
       const { a, b, writes, food } = await setUp();
-      const db = interfered(suite.db, "update", async () => {
+      // Between the check and the transaction, whose first read of the food locks it.
+      const db = interfered(suite.db, "transaction", async () => {
         await suite.client.query("UPDATE foods SET user_id = $1 WHERE id = $2", [b.id, food.id]);
       });
       await expect(writes.updateOwnFood(await contextOf(a.id, db), food.id, body("Renamed"))).rejects.toMatchObject({

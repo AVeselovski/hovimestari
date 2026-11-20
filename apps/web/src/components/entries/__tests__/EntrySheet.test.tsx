@@ -335,6 +335,16 @@ describe("EntrySheet", () => {
     expect(within(lunch).getByLabelText("Meals", { selector: "input" })).toHaveAccessibleDescription(/meals/);
   });
 
+  it.each(["1.255", "1,255"])("refuses %s meals with the range's line, not the thousands group's", async (typed) => {
+    renderSheet(mealEntry("Lunch", 1, { energyKcal: 600, proteinG: 40, carbsG: 60, fatG: 20 }));
+    const lunch = screen.getByRole("dialog", { name: "Lunch" });
+    const meals = within(lunch).getByLabelText("Meals", { selector: "input" });
+    fireEvent.change(meals, { target: { value: typed } });
+    await act(async () => fireEvent.click(within(lunch).getByRole("button", { name: "Save" })));
+    expect(actions.save).not.toHaveBeenCalled();
+    expect(document.getElementById(`${meals.id}-line`)).toHaveTextContent("Enter 0.01 to 100, two decimals at most.");
+  });
+
   it("clamps a long name in the title to two lines", () => {
     renderSheet(foodEntry("A very long name ".repeat(8).trim(), 100));
     const title = screen.getByRole("heading", { level: 2 });

@@ -28,6 +28,23 @@ export const recipeBody = <L extends { id: string }>(lines: L[], extra: object =
   ...extra,
 });
 
+/** A recipe entry body: one serving, planned on `date`. */
+export const recipeEntryBody = (
+  recipeId: string,
+  date: string,
+  opts: { servings?: number; status?: "planned" | "eaten"; id?: string } = {},
+) => ({
+  kind: "recipe",
+  id: opts.id ?? randomUUID(),
+  recipeId,
+  servings: opts.servings ?? 1,
+  date,
+  status: opts.status ?? "planned",
+});
+
+/** A UUID whose first eight hex digits are `prefix`, so a test can choose which of two ids sorts first. */
+export const idStarting = (prefix: string) => `${prefix}${randomUUID().slice(prefix.length)}`;
+
 /** A create body as an edit takes it: the whole recipe without its id. */
 export const editOf = <B extends { id: string }>({ id: _id, ...rest }: B): Omit<B, "id"> => rest;
 

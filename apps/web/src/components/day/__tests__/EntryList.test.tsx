@@ -1,9 +1,10 @@
+import { clockFrom } from "@/__tests__/helpers/clock";
 import { dayEntriesActions } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import type { Entry } from "@hovimestari/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { EntryList } from "../EntryList";
-import { fakeEntryActions, foodEntry } from "./support";
+import { TODAY, dayOf, fakeEntryActions, foodEntry, recipeEntry } from "./support";
 
 // ---------------------------------------------------------------------------
 // The "Entries" row's actions: Mark all eaten and Copy. Copy must not move
@@ -82,5 +83,18 @@ describe("EntryList, Copy", () => {
     expect(copy()).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(copy());
     expect(onCopy).not.toHaveBeenCalled();
+  });
+});
+
+describe("EntryList, a recipe entry's row", () => {
+  beforeEach(() => clockFrom(`${TODAY}T12:00:00Z`));
+  afterEach(() => jest.restoreAllMocks());
+
+  it("reads its servings as its amount, one serving and a part of one", () => {
+    const serving = { energyKcal: 365.1, proteinG: 21.78, carbsG: 9.87, fatG: 25.69 };
+    const { entries } = dayOf([recipeEntry("Shakshuka", 1, serving), recipeEntry("Lentil soup", 1.5, serving)]);
+    render(list(entries));
+    expect(screen.getByText("1 serving")).toBeInTheDocument();
+    expect(screen.getByText("1.5 servings")).toBeInTheDocument();
   });
 });

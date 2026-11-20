@@ -106,6 +106,8 @@ describe("EntrySchema", () => {
     grams: null,
     portion: null,
     count: null,
+    servings: null,
+    recipe: null,
     note: null,
     basis: figures,
     figures,
@@ -116,5 +118,13 @@ describe("EntrySchema", () => {
     expect(EntrySchema.parse(entry).basis).toEqual(figures);
     expect(EntrySchema.safeParse({ ...entry, basis: undefined }).success).toBe(false);
     expect(EntrySchema.safeParse({ ...entry, basis: null }).success).toBe(false);
+  });
+
+  it("refuses an entry that lacks servings or recipe", () => {
+    for (const field of ["servings", "recipe"]) {
+      const lacking: Record<string, unknown> = { ...entry };
+      delete lacking[field];
+      expect(EntrySchema.safeParse(lacking).success).toBe(false);
+    }
   });
 });

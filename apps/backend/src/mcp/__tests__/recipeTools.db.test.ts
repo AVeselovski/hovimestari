@@ -1,131 +1,34 @@
 import { filterRecipes } from "@hovimestari/types";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeAll, describe, expect, it } from "@jest/globals";
 import type { Client } from "@modelcontextprotocol/client";
 import { randomUUID } from "node:crypto";
-import { daysApi } from "../../__tests__/support/daysApi.js";
-import { recipesApi } from "../../__tests__/support/recipesApi.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
-import { connect, freezeDate, listen, quietConsole } from "./harness.js";
-import {
-  call,
-  CONNECTION_NAME,
-  newRequestKey,
-  recordsOf,
-  writerWithKey,
-  written,
-  type Writer,
-} from "./writeSupport.js";
+import { quietConsole } from "./harness.js";
+import { recipeToolSuite, RECORDED } from "./recipeToolSupport.js";
+import { call, CONNECTION_NAME, newRequestKey, written, type Writer } from "./writeSupport.js";
 
+// ---------------------------------------------------------------------------
 // The recipe tools on a real, migrated Postgres, through a real MCP client
-// and a read-and-write key, on one frozen clock. The reads answer what the
-// routes answer. Each write makes the screen's change, records it with its
-// ids and summary in the same transaction, answers a retry with the same
-// request key as replayed with the recipe as it is now, and records nothing
-// for a change that changed nothing or was refused. The pasted shakshuka of
-// the recipes design (d.6) runs end to end against a seeded catalogue.
+// and a read-and-write key, on one frozen clock (recipeToolSupport.ts). The
+// reads answer what the routes answer. The pasted shakshuka of the recipes
+// design (d.6) runs end to end against a seeded catalogue, through to
+// log_recipe. A recipe on a day: log_recipe, servings on update_entry,
+// get_day's recipe entries, lastPutOn, and a replay of a recipe deleted since.
+// The create, edit, archive and favourite tools are in recipeEditTools.db.test.ts.
+// ---------------------------------------------------------------------------
 
 process.env.MCP_WRITES_ENABLED = "true";
 quietConsole();
-const NOW = "2026-11-19T10:00:00.000Z"; // noon in Helsinki
-const RECORDED = "Recorded in the app under this connection's name.";
-const UNCHANGED = "Nothing changed. Nothing was recorded.";
-const REPLAYED = "An earlier call with this requestKey already made this change. Nothing new was written.";
-
-let fineliIds = 900_000;
-/** Notes of a few hundred characters, as a long recipe has them. */
-const LONG_NOTES = `${"Serve hot with bread. ".repeat(25)}Keeps for two days.`;
 
 await describeWithDb("mcp recipe tools", (suite) => {
-  const d = daysApi(suite);
-  const r = recipesApi(d);
-  let server: Awaited<ReturnType<typeof listen>>;
-  let w: Writer;
+  const t = recipeToolSuite(suite);
+  const { d, r, food, portion, records, lastRecord, restRecipe, recipeCount, shakshukaLines, createRecipe } = t;
   let client: Client;
-  let resetBrake: () => void;
-  /** The seeded catalogue: a Fineli food per ingredient, with the portions an assistant would use. */
-  const food: Record<"egg" | "tomato" | "feta" | "oil" | "onion", string> = {} as never;
-  const portion: Record<"egg" | "oil" | "onion", string> = {} as never;
-
-  async function fineli(name: string, values: [number, number, number, number], unit?: [string, number]) {
-    const { rows } = await suite.client.query(
-      `INSERT INTO foods (source, fineli_id, name, name_en, energy_kcal, protein_g, carbs_g, fat_g, fineli_type, fineli_process)
-       VALUES ('fineli', $1, $2, NULL, $3, $4, $5, $6, 'FOOD', 'RAW') RETURNING id`,
-      [++fineliIds, name, ...values],
-    );
-    const id = rows[0].id as string;
-    if (!unit) return { id, portionId: "" };
-    const p = await suite.client.query(
-      "INSERT INTO food_portions (food_id, fineli_unit, grams) VALUES ($1, $2, $3) RETURNING id",
-      [id, ...unit],
-    );
-    return { id, portionId: p.rows[0].id as string };
-  }
-
-  beforeAll(async () => {
-    freezeDate(NOW);
-    const { writesPerMinute } = await import("../writeBrake.js");
-    resetBrake = () => writesPerMinute.reset();
-    // The worked example's values per 100 g, and an onion.
-    const egg = await fineli("Kananmuna, keitetty", [143, 12.6, 0.7, 9.5], ["KPL_M", 60]);
-    const tomato = await fineli("Tomaattimurska", [24, 1.2, 3.9, 0.2]);
-    const feta = await fineli("Fetajuusto", [264, 14.2, 4.1, 21.3]);
-    const oil = await fineli("Oliiviöljy", [884, 0, 0, 100], ["RKL", 15]);
-    const onion = await fineli("Sipuli", [36, 1, 7, 0.2], ["KPL_M", 100]);
-    Object.assign(food, { egg: egg.id, tomato: tomato.id, feta: feta.id, oil: oil.id, onion: onion.id });
-    Object.assign(portion, { egg: egg.portionId, oil: oil.portionId, onion: onion.portionId });
-    server = await listen(suite.app);
-    w = await writerWithKey(suite, d.api);
-    client = await connect(server.url, w.key);
+  let w: Writer;
+  beforeAll(() => {
+    client = t.client;
+    w = t.w;
   });
-  beforeEach(() => resetBrake());
-  afterAll(async () => {
-    await client?.close();
-    await server?.close();
-    jest.useRealTimers();
-  });
-
-  const records = () => recordsOf(suite, w.user.id);
-  const lastRecord = async () => (await records()).at(-1);
-  const restRecipe = async (id: string) => (await r.get(w.user, id)).body;
-  const recipeCount = async () =>
-    (await suite.client.query("SELECT count(*)::int AS n FROM recipes WHERE user_id = $1", [w.user.id])).rows[0]
-      .n as number;
-
-  /** The pasted shakshuka's lines, as the assistant builds them from search_foods and get_food. */
-  const shakshukaLines = (onionPortion = portion.onion) => [
-    {
-      counted: true,
-      foodId: food.egg,
-      amount: { portionId: portion.egg, count: 4 },
-      written: { amount: 4, unit: "piece" },
-    },
-    { counted: true, foodId: food.tomato, amount: { grams: 400 }, written: { amount: 1, unit: "can" } },
-    { counted: true, foodId: food.feta, amount: { grams: 60 } },
-    {
-      counted: true,
-      foodId: food.oil,
-      amount: { portionId: portion.oil, count: 1 },
-      written: { amount: 1, unit: "tbsp" },
-    },
-    {
-      counted: true,
-      foodId: food.onion,
-      amount: { portionId: onionPortion, count: 1 },
-      written: { amount: 1, unit: "piece" },
-    },
-    { counted: false, name: "Salt" },
-  ];
-
-  const createRecipe = async (name: string, extra: object = {}) =>
-    (
-      await written(client, "create_recipe", {
-        requestKey: newRequestKey(),
-        name,
-        servings: 2,
-        lines: [{ counted: true, foodId: food.feta, amount: { grams: 100 } }],
-        ...extra,
-      })
-    ).recipe as { id: string; name: string; lines: { id: string }[]; steps: string[] };
 
   describe("the pasted shakshuka, end to end", () => {
     it("searches, previews with a portion mistake, previews again, creates, and the created recipe is the preview", async () => {
@@ -214,400 +117,156 @@ await describeWithDb("mcp recipe tools", (suite) => {
           ],
         },
       });
-    });
-  });
 
-  describe("create_recipe", () => {
-    it("answers a retry with the same request key as replayed, with the recipe as it is now, and creates nothing", async () => {
-      const requestKey = newRequestKey();
-      const args = { requestKey, name: "Lohikeitto", servings: 4, lines: [{ counted: false, name: "Water" }] };
-      await call(client, "create_recipe", args);
-      const [rows, recipes] = [(await records()).length, await recipeCount()];
-      const again = await written(client, "create_recipe", args);
-      expect(again).toMatchObject({ outcome: "replayed", note: REPLAYED, firstCallAt: expect.any(String) });
-      expect(again.recipe).toEqual(await restRecipe(again.recipe.id));
-      expect(again.recorded).toEqual((await lastRecord())?.summary);
-      expect([(await records()).length, await recipeCount()]).toEqual([rows, recipes]);
-    });
-
-    it("answers a create refused after a clean preview, its food deleted in between, with the line it names, and records nothing", async () => {
-      const own = await d.ownFood(w.user, { energyKcal: 100, proteinG: 10, carbsG: 0, fatG: 0 }, "Oma rahka");
-      const lines = [
-        { counted: false, name: "Salt" },
-        { counted: true, foodId: food.feta, amount: { grams: 50 } },
-        { counted: true, foodId: own, amount: { grams: 200 } },
-      ];
-      const preview = await written(client, "preview_recipe", { servings: 2, lines });
-      expect(preview.lines.map((l: { refusal: string | null }) => l.refusal)).toEqual([null, null, null]);
-      const deleted = await d
-        .api()
-        .delete(d.v1(`/foods/${own}`))
-        .set(w.user.auth);
-      expect(deleted.status).toBe(204);
-      const [rows, recipes] = [(await records()).length, await recipeCount()];
-      const refused = await call(client, "create_recipe", {
-        requestKey: newRequestKey(),
-        name: "Rahka",
-        servings: 2,
-        lines,
-      });
-      expect(refused).toEqual({
-        isError: true,
-        text: "This food is no longer available. (food_not_found, line: 2)",
-        data: undefined,
-      });
-      expect([(await records()).length, await recipeCount()]).toEqual([rows, recipes]);
-    });
-  });
-
-  describe("update_recipe", () => {
-    it("keeps a line that keeps its id, adds one without, and records each field it changed", async () => {
-      const recipe = await createRecipe("Fetasalaatti", { tags: ["Lunch"] });
-      const requestKey = newRequestKey();
-      const data = await written(client, "update_recipe", {
-        requestKey,
-        recipeId: recipe.id,
-        name: "Fetasalaatti",
+      // "Plan one for Saturday."
+      const logKey = newRequestKey();
+      const logged = await written(client, "log_recipe", {
+        requestKey: logKey,
+        recipeId: created.recipe.id,
         servings: 1,
-        lines: [
-          { id: recipe.lines[0].id, counted: true, foodId: food.feta, amount: { grams: 100 } },
-          { counted: true, foodId: food.tomato, amount: { grams: 200 } },
-        ],
-        tags: ["Lunch", "Quick"],
+        date: "2026-11-21",
+        status: "planned",
       });
-      expect(data).toMatchObject({ outcome: "changed", note: RECORDED });
-      expect(data.recipe).toEqual(await restRecipe(recipe.id));
-      expect(data.recipe.lines[0].id).toBe(recipe.lines[0].id);
-      expect(await lastRecord()).toMatchObject({
-        action: "recipe.changed",
-        entityIds: [recipe.id],
-        requestKey,
+      expect(logged).toMatchObject({ outcome: "created", note: RECORDED });
+      expect(logged.entry).toMatchObject({
+        kind: "recipe",
+        name: "Shakshuka",
+        servings: 1,
+        recipe: { id: created.recipe.id, archived: false, deleted: false },
+        basis: created.recipe.basis,
+        figures: created.recipe.perServing,
+      });
+      expect(logged.days).toEqual([(await d.day(w.user, "2026-11-21")).body]);
+      expect(await lastRecord()).toEqual({
+        action: "entry.added",
+        entityIds: [logged.entry.id],
+        requestKey: logKey,
+        connectionId: w.connectionId,
+        connectionName: CONNECTION_NAME,
         summary: {
-          entity: "recipe",
-          name: "Fetasalaatti",
-          changes: [
-            { field: "servings", from: 2, to: 1 },
-            {
-              field: "lines",
-              added: [{ name: "Tomaattimurska", grams: 200 }],
-              removed: [],
-              changed: [],
-              reordered: false,
-            },
-            { field: "tags", from: ["Lunch"], to: ["Lunch", "Quick"] },
-          ],
-        },
-      });
-    });
-
-    /** A recipe of four lines and four steps, with notes, through create_recipe. */
-    const fourLinesBody = () => [
-      { counted: true, foodId: food.egg, amount: { portionId: portion.egg, count: 4 } },
-      { counted: true, foodId: food.feta, amount: { grams: 100 } },
-      { counted: true, foodId: food.oil, amount: { grams: 15 }, written: { amount: 1, unit: "tbsp" } },
-      { counted: false, name: "Salt", note: "flaky" },
-    ];
-    async function fourLines() {
-      const recipe = await createRecipe("Shakshuka", {
-        servings: 3,
-        lines: fourLinesBody(),
-        steps: ["Fry the onion.", "Add the tomatoes.", "Crack in the eggs.", "Crumble the feta."],
-        notes: LONG_NOTES,
-      });
-      const [eggLine, feta, oil, salt] = recipe.lines.map((l) => l.id);
-      return { recipe, eggLine, feta, oil, salt };
-    }
-    const update = (recipeId: string, body: object) =>
-      written(client, "update_recipe", { requestKey: newRequestKey(), recipeId, name: "Shakshuka", ...body });
-    const changesOf = async () => ((await lastRecord())?.summary as { changes: unknown[] }).changes;
-
-    it("records only the lines that differ: each change by what a person would call it, never the whole list", async () => {
-      const { recipe, eggLine, feta, oil } = await fourLines();
-      await update(recipe.id, {
-        servings: 3,
-        lines: [
-          { id: eggLine, counted: true, foodId: food.egg, amount: { portionId: portion.egg, count: 5 } },
-          { id: feta, counted: true, foodId: food.feta, amount: { grams: 100 }, note: "crumbled" },
-          { id: oil, counted: true, foodId: food.oil, amount: { grams: 15 }, written: { amount: 2, unit: "tbsp" } },
-          { counted: true, foodId: food.onion, amount: { grams: 80 } },
-        ],
-        steps: ["Fry the onion.", "Add the tomatoes.", "Crack in the eggs.", "Crumble the feta."],
-        notes: LONG_NOTES,
-      });
-      expect(await changesOf()).toEqual([
-        {
-          field: "lines",
-          added: [{ name: "Sipuli", grams: 80 }],
-          removed: [{ name: "Salt", grams: null }],
-          changed: [
-            {
-              name: "Kananmuna, keitetty",
-              grams: { from: 240, to: 300 },
-              portion: { from: { count: 4, unit: "KPL_M", name: null }, to: { count: 5, unit: "KPL_M", name: null } },
-            },
-            { name: "Fetajuusto", note: "added" },
-            { name: "Oliiviöljy", written: { from: { amount: 1, unit: "tbsp" }, to: { amount: 2, unit: "tbsp" } } },
-          ],
-          reordered: false,
-        },
-      ]);
-    });
-
-    it("records a line's food swapped, and lines that only moved as the order changed", async () => {
-      const { recipe, eggLine, feta, oil, salt } = await fourLines();
-      const same = { servings: 3, steps: recipe.steps, notes: LONG_NOTES };
-      const eggs = { id: eggLine, counted: true, foodId: food.egg, amount: { portionId: portion.egg, count: 4 } };
-      const oils = {
-        id: oil,
-        counted: true,
-        foodId: food.oil,
-        amount: { grams: 15 },
-        written: { amount: 1, unit: "tbsp" },
-      };
-      const salts = { id: salt, counted: false, name: "Salt", note: "flaky" };
-      await update(recipe.id, {
-        ...same,
-        lines: [eggs, { id: feta, counted: true, foodId: food.tomato, amount: { grams: 100 } }, oils, salts],
-      });
-      expect(await changesOf()).toEqual([
-        {
-          field: "lines",
-          added: [],
-          removed: [],
-          changed: [{ name: "Tomaattimurska", food: { from: "Fetajuusto" } }],
-          reordered: false,
-        },
-      ]);
-      await update(recipe.id, {
-        ...same,
-        lines: [salts, eggs, { id: feta, counted: true, foodId: food.tomato, amount: { grams: 100 } }, oils],
-      });
-      expect(await changesOf()).toEqual([{ field: "lines", added: [], removed: [], changed: [], reordered: true }]);
-    });
-
-    it("records the method by its counts and the steps that changed, the notes by how, the servings as numbers", async () => {
-      const { recipe } = await fourLines();
-      const lines = recipe.lines.map(({ id }, i) => ({ ...fourLinesBody()[i], id }));
-      await update(recipe.id, {
-        servings: 2,
-        lines,
-        steps: ["Fry the onion.", "Add the crushed tomatoes.", "Crack in the eggs.", "Crumble the feta."],
-        notes: LONG_NOTES.replace("bread", "toast"),
-      });
-      expect(await changesOf()).toEqual([
-        { field: "servings", from: 3, to: 2 },
-        { field: "steps", from: 4, to: 4, added: 0, removed: 0, changed: [2], reordered: false },
-        { field: "notes", change: "changed" },
-      ]);
-      await update(recipe.id, { servings: 2, lines, steps: ["Fry the onion."], notes: null });
-      expect(await changesOf()).toEqual([
-        { field: "steps", from: 4, to: 1, added: 0, removed: 3, changed: [], reordered: false },
-        { field: "notes", change: "removed" },
-      ]);
-      await update(recipe.id, { servings: 2, lines, steps: ["Fry it all."], notes: "Hot." });
-      expect(await changesOf()).toEqual([
-        { field: "steps", from: 1, to: 1, added: 0, removed: 0, changed: [1], reordered: false },
-        { field: "notes", change: "added" },
-      ]);
-    });
-
-    it("records a step added at the top as one added, never the steps after it as changed", async () => {
-      const { recipe } = await fourLines();
-      const lines = recipe.lines.map(({ id }, i) => ({ ...fourLinesBody()[i], id }));
-      await update(recipe.id, { servings: 3, lines, steps: ["Warm the pan.", ...recipe.steps], notes: LONG_NOTES });
-      expect(await changesOf()).toEqual([
-        { field: "steps", from: 4, to: 5, added: 1, removed: 0, changed: [], reordered: false },
-      ]);
-    });
-
-    describe("a line sent again without its id", () => {
-      const same = (recipe: { steps: string[] }) => ({ servings: 3, steps: recipe.steps, notes: LONG_NOTES });
-      const idsOf = async (id: string) => (await restRecipe(id)).lines.map(({ id }: { id: string }) => id);
-
-      it("keeps the line it equals: a whole recipe sent again so answers unchanged, records nothing, and a retry the same", async () => {
-        const { recipe } = await fourLines();
-        const rows = (await records()).length;
-        const requestKey = newRequestKey();
-        const args = { requestKey, recipeId: recipe.id, name: "Shakshuka", ...same(recipe), lines: fourLinesBody() };
-        const data = await written(client, "update_recipe", args);
-        expect(data).toMatchObject({ outcome: "unchanged", note: UNCHANGED, recipe: await restRecipe(recipe.id) });
-        expect(await records()).toHaveLength(rows);
-        expect(await written(client, "update_recipe", args)).toMatchObject({ outcome: "unchanged", note: UNCHANGED });
-        expect(await records()).toHaveLength(rows);
-        expect(await idsOf(recipe.id)).toEqual(recipe.lines.map(({ id }) => id));
-      });
-
-      it("keeps each line's id in a new order, and records the order changed", async () => {
-        const { recipe, eggLine, feta, oil, salt } = await fourLines();
-        const [e, f, o, s] = fourLinesBody();
-        await update(recipe.id, { ...same(recipe), lines: [s, e, f, o] });
-        expect(await changesOf()).toEqual([{ field: "lines", added: [], removed: [], changed: [], reordered: true }]);
-        expect(await idsOf(recipe.id)).toEqual([salt, eggLine, feta, oil]);
-      });
-
-      it("keeps the lines it equals beside real changes, and records only those", async () => {
-        const { recipe, eggLine, feta, oil, salt } = await fourLines();
-        const [e, f, , s] = fourLinesBody();
-        await update(recipe.id, {
-          ...same(recipe),
-          lines: [e, { ...f, amount: { grams: 120 } }, s, { counted: true, foodId: food.onion, amount: { grams: 80 } }],
-        });
-        expect(await changesOf()).toEqual([
-          {
-            field: "lines",
-            added: [
-              { name: "Fetajuusto", grams: 120 },
-              { name: "Sipuli", grams: 80 },
-            ],
-            removed: [
-              { name: "Fetajuusto", grams: 100 },
-              { name: "Oliiviöljy", grams: 15 },
-            ],
-            changed: [],
-            reordered: false,
+          entity: "entry",
+          entry: {
+            name: "Shakshuka",
+            date: "2026-11-21",
+            status: "planned",
+            kind: "recipe",
+            amount: { servings: 1 },
+            figures: created.recipe.perServing,
           },
-        ]);
-        const ids = await idsOf(recipe.id);
-        expect([ids[0], ids[2]]).toEqual([eggLine, salt]);
-        expect(ids).not.toContain(feta);
-        expect(ids).not.toContain(oil);
-      });
-
-      it("pairs two identical lines one to one", async () => {
-        const salt = { counted: false, name: "Salt" };
-        const recipe = await createRecipe("Suolattu", {
-          lines: [salt, { counted: true, foodId: food.feta, amount: { grams: 100 } }, salt],
-        });
-        const [s1, f] = recipe.lines.map((l) => l.id);
-        const lines = [salt, { id: f, counted: true, foodId: food.feta, amount: { grams: 100 } }, salt];
-        const rows = (await records()).length;
-        const again = await written(client, "update_recipe", {
-          requestKey: newRequestKey(),
-          recipeId: recipe.id,
-          name: "Suolattu",
-          servings: 2,
-          lines,
-        });
-        expect(again).toMatchObject({ outcome: "unchanged" });
-        expect(await records()).toHaveLength(rows);
-        await written(client, "update_recipe", {
-          requestKey: newRequestKey(),
-          recipeId: recipe.id,
-          name: "Suolattu",
-          servings: 2,
-          lines: lines.slice(0, 2),
-        });
-        expect((await lastRecord())?.summary).toMatchObject({
-          changes: [{ field: "lines", added: [], removed: [{ name: "Salt", grams: null }], changed: [] }],
-        });
-        expect(await idsOf(recipe.id)).toEqual([s1, f]);
+          changes: [],
+        },
       });
     });
+  });
 
-    it("answers unchanged for the recipe as it is, and records nothing", async () => {
-      const recipe = await createRecipe("Same");
-      const rows = (await records()).length;
-      const data = await written(client, "update_recipe", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        name: "Same",
-        servings: 2,
-        lines: [{ id: recipe.lines[0].id, counted: true, foodId: food.feta, amount: { grams: 100 } }],
-      });
-      expect(data).toMatchObject({ outcome: "unchanged", note: UNCHANGED, recipe: { id: recipe.id } });
-      expect(await records()).toHaveLength(rows);
-    });
-
-    it("answers another person's recipe as one that does not exist, and records nothing", async () => {
-      const other = await writerWithKey(suite, d.api);
-      const theirs = (await r.created(other.user, {
-        id: randomUUID(),
-        name: "Theirs",
-        servings: 2,
-        lines: [{ id: randomUUID(), counted: false, name: "Salt" }],
-      })) as { id: string };
-      const rows = (await records()).length;
-      const args = (recipeId: string) => ({
+  describe("recipes on days", () => {
+    const logRecipe = async (recipeId: string, extra: object = {}) =>
+      written(client, "log_recipe", {
         requestKey: newRequestKey(),
         recipeId,
-        name: "Mine",
         servings: 1,
-        lines: [{ counted: false, name: "Salt" }],
+        date: "2026-11-20",
+        status: "planned",
+        ...extra,
       });
-      const withTheirs = await call(client, "update_recipe", args(theirs.id));
-      const withMissing = await call(client, "update_recipe", args(randomUUID()));
-      expect(withTheirs).toEqual(withMissing);
-      expect(withTheirs).toMatchObject({ isError: true, text: expect.stringContaining("(recipe_not_found)") });
-      for (const tool of ["set_recipe_archived", "set_recipe_favourite"]) {
-        const flag = tool === "set_recipe_archived" ? { archived: true } : { favourite: true };
-        const a = await call(client, tool, { requestKey: newRequestKey(), recipeId: theirs.id, ...flag });
-        const b = await call(client, tool, { requestKey: newRequestKey(), recipeId: randomUUID(), ...flag });
-        expect({ tool, ...a }).toEqual({ tool, ...b });
-      }
+
+    it("log_recipe answers a retry as replayed with the entry as it is now, and a recipe not there records nothing", async () => {
+      const recipe = await createRecipe("Uunipuuro");
+      const requestKey = newRequestKey();
+      const args = { requestKey, recipeId: recipe.id, servings: 2, date: "today", status: "eaten" };
+      const first = await written(client, "log_recipe", args);
+      expect(first.entry).toMatchObject({ date: "2026-11-19", status: "eaten", servings: 2 });
+      const rows = (await records()).length;
+      const again = await written(client, "log_recipe", args);
+      expect(again).toMatchObject({ outcome: "replayed", entry: { id: first.entry.id, servings: 2 } });
       expect(await records()).toHaveLength(rows);
-      expect((await r.get(other.user, theirs.id)).body).toMatchObject({
-        name: "Theirs",
-        archived: false,
-        favourite: false,
+
+      const gone = await call(client, "log_recipe", { ...args, requestKey: newRequestKey(), recipeId: randomUUID() });
+      expect(gone).toMatchObject({ isError: true, text: "This recipe is no longer available. (recipe_not_found)" });
+      expect(await records()).toHaveLength(rows);
+    });
+
+    it("update_own_food refused for a planned recipe serving past the cap names the recipe, as the screen's refusal does, and records nothing", async () => {
+      const kcal = (energyKcal: number) => ({ energyKcal, proteinG: 0, carbsG: 0, fatG: 0 });
+      const own = await d.ownFood(w.user, kcal(100), "Oma puuro");
+      const big = { counted: true, foodId: own, amount: { grams: 5000 } };
+      const recipe = await createRecipe("Jättipuuro", { servings: 1, lines: [big, big] });
+      await logRecipe(recipe.id);
+      const rows = (await records()).length;
+
+      const args = { name: "Oma puuro", per100g: kcal(101), barcode: null };
+      const refused = await call(client, "update_own_food", { requestKey: newRequestKey(), foodId: own, ...args });
+      const screen = await d
+        .api()
+        .put(d.v1(`/foods/${own}`))
+        .set(w.user.auth)
+        .send(args);
+      expect(screen.body).toMatchObject({ code: "food_edit_recipe_too_large", details: { recipe: "Jättipuuro" } });
+      expect(refused).toMatchObject({
+        isError: true,
+        text:
+          "A planned serving of Jättipuuro would come to more than 10000 kcal or 1000 g of a macro. " +
+          "Change the recipe or its planned entries first. (food_edit_recipe_too_large)",
+      });
+      expect(refused.text).toBe(`${screen.body.message} (food_edit_recipe_too_large)`);
+      expect(await records()).toHaveLength(rows);
+    });
+
+    it("update_entry changes a recipe entry's servings, keeps its basis and records the amount", async () => {
+      const recipe = await createRecipe("Kaurapuuro");
+      const { entry } = await logRecipe(recipe.id);
+      const changed = await written(client, "update_entry", {
+        requestKey: newRequestKey(),
+        entryId: entry.id,
+        servings: 1.5,
+      });
+      expect(changed.entry).toMatchObject({ servings: 1.5, basis: entry.basis });
+      expect((await lastRecord())?.summary).toMatchObject({
+        entity: "entry",
+        entry: { kind: "recipe", amount: { servings: 1.5 } },
+        changes: [
+          { field: "amount", from: { servings: 1 }, to: { servings: 1.5 } },
+          { field: "figures", from: entry.figures, to: changed.entry.figures },
+        ],
+      });
+      const refused = await call(client, "update_entry", {
+        requestKey: newRequestKey(),
+        entryId: entry.id,
+        count: 2,
+      });
+      expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("(entry_kind_mismatch)") });
+    });
+
+    it("get_day answers a recipe entry's servings and recipe as GET /days does", async () => {
+      const recipe = await createRecipe("Linssikeitto");
+      await logRecipe(recipe.id, { servings: 2.5, date: "2026-11-23" });
+      const day = await written(client, "get_day", { date: "2026-11-23" });
+      expect(day).toEqual((await d.day(w.user, "2026-11-23")).body);
+      expect(day.entries[0]).toMatchObject({
+        kind: "recipe",
+        servings: 2.5,
+        recipe: { id: recipe.id, archived: false, deleted: false },
       });
     });
-  });
 
-  describe("set_recipe_archived and set_recipe_favourite", () => {
-    it("archive, restore, mark and unmark, each recorded once, unchanged for the state it has, and replayed with the recipe", async () => {
-      const recipe = await createRecipe("Puuro");
-      const archiveKey = newRequestKey();
-      const archived = await written(client, "set_recipe_archived", {
-        requestKey: archiveKey,
-        recipeId: recipe.id,
-        archived: true,
-      });
-      expect(archived).toMatchObject({ outcome: "changed", note: RECORDED });
-      expect(await lastRecord()).toMatchObject({
-        action: "recipe.archived",
-        entityIds: [recipe.id],
-        summary: { entity: "recipe", name: "Puuro", changes: [] },
-      });
-      const rows = (await records()).length;
-      const twice = await written(client, "set_recipe_archived", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        archived: true,
-      });
-      expect(twice).toMatchObject({ outcome: "unchanged", note: UNCHANGED });
-      expect(await records()).toHaveLength(rows);
-      const replayed = await written(client, "set_recipe_archived", {
-        requestKey: archiveKey,
-        recipeId: recipe.id,
-        archived: true,
-      });
-      expect(replayed).toMatchObject({ outcome: "replayed", recipe: { id: recipe.id, archived: true } });
+    it("list_recipes and get_recipe answer lastPutOn, the latest date a recipe is on", async () => {
+      const recipe = await createRecipe("Lohikiusaus");
+      await logRecipe(recipe.id, { date: "2026-11-25" });
+      await logRecipe(recipe.id, { date: "2026-11-18", status: "eaten" });
+      expect((await written(client, "get_recipe", { recipeId: recipe.id })).lastPutOn).toBe("2026-11-25");
+      const listed = await written(client, "list_recipes", { q: "Lohikiusaus" });
+      expect(listed.recipes.map((x: { lastPutOn: string | null }) => x.lastPutOn)).toEqual(["2026-11-25"]);
+    });
 
-      await written(client, "set_recipe_archived", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        archived: false,
-      });
-      expect((await lastRecord())?.action).toBe("recipe.restored");
-      await written(client, "set_recipe_favourite", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        favourite: true,
-      });
-      expect((await lastRecord())?.action).toBe("recipe.favourite_set");
-      expect((await restRecipe(recipe.id)).favourite).toBe(true);
-      const again = await written(client, "set_recipe_favourite", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        favourite: true,
-      });
-      expect(again.outcome).toBe("unchanged");
-      await written(client, "set_recipe_favourite", {
-        requestKey: newRequestKey(),
-        recipeId: recipe.id,
-        favourite: false,
-      });
-      expect((await lastRecord())?.action).toBe("recipe.favourite_unset");
+    it("a create_recipe retried after the recipe was deleted on screen reads it as gone, also while a day still uses it", async () => {
+      const requestKey = newRequestKey();
+      const args = { requestKey, name: "Poistettu", servings: 1, lines: [{ counted: false, name: "Water" }] };
+      const { recipe } = await written(client, "create_recipe", args);
+      await logRecipe(recipe.id);
+      expect((await r.remove(w.user, recipe.id)).status).toBe(204);
+      expect((await restRecipe(recipe.id)).deleted).toBe(true);
+      const again = await written(client, "create_recipe", args);
+      expect(again).toMatchObject({ outcome: "replayed", recipe: null });
     });
   });
 

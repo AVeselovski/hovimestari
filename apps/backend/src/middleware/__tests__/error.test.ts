@@ -64,6 +64,18 @@ describe("errorHandler", () => {
     expect(plain.json).toHaveBeenCalledWith({ message: ERROR_MESSAGES.portion_not_found, code: "portion_not_found" });
   });
 
+  it("sends a refusal's details as details", () => {
+    const res = mockRes();
+    const details = { recipe: "Shakshuka", others: 0, recipes: ["Shakshuka"] };
+    errorHandler(
+      new AppError("Named.", 400, { code: "food_edit_recipe_too_large", details }),
+      req,
+      res as unknown as Response,
+      next,
+    );
+    expect(res.json).toHaveBeenCalledWith({ message: "Named.", code: "food_edit_recipe_too_large", details });
+  });
+
   it("sends an AppError's retryAfterSeconds as Retry-After, and no header without one", () => {
     const res = mockRes();
     errorHandler(appError("barcode_lookup_busy", 429, 6), req, res as unknown as Response, next);
