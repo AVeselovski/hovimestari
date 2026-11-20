@@ -96,11 +96,11 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "8d1f86dd248e4f1afa2ec02cdb081a54004327bfdefdf738d0b28bd03826630a",
+  "connected-ai.md": "d182f3d73a92df2599cecd1a3aaf0be212f592701101acc49b9b38643d6806ed",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
   "foods.md": "39dd17b2958a68fc8599b5a629466fc8b2ef2421f2f49042be20ecada6c2a374",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
-  "quick-logging.md": "780098a72f8f32607603e71c6a3c79115f1371cd15cfd4dd82bbbcaa9a55e4cd",
+  "quick-logging.md": "149e70eb4af95ebe0eeef275569bc9772f0ea7f5b3d3a2d0d7855d4feae16dee",
   "recipes.md": "fcfd922d07fc391111044d15665cf155bc79a5ba02af8786a8d52f8a23417fa6",
   "saved-meals.md": "9085297c760a9c079db155bd9be519dc96afa0edac26bc516784361ff398605f",
   "targets.md": "c3a8e3e1dd39115af77c0dee4dafae547d98b9a1a424ec47e4039cda799e553f",
