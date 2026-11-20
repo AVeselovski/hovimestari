@@ -696,3 +696,7 @@
 [validator DONE] (2026-11-20T22:32:45Z) recipes slice R3a: pass; no blockers or majors, three minors, five nits; 111 end to end checks, e.4 by hand, three guards broken and each test red.
 [reviewer DONE] (2026-11-20T22:32:45Z) recipes slice R3a: approve after fixes; one major (log_cook is not marked destructive though it changes existing entries), six minors, ten nits.
 [backend-engineer STARTED] (2026-11-20T22:32:45Z) recipes slice R3a fix batch: log_cook destructive, the attach hash as a set, the record and differs agreeing, the reads before the copies, the cap on a cook saved as a recipe.
+[ui-validator DONE] (2026-11-20T22:54:32Z) recipes slice R3a at af3a0f8: pass with findings; one major (a batch's row said "Logged" when its entries were only planned), five minors, three nits.
+[backend-engineer DONE] (2026-11-20T22:54:32Z) recipes slice R3a fix batch at 8b3bc7c: log_cook is destructive, attach hashed as a set, the record built from the cook's own diff, the cook summary narrowed to servings and lines with attached marked, the reads before the copies, the cap on a batch saved as a recipe; a batch's row reads "Made a batch of ..." with a status word per entry, and a batch's serving on the Day tab says "as made". Types 285, backend 1493, web 2138 tests; smoke 75 of 75.
+[reviewer STARTED] (2026-11-20T22:54:32Z) delta review of the R3a fix batch at 8b3bc7c.
+[ui-validator STARTED] (2026-11-20T22:54:32Z) delta check of the batch rows in Activity and on the Day tab at 8b3bc7c, with the owner screenshots.
