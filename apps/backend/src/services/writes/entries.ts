@@ -9,6 +9,7 @@ import type {
   EntryStatus,
   EntryStatusResult,
   EntryWriteResult,
+  Figures,
 } from "@hovimestari/types";
 import { and, asc, eq, inArray, lt, lte, ne, sql } from "drizzle-orm";
 import { cooks, entries, removedEntries } from "../../db/schema/index.js";
@@ -404,7 +405,8 @@ export async function restoreEntry(ctx: WriteContext, id: string): Promise<Write
  * Copies the user's entries to `toDate`, each with the id the caller chose
  * for it, in the source entries' order. A copy arrives planned, with its
  * source's basis, amount and references as they are, so a hidden source
- * copies too. Ids already copied are skipped, also when a repeat of the
+ * copies too. A copy of a cook's entry is a plain entry of its recipe, with
+ * the recipe's serving now, also when the recipe was deleted since. Ids already copied are skipped, also when a repeat of the
  * same copy commits them while this one runs, and a copy that inserted
  * nothing answers `replayed`. A source the user does not have: 404 `entry_not_found`. An id
  * another user holds: 409 `entry_id_taken`.
@@ -447,6 +449,16 @@ export async function copyEntries(
     const order = new Map(sources.map((s, i) => [s.id, i]));
     todo.sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!);
 
+    // A copy of a cook's entry plans its recipe again: next week's batch is a
+    // new one. It takes the recipe's serving now, deleted or not, and no cook.
+    const planned = new Map<string, Figures>();
+    const recipeServing = async (recipeId: string) => {
+      if (!planned.has(recipeId)) {
+        planned.set(recipeId, await readRecipeForEntry(tx, ctx, recipeId, { includeDeleted: true }));
+      }
+      return planned.get(recipeId)!;
+    };
+
     // One insert per copy, in order, so each takes the next position. An id
     // held by a transaction that committed meanwhile inserts nothing here.
     let count = 0;
@@ -454,6 +466,9 @@ export async function copyEntries(
       // Every column of the source but its id and position, which the copy takes anew.
       const source: EntryInsert = { ...byId.get(pair.sourceId)! };
       delete source.position;
+      if (source.cookId) {
+        Object.assign(source, { cookId: null, ...basisColumnsOf(await recipeServing(source.recipeId!)) });
+      }
       const copy = await tx
         .insert(entries)
         .values({
