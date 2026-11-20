@@ -1,4 +1,4 @@
-import type { Day } from "@hovimestari/types";
+import { averageOfDays, type Day, type DaySummaryList } from "@hovimestari/types";
 import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import type { Client } from "@modelcontextprotocol/client";
 import { randomUUID } from "node:crypto";
@@ -236,6 +236,25 @@ await describeWithDb("mcp read tools", (suite) => {
         expect(of19).toEqual(week);
         expect(await data("get_days", { weekOf: "today" })).toEqual(week);
         expect(await data("get_days", { weekOf: "2026-11-22" })).toEqual(week);
+      });
+
+      it("get_days answers the average day GET /days answers, for a week and for a longer range", async () => {
+        const week = (await data("get_days", { weekOf: TODAY })) as DaySummaryList;
+        expect(week).toEqual(await route("/days", { from: FIRST_CHANGE, to: "2026-11-22" }));
+        expect(week.average).toEqual(averageOfDays(week.days));
+        // Eaten counts yesterday alone: today is still under way. Planned counts
+        // the three days with entries, under two targets, so it has no position.
+        expect(week.average.eaten.dates).toEqual([YESTERDAY]);
+        expect(week.average.eaten.targets?.energyKcal.lower).toBe(FIRST_RANGES.energy[0]);
+        expect(week.average.withPlan.dates).toEqual([YESTERDAY, TODAY, "2026-11-22"]);
+        expect([week.average.withPlan.targets, week.average.withPlan.energy]).toEqual([null, null]);
+        const range = { from: "2026-11-01", to: "2026-11-30" };
+        const longer = (await data("get_days", range)) as DaySummaryList;
+        expect(longer).toEqual(await route("/days", range));
+        expect(longer.days).toHaveLength(30);
+        expect(longer.average).toEqual(averageOfDays(longer.days));
+        expect(longer.average.eaten.dates).toEqual([BEFORE_TARGETS, YESTERDAY]);
+        expect(longer.average.eaten.targets).toBeNull();
       });
 
       it("get_days refuses weekOf with from or to, from without to, and more than 42 days", async () => {

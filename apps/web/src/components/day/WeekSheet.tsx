@@ -10,7 +10,8 @@ import { stepWeek, WEEK_LENGTH, weekOf } from "@/lib/week";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
-import { predictedNoTargets } from "./noTargets";
+import { weekTargetsLine } from "./noTargets";
+import { weekKind } from "./weekCells";
 import { WeekTable } from "./WeekTable";
 
 // ---------------------------------------------------------------------------
@@ -27,8 +28,12 @@ import { WeekTable } from "./WeekTable";
 // It holds still. Below `md` the sheet keeps the height it opened at, and
 // from `md` its dialog grows downwards only (BottomSheet). The table keeps
 // one frame in every state (WeekTable), a failure or offline lays its line
-// over the rows, and the one line about targets sits under the table, so the
-// title and the first row are in the same place in every week.
+// over the rows, and the lines under the table keep their room in every
+// state, so the title and the first row are in the same place in every week.
+//
+// Under the table, two lines. The days each average counts, in words a person
+// can check against the rows. And, for a person with any targets change, when
+// targets start: the first change, or a later one starting mid-week.
 // ---------------------------------------------------------------------------
 
 export interface WeekSheetProps {
@@ -72,6 +77,7 @@ export function WeekSheet({ open, onClose, returnFocusTo, shownDate, onPick }: W
   // the type, and would show a year only for a week outside `from`'s year.
   const title = formatWeekRange(from, to, today ?? from, t("to"));
   const days = query.data?.days ?? null;
+  const average = query.data?.average ?? null;
 
   let notice: ReactNode = null;
   if (days === null) {
@@ -95,12 +101,30 @@ export function WeekSheet({ open, onClose, returnFocusTo, shownDate, onPick }: W
     }
   }
 
-  // Once, under the table, in a week that holds a day before the first change. For a user with any
-  // targets change its line keeps its room in every week, empty and hidden where it has nothing to
+  // The days each average counts. Always rendered, so the sheet's height includes it, and shown only
+  // when Planned counts a day. Aria-hidden always: each average cell speaks its own count.
+  const kind = weekKind(from, to, today);
+  const eatenDays = average?.eaten.dates.length ?? 0;
+  const plannedDays = average?.withPlan.dates.length ?? 0;
+  let countedLine: string | null = null;
+  if (plannedDays > 0) {
+    if (kind === "current") countedLine = t("average.countedThisWeek", { eaten: eatenDays, planned: plannedDays });
+    else if (kind === "past") countedLine = t("average.countedPast", { eaten: eatenDays, planned: plannedDays });
+    else countedLine = t("average.countedFuture", { planned: plannedDays });
+  }
+
+  // When targets start in this week: the first change, or a later one after its Monday. For a user with
+  // any targets change its line keeps its room in every week, empty and hidden where it has nothing to
   // say, so the height the sheet holds always includes it.
-  const before = predictedNoTargets(from, overview);
-  const targetsLine = before?.kind === "from" ? summary("targetsFrom", { date: formatDay(before.date) }) : null;
+  const starts = weekTargetsLine(from, to, overview);
+  const targetsLine =
+    starts === null
+      ? null
+      : starts.kind === "first"
+        ? summary("targetsFrom", { date: formatDay(starts.date) })
+        : t("targetsNew", { date: formatDay(starts.date) });
   const keepsTargetsLine = (overview?.changes.length ?? 0) > 0;
+  const lineClass = "mt-3 min-h-4 text-xs leading-4 text-ink-muted md:min-h-5 md:text-sm md:leading-5";
 
   const footer = (
     <div className="grid grid-cols-2 gap-2">
@@ -128,10 +152,13 @@ export function WeekSheet({ open, onClose, returnFocusTo, shownDate, onPick }: W
       <div data-week-frame="" aria-busy={days === null && notice === null ? true : undefined} className="relative">
         <WeekTable
           from={from}
+          to={to}
+          kind={kind}
           today={today}
           shownDate={shownDate}
           focusShown={focusShown}
           days={days}
+          average={average}
           overview={overview}
           caption={title}
           onPick={onPick}
@@ -147,11 +174,14 @@ export function WeekSheet({ open, onClose, returnFocusTo, shownDate, onPick }: W
           </div>
         )}
       </div>
+      <p data-week-counted-line="" aria-hidden="true" className={`${lineClass} ${countedLine ? "" : "invisible"}`}>
+        {countedLine}
+      </p>
       {keepsTargetsLine && (
         <p
           data-week-targets-line=""
           aria-hidden={targetsLine ? undefined : true}
-          className={`mt-3 min-h-4 text-xs leading-4 text-ink-muted md:min-h-5 md:text-sm md:leading-5 ${targetsLine ? "" : "invisible"}`}
+          className={`${lineClass} ${targetsLine ? "" : "invisible"}`}
         >
           {targetsLine}
         </p>

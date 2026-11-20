@@ -1,6 +1,6 @@
 import { dayOf, foodEntry } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood } from "@/components/foods/__tests__/support";
-import type { Day, Me } from "@hovimestari/types";
+import { averageOfDays, type Day, type Me } from "@hovimestari/types";
 import { QueryClient, QueryObserver, type QueryKey } from "@tanstack/react-query";
 import { TEST_USER } from "../../__tests__/helpers/auth";
 import { deferred, registerTestQueryClient } from "../../__tests__/helpers/queryClient";
@@ -29,7 +29,7 @@ function dayReadOnItsWay(client: QueryClient, date: string, later: Day) {
 
 /** A read under `key` with an observer, counting its fetches. A range answers a range's shape, as the app's do. */
 function observed(client: QueryClient, key: QueryKey) {
-  const fn = jest.fn().mockResolvedValue(key[1] === "range" ? { days: [] } : { key });
+  const fn = jest.fn().mockResolvedValue(key[1] === "range" ? { days: [], average: averageOfDays([]) } : { key });
   const observer = new QueryObserver(client, { queryKey: key, queryFn: fn, retry: false });
   const unsubscribe = observer.subscribe(() => {});
   return { fn, unsubscribe };

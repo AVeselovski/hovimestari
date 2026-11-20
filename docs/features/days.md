@@ -1,6 +1,6 @@
 # Days
 
-A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as everything on the day, eaten or still planned, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance. A past day's total with nothing recorded in it has no position.
+A day is everything a user logged or planned on one calendar date. Each entry is a food by weight, a [saved meal](saved-meals.md#a-saved-meal) by count or an estimate, and each is planned or eaten. A day adds itself up twice, as what was eaten and as everything on the day, eaten or still planned, and gives the position of each total against the user's own [targets](targets.md#setting-your-targets) with a distance. A past day's total with nothing recorded in it has no position. A week or any range of days also gives its average day in both readings.
 
 ## In detail
 
@@ -48,6 +48,19 @@ A week runs Monday to Sunday. The week of a date is the one holding it, so it st
 
 The week sheet on [the Day tab](../app/day.md#the-week) shows a week's days side by side: each day's two readings for calories and protein and, on a day with targets, where each stands. It states positions only, as the day does.
 
+### The week's average
+
+A week or any range of up to 42 days also gives its average day, in both readings. Each average counts its own days:
+
+- Eaten counts the past days with at least one eaten entry. Today counts only once it is over, because until then its eaten figures still grow.
+- Planned counts every day with at least one entry, eaten or planned, whatever its date.
+
+A day with no entries counts toward neither, so an unlogged Monday leaves both averages as they are. A day counts whole however little is on it, so a past day with only breakfast logged counts in Eaten as a full day. The two count different days, so the Planned average can be below the Eaten one. In the week of 16 to 22 November, with today Friday 20, an empty Monday, three logged days, a part-eaten Friday and a planned Saturday give an Eaten average over Tuesday to Thursday and a Planned average over Tuesday to Saturday.
+
+The average is the counted days' totals summed and divided by their number. kcal is rounded to a whole number and grams to one decimal, halves away from zero, once. 2.3 g and 2.4 g average to 2.4 g.
+
+An average has a position only when every day it counts has the same targets, and it then names them. A counted day without targets, or two counted days with different targets, leave the average with figures and no position. The position is the rounded average against the shared ranges, as a day's is its rounded total. An average says whether a day it counts includes an estimate. With no day to count, an average has no figures.
+
 ### Estimates
 
 An estimate is for a meal nobody can weigh, such as a restaurant dinner. It has a name of at most 120 characters, the four figures, and an optional note of at most 500. Energy runs from 0 to 10000 kcal and each macro from 0 to 1000 g, with one decimal. An estimate is never a recent item. Every estimate says it is one, and each reading says whether it includes one.
@@ -68,18 +81,18 @@ Entry reads go through `selectEntries` in `apps/backend/src/services/entryRows.t
 
 ### Reads
 
-`getDay` and `listDaySummaries` in `apps/backend/src/services/reads/days.ts` build every day with `summarizeDay` in `packages/types/src/days.ts`, the one day summary. It takes the date, the user's today, the day's entries and the targets in force, and answers the relation, the two readings, their positions and the counts. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. `getEntry` there reads one entry by its id, as the entry writes answer it. A connected assistant reads days through these same services, as [what an assistant reads](connected-ai.md#what-an-assistant-reads) describes. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
+`getDay` and `getDayRange` in `apps/backend/src/services/reads/days.ts` build every day with `summarizeDay` in `packages/types/src/days.ts`, the one day summary. It takes the date, the user's today, the day's entries and the targets in force, and answers the relation, the two readings, their positions and the counts. The range reads every target change once and asks `inForceOn` in `reads/targets.ts`, the rule of `targetsOn` without the database, per date. Both answer null on a date before the first change. A test pins the two to each other. `getDayRange` adds the range's average from `averageOfDays` in `packages/types/src/days.ts`, which averages with `averageOf` in `figures.ts`, in integer tenths. `getEntry` there reads one entry by its id, as the entry writes answer it. A connected assistant reads days through these same services, as [what an assistant reads](connected-ai.md#what-an-assistant-reads) describes. On the web, `weekOf` in `apps/web/src/lib/week.ts` gives the week holding a date, and `WEEK_START` there names Monday.
 
 ### API
 
 All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`. The entry writes are in [quick logging](quick-logging.md#api).
 
-| Method | Path              | Answers                                                                                                          |
-| ------ | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| GET    | `/days/:date`     | 200 with the day. `:date` is a date or `today`. 400 `invalid_date`                                               |
-| GET    | `/days?from=&to=` | 200 `{ days }`, every day without its entries. `from` on or before `to`, at most 42 days, else `invalid_request` |
+| Method | Path              | Answers                                                                                                                                         |
+| ------ | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/days/:date`     | 200 with the day. `:date` is a date or `today`. 400 `invalid_date`                                                                              |
+| GET    | `/days?from=&to=` | 200 `{ days, average }`, every day without its entries and their average day. `from` on or before `to`, at most 42 days, else `invalid_request` |
 
-A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy`, `protein` and `includesEstimate`. `energy` and `protein` are each `{ position, distance }`, or null. They are null on a day without targets, where `targets` is null too. They are also null on a past day when the reading holds no entries, where `targets` is still given. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
+A day has `date`, `today`, `relation` (`past`, `today` or `future`), `targets`, the readings `eaten` and `withPlan`, `entryCount`, `plannedCount`, `unmarkedCount` and `entries`. A reading has `figures`, `energy`, `protein` and `includesEstimate`. `energy` and `protein` are each `{ position, distance }`, or null. They are null on a day without targets, where `targets` is null too. They are also null on a past day when the reading holds no entries, where `targets` is still given. `average` has `eaten` and `withPlan`. Each has `dates`, the days it counts in date order, `figures`, null when it counts none, `targets`, `energy` and `protein`, null unless every counted day has the same targets, and `includesEstimate`. An entry has its `name`, a `food` with `retired` and `deleted` flags or a `savedMeal` with `archived` and `deleted` flags, its amount, `basis`, `figures` and `isEstimate`. The `basis` is what the entry's figures are computed from, as the entry stores it: per 100 g for a food, per meal for a saved meal, and the whole entry for an estimate. When it changes is in [the basis and its rewrite](#the-basis-and-its-rewrite). The shapes are in `packages/types/src/days.ts` and `entries.ts`.
 
 ### Data
 
@@ -92,5 +105,5 @@ Requirements: FR-DAY-01 to FR-DAY-04, FR-DAY-06 to FR-DAY-10, FR-DAY-13 to FR-DA
 
 ## Where it appears
 
-- [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries. Its week sheet shows seven days side by side.
+- [The Day tab](../app/day.md): one day, its two readings with their positions as a gauge and a distance, and its entries. Its week sheet shows seven days side by side, with their average day.
 - [The log sheet](../app/log-sheet.md): the estimates its estimate sheet adds to a day.

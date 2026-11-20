@@ -192,6 +192,8 @@ async function main(): Promise<void> {
     same("get_days from to", await call("get_days", { from: today, to: today }), range);
     const week = await call("get_days", { weekOf: today });
     same("get_days weekOf holds 7 days", week.days.length, 7);
+    // The whole answer is compared below, the average day included.
+    same("get_days weekOf answers the average", Object.keys(week.average ?? {}).sort(), ["eaten", "withPlan"]);
     same(
       "get_days weekOf = GET /days for its dates",
       week,

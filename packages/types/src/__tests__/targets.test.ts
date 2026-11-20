@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   ERROR_CODES,
   IsoDateSchema,
+  sameTargets,
   SetTargetsBodySchema,
   TargetsOverviewSchema,
   TargetsQuerySchema,
@@ -92,5 +93,20 @@ describe("TargetsOverviewSchema", () => {
 describe("the targets error codes", () => {
   it("have no refusal for removing the last change", () => {
     expect(ERROR_CODES).not.toContain("targets_last_change");
+  });
+});
+
+describe("sameTargets", () => {
+  const base = { energyKcal: { lower: 1900, upper: 2200 }, proteinG: { lower: 130, upper: 170 } };
+
+  it("is true for targets equal bound for bound", () => {
+    expect(sameTargets(base, structuredClone(base))).toBe(true);
+  });
+
+  it("is false when any one of the four bounds differs", () => {
+    expect(sameTargets(base, { ...base, energyKcal: { lower: 1901, upper: 2200 } })).toBe(false);
+    expect(sameTargets(base, { ...base, energyKcal: { lower: 1900, upper: 2201 } })).toBe(false);
+    expect(sameTargets(base, { ...base, proteinG: { lower: 131, upper: 170 } })).toBe(false);
+    expect(sameTargets(base, { ...base, proteinG: { lower: 130, upper: 175 } })).toBe(false);
   });
 });

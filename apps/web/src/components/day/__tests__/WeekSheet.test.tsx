@@ -288,7 +288,7 @@ describe("WeekSheet, across states", () => {
     jest.mocked(getDaySummaries).mockImplementation(async (from, to) => server.range(from, to));
     renderWeek();
     const loading = frame();
-    expect(document.querySelectorAll('[data-gauge="frame"]')).toHaveLength(14);
+    expect(document.querySelectorAll('tbody [data-gauge="frame"]')).toHaveLength(14);
 
     await act(async () => answer.resolve(server.range("2026-11-16", "2026-11-22")));
     await loaded();

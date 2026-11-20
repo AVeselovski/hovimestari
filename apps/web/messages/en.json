@@ -649,6 +649,17 @@
         "below": "below the range",
         "floor": "below the floor",
         "above": "above the range"
+      },
+      "targetsNew": "New targets apply from {date}.",
+      "average": {
+        "label": "Average",
+        "countedThisWeek": "Eaten: {eaten, plural, =0 {no days} one {# day} other {# days}} before today. Planned: {planned, plural, one {# day} other {# days}}.",
+        "countedPast": "Eaten: {eaten, plural, =0 {no days} one {# day} other {# days}}. Planned: {planned, plural, one {# day} other {# days}}.",
+        "countedFuture": "Planned: {planned, plural, one {# day} other {# days}}.",
+        "spokenBeforeToday": "average of {count, plural, one {# day} other {# days}} before today",
+        "spokenDays": "average of {count, plural, one {# day} other {# days}}",
+        "spokenNone": "no days counted",
+        "spokenPause": ", {part}"
       }
     }
   },

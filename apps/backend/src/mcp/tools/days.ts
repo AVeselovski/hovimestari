@@ -1,6 +1,6 @@
 import { IsoDateSchema, weekOf, type TargetsOverview } from "@hovimestari/types";
 import { z } from "zod";
-import { getDay, listDaySummaries } from "../../services/reads/days.js";
+import { getDay, getDayRange } from "../../services/reads/days.js";
 import { targetsOverview } from "../../services/reads/targets.js";
 import { dateIn, DayDate, DayRange } from "../inputs.js";
 import { defineTool, type ToolContext } from "../result.js";
@@ -89,9 +89,7 @@ function rangeOf(input: z.output<typeof DaysInput>, ctx: ToolContext): { from: s
 export const getDaysTool = defineTool({
   name: "get_days",
   description:
-    "Several days without their entries: each day's targets, its two readings with their positions, and its counts. From from to to, at most 42 days with both ends counted, or the Monday-to-Sunday week holding weekOf. A past day's reading with no entries has no position.",
+    "Several days without their entries: each day's targets, its two readings with their positions, and its counts, and the average day over them in both readings, with the days each average counts. From from to to, at most 42 days with both ends counted, or the Monday-to-Sunday week holding weekOf. A past day's reading with no entries has no position.",
   inputSchema: DaysInput,
-  async run(input, ctx) {
-    return { days: await listDaySummaries(ctx.service, rangeOf(input, ctx)) };
-  },
+  run: (input, ctx) => getDayRange(ctx.service, rangeOf(input, ctx)),
 });

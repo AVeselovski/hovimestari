@@ -388,6 +388,15 @@ describe("/mcp through the MCP client", () => {
     await client.close();
   });
 
+  it("says get_days answers the average day over its days", async () => {
+    const client = await connect(server.url, READ_KEY);
+    const { tools } = await client.listTools();
+    expect(tools.find((t) => t.name === "get_days")?.description).toContain(
+      "and the average day over them in both readings, with the days each average counts.",
+    );
+    await client.close();
+  });
+
   it.each(["legacy", "modern"] as const)("serves the app rules as a resource (%s era)", async (era) => {
     const client = await connect(server.url, READ_KEY, era);
     const { resources } = await client.listResources();

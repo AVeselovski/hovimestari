@@ -1,4 +1,12 @@
-import { daysBetween, summarizeDay, type Day, type DaySummary, type Entry } from "@hovimestari/types";
+import {
+  averageOfDays,
+  daysBetween,
+  summarizeDay,
+  type Day,
+  type DaySummary,
+  type DaySummaryList,
+  type Entry,
+} from "@hovimestari/types";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { entries } from "../../db/schema/index.js";
 import { entryOf, selectEntries } from "../entryRows.js";
@@ -37,7 +45,7 @@ function datesOf(from: string, to: string): string[] {
  * Every day from `from` to `to` as `getDay` sums it, without the entries.
  * One query for the entries and one for the targets, whatever the range.
  */
-export async function listDaySummaries(ctx: ReadContext, range: { from: string; to: string }): Promise<DaySummary[]> {
+async function listDaySummaries(ctx: ReadContext, range: { from: string; to: string }): Promise<DaySummary[]> {
   const [changes, rows] = await Promise.all([
     listTargetChanges(ctx),
     selectEntries(ctx.db, ctx.userId, and(gte(entries.date, range.from), lte(entries.date, range.to))),
@@ -52,6 +60,15 @@ export async function listDaySummaries(ctx: ReadContext, range: { from: string; 
   return datesOf(range.from, range.to).map((date) =>
     summarizeDay(date, ctx.today, byDate.get(date) ?? [], inForceOn(changes, date)?.ranges ?? null),
   );
+}
+
+/**
+ * Every day from `from` to `to`, without entries, and their average day in
+ * both readings, from averageOfDays. `GET /days` and `get_days` call it.
+ */
+export async function getDayRange(ctx: ReadContext, range: { from: string; to: string }): Promise<DaySummaryList> {
+  const days = await listDaySummaries(ctx, range);
+  return { days, average: averageOfDays(days) };
 }
 
 /** Each distinct date of `dates` as a day, in date order. */

@@ -63,3 +63,13 @@ export type SetTargetsBody = z.infer<typeof SetTargetsBodySchema>;
 export type TargetChange = z.infer<typeof TargetChangeSchema>;
 export type TargetsOverview = z.infer<typeof TargetsOverviewSchema>;
 export type TargetsQuery = z.infer<typeof TargetsQuerySchema>;
+
+/** Whether two sets of targets are equal bound for bound. */
+export function sameTargets(a: TargetRanges, b: TargetRanges): boolean {
+  return (
+    a.energyKcal.lower === b.energyKcal.lower &&
+    a.energyKcal.upper === b.energyKcal.upper &&
+    a.proteinG.lower === b.proteinG.lower &&
+    a.proteinG.upper === b.proteinG.upper
+  );
+}

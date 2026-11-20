@@ -1,6 +1,6 @@
 ---
 name: Week sheet (PR 3d slice A)
-description: What the week sheet's build and fixes taught: TanStack keeps manual edits through a cancel, unobserved-range tests, autoFocus on remount, footer label widths, tbody click, theme forcing, fixed column widths, tokens equal to their surface, the plan tint window, held lines
+description: What the week sheet's build, fixes and average row taught: the marks' paint order decision, pixel checks under a footer, the API URL for browser runs, catalogued pauses, display classes in frame tests, the forced-label column proof, fixture-mutating marks, TanStack keeps manual edits through a cancel, unobserved-range tests, autoFocus on remount, footer label widths, tbody click, theme forcing, fixed column widths, tokens equal to their surface, the plan tint window, held lines
 type: project
 ---
 
@@ -17,6 +17,14 @@ type: project
 - **A "hidden when empty" line under a held-height sheet must keep its element.** Render it invisible and `aria-hidden` with a min height whenever it can ever show, or a sheet opened without it clips it under the footer after a step.
 - **A selection guard on a bubbled click also swallows keyboard activation of a child button.** Check `event.detail > 0` (a pointer press) and scope the selection to the target. **jsdom's `Selection.containsNode` gives wrong answers** (true for a node outside the range, false for one inside it), so a test against it encodes jsdom's bug. Use `Range.intersectsNode` over the selection's ranges, which is correct in both jsdom and Chromium.
 - **State a computed offset in classes.** A notice placed under a table head needs the head's height stated in classes (`h-*` on its cells), and the test derives the offset from those classes, so a change to the head turns it red.
+- **The week's average row (PR 2 of week-average-and-unlogged-days).** A per-state frame test that compares height classes alone missed a line switched to `hidden` (display none): include display classes (`hidden`, `block`, `absolute`) in what the frame compares, then mutate to prove it. A mutation that breaks the JSX runs 0 tests: read the count before calling it red.
+- **The column proof needs a forced run.** The fallback face renders "Average" at about the same width as Instrument Sans (46 to 56 px), so fonts-off alone passes on in-flow markup too. Force the label wide in the page (20 px, a long string), then set it `position: static` as a control and see the columns move.
+- **Measuring with a mark-eaten run mutates the scratch fixture.** "Mark ... eaten" first on the Day tab is today's plan, which changes no average. Mark a past day's plan to see the Eaten average move, and put both entries back (SQL on `entries.status`, `eaten_at`) before the screenshots.
+- **New catalog keys fail `tsc --noEmit` until `next typegen` runs:** use `pnpm typecheck`, which regenerates `messages/en.d.json.ts`. Playwright lives in `/opt/node-tools/node_modules` (`NODE_PATH`). A person with no targets lands on the first-run page: press "Continue without targets" in scripts.
 
-**Why:** each cost a rerun or a wrong conclusion in this slice.
-**How to apply:** before cache-patching code, focus-on-open in a list that remounts, or a sheet sweep across themes.
+- **Paint order of the average marks (owner's delegate, 2026-11-20): track, band, ring, ticks, dot.** The orchestrator decided it after ui-validator found a dot on a bound showed 1 to 1.5 px of hue. The ring stays under the ticks so a bound shows through it; the dot is never covered. Do not "restore" the design's original order.
+- **Pixel-check a mark in a sheet only after scrolling it into view.** At 320 by 568 the average's gauges sit under the footer, so a clipped screenshot counts the footer, not the dot (first count read 6 hue pixels, the real figure 20 to 24). Decode a `page.screenshot` buffer with `createImageBitmap` and `OffscreenCanvas` in a blank helper page; no PNG library is needed. Emulate an old paint order by moving the node in the DOM in the same page for a before number.
+- **`NEXT_PUBLIC_API_URL` for a browser run is the backend itself** (`http://localhost:<backend>/api/v1`), not the web server; only sign-in goes through the web relay.
+- **A comma in an `sr-only` pause is copy:** it goes through a catalog entry (`day.week.average.spokenPause`, ", {part}"), not a JSX literal.
+  **Why:** each cost a rerun or a wrong conclusion in this slice.
+  **How to apply:** before cache-patching code, focus-on-open in a list that remounts, or a sheet sweep across themes.

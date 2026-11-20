@@ -1,5 +1,5 @@
 import { dayOf, foodEntry } from "@/components/day/__tests__/support";
-import type { Day, DaySummary, DaySummaryList } from "@hovimestari/types";
+import { averageOfDays, type Day, type DaySummary, type DaySummaryList } from "@hovimestari/types";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { TEST_USER } from "../../__tests__/helpers/auth";
 import { deferred, registerTestQueryClient } from "../../__tests__/helpers/queryClient";
@@ -20,7 +20,12 @@ const DATE = "2026-11-18";
 function emptyWeek(): DaySummaryList {
   const days: DaySummary[] = [];
   for (let d = 16; d <= 22; d += 1) days.push(daySummaryOf(dayOf([], `2026-11-${d}`, DATE)));
-  return { days };
+  return rangeOf(days);
+}
+
+/** A range as the server answers it: its days and their average day, through the one shared computation. */
+function rangeOf(days: DaySummary[]): DaySummaryList {
+  return { days, average: averageOfDays(days) };
 }
 
 /** The day the write answers: one entry on DATE. */
@@ -125,9 +130,9 @@ describe("an entry write and the cached ranges", () => {
   it("writes into every cached range that holds the date and leaves the others as they were", async () => {
     const client = registerTestQueryClient(new QueryClient());
     client.setQueryData(queryKeys.dayRange(FROM, TO), emptyWeek());
-    const fortnight = { days: [...emptyWeek().days, daySummaryOf(dayOf([], "2026-11-23", DATE))] };
+    const fortnight = rangeOf([...emptyWeek().days, daySummaryOf(dayOf([], "2026-11-23", DATE))]);
     client.setQueryData(queryKeys.dayRange(FROM, "2026-11-23"), fortnight);
-    const later = { days: [daySummaryOf(dayOf([], "2026-11-30", DATE))] };
+    const later = rangeOf([daySummaryOf(dayOf([], "2026-11-30", DATE))]);
     client.setQueryData(queryKeys.dayRange("2026-11-30", "2026-11-30"), later);
 
     await putDaysInRanges(client, [written()]);
@@ -135,6 +140,27 @@ describe("an entry write and the cached ranges", () => {
     expect(rowIn(client)).toEqual(daySummaryOf(written()));
     expect(rowIn(client, FROM, "2026-11-23")).toEqual(daySummaryOf(written()));
     expect(client.getQueryData(queryKeys.dayRange("2026-11-30", "2026-11-30"))).toBe(later);
+  });
+
+  it("recomputes a patched range's average day from its patched days, in every range that holds the date", async () => {
+    const client = registerTestQueryClient(new QueryClient());
+    client.setQueryData(queryKeys.dayRange(FROM, TO), emptyWeek());
+    const fortnight = rangeOf([...emptyWeek().days, daySummaryOf(dayOf([], "2026-11-23", DATE))]);
+    client.setQueryData(queryKeys.dayRange(FROM, "2026-11-23"), fortnight);
+    const before = client.getQueryData<DaySummaryList>(queryKeys.dayRange(FROM, TO))!.average;
+    // Tuesday, a past day, eaten: it joins both averages. Today with a plan joins Planned only.
+    const tuesday = dayOf([foodEntry("Rahka", 250, { date: "2026-11-17" })], "2026-11-17", DATE);
+    const today = dayOf([foodEntry("Rahka", 400, { date: DATE, status: "planned" })], DATE, DATE);
+
+    await putDaysInRanges(client, [tuesday, today]);
+
+    for (const to of [TO, "2026-11-23"]) {
+      const range = client.getQueryData<DaySummaryList>(queryKeys.dayRange(FROM, to))!;
+      expect(range.average).toEqual(averageOfDays(range.days));
+      expect(range.average.eaten.dates).toEqual(["2026-11-17"]);
+      expect(range.average.withPlan.dates).toEqual(["2026-11-17", DATE]);
+    }
+    expect(client.getQueryData<DaySummaryList>(queryKeys.dayRange(FROM, TO))!.average).not.toEqual(before);
   });
 
   it("leaves a range with no data without data", async () => {

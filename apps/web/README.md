@@ -44,9 +44,13 @@ src/
 │   │   ├── DateBar.tsx         Previous day, the day's label over the native date input, Next day
 │   │   ├── DayLauncher.tsx     "Log food" or "Add to plan", which opens the log sheet on the day shown
 │   │   ├── DaySummary.tsx      Both readings, the distances or the words for a past reading with nothing recorded, carbohydrates and fat, and the two notes, each line in its reserved room
-│   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, with Set targets or from which date
-│   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry: track, band, fills, end-cap, ticks
-│   │   ├── gaugeGeometry.ts    Every position on a gauge, in per cent of the track, as a pure function
+│   │   ├── noTargets.ts        Whether a day, loaded or still loading, shows without targets, and the week's line on when targets start
+│   │   ├── Gauge.tsx           Draws one gauge from gaugeGeometry (track, band, fills, end-cap, ticks), and AverageGauge, the week's average as a ring under the ticks and a dot over them, with the band and ticks shared
+│   │   ├── gaugeGeometry.ts    Every position on a gauge and on the average gauge, in per cent of the track, as pure functions
+│   │   ├── WeekSheet.tsx       The week sheet: the week's title, the table, the counted line, the targets line and Previous and Next
+│   │   ├── WeekTable.tsx       The week as a table, one row per day, with the average row in its foot
+│   │   ├── WeekAverageRow.tsx  The week's average day: its figures, its spoken counts and its gauges, its label out of flow
+│   │   ├── weekCells.ts        What the day rows and the average row share: columns, gaps, figure type, position words, the week's kind
 │   │   ├── EntryList.tsx       "Entries", Mark all eaten and Copy, the rows and the empty line
 │   │   ├── EntryRow.tsx        One entry: its state mark and the button that opens the entry sheet
 │   │   ├── entryMeta.ts        An entry's amount line, shared by its row and the copy sheet

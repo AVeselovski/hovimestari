@@ -1,4 +1,4 @@
-import type { Day, TargetsOverview } from "@hovimestari/types";
+import { sameTargets, type Day, type TargetsOverview } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
 // Whether the Day tab's summary shows a day without targets, and what its
@@ -43,4 +43,29 @@ export function predictedNoTargets(date: string | null, overview: TargetsOvervie
 export function loadedNoTargets(day: Day, overview: TargetsOverview | undefined): NoTargets | null {
   if (day.targets !== null) return null;
   return predictedNoTargets(day.date, overview) ?? { kind: "pending" };
+}
+
+/**
+ * The line under the week table about targets. `first`: the week holds a day
+ * before the first change, which starts on `date`. `new`: a later change
+ * starts after the week's Monday and on or before its Sunday, so the rows'
+ * bands shift on `date`. A change equal bound for bound to the one before it
+ * moves no band, so it is skipped. With several, the first in the week.
+ * `first` wins when both could show. Null when the week holds neither.
+ */
+export type WeekTargetsLine = { kind: "first" | "new"; date: string };
+
+export function weekTargetsLine(
+  from: string,
+  to: string,
+  overview: TargetsOverview | undefined,
+): WeekTargetsLine | null {
+  const before = predictedNoTargets(from, overview);
+  if (before?.kind === "from") return { kind: "first", date: before.date };
+  const changes = [...(overview?.changes ?? [])].sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+  const moved = changes.find(
+    (c, i) =>
+      c.effectiveFrom > from && c.effectiveFrom <= to && !(i > 0 && sameTargets(c.ranges, changes[i - 1]!.ranges)),
+  );
+  return moved ? { kind: "new", date: moved.effectiveFrom } : null;
 }

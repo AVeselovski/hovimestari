@@ -101,7 +101,7 @@ src/
 │   ├── reads/context.ts        ReadContext: the user, the database, now, the time zone and today
 │   ├── reads/targets.ts        targetsOn, the in-force rule (null before the first change), inForceOn, its pure form, and targetsOverview, with firstRunDue
 │   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
-│   ├── reads/days.ts           getDay and listDaySummaries: every day through summarizeDay from packages/types. getEntry, one entry by its id
+│   ├── reads/days.ts           getDay and getDayRange: every day through summarizeDay, and a range's average through averageOfDays, from packages/types. getEntry, one entry by its id
 │   ├── reads/log.ts            listRecents and lastAmountsOf, from eaten entries
 │   ├── reads/savedMeals.ts     listSavedMeals and getSavedMeal
 │   ├── reads/recipes.ts        listRecipes, getRecipe and previewRecipe, each recipe's figures computed from its lines as it is read
