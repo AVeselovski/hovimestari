@@ -1,10 +1,11 @@
 import { RecipeFilterSchema, RecipePreviewBodySchema, RecipeServingsSchema } from "@hovimestari/types";
 import { z } from "zod";
+import { getCook } from "../../services/reads/cooks.js";
 import { getRecipe, listRecipes, previewRecipe } from "../../services/reads/recipes.js";
 import { defineTool } from "../result.js";
 
-// Recipes (recipes design d.6), through the services GET /recipes,
-// GET /recipes/:id and POST /recipes/preview call. Each answers the route's
+// Recipes and cooks (recipes design d.6), through the services GET /recipes,
+// GET /recipes/:id, POST /recipes/preview and GET /cooks/:id call. Each answers the route's
 // own fields. The filter takes JSON booleans and lists, where the route's
 // query takes strings, and both parse to one filter for the one service.
 
@@ -58,4 +59,14 @@ export const previewRecipeTool = defineTool({
     ),
   }),
   run: (args, { service }) => previewRecipe(service, args),
+});
+
+export const getCookTool = defineTool({
+  name: "get_cook",
+  description:
+    "One batch logged as made: its recipe, the day it was made, the servings it gave, its lines with each food and its grams, each line's fromLineId (the recipe line it started as, null for a line the batch added), its figures for one serving (perServing) and for the whole batch (whole), what it changed from the recipe as the recipe is now (diff), and every entry from it.",
+  inputSchema: z.strictObject({
+    cookId: z.uuid().describe("The batch's id: cook.id on an entry from get_day, or the id log_cook answered."),
+  }),
+  run: ({ cookId }, { service }) => getCook(service, cookId),
 });

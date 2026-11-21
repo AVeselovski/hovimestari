@@ -116,7 +116,7 @@ describe("APP_RULES", () => {
 
   it("names every kind of change a writing key can make, and sets targets only with the person's numbers", () => {
     expect(WRITE_RULES).toContain(
-      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites and log them, and change targets.",
+      "add and change the person's own foods and portions, mark favourites, save, change and archive saved meals, create, change, tag and archive recipes, mark them as favourites, log them and log a batch as made, and change targets.",
     );
     expect(WRITE_RULES).toContain("Values the person reads from a label go in with create_own_food.");
     expect(WRITE_RULES).toContain("Set them only with the numbers the person gave, from the date they gave");
@@ -156,6 +156,13 @@ describe("APP_RULES", () => {
     expect(APP_RULES).toContain("changes its planned entries from today on, as with a saved meal.");
     expect(APP_RULES).toContain("lastPutOn is the latest date the recipe is on, planned or eaten.");
     expect(APP_RULES).not.toContain("cannot be put on a day");
+  });
+
+  it("says a cook's entries keep the cook's figures, and asks for a batch as made through log_cook with fromLineId", () => {
+    expect(APP_RULES).toContain("Editing a food or the recipe does not change a cook or its entries.");
+    expect(APP_RULES).toContain("A copy of an entry from a cook plans its recipe again");
+    expect(WRITE_RULES).toContain("Log a batch that came out different with log_cook, never by editing the recipe.");
+    expect(WRITE_RULES).toContain("Give each line from the recipe its fromLineId from get_recipe");
   });
 
   it("gives a read key the estimate rule too", () => {

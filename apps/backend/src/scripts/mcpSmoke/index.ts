@@ -163,6 +163,21 @@ async function main(): Promise<void> {
       tags: ["Brunch"],
     });
     await rest("POST", "/entries", entry("recipe", { recipeId: recipe.id, servings: 1.5, status: "planned" }));
+    // A batch of it logged as made, more of its second line, its one serving planned for tomorrow.
+    const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    const cook = await rest("POST", "/cooks", {
+      id: randomUUID(),
+      recipeId: recipe.id,
+      date: today,
+      servings: 3,
+      lines: recipeLines.map((line, i) => ({
+        ...line,
+        id: randomUUID(),
+        fromLineId: line.id,
+        ...(i === 1 ? { amount: { grams: 80 } } : {}),
+      })),
+      add: [{ id: randomUUID(), date: tomorrow, status: "planned", servings: 1 }],
+    });
 
     // --- the read leg --------------------------------------------------------
     console.log("\n== read leg");
@@ -235,6 +250,12 @@ async function main(): Promise<void> {
       "get_recipe with servings",
       await call("get_recipe", { recipeId: recipe.id, servings: 3 }),
       await rest("GET", `/recipes/${recipe.id}?servings=3`),
+    );
+    same("get_cook", await call("get_cook", { cookId: cook.cook.id }), await rest("GET", `/cooks/${cook.cook.id}`));
+    same(
+      "get_cook differs from its recipe",
+      (await call("get_cook", { cookId: cook.cook.id })).entries[0]?.cook?.differs,
+      true,
     );
     const draft = { servings: 2, lines: recipeLines.map(({ id: _id, ...line }) => line) };
     same("preview_recipe", await call("preview_recipe", draft), await rest("POST", "/recipes/preview", draft));

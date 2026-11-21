@@ -50,7 +50,7 @@ const callsOf = (body: string, name: string) => body.match(new RegExp(`\\b${name
 describe("services/writes/recorded", () => {
   it("holds the recorded writes of every area", () => {
     expect(files).toEqual(
-      expect.arrayContaining(["entries.ts", "foods.ts", "recipes.ts", "savedMeals.ts", "targets.ts"]),
+      expect.arrayContaining(["cooks.ts", "entries.ts", "foods.ts", "recipes.ts", "savedMeals.ts", "targets.ts"]),
     );
   });
 

@@ -9,10 +9,11 @@ import {
   type AssistantChangeSummary,
   type AssistantEntryLine,
   type AssistantFieldChange,
+  type CookEntryLine,
   type TargetRanges,
 } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
-import { recipeChangeLines } from "./recipeChangeText";
+import { cookChangeLines, recipeChangeLines } from "./recipeChangeText";
 
 // ---------------------------------------------------------------------------
 // One change in a connection's record, as the Activity sheet reads it: a
@@ -42,7 +43,7 @@ export interface ChangeWords {
 export interface ChangeLine {
   label: string | null;
   parts: string[];
-  /** The parts are names alone, which may hold commas, so a screen reader hears "and" between them. */
+  /** The parts may hold names, which may hold commas, so a screen reader hears "and" between them. */
   names?: true;
 }
 
@@ -95,8 +96,8 @@ function amountPortionName(amount: Record<string, unknown>, units: PortionUnitNa
 }
 
 /**
- * An entry's amount: "150 g", "2 × Medium piece" and "110 g", "1 meal", or
- * "1.5 servings".
+ * An entry's amount: "150 g", "2 × Medium piece" and "110 g", "1 meal",
+ * "1.5 servings", or "1 serving as made" for servings from a batch logged as made.
  * A portion with no name this app can give reads as its grams alone.
  */
 function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | null {
@@ -107,7 +108,10 @@ function amountParts(amount: unknown, { t, units }: ChangeWords): string[] | nul
     const portion = amountPortionName(amount, units);
     return portion === null ? [grams] : [t("part.portion", { count: formatCount(amount.count), portion }), grams];
   }
-  if (typeof amount.servings === "number") return [t("part.servings", { count: amount.servings })];
+  if (typeof amount.servings === "number") {
+    const count = amount.servings;
+    return [amount.asMade === true ? t("part.servingsAsMade", { count }) : t("part.servings", { count })];
+  }
   if (typeof amount.count === "number") return [t("part.meals", { count: amount.count })];
   return null;
 }
@@ -180,6 +184,35 @@ function entryLine(entry: AssistantEntryLine, words: ChangeWords): ChangeLine {
     ...amount,
     t("part.kcal", { value: formatKcal(entry.figures.energyKcal) }),
     t("part.protein", { value: formatGrams(entry.figures.proteinG) }),
+  ]);
+}
+
+/**
+ * The line of an entry a batch fed: whether it is eaten or planned and the
+ * day, that it was already on the day when the batch took it, its servings,
+ * its energy and its protein. The headline names the batch, so the servings
+ * do not say again that they are as made.
+ */
+function cookEntryLine(entry: CookEntryLine, words: ChangeWords): ChangeLine {
+  const { t } = words;
+  const date = formatDay(entry.date);
+  const amount = amountParts(isRecord(entry.amount) ? { ...entry.amount, asMade: false } : entry.amount, words);
+  return line([
+    entry.status === "eaten" ? t("part.loggedFor", { date }) : t("part.plannedFor", { date }),
+    ...(entry.attached ? [t("part.alreadyOnDay")] : []),
+    ...(amount ?? []),
+    t("part.kcal", { value: formatKcal(entry.figures.energyKcal) }),
+    t("part.protein", { value: formatGrams(entry.figures.proteinG) }),
+  ]);
+}
+
+/** A batch: the day it was made, the servings it gave, and the recipe's when the two differ. */
+function batchLine(s: Summary<"cook">, t: T): ChangeLine {
+  const recipe = s.changes.find((c) => c.field === "servings");
+  return line([
+    t("part.batchMade", { date: formatDay(s.date) }),
+    t("part.batchGave", { count: s.servings }),
+    ...(recipe ? [t("part.recipeMakes", { count: formatCount(recipe.from) })] : []),
   ]);
 }
 
@@ -304,9 +337,12 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
     case "recipe.created": {
       const s = of(summary, "recipe");
       if (!s) return unreadable(t);
+      const from = s.fromCook
+        ? [line([t("part.fromBatch", { name: s.fromCook.recipeName, date: formatDay(s.fromCook.date) })])]
+        : [];
       return {
         headline: t("headline.recipeCreated", { name: s.name }),
-        lines: recipeChangeLines(s.changes, words, true),
+        lines: [...from, ...recipeChangeLines(s.changes, words, true)],
       };
     }
     case "recipe.changed": {
@@ -332,6 +368,18 @@ export function changeText(change: AssistantChange, words: ChangeWords): ChangeT
     case "recipe.favourite_unset": {
       const s = of(summary, "recipe");
       return s ? { headline: t("headline.recipeFavouriteUnset", { name: s.name }), lines: [] } : unreadable(t);
+    }
+    case "cook.logged": {
+      const s = of(summary, "cook");
+      if (!s) return unreadable(t);
+      return {
+        headline: t("headline.cookMade", { name: s.recipeName }),
+        lines: [
+          batchLine(s, t),
+          ...s.entries.map((e) => cookEntryLine(e, words)),
+          ...cookChangeLines(s.changes, s.lineNotes, words),
+        ],
+      };
     }
     case "targets.set": {
       const s = of(summary, "targets");

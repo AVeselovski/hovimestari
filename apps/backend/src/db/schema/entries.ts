@@ -12,6 +12,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { cooks } from "./cooks.js";
 import { foods } from "./foods.js";
 import { recipes } from "./recipes.js";
 import { savedMeals } from "./savedMeals.js";
@@ -72,6 +73,9 @@ export const entries = pgTable(
     // kind = recipe. Servings with two decimals, above 0 and at most 100.
     recipeId: uuid("recipe_id"),
     servings: numeric("servings", { precision: 5, scale: 2, mode: "number" }),
+    // The batch the servings came from, when the recipe was logged as made.
+    // Null on a plain recipe entry. Its basis is then the cook's.
+    cookId: uuid("cook_id"),
 
     // kind = estimate
     name: text("name"),
@@ -81,7 +85,9 @@ export const entries = pgTable(
     // meal), per serving (recipe), or the whole entry (estimate). Written
     // once, when the entry is added. Only an edit of the source (for a
     // recipe, also of an own food on its lines) rewrites it, and only on
-    // planned entries dated today or later.
+    // planned entries dated today or later. A cook's entry is not a planned
+    // entry of its recipe to rewrite: it takes the cook's basis when it is
+    // attached to the cook or added from it, and nothing else writes it.
     basisEnergyKcal: numeric("basis_energy_kcal", { precision: 7, scale: 2, mode: "number" }).notNull(),
     basisProteinG: numeric("basis_protein_g", { precision: 7, scale: 3, mode: "number" }).notNull(),
     basisCarbsG: numeric("basis_carbs_g", { precision: 7, scale: 3, mode: "number" }).notNull(),
@@ -103,6 +109,13 @@ export const entries = pgTable(
       columns: [t.recipeId, t.userId],
       foreignColumns: [recipes.id, recipes.userId],
     }).onDelete("cascade"),
+    // An entry's cook is of the entry's recipe and user. MATCH SIMPLE: a plain
+    // recipe entry, with cook_id null, is not checked against cooks.
+    foreignKey({
+      name: "entries_cook_fk",
+      columns: [t.cookId, t.recipeId, t.userId],
+      foreignColumns: [cooks.id, cooks.recipeId, cooks.userId],
+    }).onDelete("cascade"),
     check("entries_status", sql`${t.status} IN (${listOf(ENTRY_STATUSES)})`),
     check("entries_kind", sql`${t.kind} IN (${listOf(ENTRY_KINDS)})`),
     check("entries_eaten_at", sql`(${t.status} = 'eaten') = (${t.eatenAt} IS NOT NULL)`),
@@ -120,7 +133,10 @@ export const entries = pgTable(
       sql`${t.kind} = 'saved_meal' OR (${t.savedMealId} IS NULL AND ${t.mealCount} IS NULL)`,
     ),
     check("entries_recipe", sql`(${t.kind} = 'recipe') = (${t.recipeId} IS NOT NULL AND ${t.servings} IS NOT NULL)`),
-    check("entries_recipe_fields", sql`${t.kind} = 'recipe' OR (${t.recipeId} IS NULL AND ${t.servings} IS NULL)`),
+    check(
+      "entries_recipe_fields",
+      sql`${t.kind} = 'recipe' OR (${t.recipeId} IS NULL AND ${t.servings} IS NULL AND ${t.cookId} IS NULL)`,
+    ),
     check("entries_estimate", sql`(${t.kind} = 'estimate') = (${t.name} IS NOT NULL)`),
     check("entries_note", sql`${t.note} IS NULL OR ${t.kind} = 'estimate'`),
     check(
@@ -144,5 +160,7 @@ export const entries = pgTable(
     index("entries_saved_meal_id_idx").on(t.savedMealId),
     // A recipe's entries by date: lastPutOn, the rewrite and the use check.
     index("entries_recipe_idx").on(t.recipeId, t.date),
+    // A cook's entries: the cook read, the purge's use check.
+    index("entries_cook_idx").on(t.cookId),
   ],
 );

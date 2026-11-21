@@ -73,7 +73,7 @@ A week that fails to load says "This week did not load." with **Try again**, and
 
 ### The entries
 
-Under the summary, "Entries", and each entry in the order it was added. A row holds a mark at its start, then the name, one line with the amount ("250 g", "2 × Medium piece · 110 g", "1 meal · Foodora", "1.5 servings" or "Estimate"), and the entry's calories over its protein, each with its dot. An estimate's figures start with "≈". A day with nothing on it says "Nothing logged yet.", or "Nothing planned yet." on a future day.
+Under the summary, "Entries", and each entry in the order it was added. A row holds a mark at its start, then the name, one line with the amount ("250 g", "2 × Medium piece · 110 g", "1 meal · Foodora", "1.5 servings" or "Estimate"), and the entry's calories over its protein, each with its dot. A serving from a batch [logged as made](../features/recipes.md#logging-as-made) reads "1 serving · as made", since its figures are the batch's and can differ from a plain serving of the same recipe. An estimate's figures start with "≈". A day with nothing on it says "Nothing logged yet.", or "Nothing planned yet." on a future day.
 
 The mark says the entry's state:
 

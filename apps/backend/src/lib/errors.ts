@@ -152,6 +152,11 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   line_name_too_long: "Use at most 80 characters.",
   line_note_too_long: "Use at most 80 characters.",
   written_amount_invalid: "Enter an amount above zero with at most two decimals, and a unit from the list.",
+  cook_not_found: "This batch is no longer available.",
+  cook_id_taken: "This batch id is already in use.",
+  cook_entries_required: "Attach or add at least one serving from the batch.",
+  cook_entry_invalid:
+    "An entry to attach must be one of your plain entries of this recipe, and a status may only be set on an attached entry.",
 };
 
 /** An AppError for `code`, with the code's fixed message, and when to try again if that is known. */

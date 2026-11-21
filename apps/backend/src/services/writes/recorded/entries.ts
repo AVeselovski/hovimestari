@@ -18,7 +18,7 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { entries } from "../../../db/schema/index.js";
 import type { Tx } from "../../../db/types.js";
-import { entryOf, selectEntries } from "../../entryRows.js";
+import { entriesOf, selectEntries } from "../../entryRows.js";
 import type { ReadContext } from "../../reads/context.js";
 import { getDays, getEntry } from "../../reads/days.js";
 import { fieldChanges, recordedWrite, type AssistantActor, type ChangeRecord, type Replay } from "../changeRecord.js";
@@ -53,6 +53,8 @@ export interface LogSavedMealArgs {
 export interface LogRecipeArgs {
   recipeId: string;
   servings: number;
+  /** Servings from a batch logged as made, which then carry its figures. */
+  cookId?: string;
   date: string;
   status: EntryStatus;
 }
@@ -76,10 +78,17 @@ export function lineOf(entry: Entry): AssistantEntryLine {
   };
 }
 
-/** A food's grams or portion count, a saved meal's count, a recipe's servings. An estimate has no amount. */
+/**
+ * A food's grams or portion count, a saved meal's count, a recipe's servings,
+ * marked `asMade` when they come from a batch logged as made. An estimate has
+ * no amount.
+ */
 function amountOf(entry: Entry): AssistantEntryLine["amount"] {
   if (entry.kind === "saved_meal") return entry.count === null ? null : { count: entry.count };
-  if (entry.kind === "recipe") return entry.servings === null ? null : { servings: entry.servings };
+  if (entry.kind === "recipe") {
+    if (entry.servings === null) return null;
+    return entry.cook === null ? { servings: entry.servings } : { servings: entry.servings, asMade: true };
+  }
   if (entry.kind !== "food" || entry.grams === null) return null;
   if (!entry.portion) return { grams: entry.grams };
   const portionLabel = entry.portion.name ?? entry.portion.unit ?? "";
@@ -119,7 +128,8 @@ async function lockedEntries(tx: Tx, ctx: WriteContext, ids: string[]): Promise<
       locked.map((r) => r.id),
     ),
   );
-  return new Map(rows.map((row) => [row.entry.id, entryOf(row)]));
+  const list = await entriesOf(tx, ctx.userId, rows);
+  return new Map(list.map((entry) => [entry.id, entry]));
 }
 
 const none = async () => null;

@@ -8,7 +8,7 @@ import {
   type IngredientLineDraft,
 } from "@hovimestari/types";
 import { and, asc, eq, inArray, isNotNull, sql } from "drizzle-orm";
-import { foods, recipeIngredients, recipes } from "../db/schema/index.js";
+import { cooks, foods, recipeIngredients, recipes } from "../db/schema/index.js";
 import type { Db, Tx } from "../db/types.js";
 import { AppError, appError } from "../lib/errors.js";
 import { displayName } from "./foodRows.js";
@@ -171,15 +171,15 @@ export function servingBasis(lines: readonly BasisLine[], servings: number): Fig
   return recipeBasis(counted, servings);
 }
 
-/** Whether a serving fits what an entry holds: 10000 kcal, and 1000 g of each macro, the caps a typed figure has. */
-export function fitsEntry(basis: Figures): boolean {
-  return (
-    basis.energyKcal <= MAX_FIGURE_KCAL &&
-    basis.proteinG <= MAX_FIGURE_G &&
-    basis.carbsG <= MAX_FIGURE_G &&
-    basis.fatG <= MAX_FIGURE_G
-  );
+const FIGURE_KEYS = ["energyKcal", "proteinG", "carbsG", "fatG"] as const satisfies readonly (keyof Figures)[];
+
+/** The figures of a serving past what an entry holds: 10000 kcal, and 1000 g of each macro, the caps a typed figure has. */
+export function figuresPastCap(basis: Figures): (keyof Figures)[] {
+  return FIGURE_KEYS.filter((key) => basis[key] > (key === "energyKcal" ? MAX_FIGURE_KCAL : MAX_FIGURE_G));
 }
+
+/** Whether a serving fits what an entry holds. */
+export const fitsEntry = (basis: Figures): boolean => figuresPastCap(basis).length === 0;
 
 /**
  * One serving's basis, or null when one serving comes to more than an entry
@@ -277,16 +277,56 @@ export async function readRecipeServings(
  * waits for them and reads what they left. Its own foods are then held FOR
  * SHARE, so an edit of one waits too. 404 `recipe_not_found`, or 400
  * `recipe_serving_too_large` when an own food edited since takes one serving
- * past what an entry holds.
+ * past what an entry holds. With `includeDeleted`, a recipe the user deleted
+ * while days use it is read too: a copy of a cook's entry plans its recipe
+ * again, deleted or not.
  */
-export async function readRecipeForEntry(tx: Tx, ctx: ReadContext, recipeId: string): Promise<Figures> {
+export async function readRecipeForEntry(
+  tx: Tx,
+  ctx: ReadContext,
+  recipeId: string,
+  { includeDeleted = false }: { includeDeleted?: boolean } = {},
+): Promise<Figures> {
+  const scope = includeDeleted ? eq(recipes.userId, ctx.userId) : ownRecipe(ctx.userId);
+  const [recipe] = await tx
+    .select({ id: recipes.id })
+    .from(recipes)
+    .where(and(eq(recipes.id, recipeId), scope))
+    .for("share");
+  if (!recipe) throw appError("recipe_not_found", 404);
+  const basis = servingOf((await readRecipeServings(tx, ctx, [recipe.id], { lock: true })).get(recipe.id)!);
+  if (!fitsEntry(basis)) throw appError("recipe_serving_too_large", 400);
+  return basis;
+}
+
+/** A cook's stored basis, one serving as every entry from it holds it. */
+export const cookBasisOf = (cook: typeof cooks.$inferSelect): Figures => ({
+  energyKcal: cook.basisEnergyKcal,
+  proteinG: cook.basisProteinG,
+  carbsG: cook.basisCarbsG,
+  fatG: cook.basisFatG,
+});
+
+/**
+ * The basis of new servings from the user's cook `cookId` of recipe
+ * `recipeId`: the cook's own, which every entry from it carries. The recipe
+ * is read FOR SHARE first, as a plain add reads it, so a recipe delete waits
+ * for the add or the add answers `recipe_not_found`. Then the cook FOR
+ * SHARE: a purge of orphan cooks skips a cook an add holds, and an add that
+ * comes after a purge answers 404 `cook_not_found` instead of a key failure.
+ */
+export async function readCookForEntry(tx: Tx, ctx: ReadContext, recipeId: string, cookId: string): Promise<Figures> {
   const [recipe] = await tx
     .select({ id: recipes.id })
     .from(recipes)
     .where(and(eq(recipes.id, recipeId), ownRecipe(ctx.userId)))
     .for("share");
   if (!recipe) throw appError("recipe_not_found", 404);
-  const basis = servingOf((await readRecipeServings(tx, ctx, [recipe.id], { lock: true })).get(recipe.id)!);
-  if (!fitsEntry(basis)) throw appError("recipe_serving_too_large", 400);
-  return basis;
+  const [cook] = await tx
+    .select()
+    .from(cooks)
+    .where(and(eq(cooks.id, cookId), eq(cooks.userId, ctx.userId), eq(cooks.recipeId, recipe.id)))
+    .for("share");
+  if (!cook) throw appError("cook_not_found", 404);
+  return cookBasisOf(cook);
 }

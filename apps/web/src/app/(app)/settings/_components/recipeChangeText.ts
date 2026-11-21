@@ -1,7 +1,7 @@
 import { portionName } from "@/components/entries/portionLabel";
 import { formatCount } from "@/lib/entryFormat";
 import { formatGrams } from "@/lib/foodFormat";
-import type { RecipeFieldChange, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
+import type { CookFieldChange, RecipeFieldChange, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
 import type { useTranslations } from "next-intl";
 import type { ChangeLine, ChangeWords } from "./changeText";
 
@@ -69,7 +69,7 @@ function lineChangeParts(change: RecipeLineChange, words: ChangeWords): string[]
  * line on its own, then whether the order changed. At most `SHOWN_LINES`
  * lines are spelled out, and the rest are counted, never as "1 more".
  */
-function linesLines(change: Lines, words: ChangeWords, created: boolean): ChangeLine[] {
+function linesLines(change: Lines, words: ChangeWords, created: boolean, leftOut = false): ChangeLine[] {
   const { t } = words;
   const total = change.added.length + change.removed.length + change.changed.length;
   let room = total > SHOWN_LINES + 1 ? SHOWN_LINES : total;
@@ -102,7 +102,8 @@ function linesLines(change: Lines, words: ChangeWords, created: boolean): Change
       );
     }
     if (removed.length > 0) {
-      const label = t("label.linesRemoved", { count: change.removed.length });
+      const count = change.removed.length;
+      const label = leftOut ? t("label.linesLeftOut", { count }) : t("label.linesRemoved", { count });
       out.push(
         line(
           removed.map((l) => linePart(l, t)),
@@ -111,7 +112,8 @@ function linesLines(change: Lines, words: ChangeWords, created: boolean): Change
         ),
       );
     }
-    for (const c of changed) out.push(line(lineChangeParts(c, words), c.name));
+    // A part may hold a food's name ("in place of Leipä, ruis"), so the parts are read with "and".
+    for (const c of changed) out.push(line(lineChangeParts(c, words), c.name, true));
   }
   const shown = added.length + removed.length + changed.length;
   // An edit's rest mixes lines added, removed and changed, so it counts them as changes.
@@ -178,6 +180,18 @@ function fieldLines(change: RecipeFieldChange, words: ChangeWords, created: bool
       ];
     }
   }
+}
+
+/**
+ * What a batch logged as made changed from its recipe, as the record keeps
+ * it: its lines, a recipe line it left out read as left out, then the lines
+ * it wrote a note of its own on. The servings it gave read with the batch.
+ */
+export function cookChangeLines(changes: CookFieldChange[], lineNotes: string[], words: ChangeWords): ChangeLine[] {
+  const { t } = words;
+  const lines = changes.flatMap((change) => (change.field === "lines" ? linesLines(change, words, false, true) : []));
+  const notes = lineNotes.length > 0 ? [line(lineNotes, t("label.batchNotes"), true)] : [];
+  return [...lines, ...notes];
 }
 
 /** A recipe change's lines, for a create or an edit. */

@@ -87,6 +87,21 @@ describe("changeText: one line per recorded action", () => {
     ]);
   });
 
+  it("log_recipe from a batch logged as made, its servings read as made", () => {
+    const entry: AssistantEntryLine = {
+      ...porridge,
+      name: "Shakshuka",
+      kind: "recipe",
+      status: "eaten",
+      amount: { servings: 2, asMade: true },
+      figures: { energyKcal: 481, proteinG: 34.4, carbsG: 16.2, fatG: 30.1 },
+    };
+    expect(read(change("entry.added", { entity: "entry", entry, changes: [] }))).toEqual([
+      "Logged Shakshuka",
+      "For 21 November 2026 · 2 servings as made · 481 kcal · 34.4 g protein",
+    ]);
+  });
+
   it("update_entry on a recipe entry's servings", () => {
     const summary: AssistantChangeSummary = {
       entity: "entry",

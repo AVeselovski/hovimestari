@@ -229,7 +229,10 @@ export async function countRecentChanges(ctx: ReadContext, since: Date): Promise
 }
 
 /** The arguments that take a set of entry ids: their order and repeats mean nothing. */
-const ID_SETS = ["entryIds"] as const;
+const ID_SETS = ["entryIds", "attach"] as const;
+
+/** The arguments that take a list of `{ id, ... }` per entry: their order means nothing. */
+const BY_ID = ["attachStatus"] as const;
 
 /** A value with its object keys sorted, at every depth. Absent keys drop out, as in JSON. */
 function canonical(value: unknown): unknown {
@@ -246,7 +249,8 @@ function canonical(value: unknown): unknown {
 /**
  * The sha256 of the tool's name and the call's validated arguments without
  * its request key, as canonical JSON. The same call sent twice hashes the
- * same, whatever order its fields or its entry ids came in. The name is in
+ * same, whatever order its fields or its entry ids came in, and whatever
+ * order log_cook's attachStatus names its entries in. The name is in
  * the hash, so one key sent to two tools never replays the other's change.
  */
 export function requestHashOf(tool: string, args: Record<string, unknown>): string {
@@ -255,6 +259,12 @@ export function requestHashOf(tool: string, args: Record<string, unknown>): stri
   for (const field of ID_SETS) {
     const ids = rest[field];
     if (Array.isArray(ids)) rest[field] = [...new Set(ids.map((id) => String(id).toLowerCase()))].sort();
+  }
+  for (const field of BY_ID) {
+    const list = rest[field];
+    if (!Array.isArray(list)) continue;
+    const keyed = list.map((item: Record<string, unknown>) => ({ ...item, id: String(item.id).toLowerCase() }));
+    rest[field] = keyed.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   }
   return createHash("sha256")
     .update(JSON.stringify(canonical({ tool, args: rest })))

@@ -7,8 +7,9 @@ import {
   type Scale,
 } from "@hovimestari/types";
 import { and, asc, eq, sql, type SQL } from "drizzle-orm";
-import { entries, foodPortions, foods, recipes, savedMeals } from "../db/schema/index.js";
+import { cooks, entries, foodPortions, foods, recipes, savedMeals } from "../db/schema/index.js";
 import type { Db } from "../db/types.js";
+import { cookDiffersOf } from "./cookRows.js";
 import { displayName } from "./foodRows.js";
 import { portionVisibleTo } from "./foodScope.js";
 
@@ -16,7 +17,9 @@ import { portionVisibleTo } from "./foodScope.js";
 // saved meal and recipe WITHOUT the visibility rule: an entry is scoped by its own
 // user_id, and a hidden or retired source keeps its rows on every day. The
 // portion is joined only through the hint rule: same id, same food as the
-// entry, and visible to the user. Any other portion_id reads as null.
+// entry, and visible to the user. Any other portion_id reads as null. A
+// cook's entry joins its cook's row. Whether the cook differs from its
+// recipe takes one more query per read, for all its cooks (`entriesOf`).
 
 /** The columns `entryOf` reads, for `db.select(...)`. */
 export const entryColumns = (userId: string) => ({
@@ -32,6 +35,8 @@ export const entryColumns = (userId: string) => ({
   recipeName: recipes.name,
   recipeArchived: sql<boolean>`${recipes.archivedAt} IS NOT NULL`,
   recipeDeleted: sql<boolean>`${recipes.deletedAt} IS NOT NULL`,
+  cookDate: cooks.date,
+  cookServings: cooks.servings,
   portionId: foodPortions.id,
 });
 
@@ -48,6 +53,8 @@ type EntryRow = {
   recipeName: string | null;
   recipeArchived: boolean | null;
   recipeDeleted: boolean | null;
+  cookDate: string | null;
+  cookServings: number | null;
   portionId: string | null;
 };
 
@@ -59,6 +66,7 @@ export function selectEntries(db: Db, userId: string, where: SQL | undefined) {
     .leftJoin(foods, eq(foods.id, entries.foodId))
     .leftJoin(savedMeals, eq(savedMeals.id, entries.savedMealId))
     .leftJoin(recipes, eq(recipes.id, entries.recipeId))
+    .leftJoin(cooks, eq(cooks.id, entries.cookId))
     .leftJoin(
       foodPortions,
       and(eq(foodPortions.id, entries.portionId), eq(foodPortions.foodId, entries.foodId), portionVisibleTo(userId)),
@@ -111,8 +119,18 @@ function nameOf(row: EntryRow): string {
   }
 }
 
-/** A selected row as the API shows it. The figures come from the row's basis and amount alone. */
-export function entryOf(row: EntryRow): Entry {
+/**
+ * No cook differs. Only for a read that answers no entry, such as a week's
+ * summaries: a read that answers entries runs `cookDiffersOf` instead.
+ */
+export const NO_COOKS: ReadonlyMap<string, boolean> = new Map();
+
+/**
+ * A selected row as the API shows it. The figures come from the row's basis
+ * and amount alone. `differs` says, per cook, whether it differs from its
+ * recipe now (`cookDiffersOf`).
+ */
+export function entryOf(row: EntryRow, differs: ReadonlyMap<string, boolean>): Entry {
   const e = row.entry;
   return {
     id: e.id,
@@ -142,9 +160,20 @@ export function entryOf(row: EntryRow): Entry {
     count: e.mealCount,
     servings: e.servings,
     recipe: e.recipeId === null ? null : { id: e.recipeId, archived: row.recipeArchived!, deleted: row.recipeDeleted! },
+    cook:
+      e.cookId === null
+        ? null
+        : { id: e.cookId, date: row.cookDate!, servings: row.cookServings!, differs: differs.get(e.cookId) ?? false },
     note: e.note,
     basis: basisOf(e),
     figures: entryFigures(basisOf(e), scaleOf(e)),
     isEstimate: e.kind === "estimate",
   };
+}
+
+/** Selected rows as the API shows them, with one query for whether their cooks differ, and none without a cook. */
+export async function entriesOf(db: Db, userId: string, rows: EntryRow[]): Promise<Entry[]> {
+  const cookIds = [...new Set(rows.flatMap((r) => (r.entry.cookId === null ? [] : [r.entry.cookId])))];
+  const differs = cookIds.length === 0 ? NO_COOKS : await cookDiffersOf(db, userId, cookIds);
+  return rows.map((row) => entryOf(row, differs));
 }
