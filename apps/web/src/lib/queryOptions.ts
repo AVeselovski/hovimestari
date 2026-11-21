@@ -3,6 +3,7 @@ import { getConnectionChanges, getConnections } from "@/lib/api/connections";
 import { getDay, getDaySummaries } from "@/lib/api/days";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
+import { getRecipe, getRecipes } from "@/lib/api/recipes";
 import { getSavedMeals } from "@/lib/api/savedMeals";
 import { getTargets } from "@/lib/api/targets";
 import { getMe } from "@/lib/api/users";
@@ -186,6 +187,27 @@ export function savedMealsQuery(archived: boolean) {
   return queryOptions({
     queryKey: queryKeys.savedMealList(archived),
     queryFn: ({ signal }) => getSavedMeals(archived, { signal }),
+  });
+}
+
+/**
+ * The user's recipes: the active ones, or the archived ones. The Recipes tab
+ * filters and sorts them on the device, so one read serves every search,
+ * chip and sort. Their figures follow their foods, so a food write reads
+ * them again.
+ */
+export function recipesQuery(archived: boolean) {
+  return queryOptions({
+    queryKey: queryKeys.recipeList(archived),
+    queryFn: ({ signal }) => getRecipes(archived, { signal }),
+  });
+}
+
+/** One recipe with its lines, steps and notes, for its page and the editor. */
+export function recipeQuery(id: string) {
+  return queryOptions({
+    queryKey: queryKeys.recipeDetail(id),
+    queryFn: ({ signal }) => getRecipe(id, { signal }),
   });
 }
 

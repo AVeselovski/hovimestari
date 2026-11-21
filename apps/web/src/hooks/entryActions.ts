@@ -46,6 +46,12 @@ export interface AddRequest {
   amount: string;
   /** The same add with a fresh id, for "Log another". */
   again: () => AddRequest;
+  /**
+   * The toast names the entry's day, for an add made away from that day's
+   * page, such as from a recipe's page: always for a plan, and for a log on
+   * any day but today.
+   */
+  namesDay?: boolean;
 }
 
 /** An add the server answered. */

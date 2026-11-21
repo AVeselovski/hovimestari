@@ -3,6 +3,7 @@
 import { portionName } from "@/components/entries/portionLabel";
 import { Icon } from "@/components/Icon";
 import {
+  backButton,
   btnSecondary,
   btnTextDanger,
   errorTextClass,
@@ -43,6 +44,11 @@ export interface FoodDetailHeaderProps {
   backRef?: Ref<HTMLButtonElement>;
   /** The name's language, for its hyphenation and its voice. */
   lang?: string;
+  /**
+   * A view with no star whose body does not show the name: the name takes
+   * the star's room and two lines, smaller, inside the row's same 44 px.
+   */
+  wide?: boolean;
 }
 
 /**
@@ -57,17 +63,13 @@ export function FoodDetailHeader({
   onBack,
   backRef,
   lang,
+  wide = false,
 }: FoodDetailHeaderProps): ReactElement {
   const t = useTranslations("foods.detail");
   return (
     <div className="pb-1">
       <div className="-mx-2 flex items-center gap-1">
-        <button
-          ref={backRef}
-          type="button"
-          onClick={onBack}
-          className={`inline-flex min-h-11 shrink-0 items-center gap-1 rounded-control px-2 text-base font-semibold text-ink hover:bg-surface-raised active:bg-surface-raised ${focusRing}`}
-        >
+        <button ref={backRef} type="button" onClick={onBack} className={backButton}>
           <Icon name="chevronLeft" className="size-5" strokeWidth={2} />
           {t("back")}
         </button>
@@ -75,14 +77,18 @@ export function FoodDetailHeader({
           lang={lang}
           aria-hidden="true"
           data-view-name=""
-          className="min-w-0 flex-1 truncate text-base text-ink-muted"
+          className={
+            wide
+              ? "mr-2 line-clamp-2 min-w-0 flex-1 text-sm leading-5 break-words text-ink-muted"
+              : "min-w-0 flex-1 truncate text-base text-ink-muted"
+          }
         >
           {name}
         </p>
         {favourite !== undefined && onToggleFavourite ? (
           <FavouriteButton on={favourite} onToggle={onToggleFavourite} />
         ) : (
-          <span aria-hidden="true" className="size-11 shrink-0" />
+          !wide && <span aria-hidden="true" className="size-11 shrink-0" />
         )}
       </div>
     </div>

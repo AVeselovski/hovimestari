@@ -1,6 +1,6 @@
 "use client";
 
-import { errorTextClass } from "@/components/ui/styles";
+import { errorTextClass, statusLineClass } from "@/components/ui/styles";
 import { useToday } from "@/hooks/useToday";
 import { dayLabel, formatDayShort } from "@/lib/localDate";
 import { useTranslations } from "next-intl";
@@ -65,7 +65,7 @@ export function StatusLine({ date, message }: { date: string; message: StatusMes
   const text = useStatusText(date);
   const tone = message === null ? "text-ink-muted" : message.tone === "failure" ? errorTextClass : "text-ink";
   return (
-    <p aria-live="polite" data-status-line="" className={`h-5 truncate text-sm leading-5 ${tone}`}>
+    <p aria-live="polite" data-status-line="" className={`${statusLineClass} ${tone}`}>
       {message?.text ?? text}
     </p>
   );

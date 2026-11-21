@@ -176,6 +176,8 @@ export function useEntryActions(shownDate: string | null): EntryActions {
           const gone = getErrorStatus(err) === 404;
           if (gone && options.goneIsDone) {
             void client.invalidateQueries({ queryKey: queryKeys.days() });
+            // The entry is gone, so a recipe's latest day may have moved.
+            void client.invalidateQueries({ queryKey: queryKeys.recipes() });
             return;
           }
           if (err instanceof OfflineError || unconfirmed(err)) {
@@ -393,6 +395,7 @@ export function useEntryActions(shownDate: string | null): EntryActions {
     apply,
     undo,
     oneTapFailed,
+    dayWord,
   });
 
   const { copy, readDaysAgain } = useCopyActions({ client, toast, t, ready, counted, apply, undo, dayWord });

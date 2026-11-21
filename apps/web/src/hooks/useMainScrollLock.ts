@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 /** The locks held right now, and what the first one found on `<main>`. */
 let holders = 0;
-let saved: { main: HTMLElement; overflow: string; scrollTop: number; follow: () => void } | null = null;
+let saved: { main: HTMLElement; overflow: string; scrollTop: number; path: string; follow: () => void } | null = null;
 
 /**
  * Holds `<main>` still while `active`: the app shell's one scroll container
@@ -34,6 +34,15 @@ let saved: { main: HTMLElement; overflow: string; scrollTop: number; follow: () 
  * Every overlay that uses it mounts inside the signed-in layout, whose
  * `<main>` persists. Navigating away unmounts the overlay (running the
  * cleanup) before a different `<main>` could exist.
+ *
+ * The `scrollTop` is put back only on the page the lock was taken on. A
+ * link inside a sheet, such as an entry's Open recipe, leaves for another
+ * page while the sheet is open. That page shows in the same `<main>` and
+ * sets its own scroll as it mounts, and the sheet unmounts, letting go,
+ * after that. By then the address is the new page's, so the lock gives back
+ * `overflow` alone and leaves the scroll to the page now showing. A change
+ * of the address's query under a sheet is the same page, and its scroll is
+ * put back.
  */
 export function useMainScrollLock(active: boolean): void {
   useEffect(() => {
@@ -45,6 +54,7 @@ export function useMainScrollLock(active: boolean): void {
         main,
         overflow: main.style.overflow,
         scrollTop: main.scrollTop,
+        path: window.location.pathname,
         follow: () => {
           held.scrollTop = main.scrollTop;
         },
@@ -59,7 +69,7 @@ export function useMainScrollLock(active: boolean): void {
       if (holders > 0 || !saved) return;
       saved.main.removeEventListener("scroll", saved.follow);
       saved.main.style.overflow = saved.overflow;
-      saved.main.scrollTop = saved.scrollTop;
+      if (window.location.pathname === saved.path) saved.main.scrollTop = saved.scrollTop;
       saved = null;
     };
   }, [active]);

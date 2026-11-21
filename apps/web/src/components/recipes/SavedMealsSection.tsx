@@ -2,6 +2,7 @@
 
 import { Icon } from "@/components/Icon";
 import { ArchivedMealsView } from "@/components/log/ArchivedMealsView";
+import { mealFilter } from "@/components/log/mealFilter";
 import { useMealFigures } from "@/components/log/SavedMealList";
 import { SavedMealRow } from "@/components/log/SavedMealRow";
 import { btnText, fieldHintClass, listLine, listLineFrame, sectionTitle } from "@/components/ui/styles";
@@ -18,7 +19,10 @@ import { useId, type ReactElement } from "react";
 // first open, each row with Restore. While the list loads it keeps one
 // line's room (`listLineFrame`), the height of the empty list, under the
 // heading. An empty list and a list that cannot be read each say so in a
-// line. Each row says what a press does (`rowDescription`).
+// line. Each row says what a press does (`rowDescription`). The Meals
+// segment's search narrows the active meals on the device, by every word in
+// a meal's name or source, and a search that matches none says so with
+// Clear search.
 // ---------------------------------------------------------------------------
 
 const PAGE_MEALS_LIST = "recipes-meals";
@@ -34,6 +38,10 @@ export interface SavedMealsSectionProps {
   held: boolean;
   /** What a row's press does, for assistive tech. */
   rowDescription: string;
+  /** The segment's search, as typed. */
+  query?: string;
+  /** Empties the segment's search. */
+  onClearQuery?: () => void;
 }
 
 export function SavedMealsSection({
@@ -44,14 +52,18 @@ export function SavedMealsSection({
   busyId,
   held,
   rowDescription,
+  query = "",
+  onClearQuery,
 }: SavedMealsSectionProps): ReactElement {
   const t = useTranslations("recipes");
+  const tMatch = useTranslations("recipes.noMatch");
   const tBrowse = useTranslations("log.browse");
   const figures = useMealFigures();
   const id = useId();
-  const query = useQuery(savedMealsQuery(false));
-  const meals = query.data?.meals;
-  const unavailable = meals === undefined && (query.isError || query.fetchStatus === "paused");
+  const read = useQuery(savedMealsQuery(false));
+  const meals = read.data?.meals;
+  const unavailable = meals === undefined && (read.isError || read.fetchStatus === "paused");
+  const shown = meals === undefined || query.trim() === "" ? meals : mealFilter(meals, query, null);
   return (
     <section aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className={`${sectionTitle} mb-1`}>
@@ -61,9 +73,16 @@ export function SavedMealsSection({
         <div className={listLineFrame}>{unavailable && <p className={fieldHintClass}>{t("mealsUnavailable")}</p>}</div>
       ) : meals.length === 0 ? (
         <p className={listLine}>{tBrowse("savedMealsEmpty")}</p>
+      ) : shown!.length === 0 ? (
+        <div className="flex flex-col items-start gap-1 py-3">
+          <p className="text-base text-ink">{tMatch("meals")}</p>
+          <button type="button" onClick={onClearQuery} className={btnText}>
+            {tMatch("clear")}
+          </button>
+        </div>
       ) : (
         <ul data-list={PAGE_MEALS_LIST}>
-          {meals.map((meal) => (
+          {shown!.map((meal) => (
             <SavedMealRow
               key={meal.id}
               meal={meal}

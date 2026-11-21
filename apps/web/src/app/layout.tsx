@@ -1,6 +1,7 @@
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { APP_NAME } from "@/lib/appName";
 import { NO_FLASH_SCRIPT, THEME_COLORS } from "@/lib/theme/noFlashScript";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
@@ -26,8 +27,6 @@ const jetbrainsMono = localFont({
   weight: "100 800",
   display: "swap",
 });
-
-const APP_NAME = "Hovimestari";
 
 export const metadata: Metadata = {
   title: { default: APP_NAME, template: `%s · ${APP_NAME}` },

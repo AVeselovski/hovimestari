@@ -3,9 +3,8 @@
 import { AmountField } from "@/components/entries/AmountField";
 import { CountField } from "@/components/entries/CountField";
 import { StateChoice } from "@/components/entries/StateChoice";
-import { MacroFigures } from "@/components/figures/MacroFigures";
-import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
+import { AmountFigures } from "./AmountFigures";
 import type { LogForm } from "./useLogForm";
 
 // ---------------------------------------------------------------------------
@@ -17,12 +16,12 @@ import type { LogForm } from "./useLogForm";
 // Log, so the block keeps no room of its own for it.
 //
 // Sized for the first screen of a phone with the keyboard closed: the field's
-// label sits beside it, and the figures are one row of four.
+// label sits beside it, and the figures are one row of four. The amount
+// (`AmountField`) and its figures (`AmountFigures`) are the parts the
+// ingredient picker shares, without Eaten or planned.
 // ---------------------------------------------------------------------------
 
 export function LogBlock({ form, autoFocus }: { form: LogForm; autoFocus: boolean }): ReactElement {
-  const tAmount = useTranslations("entries.amount");
-  const caption = form.preview !== null ? tAmount("forAmount") : form.empty ? tAmount("enterAmount") : null;
   return (
     <form
       id={form.formId}
@@ -57,12 +56,7 @@ export function LogBlock({ form, autoFocus }: { form: LogForm; autoFocus: boolea
           layout="beside"
         />
       )}
-      <div data-log-figures="">
-        <p aria-live="polite" className="mb-1 min-h-5 text-sm text-ink-muted">
-          {caption}
-        </p>
-        <MacroFigures figures={form.preview} energyWord="calories" layout="row" />
-      </div>
+      <AmountFigures preview={form.preview} empty={form.empty} />
       <StateChoice id={`${form.formId}-state`} value={form.status} onChange={form.setStatus} future={form.future} />
     </form>
   );
