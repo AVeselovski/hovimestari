@@ -169,11 +169,19 @@ export const distinctLineIds = (lines: { id?: string }[]): boolean => {
   return new Set(ids).size === ids.length;
 };
 
+/**
+ * What makes a tag the tag it is: its lower case. "Brunch" and "brunch" are
+ * one tag. An accent makes another letter, so "Häät" and "Haat" are two.
+ * Every comparison of two tags as tags uses this, on the server and on
+ * screen. A search is looser, and folds accents too (`fold`).
+ */
+export const tagKey = (tag: string): string => tag.toLowerCase();
+
 /** Tags once each, compared without case: the first spelling stays. */
 const distinctTags = (tags: string[]) => {
   const seen = new Set<string>();
   return tags.filter((tag) => {
-    const key = tag.toLowerCase();
+    const key = tagKey(tag);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

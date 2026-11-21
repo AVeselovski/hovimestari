@@ -19,7 +19,7 @@ export const listRecipesTool = defineTool({
   inputSchema: z.strictObject({
     archived: archived.describe("true lists the archived recipes instead of the active ones."),
     q: q.describe("Words that must each be in the recipe's name or one of its tags, case and accents ignored."),
-    tags: tags.describe("Recipes with every one of these tags."),
+    tags: tags.describe("Recipes with every one of these tags, case ignored and accents kept."),
     minProteinG: minProteinG.describe("At least this much protein in one serving, as shown."),
     maxProteinG: maxProteinG.describe("At most this much protein in one serving, as shown."),
     minEnergyKcal: minEnergyKcal.describe("At least this many kcal in one serving, as shown."),

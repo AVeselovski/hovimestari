@@ -87,6 +87,8 @@ async function attach(tx: Tx, ctx: WriteContext, cookId: string, recipeId: strin
     .orderBy(asc(entries.id))
     .for("no key update");
   const fits = (e: (typeof locked)[number]) => e.kind === "recipe" && e.recipeId === recipeId && e.cookId === null;
+  // One refusal for an id that does not exist, another user's entry and an entry that does not fit, on purpose:
+  // telling them apart would say whether an id exists.
   if (locked.length !== ids.length || !locked.every(fits)) throw appError("cook_entry_invalid", 400);
   const statusOf = new Map(body.attachStatus.map((s) => [s.id.toLowerCase(), s.status]));
   for (const row of locked) {
