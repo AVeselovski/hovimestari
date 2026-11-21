@@ -46,6 +46,14 @@ describe("filterRecipes", () => {
     expect(names(filterRecipes(all, { archived: true }))).toEqual(["Vanha keitto"]);
   });
 
+  it("asks for a tag as a tag is kept: an accent makes another tag, though a typed word finds both", () => {
+    const haat = recipe("Kakku", { tags: ["Haat"] });
+    const haeaet = recipe("Juhlakeitto", { tags: ["Häät"] });
+    expect(names(filterRecipes([haat, haeaet], { ...active, tags: ["Häät"] }))).toEqual(["Juhlakeitto"]);
+    expect(names(filterRecipes([haat, haeaet], { ...active, tags: ["haat"] }))).toEqual(["Kakku"]);
+    expect(names(filterRecipes([haat, haeaet], { ...active, q: "haat" }))).toEqual(["Kakku", "Juhlakeitto"]);
+  });
+
   it("keeps a recipe with all the tags asked for, without case", () => {
     expect(names(filterRecipes(all, { ...active, tags: ["brunch"] }))).toEqual(["Shakshuka", "Lohikeitto"]);
     expect(names(filterRecipes(all, { ...active, tags: ["Brunch", "Quick"] }))).toEqual(["Shakshuka"]);

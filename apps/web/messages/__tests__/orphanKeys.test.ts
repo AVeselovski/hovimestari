@@ -34,6 +34,14 @@ const DYNAMIC_KEY_NAMESPACES = [
   // components/foods/FoodDetail.tsx: t(portion.unit) in usePortionLabel,
   // where the key is a FineliPortionUnit. tsc checks every unit has a line.
   "foods.portionUnits",
+  // components/recipes/RecipesTab.tsx: tSegments(key) and tSearch(segment),
+  // where the key is a Segment from the same file.
+  "recipes.segments",
+  "recipes.search",
+  // components/recipes/lineAmount.ts and WrittenFields.tsx: t(unit) and
+  // tUnits(unit), where the unit is one of INGREDIENT_UNITS.
+  "recipes.units",
+  "recipes.unitNames",
 ];
 
 type MessageTree = { readonly [key: string]: string | MessageTree };

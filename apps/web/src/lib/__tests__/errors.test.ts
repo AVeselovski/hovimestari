@@ -1,5 +1,5 @@
 import { AxiosError, CanceledError, type AxiosResponse } from "axios";
-import { AuthRequestError, getErrorCode, getErrorStatus, getErrorValues } from "../errors";
+import { AuthRequestError, getErrorCode, getErrorLine, getErrorStatus, getErrorValues } from "../errors";
 
 function answered(status: number, data: unknown): AxiosError {
   return new AxiosError("failed", "ERR_BAD_REQUEST", undefined, undefined, { status, data } as AxiosResponse);
@@ -46,5 +46,19 @@ describe("getErrorValues", () => {
     expect(getErrorValues(answered(404, { code: "recipe_not_found" }))).toEqual({});
     expect(getErrorValues(answered(400, { details: "text" }))).toEqual({});
     expect(getErrorValues(new TypeError("Failed to fetch"))).toEqual({});
+  });
+});
+
+describe("getErrorLine", () => {
+  it("reads the line a refusal names, by its index from 0", () => {
+    expect(getErrorLine(answered(404, { code: "food_not_found", line: 2 }))).toBe(2);
+    expect(getErrorLine(answered(400, { code: "portion_not_found", line: 0 }))).toBe(0);
+  });
+
+  it("is undefined without a line, with a line that is no index, and for an error that is not an answer", () => {
+    expect(getErrorLine(answered(400, { code: "name_required" }))).toBeUndefined();
+    expect(getErrorLine(answered(400, { code: "food_not_found", line: "2" }))).toBeUndefined();
+    expect(getErrorLine(answered(400, { code: "food_not_found", line: -1 }))).toBeUndefined();
+    expect(getErrorLine(new TypeError("Failed to fetch"))).toBeUndefined();
   });
 });

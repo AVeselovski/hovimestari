@@ -36,6 +36,7 @@ import {
   type Entry,
   type EntryPatchBody,
   type EntryStatus,
+  type Figures,
   type FoodSummary,
   type RecentItem,
   type SaveAndLogBody,
@@ -59,8 +60,9 @@ import { RANGES, TODAY, dayOf } from "./support";
 // answers replayed with no entry, eaten on a future date is refused, and a
 // new entry takes the food's per-100 g values or the meal's figures as its
 // basis, at the end of its day. An estimate's basis is its typed figures.
-// It holds no recipes, so a recipe add answers `recipe_not_found`, and a
-// recipe entry a test starts with changes its servings over its own basis.
+// A recipe add takes the recipe's basis from `recipes`, which a test fills
+// (a recipe it does not hold answers `recipe_not_found`), and a recipe entry
+// a test starts with changes its servings over its own basis.
 //
 // The saved meal routes follow apps/backend/src/services/writes/savedMeals.ts:
 // a create with an id of the user's answers that meal again unchanged, and an
@@ -91,6 +93,8 @@ export class FakeDays {
   /** The foods and saved meals an add can name, by id. */
   foods = new Map<string, FoodSummary>();
   meals = new Map<string, SavedMeal>();
+  /** The recipes an add can take, by id: a recipe's name, its basis per serving and whether it is archived. */
+  recipes = new Map<string, { name: string; basis: Figures; archived: boolean }>();
   /** What `GET /log/recents` answers. */
   recents: RecentItem[] = [];
   /** Saved meal ids another account holds. */
@@ -237,8 +241,22 @@ export class FakeDays {
         figures: entryFigures(meal.figures, { per: "meal", count: body.count }),
       };
     } else if (body.kind === "recipe") {
-      // The harness holds no recipes: the screen cannot add one yet.
-      throw refused(404, "recipe_not_found");
+      const recipe = this.recipes.get(body.recipeId);
+      if (!recipe) throw refused(404, "recipe_not_found");
+      entry = {
+        ...base,
+        kind: "recipe",
+        name: recipe.name,
+        food: null,
+        savedMeal: null,
+        grams: null,
+        portion: null,
+        count: null,
+        servings: body.servings,
+        recipe: { id: body.recipeId, archived: recipe.archived, deleted: false },
+        basis: recipe.basis,
+        figures: entryFigures(recipe.basis, { per: "serving", count: body.servings }),
+      };
     } else {
       entry = {
         ...base,

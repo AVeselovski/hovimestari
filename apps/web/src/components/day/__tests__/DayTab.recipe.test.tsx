@@ -7,6 +7,7 @@ import { copyEntries, patchEntry, removeEntry, restoreEntry, setEntriesStatus } 
 import { getFood } from "@/lib/api/foods";
 import { getTargets } from "@/lib/api/targets";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
+import { readDayPlace } from "@/lib/recipeNav";
 import type { Entry } from "@hovimestari/types";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { FakeDays, liveToast, renderDay, rowNames, rowOf, serve } from "./harness";
@@ -284,5 +285,64 @@ describe("DayTab, a recipe entry", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Save" }));
     await waitFor(() => expect(rowShows("Shakshuka")[0]).toBe("1 serving"));
     expect(shakshukaOf(server)!.servings).toBe(1);
+  });
+});
+
+describe("DayTab, back from a recipe an entry opened", () => {
+  const start0 = window.location.pathname + window.location.search;
+  let main: HTMLElement;
+  let scrolledTo: number[];
+  beforeEach(() => {
+    main = document.createElement("main");
+    document.body.append(main);
+    scrolledTo = [];
+    main.scrollTo = ((options: ScrollToOptions) => scrolledTo.push(options.top ?? 0)) as typeof main.scrollTo;
+    // The day's own history entry, with nothing on it.
+    window.history.pushState(null, "", "/");
+  });
+  afterEach(() => {
+    main.remove();
+    window.history.replaceState(null, "", start0);
+  });
+
+  /** The day scrolled, the shakshuka's sheet opened and Open recipe pressed. The link is not followed. */
+  async function leaveForRecipe(): Promise<ReturnType<typeof renderDay>> {
+    serve(new FakeDays(today()));
+    const view = renderDay();
+    await screen.findByText("Shakshuka");
+    main.scrollTop = 224;
+    const sheet = await openSheet("Shakshuka");
+    const open = within(sheet).getByRole("link", { name: "Open recipe" });
+    open.addEventListener("click", (e) => e.preventDefault(), { once: true });
+    fireEvent.click(open);
+    view.unmount();
+    // The recipe's page, as the router opens it: a new history entry.
+    window.history.pushState(null, "", "/recipes/one");
+    return view;
+  }
+  async function goBack(): Promise<void> {
+    const moved = new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+    window.history.back();
+    await moved;
+  }
+
+  it("shows the day where it was scrolled, with focus on that entry's row", async () => {
+    const view = await leaveForRecipe();
+    await goBack();
+    renderDay(view.client);
+    await screen.findByText("Shakshuka");
+    expect(scrolledTo).toEqual([224]);
+    expect(mainButton("Shakshuka")).toHaveFocus();
+    // Once: the day shown again on the same entry, as after a reload, stays where it is.
+    expect(readDayPlace()).toBeNull();
+  });
+
+  it("opens the day as any other time when it is reached by the tab bar after the recipe", async () => {
+    const view = await leaveForRecipe();
+    window.history.pushState(null, "", "/");
+    renderDay(view.client);
+    await screen.findByText("Shakshuka");
+    expect(scrolledTo).toEqual([]);
+    expect(mainButton("Shakshuka")).not.toHaveFocus();
   });
 });

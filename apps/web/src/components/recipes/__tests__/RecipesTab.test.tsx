@@ -12,6 +12,7 @@ import { getDay } from "@/lib/api/days";
 import { addEntry } from "@/lib/api/entries";
 import { deleteFood, getFood, getOwnFoods, updateFood } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
+import { getRecipes as getRecipesApi } from "@/lib/api/recipes";
 import {
   createSavedMeal,
   deleteSavedMeal,
@@ -22,10 +23,13 @@ import {
 } from "@/lib/api/savedMeals";
 import { STALE } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
+import { readListPlace, setFocusAfterDelete, takeOpenedInApp } from "@/lib/recipeNav";
 import type { SavedMeal } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import messages from "../../../../messages/en.json";
 import { RecipesTab } from "../RecipesTab";
+import { recipeOf, shakshuka } from "./recipeFixtures";
+import { FakeRecipes, serveRecipes } from "./recipeServer";
 import {
   foodStore,
   pinClock,
@@ -72,10 +76,22 @@ jest.mock("@/lib/api/foods", () => ({
   updateFood: jest.fn(),
   deleteFood: jest.fn(),
 }));
+// The address the tab reads its segment from, set by each describe below.
+const mockSearch = { params: new URLSearchParams() };
+const mockRouter = { replace: jest.fn(), push: jest.fn() };
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => mockRouter,
+  useSearchParams: () => mockSearch.params,
   usePathname: () => "/recipes",
+}));
+jest.mock("@/lib/api/recipes", () => ({
+  getRecipes: jest.fn(),
+  getRecipe: jest.fn(),
+  createRecipe: jest.fn(),
+  updateRecipe: jest.fn(),
+  setRecipeArchived: jest.fn(),
+  setRecipeFavourite: jest.fn(),
+  deleteRecipe: jest.fn(),
 }));
 
 const MOCKS = [
@@ -99,7 +115,12 @@ let soup: SavedMeal;
 let server: ReturnType<typeof serveMeals>;
 let clock: jest.SpyInstance;
 
+let recipeServer: FakeRecipes;
 beforeEach(() => {
+  mockSearch.params = new URLSearchParams();
+  mockRouter.replace.mockReset();
+  mockRouter.push.mockReset();
+  recipeServer = serveRecipes(new FakeRecipes());
   clock = pinClock();
   jest.mocked(useAuth).mockReturnValue(fakeAuth("authenticated"));
   for (const fn of MOCKS) jest.mocked(fn).mockReset();
@@ -115,6 +136,11 @@ afterEach(() => clock.mockRestore());
 jest.setTimeout(15_000);
 
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
+/** Chooses a segment, as a press on it does. Read from the DOM, so it also reaches the page behind an open sheet. */
+const show = (name: "Recipes" | "Meals" | "Foods") =>
+  fireEvent.click([...document.querySelectorAll<HTMLElement>('[role="tab"]')].find((tab) => tab.textContent === name)!);
+/** The segment's one action, in the same place in every segment. */
+const action = () => document.querySelector<HTMLElement>("[data-recipes-action]")!;
 const mealRow = (name: string) =>
   document.querySelector<HTMLElement>(`[data-list="recipes-meals"] [data-meal-row="${byName(name).id}"]`);
 const archivedRow = (name: string) =>
@@ -152,73 +178,458 @@ async function openMeal(name: string): Promise<HTMLElement> {
 }
 
 describe("The Recipes tab's states", () => {
-  it("shows a new user what goes here, and both actions, with nothing else on the page", async () => {
+  it("shows a new user what goes in each segment, with its own action, and nothing else on the page", async () => {
     serveFoods([]);
     serveMeals([]);
     renderRecipes();
+    const panel = () => screen.getByRole("tabpanel");
+    expect(await screen.findByText("Recipes you save appear here.")).toBeInTheDocument();
+    expect(action()).toHaveTextContent("New recipe");
+    expect(screen.getByRole("tab", { name: "Recipes" })).toHaveAttribute("aria-selected", "true");
+    show("Meals");
     expect(await screen.findByText("Meals you save appear here.")).toBeInTheDocument();
+    expect(panel().textContent).toBe("New saved mealSearch mealsSaved mealsMeals you save appear here.Archived meals");
+    show("Foods");
     expect(await screen.findByText("Foods you add appear here.")).toBeInTheDocument();
-    expect(button("New saved meal")).toBeInTheDocument();
-    expect(button("Add a food")).toBeInTheDocument();
-    const main = document.querySelector("[data-recipes-actions]")!.parentElement!;
-    expect(main.textContent).toBe(
-      "New saved mealAdd a foodSaved mealsMeals you save appear here.Archived mealsYour foodsFoods you add appear here.",
-    );
+    expect(panel().textContent).toBe("Add a foodSearch your foodsYour foodsFoods you add appear here.");
+  });
+
+  it("opens on the segment the address names", async () => {
+    mockSearch.params = new URLSearchParams("show=foods");
+    renderRecipes();
+    expect(screen.getByRole("tab", { name: "Foods" })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("Protein shake")).toBeInTheDocument();
+    expect(action()).toHaveTextContent("Add a food");
   });
 
   it("says each list shows once the server can be reached, when it cannot be read", async () => {
     jest.mocked(getSavedMeals).mockRejectedValue(refusal(500, "internal"));
     jest.mocked(getOwnFoods).mockRejectedValue(refusal(500, "internal"));
     renderRecipes();
+    show("Meals");
     expect(
       await screen.findByText("Your saved meals show here once Hovimestari can reach the server."),
     ).toBeInTheDocument();
+    show("Foods");
     expect(await screen.findByText("Your foods show here once Hovimestari can reach the server.")).toBeInTheDocument();
   });
 
   it("lists the meals with source and figures, and the own foods by name with no Yours mark", async () => {
     serveFoods(["Rye bread", "Protein shake"], { isFavourite: true });
     renderRecipes();
+    show("Meals");
     await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Chicken bowl", "Salmon soup"]));
     expect(mealRow("Chicken bowl")).toHaveTextContent("Chicken bowlWolt640 kcal · 42.0 g protein per meal");
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake", "Rye bread"]));
-    expect(section("Your foods")).not.toHaveTextContent("Yours");
-    expect(within(section("Your foods")).getAllByText("Favourite")).toHaveLength(2);
-    // Each row says what a press does, the archived ones too.
-    for (const row of [mealRow("Chicken bowl"), foodRow("Rye bread")]) {
-      expect(row).toHaveAttribute("aria-description", "Opens it to edit.");
-    }
+    expect(mealRow("Chicken bowl")).toHaveAttribute("aria-description", "Opens it to edit.");
     server.meals.set(soup.id, { ...soup, archived: true });
     fireEvent.click(button("Archived meals"));
     await waitFor(() => expect(archivedRow("Salmon soup")).not.toBeNull());
     expect(archivedRow("Salmon soup")).toHaveAttribute("aria-description", "Opens it to edit.");
+    show("Foods");
+    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake", "Rye bread"]));
+    expect(section("Your foods")).not.toHaveTextContent("Yours");
+    expect(within(section("Your foods")).getAllByText("Favourite")).toHaveLength(2);
+    expect(foodRow("Rye bread")).toHaveAttribute("aria-description", "Opens it to edit.");
   });
 
-  it("keeps the action row as the page's first element, the same one, with 0, 2 and 40 meals and the archived list open or shut", async () => {
+  it("keeps the segments, the action and the search field the same elements across segments and lists of any length", async () => {
     serveMeals([]);
     const { client } = renderRecipes();
+    await screen.findByText("Recipes you save appear here.");
+    const segments = document.querySelector("[data-recipes-segments]")!;
+    const first = action();
+    const page = segments.parentElement!;
+    expect(page.firstElementChild).toBe(segments);
+    show("Meals");
     await screen.findByText("Meals you save appear here.");
-    const actions = document.querySelector("[data-recipes-actions]")!;
-    const first = () => actions.parentElement!.firstElementChild;
-    expect(first()).toBe(actions);
-    server = serveMeals([bowl, soup]);
-    await act(() => client.invalidateQueries());
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
-    expect(document.querySelector("[data-recipes-actions]")).toBe(actions);
-    expect(first()).toBe(actions);
-    serveMeals(Array.from({ length: 40 }, (_, i) => savedMeal(`Meal ${String(i).padStart(2, "0")}`, null)));
+    expect(action()).toBe(first);
+    server = serveMeals(Array.from({ length: 40 }, (_, i) => savedMeal(`Meal ${String(i).padStart(2, "0")}`, null)));
     await act(() => client.invalidateQueries());
     await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(40));
     fireEvent.click(button("Archived meals"));
     await screen.findByText("Meals you archive appear here.");
-    expect(document.querySelector("[data-recipes-actions]")).toBe(actions);
-    expect(first()).toBe(actions);
-    fireEvent.click(button("Archived meals"));
-    expect(document.querySelector("[data-recipes-actions]")).toBe(actions);
+    show("Foods");
+    expect(action()).toBe(first);
+    expect(page.firstElementChild).toBe(segments);
+    expect(document.querySelector("[data-recipes-segments]")).toBe(segments);
+  });
+
+  it("filters the meals and the foods by every word typed, and clears the search from a line that says none match", async () => {
+    serveFoods(["Rye bread", "Protein shake", "Rye crisp"]);
+    renderRecipes();
+    show("Meals");
+    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
+    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "wolt chick" } });
+    expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Chicken bowl"]);
+    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "pizza" } });
+    expect(screen.getByText("No meal matches.")).toBeInTheDocument();
+    fireEvent.click(button("Clear search"));
+    expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2);
+    show("Foods");
+    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toHaveLength(3));
+    // Each segment keeps its own search.
+    expect((screen.getByLabelText("Search your foods") as HTMLInputElement).value).toBe("");
+    fireEvent.change(screen.getByLabelText("Search your foods"), { target: { value: "rye" } });
+    expect(rowNames("Your foods", "recipes-foods")).toEqual(["Rye bread", "Rye crisp"]);
+  });
+});
+
+describe("Recipes on the Recipes tab", () => {
+  const recipeNames = () =>
+    [...document.querySelectorAll('[data-list="recipes"] [data-recipe-row]')].map(
+      (row) => row.querySelector(".line-clamp-2")!.textContent,
+    );
+
+  function hold(): void {
+    recipeServer.add(shakshuka({ tags: ["Brunch", "Weekend"], timeMinutes: 25, favourite: true }));
+    recipeServer.add(recipeOf("Äitin lihapullat", 4, [{ name: "Jauheliha" }], { tags: ["Dinner"] }));
+    recipeServer.add(recipeOf("Puuro", 1, [{ name: "Kaurahiutale" }], { tags: ["Breakfast"] }));
+    recipeServer.add(recipeOf("Zucchini soup", 2, [{ name: "Water" }], { tags: ["dinner"] }));
+    recipeServer.add(recipeOf("Kesäkeitto", 4, [{ name: "Water" }], { archived: true }));
+  }
+
+  it("lists the recipes by name in Finnish order, each a link to its page with its servings and figures per serving", async () => {
+    hold();
+    renderRecipes();
+    await waitFor(() => expect(recipeNames()).toEqual(["Puuro", "Shakshuka", "Zucchini soup", "Äitin lihapullat"]));
+    const row = document.querySelector<HTMLAnchorElement>(
+      `[data-recipe-row="${[...recipeServer.recipes.values()].find((r) => r.name === "Shakshuka")!.id}"]`,
+    )!;
+    expect(row.getAttribute("href")).toMatch(/^\/recipes\/[0-9a-f-]+$/);
+    // Read aloud once in full. On screen, "per serving" shows from md only, so a phone's row keeps one line of figures.
+    expect(row.textContent!.replace(/[\u00a0\u2002]/g, " ")).toBe(
+      "ShakshukaServes 2 · 25 min365 kcal · 21.8 g protein per serving365 kcal21.8 g protein per servingFavourite",
+    );
+    const figures = row.querySelector("[data-recipe-figures-line]")!;
+    expect(figures.className.split(/\s+/)).toContain("whitespace-nowrap");
+    expect(figures.className.split(/\s+/)).not.toContain("flex-wrap");
+  });
+
+  it("narrows the list by the words typed and by the chips, and clears both from the line that says none match", async () => {
+    hold();
+    renderRecipes();
+    await waitFor(() => expect(recipeNames()).toHaveLength(4));
+    const chips = screen.getByRole("group", { name: "Show only" });
+    // Each tag once whatever its case, in the spelling of the first recipe by name that has it, in Finnish order.
+    expect(
+      within(chips)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["Favourites", "Breakfast", "Brunch", "dinner", "Weekend"]);
+    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "shak" } });
+    expect(recipeNames()).toEqual(["Shakshuka"]);
+    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "" } });
+    fireEvent.click(within(chips).getByRole("button", { name: "dinner" }));
+    expect(recipeNames()).toEqual(["Zucchini soup", "Äitin lihapullat"]);
+    fireEvent.click(within(chips).getByRole("button", { name: "Favourites" }));
+    expect(within(chips).getByRole("button", { name: "Favourites" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("No recipe matches.")).toBeInTheDocument();
+    fireEvent.click(button("Clear search and filters"));
+    expect(recipeNames()).toHaveLength(4);
+    for (const chip of within(chips).getAllByRole("button")) expect(chip).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("gives two tags that differ by an accent a chip each, as the server keeps both on a recipe", async () => {
+    recipeServer.add(recipeOf("Kakku", 8, [{ name: "Water" }], { tags: ["Häät"] }));
+    recipeServer.add(recipeOf("Keitto", 2, [{ name: "Water" }], { tags: ["Haat", "häät"] }));
+    renderRecipes();
+    await waitFor(() => expect(recipeNames()).toHaveLength(2));
+    expect(
+      within(screen.getByRole("group", { name: "Show only" }))
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["Favourites", "Haat", "Häät"]);
+  });
+
+  it("keeps the chip row in place from the first frame, while the list loads", async () => {
+    hold();
+    jest.mocked(getRecipesApi).mockReturnValueOnce(new Promise(() => {}));
+    renderRecipes();
+    const chips = screen.getByRole("group", { name: "Show only" });
+    expect(
+      within(chips)
+        .getAllByRole("button")
+        .map((b) => b.textContent),
+    ).toEqual(["Favourites"]);
+    expect(recipeNames()).toEqual([]);
+  });
+
+  it("says when there are none, and when they cannot be read", async () => {
+    const { unmount } = renderRecipes();
+    expect(await screen.findByText("Recipes you save appear here.")).toBeInTheDocument();
+    unmount();
+    jest.mocked(getRecipesApi).mockRejectedValue(refusal(500, "internal"));
+    renderRecipes();
+    expect(
+      await screen.findByText("Your recipes show here once Hovimestari can reach the server."),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the archived recipes in place", async () => {
+    hold();
+    renderRecipes();
+    fireEvent.click(await screen.findByRole("button", { name: "Archived recipes" }));
+    const archived = await screen.findByRole("region", { name: "Archived recipes" });
+    await waitFor(() =>
+      expect(
+        within(archived)
+          .getAllByRole("link")
+          .map((l) => l.textContent),
+      ).toHaveLength(1),
+    );
+    expect(within(archived).getByRole("link")).toHaveTextContent(/^Kesäkeitto/);
+  });
+
+  it("puts focus in the search field after Clear search and filters, never on the page", async () => {
+    hold();
+    renderRecipes();
+    await waitFor(() => expect(recipeNames()).toHaveLength(4));
+    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "zzz" } });
+    const clear = button("Clear search and filters");
+    clear.focus();
+    fireEvent.click(clear);
+    expect(clear).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Search recipes")).toHaveFocus();
+    show("Meals");
+    await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
+    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "zzz" } });
+    fireEvent.click(button("Clear search"));
+    expect(screen.getByLabelText("Search meals")).toHaveFocus();
+  });
+
+  describe("back from a recipe's page", () => {
+    const idOf = (name: string) => [...recipeServer.recipes.values()].find((r) => r.name === name)!.id;
+    const rowOf = (name: string) => document.querySelector<HTMLElement>(`[data-recipe-row="${idOf(name)}"]`)!;
+    const chip = (name: string) =>
+      within(screen.getByRole("group", { name: "Show only" })).getByRole("button", { name });
+    const search = () => screen.getByLabelText("Search recipes") as HTMLInputElement;
+    const archivedToggle = () => screen.getByRole("button", { name: "Archived recipes" });
+    const start = window.location.pathname + window.location.search;
+    let main: HTMLElement;
+    let scrolledTo: number[];
+    beforeEach(() => {
+      main = document.createElement("main");
+      document.body.append(main);
+      scrolledTo = [];
+      main.scrollTo = ((options: ScrollToOptions) => scrolledTo.push(options.top ?? 0)) as typeof main.scrollTo;
+      // The list's own history entry, with nothing on it.
+      window.history.pushState(null, "", "/recipes");
+    });
+    afterEach(() => {
+      main.remove();
+      window.history.replaceState(null, "", start);
+    });
+
+    /** A plain press on a row. The row is a link: the press is kept, and the test does not follow it. */
+    function press(row: HTMLElement): void {
+      row.addEventListener("click", (e) => e.preventDefault(), { once: true });
+      fireEvent.click(row);
+    }
+    /** The recipe's page, as the router opens it: a new history entry. */
+    const openPage = (): void => window.history.pushState(null, "", "/recipes/one");
+    /** Back through the history, by the page's Back or the browser's own: the entry before shows again. */
+    async function goBack(): Promise<void> {
+      const moved = new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+      window.history.back();
+      await moved;
+    }
+
+    /** The list narrowed to one row by a chip and a search, the archived list open, scrolled, and that row pressed. */
+    async function leaveNarrowed(): Promise<ReturnType<typeof renderRecipes>> {
+      hold();
+      const first = renderRecipes();
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      fireEvent.click(chip("dinner"));
+      fireEvent.change(search(), { target: { value: "zu" } });
+      fireEvent.click(archivedToggle());
+      expect(recipeNames()).toEqual(["Zucchini soup"]);
+      main.scrollTop = 420;
+      press(rowOf("Zucchini soup"));
+      first.unmount();
+      openPage();
+      // What the first showing scrolled is not what is checked.
+      scrolledTo = [];
+      return first;
+    }
+
+    it("shows the list as the row left it: the search, the chips, the archived list and the scroll, with focus on that row", async () => {
+      const first = await leaveNarrowed();
+      await goBack();
+      renderRecipes(first.client);
+      // From the first frame the list is the one that was left, not the whole list narrowed after.
+      expect(search().value).toBe("zu");
+      expect(chip("dinner")).toHaveAttribute("aria-pressed", "true");
+      expect(chip("Favourites")).toHaveAttribute("aria-pressed", "false");
+      expect(archivedToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(recipeNames()).toEqual(["Zucchini soup"]);
+      expect(scrolledTo).toEqual([420]);
+      expect(rowOf("Zucchini soup")).toHaveFocus();
+    });
+
+    it("comes back to a row of the archived list with that list open and focus on the row", async () => {
+      hold();
+      const first = renderRecipes();
+      fireEvent.click(await screen.findByRole("button", { name: "Archived recipes" }));
+      await waitFor(() => expect(document.querySelector('[data-list="archived-recipes"] a')).not.toBeNull());
+      main.scrollTop = 900;
+      press(rowOf("Kesäkeitto"));
+      first.unmount();
+      openPage();
+      scrolledTo = [];
+      await goBack();
+      renderRecipes(first.client);
+      expect(archivedToggle()).toHaveAttribute("aria-expanded", "true");
+      expect(scrolledTo).toEqual([900]);
+      expect(rowOf("Kesäkeitto")).toHaveFocus();
+    });
+
+    it("opens the list fresh, at its top with no row focused, when it is reached by the tab bar after a recipe", async () => {
+      const first = await leaveNarrowed();
+      // The tab bar's Recipes: a new history entry.
+      window.history.pushState(null, "", "/recipes");
+      renderRecipes(first.client);
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      expect(search().value).toBe("");
+      expect(chip("dinner")).toHaveAttribute("aria-pressed", "false");
+      expect(archivedToggle()).toHaveAttribute("aria-expanded", "false");
+      // <main> keeps the scroll of the page before, so the list puts itself at its top.
+      expect(scrolledTo).toEqual([0]);
+      expect(rowOf("Zucchini soup")).not.toHaveFocus();
+    });
+
+    it("restores nothing after the recipe was left by the tab bar and the history moved since", async () => {
+      const first = await leaveNarrowed();
+      // The tab bar to Day, a way back through the history to the recipe, then the tab bar to Recipes.
+      window.history.pushState(null, "", "/");
+      await goBack();
+      window.history.pushState(null, "", "/recipes");
+      renderRecipes(first.client);
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      expect(search().value).toBe("");
+      expect(scrolledTo).toEqual([0]);
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it("serves one way back, and leaves the list alone while it is used after", async () => {
+      const first = await leaveNarrowed();
+      await goBack();
+      const back = renderRecipes(first.client);
+      expect(rowOf("Zucchini soup")).toHaveFocus();
+      // Another segment and back: the recipes' search is kept as on any visit, the chips start over, nothing scrolls.
+      show("Meals");
+      show("Recipes");
+      expect(search().value).toBe("zu");
+      expect(chip("dinner")).toHaveAttribute("aria-pressed", "false");
+      expect(scrolledTo).toEqual([420]);
+      // The same history entry shown again, as by a way forward and back, holds no place any more: the list is fresh.
+      back.unmount();
+      renderRecipes(first.client);
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      expect(search().value).toBe("");
+      expect(scrolledTo).toEqual([420, 0]);
+    });
+
+    it("keeps nothing for a press that opens the recipe in a new tab", async () => {
+      hold();
+      renderRecipes();
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      rowOf("Shakshuka").addEventListener("click", (e) => e.preventDefault());
+      fireEvent.click(rowOf("Shakshuka"), { ctrlKey: true });
+      expect(takeOpenedInApp()).toBe(false);
+      expect(readListPlace()).toBeNull();
+      fireEvent.click(rowOf("Shakshuka"));
+      expect(takeOpenedInApp()).toBe(true);
+      expect(readListPlace()).toMatchObject({ rowId: idOf("Shakshuka") });
+    });
+  });
+
+  describe("after a recipe is deleted on its page", () => {
+    const idOf = (name: string) => [...recipeServer.recipes.values()].find((r) => r.name === name)!.id;
+    const rowOf = (name: string) => document.querySelector<HTMLElement>(`[data-recipe-row="${idOf(name)}"]`);
+
+    it("puts focus on the row the delete named, once the list is on screen, and brings it into view", async () => {
+      hold();
+      // jsdom lays nothing out: what can be checked is that the list asks for the row in the middle of the page.
+      const main = document.body.appendChild(document.createElement("main"));
+      const toTop = jest.fn();
+      main.scrollTo = toTop;
+      const shown: { el: Element; block: unknown }[] = [];
+      const into = jest.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (
+        this: Element,
+        options,
+      ) {
+        shown.push({ el: this, block: typeof options === "object" ? options.block : options });
+      });
+      try {
+        setFocusAfterDelete(idOf("Shakshuka"));
+        renderRecipes();
+        await waitFor(() => expect(recipeNames()).toHaveLength(4));
+        expect(document.activeElement).toBe(rowOf("Shakshuka"));
+        expect(shown).toEqual([{ el: rowOf("Shakshuka"), block: "center" }]);
+        // The row is where the page goes, not its top.
+        expect(toTop).not.toHaveBeenCalled();
+      } finally {
+        into.mockRestore();
+        main.remove();
+      }
+    });
+
+    it("puts focus on the row when the list was not in the cache and is read after the page shows", async () => {
+      hold();
+      const read = deferred<{ recipes: [] }>();
+      jest.mocked(getRecipesApi).mockImplementationOnce(() => read.promise);
+      setFocusAfterDelete(idOf("Puuro"));
+      renderRecipes();
+      expect(recipeNames()).toEqual([]);
+      await act(async () => read.resolve(recipeServer.list(false) as never));
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      expect(document.activeElement).toBe(rowOf("Puuro"));
+    });
+
+    it("puts focus on New recipe after the last recipe is deleted", async () => {
+      setFocusAfterDelete("new");
+      renderRecipes();
+      expect(await screen.findByText("Recipes you save appear here.")).toBeInTheDocument();
+      expect(document.activeElement).toBe(action());
+      expect(action()).toHaveTextContent("New recipe");
+    });
+
+    it("puts focus on New recipe after an archived recipe is deleted, whose next row is in the closed archived list", async () => {
+      hold();
+      recipeServer.add(recipeOf("Talvikeitto", 4, [{ name: "Water" }], { archived: true }));
+      // The page named the next archived row, which is not on screen: the archived list is closed.
+      setFocusAfterDelete(idOf("Talvikeitto"));
+      renderRecipes();
+      await waitFor(() => expect(recipeNames()).toHaveLength(4));
+      expect(document.activeElement).toBe(action());
+    });
+  });
+
+  it("opens the editor from New recipe, and a saved recipe opens its page", async () => {
+    renderRecipes();
+    fireEvent.click(await screen.findByRole("button", { name: "New recipe" }));
+    const editor = await screen.findByRole("dialog", { name: "New recipe" });
+    fireEvent.change(within(editor).getByLabelText("Name", { selector: "input" }), { target: { value: "Water soup" } });
+    fireEvent.click(within(editor).getByRole("button", { name: "Add a line not counted" }));
+    const plain = await screen.findByRole("dialog", { name: "Line not counted" });
+    fireEvent.change(within(plain).getByLabelText("Name", { selector: "input" }), { target: { value: "Water" } });
+    fireEvent.click(within(plain).getByRole("button", { name: "Add" }));
+    await waitFor(() => expect(openSheet("Line not counted")).toBeNull());
+    fireEvent.click(within(editor).getByRole("button", { name: "Save recipe" }));
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledTimes(1));
+    const [created] = recipeServer.created;
+    expect(mockRouter.push).toHaveBeenCalledWith(`/recipes/${created.id}`);
+    expect(created.lines).toEqual([
+      { counted: false, id: expect.any(String), name: "Water", written: null, note: null },
+    ]);
   });
 });
 
 describe("Saved meals on the Recipes tab", () => {
+  beforeEach(() => {
+    mockSearch.params = new URLSearchParams("show=meals");
+  });
+
   it("saves a new meal without logging it: no Eaten or planned, Save meal sends POST /saved-meals only", async () => {
     renderRecipes();
     await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
@@ -422,6 +833,10 @@ describe("Saved meals on the Recipes tab", () => {
 });
 
 describe("Own foods on the Recipes tab", () => {
+  beforeEach(() => {
+    mockSearch.params = new URLSearchParams("show=foods");
+  });
+
   it("opens a food's edit sheet from its row, saves a rename that moves the row, and returns focus to it", async () => {
     renderRecipes();
     await waitFor(() => expect(foodRow("Rye bread")).not.toBeNull());
@@ -442,7 +857,7 @@ describe("Own foods on the Recipes tab", () => {
     try {
       for (const [name, then] of [
         ["Protein shake", () => foodRow("Rye bread")],
-        ["Rye bread", () => document.querySelector<HTMLElement>("[data-recipes-actions] button:last-child")!],
+        ["Rye bread", () => action()],
       ] as const) {
         fireEvent.click(foodRow(name)!);
         const sheet = await screen.findByRole("dialog", { name: "Edit food" });
@@ -486,15 +901,17 @@ describe("Own foods on the Recipes tab", () => {
     async (_name, title, other) => {
       renderRecipes();
       await waitFor(() => expect(foodRow("Rye bread")).not.toBeNull());
-      await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
       const read = holdFoodRead();
       fireEvent.click(foodRow("Rye bread")!);
       // The row shows the read on screen: pressed, with the busy ring in the star's place.
       expect(foodRow("Rye bread")).toHaveAttribute("aria-busy", "true");
       expect(foodRow("Rye bread")!.querySelector("[data-row-busy]")).not.toBeNull();
       expect(openSheetTitles()).toEqual([]);
+      show("Meals");
+      await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
       fireEvent.click(other());
       await waitFor(() => expect(openSheetTitles()).toEqual([title]));
+      show("Foods");
       expect(foodRow("Rye bread")).not.toHaveAttribute("aria-busy");
       await act(async () => read.release());
       await act(async () => {});
@@ -582,14 +999,16 @@ describe("Own foods on the Recipes tab", () => {
   it("drops a food found gone from the list even when its read answers after another open, without a toast", async () => {
     renderRecipes();
     await waitFor(() => expect(foodRow("Rye bread")).not.toBeNull());
-    await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
     const row = foodRow("Rye bread")!;
     foodStore.delete(row.getAttribute("data-food-row")!);
     const read = holdFoodRead();
     fireEvent.click(row);
+    show("Meals");
+    await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
     fireEvent.click(mealRow("Chicken bowl")!);
     await waitFor(() => expect(openSheet("Edit saved meal")).not.toBeNull());
     await act(async () => read.release());
+    show("Foods");
     await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake"]));
     expect(openSheet("Edit saved meal")).not.toBeNull();
     expect(toasts().map((t) => t.textContent)).not.toContain("This food is no longer available.");
