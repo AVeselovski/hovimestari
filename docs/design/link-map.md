@@ -170,6 +170,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | recipe basis, the recipe figure computation         | `features/recipes.md#the-figures-in-code`        | `### The figures in code`        |
 | a recipe save's locks, a refused line               | `features/recipes.md#saving-a-recipe`            | `### Saving a recipe`            |
 | reading a recipe entry's basis, the hide on delete  | `features/recipes.md#recipe-entries-in-code`     | `### Recipe entries in code`     |
+| cook, logging as made, attaching, differs, a batch  | `features/recipes.md#logging-as-made`            | `### Logging as made`            |
+| a cook's locks, the orphan purge, the differs query | `features/recipes.md#cooks-in-code`              | `### Cooks in code`              |
 
 ## Connected AI
 

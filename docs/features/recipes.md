@@ -2,7 +2,7 @@
 
 A recipe is a dish a person cooks again and again, written once with its servings, its ingredients and its method. The app computes its figures from the foods its ingredients point at, so a person never types a recipe's totals.
 
-Recipes are kept and put on days through the API and by a connected assistant. They have no screen of their own yet.
+Recipes are kept and put on days through the API and by a connected assistant. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. Recipes have no screen of their own yet.
 
 ## In detail
 
@@ -38,7 +38,21 @@ A recipe can be read at another number of servings, from 1 to 100. Every line's 
 
 A recipe goes on a day as an entry of a number of servings, such as 1 or 1.5, planned or eaten like any [entry](days.md#a-day-and-its-entries). An archived recipe can still be put on a day. The entry takes one serving's figures as the recipe has them when it is added. One serving on a day shows exactly the recipe's per serving. N servings show one serving's figures times N, rounded once, so one entry of all its servings shows the whole recipe. Three entries of one serving each are rounded one by one: the shakshuka set to serve 3 shows 14.5 g of protein on each, 43.5 g in all, while its whole recipe is 43.6 g.
 
-Editing the recipe changes its planned entries dated today or later, and so does editing an own food on one of its lines. Eaten entries and every past day keep [the figures they were added with](days.md#figures-that-stay). Changing an entry's servings, moving it, marking it and copying it keep its figures too. These entries follow [the cap on one serving](#a-recipes-figures).
+Editing the recipe changes its planned entries dated today or later, and so does editing an own food on one of its lines. Eaten entries and every past day keep [the figures they were added with](days.md#figures-that-stay). Changing an entry's servings, moving it, marking it and copying it keep its figures too. These entries follow [the cap on one serving](#a-recipes-figures). An entry from a batch [logged as made](#logging-as-made) follows none of these edits.
+
+### Logging as made
+
+A batch that came out different from its recipe is logged as made: a **cook**. A cook belongs to one recipe and holds its own lines and the servings it gave, from 1 to 100. Its lines are recipe lines with the same rules. Each may name the recipe line it started as. A line the batch added names none, and a recipe line the batch left out has no line in it. The recipe itself does not change.
+
+A cook's figures are one serving of its lines, computed when it is logged, from its foods as they are then, with [the same rounding and cap](#a-recipes-figures) as a recipe. Every entry from a cook carries those figures, so all of them always show one serving alike. Editing the recipe, or an own food on one of its lines, changes none of them.
+
+Logging a batch feeds at least one entry, in one step. It attaches the person's plain entries of the recipe that came from the batch, such as the serving planned for Saturday and the leftover planned for Sunday, and each takes the batch's figures. It can mark an attached entry eaten at the same time. It can also put new servings of the batch on days. Nothing else on those days changes, and an attached entry on a past day changes only that entry. An entry to attach must be one of the person's recipe entries of this recipe and from no other batch, or the whole batch is refused. Servings can be added from a batch later too.
+
+A batch **differs** from its recipe when its servings, or any line's food, grams, written amount or name, differ from the recipe as the recipe is now, or when it added or left out a line. A changed note is no difference. Every entry from a batch says whether it differs. Editing the recipe to match the batch makes the difference go.
+
+A copy of an entry from a batch plans the recipe again, with the recipe's figures at the moment of the copy and no batch, since next week's dish is a new batch. This holds for a recipe deleted since too. A batch can be saved as a new recipe of its own under a new name: the batch's lines and servings, with its recipe's time, method, notes and tags. When an own food edited since takes one serving of a batch past the cap, the batch cannot be saved as a recipe, as no such recipe can be.
+
+A batch is kept while an entry, or an entry removed in the last ten minutes, comes from it. After that it is deleted with the next removal or restore. It never keeps its recipe: a recipe whose entries are all gone is deleted outright when the person deletes it, with its batches.
 
 ### Tags and favourites
 
@@ -62,9 +76,9 @@ Deleting a recipe deletes it with its lines and tags. A recipe that a day uses, 
 
 A recipe's figures follow its foods. When the person edits one of their own foods, or a Fineli import changes a food's values, the recipe shows the new figures the next time it is read. An edit of an own food also reaches [the recipe's planned entries](#a-recipe-on-a-day). A Fineli import changes no entry.
 
-An own food that a recipe line uses is hidden when the person deletes it, as an own food that days use is. The line keeps it and computes with its values, and the line's food is marked as deleted. A Fineli food the import retires, or a product taken down from Open Food Facts, stays on its lines and is marked as retired. A recipe with such a line says so.
+An own food that a recipe line or a batch's line uses is hidden when the person deletes it, as an own food that days use is. The line keeps it and computes with its values, and the line's food is marked as deleted. A Fineli food the import retires, or a product taken down from Open Food Facts, stays on its lines and is marked as retired. A recipe with such a line says so.
 
-A line already on a recipe keeps its food when the recipe is saved again, even when the food is hidden or retired since. A new line, or a line that swaps its food, needs a food the person can see now.
+A line already on a recipe keeps its food when the recipe is saved again, even when the food is hidden or retired since. A new line, or a line that swaps its food, needs a food the person can see now. A recipe saved from a batch copies the batch's lines, and each keeps its food the same way.
 
 ## How it works
 
@@ -88,9 +102,17 @@ An edit replaces the lines and the tags as sent. A line keeps its id across edit
 
 `readRecipeForEntry` in `recipeValues.ts` reads a new entry's basis: it takes the recipe's row `FOR SHARE`, leaving out a deleted one, then the person's own foods on its lines `FOR SHARE`, and computes one serving through `readRecipeServings` and `servingOf`, the same computation every recipe read uses. `fitsEntry` holds the cap. An edit or a delete of the recipe waits for the add, or the add waits for it and reads what it left. `rewritePlannedBasis` in `sourceValues.ts` rewrites the planned entries an edit reaches, as [the basis and its rewrite](days.md#the-basis-and-its-rewrite) describes. It takes no lock on a food or a recipe: a recipe save takes its foods before any entry, and a food edit holds only its food before entries, so the two never wait on each other in opposite orders. `deleteRecipe` locks the recipe `FOR UPDATE` and asks `isUsed` with the recipe as the source: an entry of it, or one removed in the last ten minutes.
 
+### Cooks in code
+
+`createCook` in `apps/backend/src/services/writes/cooks.ts` takes the user's row, then the recipe's row `FOR SHARE`, then the person's own foods among the batch's lines `FOR SHARE` (`readLineFoods`), checks each line with `checkLine`, computes the basis with `cappedServingBasis`, and inserts the cook with that basis and its lines. It then locks the entries it attaches in id order, checks each, and writes the cook and its basis on them, and inserts the servings it adds. A line keeps a food the recipe holds even when the food is hidden since. The cook row stores its basis, so an entry added from it later takes the same figures through `readCookForEntry` in `recipeValues.ts`, which holds the recipe and then the cook `FOR SHARE`.
+
+`getCook` in `services/reads/cooks.ts` answers the cook with its lines, its stored basis, `cookDiff` against the recipe now, and its entries. `cookDiff` in `packages/types/src/cooks.ts` is the one comparison. A day read joins each entry's cook and runs one more query for all its cooks' lines and their recipes' lines (`cookDiffersOf` in `services/cookRows.ts`), and none when no entry comes from a cook. A week read answers no entry and runs none.
+
+`purgeExpired` in `services/writes/entries.ts`, run by every removal and restore, deletes removed entries past ten minutes, then the person's cooks no entry and no removed entry names. It locks them `FOR UPDATE SKIP LOCKED`, so it skips a cook an add holds, and checks their use again in a new statement before it deletes. An add that comes after the purge finds no cook and answers `cook_not_found`. `rewritePlannedBasis` never reaches an entry from a cook. `copyEntries` in `services/writes/entryCopies.ts` reads each copied cook entry's recipe through `readRecipeForEntry` with `includeDeleted`, before it inserts any copy. `saveCookAsRecipe` holds the cook `FOR SHARE` and its own line foods `FOR SHARE` in id order, refuses a serving past the cap as `createRecipe` does, and copies the cook's line rows with new ids.
+
 ### Services
 
-`apps/backend/src/services/reads/recipes.ts` has `listRecipes`, `getRecipe` and `previewRecipe`. `getRecipe` answers an archived recipe too, and a hidden one, and with `servings` it adds `scaled`. Both reads answer `lastPutOn` from the entries, through `entries_recipe_idx`. `apps/backend/src/services/writes/recipes.ts` has `createRecipe`, `updateRecipe`, `setRecipeArchived`, `setRecipeFavourite` and `deleteRecipe`. A create carries an id the client chose, so a repeat answers the recipe again and ignores its body. Another user's recipe answers 404 `recipe_not_found` on every route that takes a recipe's id. A connected assistant reads, previews, creates, edits and archives recipes, marks them as favourites and logs them on days through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. It cannot delete one.
+`apps/backend/src/services/reads/recipes.ts` has `listRecipes`, `getRecipe` and `previewRecipe`. `getRecipe` answers an archived recipe too, and a hidden one, and with `servings` it adds `scaled`. Both reads answer `lastPutOn` from the entries, through `entries_recipe_idx`. `apps/backend/src/services/writes/recipes.ts` has `createRecipe`, `updateRecipe`, `setRecipeArchived`, `setRecipeFavourite` and `deleteRecipe`. A create carries an id the client chose, so a repeat answers the recipe again and ignores its body. Another user's recipe answers 404 `recipe_not_found` on every route that takes a recipe's id. `services/writes/cooks.ts` has `createCook` and `saveCookAsRecipe`, and `services/reads/cooks.ts` has `getCook`. A connected assistant reads, previews, creates, edits and archives recipes, marks them as favourites, logs them on days and logs batches as made through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. It cannot delete one.
 
 ### API
 
@@ -106,12 +128,17 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`, 
 | PUT, DELETE | `/recipes/:id/archived`                                                                                 | 204, archives or restores, also when it already is. 404                                                                                                                                  |
 | PUT, DELETE | `/recipes/:id/favourite`                                                                                | 204, marks or unmarks, also when it already is. 404                                                                                                                                      |
 | DELETE      | `/recipes/:id`                                                                                          | 204, deleted, or hidden while a day uses it. 404                                                                                                                                         |
+| POST        | `/cooks`                                                                                                | 201 `{ cook, entries, days, outcome }`, 200 on a repeat. Takes `{ id, recipeId, date, servings, lines, attach, attachStatus, add }`. 409 `cook_id_taken`                                 |
+| GET         | `/cooks/:id`                                                                                            | 200 with the cook. 404 `cook_not_found`                                                                                                                                                  |
+| POST        | `/cooks/:id/recipe`                                                                                     | 201 with the new recipe, 200 on a repeat. Takes `{ id, name }`. 404 `cook_not_found`. 409 `recipe_id_taken`. 400 `recipe_serving_too_large`                                              |
 
 A line in a body is `{ id, counted: true, foodId, amount, written, note }` or `{ id, counted: false, name, written, note }`. `amount` is `{ grams }` or `{ portionId, count }`, as an entry takes it, and `written` is `{ amount, unit }` or null. Line ids are chosen by the client and kept across edits. A preview's lines may leave the id out.
 
 A summary has `id`, `name`, `servings`, `timeMinutes`, `tags`, `favourite`, `archived`, `perServing`, `basis` (one serving at the precision an entry stores), `lastPutOn`, the latest date it is on or null, `lastServings`, `imageId` and `foodsGone`, which says a line's food is deleted or retired. `lastServings` and `imageId` are null until the log sheet remembers servings and recipes have images. A recipe adds `deleted`, `whole`, `lines`, `steps` and `notes`. A line in an answer has `id`, `position`, `counted`, `food` (its id, name in the person's food-name language, source, values per 100 g, `retired` and `deleted`), `name`, `grams`, `portion`, `written` and `note`. `scaled` is `{ servings, lines, figures }`.
 
 A recipe is put on a day through `POST /entries` with `kind: "recipe"`, `recipeId` and `servings`, as [quick logging](quick-logging.md#api) lists. A hidden or unknown recipe answers 404 `recipe_not_found`, and a serving past the cap 400 `recipe_serving_too_large`.
+
+A cook's line is a recipe line with `fromLineId`, the id of the recipe line it started as, or null. `attach` lists entry ids, `attachStatus` is `[{ id, status }]` for attached entries only, and `add` is `[{ id, date, status, servings }]`, at most 20 entries in all and at least one. A refused batch answers `cook_entries_required`, `cook_entry_invalid`, `entry_eaten_in_future`, `recipe_not_found`, `recipe_serving_too_large` or a refused line with its `line`. A cook answers `id`, `recipe` (its `id`, `name`, `servings` and `deleted`), `date`, `servings`, `lines` (each with `fromLineId`), `perServing`, `whole`, `basis`, `diff` and `entries`. `diff` is `{ servings, changed, added, leftOut }`: the recipe's and the batch's servings or null when equal, the changed lines with the fields that differ (`food`, `amount`, `written`, `name`), the lines added and the recipe lines left out. `POST /entries` with `kind: "recipe"` also takes `cookId`, and its entry then takes the cook's figures. An entry answers `cook` as `{ id, date, servings, differs }`, or null. The shapes are in `packages/types/src/cooks.ts`.
 
 A preview answers, for every line by its `index`, the food's name as the app reads it, the `grams` the app would store, the `portion` a count was of and its `refusal`, then `perServing`, `whole`, `basis` and the draft's own `refusal`. The figures are null while a line or the draft is refused, and a serving past the cap is the draft's refusal, `recipe_serving_too_large`.
 
@@ -123,15 +150,19 @@ A refused recipe answers `name_required`, `name_too_long`, `recipe_servings_inva
 - `recipe_ingredients`: one row per line, with an id the client chose, `recipe_id` and `user_id` cascading from the recipe, `position` from 0, unique per recipe. A counted line has `food_id`, cascading from `foods`, and `grams`. A line not counted has `name` and neither. The CHECK `recipe_ingredients_kind` holds that. `portion_id`, `portion_count`, `portion_unit` and `portion_name` keep how the grams were entered, as on an entry, with `portion_id` read only while it is still the food's portion and visible. `written_amount` and `written_unit` come together. `note` is optional. `recipe_ingredients_food_idx` finds the lines on a food.
 - `recipe_tags`: `recipe_id` and `user_id` cascading from the recipe, and `tag`. The unique index `recipe_tags_uq` on `(recipe_id, lower(tag))` keeps a tag once per recipe, by the database's own lower case. A save skips a tag the index finds taken, so a pair the database folds alike keeps the first spelling.
 
-Every table cascades from `users`, so deleting an account removes its recipes with their lines and tags. An entry's `recipe_id` points at its recipe with `entries_recipe_user_fk`, as [days](days.md#data) lists.
+- `cooks`: `user_id` cascading from `users`, `recipe_id` cascading from its recipe through `cooks_recipe_fk`, `date`, `servings` from 1 to 100, and the four `basis_*` columns at an entry's precision. The unique constraint `cooks_id_recipe_user_uq` is what an entry's cook points at.
+- `cook_ingredients`: every column of `recipe_ingredients` with `cook_id` in place of `recipe_id`, cascading from the cook, and `from_line_id`, the recipe line it started as, with no key. `cook_ingredients_food_idx` finds the lines on a food.
+
+Every table cascades from `users`, so deleting an account removes its recipes with their lines and tags. An entry's `recipe_id` points at its recipe with `entries_recipe_user_fk`, and its `cook_id` at its cook with `entries_cook_fk`, as [days](days.md#data) lists.
 
 ### Known gaps
 
 - A line typed as a count of one of the person's own portions is checked again on every save, so once that portion is removed, saving the recipe with the line unchanged is refused at that line.
 - A preview checks lines against the foods the person can see now, so it refuses a line on a food hidden since that a save would keep.
 - A recipe has no cover image yet, and cannot be duplicated yet.
+- A batch cannot be corrected once it is logged.
 
-Requirements: FR-REC-01 to FR-REC-10, FR-DAY-02, FR-DAY-07, FR-AI-06, FR-AI-07 (requirements 3.3, 3.7 and 3.10)
+Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06, FR-AI-07, FR-AI-08 (requirements 3.3, 3.7 and 3.10)
 
 ## Where it appears
 
