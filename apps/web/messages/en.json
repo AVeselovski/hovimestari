@@ -235,6 +235,7 @@
           "recipeRestored": "Put the recipe {name} back from the archive",
           "recipeFavouriteSet": "Marked the recipe {name} as a favourite",
           "recipeFavouriteUnset": "Took the recipe {name} off the favourites",
+          "cookMade": "Made a batch of {name}",
           "targetsSet": "Set targets from {date}",
           "targetsRemoved": "Removed the targets from {date}",
           "deletionRequested": "Asked to delete {name}",
@@ -242,10 +243,18 @@
         },
         "part": {
           "forDay": "For {date}",
+          "loggedFor": "Logged for {date}",
+          "plannedFor": "Planned for {date}",
+          "alreadyOnDay": "already on the day",
+          "batchMade": "Made {date}",
+          "batchGave": "{count, plural, one {gave # serving} other {gave # servings}}",
+          "recipeMakes": "the recipe makes {count}",
+          "fromBatch": "From a batch of {name} made {date}",
           "grams": "{value} g",
           "portion": "{count} × {portion}",
           "meals": "{count, plural, one {# meal} other {# meals}}",
           "servings": "{count, plural, one {# serving} other {# servings}}",
+          "servingsAsMade": "{count, plural, one {# serving as made} other {# servings as made}}",
           "estimate": "Estimate",
           "kcal": "{value} kcal",
           "protein": "{value} g protein",
@@ -305,7 +314,9 @@
           "replaced": "Replaced",
           "portion": "Portion",
           "linesAdded": "{count, plural, one {Ingredient added} other {Ingredients added}}",
-          "linesRemoved": "{count, plural, one {Ingredient removed} other {Ingredients removed}}"
+          "linesRemoved": "{count, plural, one {Ingredient removed} other {Ingredients removed}}",
+          "linesLeftOut": "{count, plural, one {Ingredient left out} other {Ingredients left out}}",
+          "batchNotes": "With a note for this batch"
         },
         "writtenUnit": {
           "g": "{amount} g",
@@ -559,6 +570,10 @@
     "line_name_required": "Give the ingredient a name.",
     "line_name_too_long": "Use at most 80 characters.",
     "line_note_too_long": "Use at most 80 characters.",
+    "cook_not_found": "This batch is no longer there. Close this and open it again.",
+    "cook_id_taken": "This batch was already logged. Close this and open it again.",
+    "cook_entries_required": "Choose at least one serving from this batch.",
+    "cook_entry_invalid": "One of these servings can no longer be added to this batch. Close this and open it again.",
     "written_amount_invalid": "Enter an amount above zero, with at most two decimals."
   },
   "day": {
@@ -624,6 +639,7 @@
       "servings": "{count, plural, one {# serving} other {# servings}}",
       "estimate": "Estimate",
       "withSource": "{amount} · {source}",
+      "asMade": "{amount} · as made",
       "kcal": "{value} kcal",
       "protein": "{value} g",
       "approx": "≈",
