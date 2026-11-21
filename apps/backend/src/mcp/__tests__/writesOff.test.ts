@@ -50,12 +50,14 @@ const recordedByFile = {
     "recordedSetRecipeFavourite",
     "replayRecipe",
   ),
+  cooks: mocks("recordedLogCook", "recordedSaveCookAsRecipe", "replayCook"),
 };
 jest.unstable_mockModule("../../services/writes/recorded/entries.js", () => recordedByFile.entries);
 jest.unstable_mockModule("../../services/writes/recorded/foods.js", () => recordedByFile.foods);
 jest.unstable_mockModule("../../services/writes/recorded/savedMeals.js", () => recordedByFile.savedMeals);
 jest.unstable_mockModule("../../services/writes/recorded/targets.js", () => recordedByFile.targets);
 jest.unstable_mockModule("../../services/writes/recorded/recipes.js", () => recordedByFile.recipes);
+jest.unstable_mockModule("../../services/writes/recorded/cooks.js", () => recordedByFile.cooks);
 const recorded = Object.assign({}, ...Object.values(recordedByFile)) as Record<string, ReturnType<typeof jest.fn>>;
 const findReplay = jest.fn<Fn>(async () => null);
 jest.unstable_mockModule("../../services/writes/changeRecord.js", () => ({
@@ -98,11 +100,11 @@ describe("MCP_WRITES_ENABLED=false", () => {
   it("lists only the read tools to a read-and-write key", async () => {
     const names = (await writer.listTools()).tools.map((t) => t.name);
     expect(names).toEqual(READ_TOOLS.map((t) => t.name));
-    expect(names).toHaveLength(15);
+    expect(names).toHaveLength(16);
   });
 
   it("refuses a direct call of every write tool, and never reaches a recorded write or the record", async () => {
-    expect(WRITE_TOOLS).toHaveLength(23);
+    expect(WRITE_TOOLS).toHaveLength(25);
     for (const tool of WRITE_TOOLS) {
       const result = await writer
         .callTool({ name: tool.name, arguments: { requestKey: "k7Qx2mPa9w" } })

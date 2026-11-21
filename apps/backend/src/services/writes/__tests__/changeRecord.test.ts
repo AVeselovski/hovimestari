@@ -40,6 +40,36 @@ describe("requestHashOf", () => {
     expect(requestHashOf("remove_entries", { requestKey: "k1", entryIds: [A] })).not.toBe(one);
   });
 
+  it("reads log_cook's attach as a set, and its attachStatus in any order", () => {
+    const batch = { requestKey: "k1", recipeId: A, servings: 3, lines: [], add: [] };
+    const one = requestHashOf("log_cook", {
+      ...batch,
+      attach: [A, B],
+      attachStatus: [
+        { id: A, status: "eaten" },
+        { id: B, status: "planned" },
+      ],
+    });
+    const reordered = {
+      ...batch,
+      attach: [B.toUpperCase(), A],
+      attachStatus: [
+        { id: B, status: "planned" },
+        { id: A.toUpperCase(), status: "eaten" },
+      ],
+    };
+    expect(requestHashOf("log_cook", reordered)).toBe(one);
+    const otherStatus = {
+      ...reordered,
+      attachStatus: [
+        { id: B, status: "eaten" },
+        { id: A, status: "eaten" },
+      ],
+    };
+    expect(requestHashOf("log_cook", otherStatus)).not.toBe(one);
+    expect(requestHashOf("log_cook", { ...reordered, attach: [A] })).not.toBe(one);
+  });
+
   it("leaves the caller's own list in its order", () => {
     const entryIds = [B, A];
     requestHashOf("copy_entries", { requestKey: "k1", entryIds, toDate: "2026-11-20" });

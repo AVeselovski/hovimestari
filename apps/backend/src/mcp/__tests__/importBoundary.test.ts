@@ -122,6 +122,7 @@ describe("src/mcp import boundary", () => {
     const writeTools = files.filter((file) => file.startsWith("tools/writes/") && !/\/(run|index)\.ts$/.test(file));
     expect(writeTools).toEqual(
       expect.arrayContaining([
+        "tools/writes/cooks.ts",
         "tools/writes/entries.ts",
         "tools/writes/foods.ts",
         "tools/writes/meals.ts",

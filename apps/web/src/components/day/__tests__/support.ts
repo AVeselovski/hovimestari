@@ -35,6 +35,7 @@ export function foodEntry(name: string, grams: number, overrides: Partial<Entry>
     count: null,
     servings: null,
     recipe: null,
+    cook: null,
     note: null,
     basis,
     figures: entryFigures(basis, { per: "100g", grams }),

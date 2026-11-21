@@ -108,6 +108,7 @@ describe("EntrySchema", () => {
     count: null,
     servings: null,
     recipe: null,
+    cook: null,
     note: null,
     basis: figures,
     figures,
