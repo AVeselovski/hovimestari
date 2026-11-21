@@ -41,7 +41,7 @@ Four hues are reserved for the four figures a day is measured in. Nothing else m
 | `--color-carbs`   | `#7a4f86` | `#b893c4` | Carbohydrate marks, heather |
 | `--color-fat`     | `#2f7a72` | `#6fbfb3` | Fat marks, teal             |
 
-They colour marks such as dots and gauge fills. The figures themselves stay in ink. Two components draw them: `MacroDot`, the 10 pixel dot beside a figure in the log sheet's figures, the Day tab's entries and its carbohydrates and fat, and `Gauge`, the Day tab's gauge. `apps/web/src/components/figures/__tests__/macroHues.test.ts` fails when any source file other than `MacroDot.tsx` and `Gauge.tsx` uses one as a colour class, when a colour class is built from a template string, and when `globals.css` names one outside its own declaration. Their values may be tuned as more figures are drawn, but each keeps its hue.
+They colour marks such as dots and gauge fills. The figures themselves stay in ink. Two components draw them: `MacroDot`, the 10 pixel dot beside a figure in the log sheet's figures, the Day tab's entries and its carbohydrates and fat, a recipe's row and its figures card, and `Gauge`, the Day tab's gauge. `apps/web/src/components/figures/__tests__/macroHues.test.ts` fails when any source file other than `MacroDot.tsx` and `Gauge.tsx` uses one as a colour class, when a colour class is built from a template string, and when `globals.css` names one outside its own declaration. Their values may be tuned as more figures are drawn, but each keeps its hue.
 
 ### The gauge
 
@@ -124,7 +124,7 @@ The fonts are the three variable `woff2` files in `apps/web/src/app/fonts/`, loa
 - The toast: ink as its fill and the page colour as its text, the inverse of the page, so it reads apart from every surface under it.
 - Radii: `--radius-control` for fields and buttons, `--radius-card` for panels, `--radius-pill`.
 - Safe areas: `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`, the device's insets.
-- Class recipes in `apps/web/src/components/ui/styles.ts` compose the tokens into buttons, fields, notices, panels and the focus ring, so a view never repeats a raw value.
+- Class recipes in `apps/web/src/components/ui/styles.ts` compose the tokens into buttons, fields, notices, panels and the focus ring, so a view never repeats a raw value. A field that runs over several lines, such as a recipe's method, is `textareaClass`: the field's border, surface and focus ring, at least 128 pixels tall, growing as the person drags it.
 
 ### Adding a token
 

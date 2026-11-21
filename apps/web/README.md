@@ -23,7 +23,8 @@ src/
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache and key reveal store, then the first-run gate, then AppShell
 │   │   ├── page.tsx            Day: renders DayTab inside Suspense, since it reads ?date=
-│   │   ├── recipes/            Recipes: renders RecipesTab
+│   │   ├── recipes/            Recipes: renders RecipesTab inside Suspense, since it reads ?show=
+│   │   │   └── [id]/           One recipe: renders RecipePage
 │   │   ├── groceries/          Groceries: "Nothing here yet."
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Connected AI, Sign-in methods, Account and Food data, and their sheets
 │   │       └── _components/    One file per section and sheet. Connected AI is ConnectedAiSection, with ConnectionRows, CreateConnectionSheet, AccessLevelField, KeyRevealSheet, ConnectionInstructions, CopyButton, ConnectionActivitySheet (a connection's record, a page at a time), changeText.ts (one recorded change as a headline and its lines, and as one sentence for a screen reader) and recipeChangeText.ts (a recipe change's lines)
@@ -77,7 +78,8 @@ src/
 │   │   │   ├── useCameraStream.ts  The camera and its decode loop over the band's part of each frame (`visibleBand`), with a session number so every way out stops every track
 │   │   │   ├── decoder.ts      The one file that imports zxing-wasm: loads the reader with the app's own wasm, reads the retail formats
 │   │   │   └── useScanner.ts   The log sheet's side: opens the scanner, types a read into the field, looks it up and places focus
-│   │   ├── FoodSearchView.tsx  Browse lists, results with the meals that match first, no results, offline and failure, or the barcode block
+│   │   ├── useFoodFinder.tsx   The food search as a hook: the field, the results or the host's browse or the barcode block, and the scanner and own-food sheets, for a host's header, body and stacked slots
+│   │   ├── FoodSearchView.tsx  The log sheet's browse lists, the saved meals that lead its results, and FoodList, one titled list of foods
 │   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
 │   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
 │   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
@@ -108,6 +110,8 @@ src/
 │   │   ├── useLogAgain.ts      The one-press add: its pending id, held while its failure shows, one at a time
 │   │   ├── useLogForm.ts       A food's or a meal's log: prefill, chips, figures, state, its id and its submit
 │   │   ├── LogBlock.tsx        The log form: chips and amount or meals, the figures, Eaten or planned
+│   │   ├── AmountFigures.tsx   "For this amount" and the four figures under an amount, shared with the ingredient picker and a recipe's log sheet
+│   │   ├── foodChips.ts        A food's unit chips: grams, the last amount's portion, the food's other portions
 │   │   ├── LogFooter.tsx       The pinned footer: the refusal line and Log or Add to plan
 │   │   ├── MealView.tsx        A saved meal: the log block, its figures per meal, Edit, Archive or Restore, Delete
 │   │   ├── ArchivedMealsView.tsx  The archived meals, read when the view opens, each with Restore
@@ -132,10 +136,29 @@ src/
 │   ├── QueryProvider.tsx       The query client for one signed-in user
 │   ├── ConnectionRevealProvider.tsx  The one new connection key not yet confirmed copied, in React state only
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
-│   ├── recipes/                The Recipes tab:
-│   │   ├── RecipesTab.tsx      The page: New saved meal and Add a food, the two sections, and the meal and own-food sheets
-│   │   ├── SavedMealsSection.tsx  The saved meals, and the archived meals opened in place
-│   │   └── OwnFoodsSection.tsx The own foods, each opening its edit sheet
+│   ├── recipes/                The Recipes tab and a recipe's page:
+│   │   ├── RecipesTab.tsx      The page: the three segments, each one's action and search, and the editor, meal and own-food sheets
+│   │   ├── RecipeList.tsx      The recipes segment: Favourites and tag chips, the recipes by name, the archived recipes
+│   │   ├── RecipeRow.tsx       One recipe in the list, a link to its page
+│   │   ├── SavedMealsSection.tsx  The saved meals, searched, and the archived meals opened in place
+│   │   ├── OwnFoodsSection.tsx The own foods, searched, each opening its edit sheet
+│   │   ├── RecipePage.tsx      One recipe: its figures with the servings stepper, its lines, method and notes, Log, Duplicate, Archive, Delete
+│   │   ├── RecipeFigures.tsx   The figures card: per serving and whole or scaled, with the stepper on the page
+│   │   ├── RecipeLogSheet.tsx  Servings of a recipe on a day, eaten or planned
+│   │   ├── RecipeEditorSheet.tsx  The editor: a new recipe, an edit or a copy, saved whole
+│   │   ├── recipeDraft.ts      The editor's draft: its lines, the figures as typed and what a save sends
+│   │   ├── ProseField.tsx      A labelled text area with its line: the editor's Method and Notes
+│   │   ├── IngredientRows.tsx  A recipe's lines, shown or pressed to change, a refused line's message under it
+│   │   ├── IngredientPicker.tsx  The picker stacked on the editor: the food search, then a food's amount
+│   │   ├── PickerAmountForm.tsx  The picker's amount view: the amount, its figures, As written and Note
+│   │   ├── NotCountedSheet.tsx A line not counted, such as salt
+│   │   ├── WrittenFields.tsx   A line's amount as the recipe writes it: a number and a unit
+│   │   ├── TagField.tsx        A recipe's tags, typed or tapped
+│   │   ├── tags.ts             The one comparison of tags on screen, and the tags a list of recipes uses
+│   │   ├── lineAmount.ts       How a line's amount reads
+│   │   ├── useRecipeMeta.ts    "Serves 2 · 25 min" and a recipe's figures per serving as a line
+│   │   ├── useRecipeActions.ts A recipe's favourite and archive
+│   │   └── useRecipeDelete.ts  The one delete of a recipe, which asks first
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
 │   ├── targets/                Targets on the web:
 │   │   ├── TargetsGate.tsx     The first-run gate: the spinner, the first-run page or the shell inside TodayProvider, and useFirstRun
@@ -165,6 +188,7 @@ src/
 │   └── ProvidersContext.tsx    Whether the guest pages show Google
 ├── hooks/                      useErrorCopy, useOnlineStatus, useRovingChoice, useMediaQuery, useIsMobile, useDebouncedValue, useFoodNameLanguage, and:
 │   ├── useToday.ts             The app's today and the state of the check that keeps it current
+│   ├── useDocumentTitle.ts     Names the browser's title after what a page shows, such as a recipe
 │   ├── useEntryActions.ts      Every write to an entry from the Day tab and the log sheet, its cache update, its toast and its undo
 │   ├── entryActions.ts         The types and plain helpers useEntryActions shares
 │   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, their toasts and undo
@@ -189,7 +213,7 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts, connections.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts, recipes.ts, connections.ts
 │   ├── mcpConnection.ts        The assistant's server address and the Claude Code and Claude Desktop setup snippets, with mcp-remote pinned
 │   ├── barcode.ts              barcodeOf() reads a typed barcode with the shared schema, sameBarcode() and openFoodFactsUrl()
 │   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
@@ -208,11 +232,14 @@ src/
 │   ├── providers.ts            Reads GET /auth/providers on the server
 │   ├── queryClient.ts          The query client's defaults
 │   ├── queryKeys.ts            Every query key, from one factory
+│   ├── appName.ts              The app's name, for the browser's title
 │   ├── queryOptions.ts         The options for every read
 │   ├── redirect.ts             Resolves a redirect target and keeps it only when it stays on this site
 │   ├── sessionMarker.ts        The non-secret flag that says this device has a known session, and its address
 │   ├── foodCache.ts            Edits to the cached food reads from a write's own answer
 │   ├── mealCache.ts            Edits to the cached saved meal lists and recent items from a meal write's own answer
+│   ├── recipeCache.ts          Edits to the cached recipe lists and a recipe's page from a recipe write's own answer
+│   ├── recipeNav.ts            Whether a recipe's page was opened from inside the app, the list's and the day's place for the way back, kept on the history entry, the row to focus after a delete
 │   ├── connectionCache.ts      Edits to the cached connections list from a connection write's own answer
 │   ├── revealRefused.ts        Brings a form sheet's first refused field, its label and line where they fit, into view in its body
 │   ├── invalidation.ts         What each write makes stale
@@ -280,7 +307,7 @@ To add a form sheet, such as the estimate sheet:
 
 A refusal that belongs to no field goes in `formError`, as `{ line, cause }`: the line from `useFailureLine`, and the error the write threw, or null for a line the sheet decided itself. `FormSheet` shows it in the pinned footer above the buttons. On a phone the footer keeps no room for it: it grows upward when a refusal shows, with the buttons where they were, and the field that holds focus comes back into view if the taller footer covers it. From `md` the footer keeps two lines of room for it, because the dialog grows downward and would move the buttons. A failure that arrives while the app knows it is offline, and that the connection explains, shows "You are offline. Changes need a connection." whatever the line says, so a sheet never words that case itself. A refusal the server answered keeps its own line. After a refused submit `FormSheet` scrolls the first refused field, its line included, into view: describe each field by its line (`aria-describedby`), as `Field` and `DecimalField` do, and it finds the block. A secondary action nobody needs while typing, such as Remove entry, passes `yieldsToKeyboard`, so its row gives its room to the keyboard. A second submit never does.
 
-Lay a form's fields out with the recipes in `styles.ts`: the form is a `formStack`, 8 pixels between fields, and a section's heading or a closing note takes `sectionStart`, 16 pixels from what is above it. Every field that can be refused keeps one line of room under it (`lineRoom`). A control that cannot be refused, such as a segmented control, keeps none and takes `linelessBlock`, 16 pixels to the block under it. A page's form uses the same recipes, with `FormError` between the last field and the submit button: no room on a phone, two lines from `md`, as in a sheet's footer (`refusalLine`). A form sheet's last field's line is the room above the footer: the body adds only 4 pixels under it (`form-ends-in-line` in `globals.css`). Write each line under a field to fit one line at 320 pixels wide, about 40 characters. A form sheet is as tall as its form and holds that height once open, so do not pass `size="tall"` for a form.
+Lay a form's fields out with the recipes in `styles.ts`: the form is a `formStack`, 8 pixels between fields, and a section's heading or a closing note takes `sectionStart`, 16 pixels from what is above it. Every field that can be refused keeps one line of room under it (`lineRoom`). A control that cannot be refused, such as a segmented control, keeps none and takes `linelessBlock`, 16 pixels to the block under it. A page's form uses the same recipes, with `FormError` between the last field and the submit button: no room on a phone, two lines from `md`, as in a sheet's footer (`refusalLine`). A form sheet's last field's line is the room above the footer: the body adds only 4 pixels under it (`form-ends-in-line` in `globals.css`). Write each line under a field to fit one line at 320 pixels wide, about 40 characters. A form sheet is as tall as its form and holds that height once open, so do not pass `size="tall"` for a form. The recipe editor is the one form passed `size="tall"`: its ingredients grow while it is open and the ingredient picker stacks on it, so its top edge holds at every length.
 
 A confirmation is a `ConfirmDialog`. One in front of a write that takes a row off the page goes through `useConfirmedDelete`, which renders the dialog and moves focus once the row is gone.
 
@@ -346,7 +373,8 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - The default environment is jsdom plus Node's `Response`, `Request` and `Headers`. `fetch` is not provided, so a test that reaches the network stubs it.
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
-- `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen.
+- `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen. It holds the recipes a test puts in its `recipes`, so a recipe entry can be added.
+- `components/recipes/__tests__/recipeServer.ts` is a fake of the recipe routes that keeps the rules a screen can see: a create applied once, an edit that keeps the id of an identical line, and a refused line named by its index. `recipeFixtures.ts` builds recipes whose figures come from `recipeBasis` and `entryFigures`, never typed by hand.
 - `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.
 - Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them. The scanner runs in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, and `--use-file-for-fake-video-capture=<file>.y4m` plays a barcode to it. Make the `.y4m` from a barcode image with `ffmpeg -loop 1 -i code.png -t 5 -pix_fmt yuv420p code.y4m`, outside the repository.

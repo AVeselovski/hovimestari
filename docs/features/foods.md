@@ -203,5 +203,5 @@ Requirements: FR-FOOD-01 to FR-FOOD-08, FR-SCAN-01 to FR-SCAN-06, FR-DAY-07, FR-
 ## Where it appears
 
 - [The log sheet](../app/log-sheet.md): the search, a barcode's lookup, typed or [scanned](../app/log-sheet.md#scanning-a-barcode), a food's view and its figures, favourites, own foods and portions.
-- [The Recipes tab](../app/recipes.md): the user's own foods, each opening its edit sheet, and a new one.
+- [The Recipes tab](../app/recipes.md): the Foods segment, with the user's own foods, a search over their names, each opening its edit sheet, and a new one. The recipe editor's ingredient picker searches the catalogue and adds own foods with the log sheet's own search.
 - [Settings](../app/settings.md#food-names): the food-name language, and [the credit](../app/settings.md#food-data) for Fineli's and Open Food Facts' data.

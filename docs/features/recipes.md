@@ -2,7 +2,7 @@
 
 A recipe is a dish a person cooks again and again, written once with its servings, its ingredients and its method. The app computes its figures from the foods its ingredients point at, so a person never types a recipe's totals.
 
-Recipes are kept and put on days through the API and by a connected assistant. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. Recipes have no screen of their own yet.
+Recipes are kept on [the Recipes tab](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. A batch is logged through the API and by a connected assistant, with no screen of its own yet.
 
 ## In detail
 
@@ -54,13 +54,17 @@ A copy of an entry from a batch plans the recipe again, with the recipe's figure
 
 A batch is kept while an entry, or an entry removed in the last ten minutes, comes from it. After that it is deleted with the next removal or restore. It never keeps its recipe: a recipe whose entries are all gone is deleted outright when the person deletes it, with its batches.
 
+### Copying a recipe
+
+A recipe can be copied into a new one. The copy starts from the recipe as it is then: its name, servings, time, ingredient lines, method, notes and tags. Each line of the copy is a new line of its own. The copy is not a favourite, is not archived and is on no day, whatever the recipe it came from is. It is saved as any new recipe is, so it can be changed before it is saved, and the recipe it came from stays as it is. On [a recipe's page](../app/recipe.md#archive-and-delete) this is **Duplicate**.
+
 ### Tags and favourites
 
-Tags are the person's own words, each 1 to 30 characters, kept as typed. A recipe holds a tag once, compared without case: "Brunch" and "brunch" are one tag, and the first spelling stays. The limit of 10 counts the tags as sent, a repeat included. A recipe can be marked as a favourite and taken off again.
+Tags are the person's own words, each 1 to 30 characters, kept as typed. A recipe holds a tag once, compared without case: "Brunch" and "brunch" are one tag, and the first spelling stays. On screen a tag shows once by the same comparison, so two tags that differ by an accent, such as "Häät" and "Haat", are two tags with a chip each. [The recipe search](#finding-a-recipe) is looser and finds both under either. The limit of 10 counts the tags as sent, a repeat included. A recipe can be marked as a favourite and taken off again.
 
 ### Finding a recipe
 
-The recipes are listed active or archived, and filtered and sorted in one way wherever they are read. Every typed word must be part of the name or a tag, whatever the case and the accents, so "pahkina" finds "Pähkinäpuuro". Asked for tags, a recipe must have every one. A recipe can be asked for by its figures for one serving, at least or at most an amount of protein or energy, compared as they are shown, so "at least 30 g" keeps a recipe that shows 30.0 g. The bound is taken as typed, so "at least 22.34 g" leaves out a recipe that shows 22.3 g. The favourites can be asked for alone.
+The recipes are listed active or archived, and filtered and sorted in one way wherever they are read. Every typed word must be part of the name or a tag, whatever the case and the accents, so "pahkina" finds "Pähkinäpuuro". Asked for tags, a recipe must have every one, each compared as a tag is kept: without case, and with its accents. A recipe can be asked for by its figures for one serving, at least or at most an amount of protein or energy, compared as they are shown, so "at least 30 g" keeps a recipe that shows 30.0 g. The bound is taken as typed, so "at least 22.34 g" leaves out a recipe that shows 22.3 g. The favourites can be asked for alone.
 
 They sort by name in Finnish order, where å, ä and ö come after z, by the latest day they are on, by protein, most first, or by energy, fewest first. Ties go by name.
 
@@ -104,7 +108,7 @@ An edit replaces the lines and the tags as sent. A line keeps its id across edit
 
 ### Cooks in code
 
-`createCook` in `apps/backend/src/services/writes/cooks.ts` takes the user's row, then the recipe's row `FOR SHARE`, then the person's own foods among the batch's lines `FOR SHARE` (`readLineFoods`), checks each line with `checkLine`, computes the basis with `cappedServingBasis`, and inserts the cook with that basis and its lines. It then locks the entries it attaches in id order, checks each, and writes the cook and its basis on them, and inserts the servings it adds. A line keeps a food the recipe holds even when the food is hidden since. The cook row stores its basis, so an entry added from it later takes the same figures through `readCookForEntry` in `recipeValues.ts`, which holds the recipe and then the cook `FOR SHARE`.
+`createCook` in `apps/backend/src/services/writes/cooks.ts` takes the user's row, then the recipe's row `FOR SHARE`, then the person's own foods among the batch's lines `FOR SHARE` (`readLineFoods`), checks each line with `checkLine`, computes the basis with `cappedServingBasis`, and inserts the cook with that basis and its lines. It then locks the entries it attaches in id order, checks each, and writes the cook and its basis on them, and inserts the servings it adds. A line keeps a food the recipe holds even when the food is hidden since. A request that repeats a batch's id writes nothing and answers the batch as it is, with the entries the repeat names. The cook row stores its basis, so an entry added from it later takes the same figures through `readCookForEntry` in `recipeValues.ts`, which holds the recipe and then the cook `FOR SHARE`.
 
 `getCook` in `services/reads/cooks.ts` answers the cook with its lines, its stored basis, `cookDiff` against the recipe now, and its entries. `cookDiff` in `packages/types/src/cooks.ts` is the one comparison. A day read joins each entry's cook and runs one more query for all its cooks' lines and their recipes' lines (`cookDiffersOf` in `services/cookRows.ts`), and none when no entry comes from a cook. A week read answers no entry and runs none.
 
@@ -157,14 +161,16 @@ Every table cascades from `users`, so deleting an account removes its recipes wi
 
 ### Known gaps
 
-- A line typed as a count of one of the person's own portions is checked again on every save, so once that portion is removed, saving the recipe with the line unchanged is refused at that line.
+- A line typed as a count of one of the person's own portions is checked again on every save, so once that portion is removed, saving the recipe with the line unchanged is refused at that line. The editor then turns that line into its grams, so the next save passes.
 - A preview checks lines against the foods the person can see now, so it refuses a line on a food hidden since that a save would keep.
-- A recipe has no cover image yet, and cannot be duplicated yet.
+- A recipe has no cover image yet.
 - A batch cannot be corrected once it is logged.
 
 Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06, FR-AI-07, FR-AI-08 (requirements 3.3, 3.7 and 3.10)
 
 ## Where it appears
 
-- [The Day tab](../app/day.md): a recipe's entries, each with its servings.
+- [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites and tags, and the editor that makes and changes a recipe from foods.
+- [A recipe's page](../app/recipe.md): the recipe, its figures at any number of servings, logging servings on a day, duplicating, archiving and deleting.
+- [The Day tab](../app/day.md): a recipe's entries, each with its servings, and Open recipe in an entry's sheet.
 - [Settings](../app/settings.md#activity): an assistant's changes to recipes and the recipes it put on days, in a connection's Activity.
