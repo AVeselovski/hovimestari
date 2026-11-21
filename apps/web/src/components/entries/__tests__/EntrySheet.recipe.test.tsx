@@ -1,8 +1,9 @@
 import { clockFrom } from "@/__tests__/helpers/clock";
 import { setTestLocale } from "@/__tests__/helpers/locale";
-import { TODAY, dayOf, fakeEntryActions, recipeEntry } from "@/components/day/__tests__/support";
+import { TODAY, dayOf, fakeEntryActions, foodEntry, recipeEntry } from "@/components/day/__tests__/support";
 import { refusal } from "@/components/targets/__tests__/support";
 import { TodayContext, type TodayState } from "@/hooks/useToday";
+import { readDayPlace, takeOpenedInApp } from "@/lib/recipeNav";
 import type { Entry } from "@hovimestari/types";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { EntrySheet } from "../EntrySheet";
@@ -171,6 +172,84 @@ describe("EntrySheet, a recipe entry", () => {
     ];
     for (let i = 1; i < order.length; i++) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+});
+
+describe("EntrySheet, Open recipe", () => {
+  it("links a recipe entry to its recipe's page, a deleted recipe's too, and no other kind of entry", () => {
+    const entry = shakshuka();
+    const { unmount } = renderSheet(entry);
+    const open = within(dialog()).getByRole("link", { name: "Open recipe" });
+    expect(open).toHaveAttribute("href", `/recipes/${entry.recipe!.id}`);
+    unmount();
+    const { unmount: unmount2 } = renderSheet(
+      shakshuka({ recipe: { id: entry.recipe!.id, archived: false, deleted: true } }),
+    );
+    expect(within(dialog()).getByText("This recipe was deleted.")).toBeInTheDocument();
+    expect(within(dialog()).getByRole("link", { name: "Open recipe" })).toBeInTheDocument();
+    unmount2();
+    renderSheet(dayOf([foodEntry("Rahka", 200)]).entries[0]);
+    expect(screen.getByRole("dialog", { name: "Rahka" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open recipe" })).toBeNull();
+  });
+
+  it("does not leave for the recipe while the sheet holds unsaved changes, as no other way out of it does", () => {
+    renderSheet(shakshuka());
+    const open = within(dialog()).getByRole("link", { name: "Open recipe" });
+    expect(open).not.toHaveAttribute("aria-disabled");
+    const saved = servings().value;
+    fireEvent.change(servings(), { target: { value: "3" } });
+    expect(open).toHaveAttribute("aria-disabled", "true");
+    // The press is refused: the link is not followed, and the page is not told a recipe was opened.
+    expect(fireEvent.click(open)).toBe(false);
+    expect(takeOpenedInApp()).toBe(false);
+    // Back to the saved servings, the link leaves again.
+    fireEvent.change(servings(), { target: { value: saved } });
+    expect(open).not.toHaveAttribute("aria-disabled");
+    open.addEventListener("click", (e) => e.preventDefault());
+    fireEvent.click(open);
+    expect(takeOpenedInApp()).toBe(true);
+  });
+
+  it("says why beside the link while it does nothing, and the link is described by that line", () => {
+    renderSheet(shakshuka());
+    const open = within(dialog()).getByRole("link", { name: "Open recipe" });
+    const why = dialog().querySelector("[data-open-recipe-why]")!;
+    // The line's place is there from the start, empty, so it showing moves nothing.
+    expect(why.textContent).toBe("");
+    expect(open).not.toHaveAttribute("aria-describedby");
+    fireEvent.change(servings(), { target: { value: "3" } });
+    expect(why).toBe(dialog().querySelector("[data-open-recipe-why]"));
+    expect(why.textContent).toBe("Save or cancel first.");
+    expect(open).toHaveAccessibleDescription("Save or cancel first.");
+    fireEvent.change(servings(), { target: { value: "1.5" } });
+    expect(why.textContent).toBe("");
+    expect(open).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("keeps the day's place for the way back on a plain press only", () => {
+    const start = window.location.pathname + window.location.search;
+    const main = document.body.appendChild(document.createElement("main"));
+    window.history.pushState(null, "", "/");
+    try {
+      const entry = shakshuka();
+      renderSheet(entry);
+      main.scrollTop = 224;
+      const open = within(dialog()).getByRole("link", { name: "Open recipe" });
+      open.addEventListener("click", (e) => e.preventDefault());
+      // A press that opens the recipe in a new tab leaves this day as it is: nothing is kept or marked.
+      fireEvent.click(open, { ctrlKey: true });
+      fireEvent.click(open, { metaKey: true });
+      fireEvent.click(open, { button: 1 });
+      expect(takeOpenedInApp()).toBe(false);
+      expect(readDayPlace()).toBeNull();
+      fireEvent.click(open);
+      expect(takeOpenedInApp()).toBe(true);
+      expect(readDayPlace()).toEqual({ entryId: entry.id, top: 224 });
+    } finally {
+      main.remove();
+      window.history.replaceState(null, "", start);
     }
   });
 });

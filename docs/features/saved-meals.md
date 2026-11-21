@@ -93,4 +93,4 @@ Requirements: FR-MEAL-01 to FR-MEAL-04 (requirements 3.6)
 ## Where it appears
 
 - [The log sheet](../app/log-sheet.md): the saved meals while browsing and in the results, with their source chips, each logged again in one press or opened to log a number of meals. A new meal saved alone or saved and logged in one request, an edit, archiving, restoring and deleting, and the archived meals.
-- [The Recipes tab](../app/recipes.md): the saved meals and the archived meals in one list each, a new meal saved without logging, and an edit, archiving, restoring and deleting from the meal's edit sheet.
+- [The Recipes tab](../app/recipes.md): the Meals segment, with the saved meals and the archived meals in one list each, a search over their names and sources, a new meal saved without logging, and an edit, archiving, restoring and deleting from the meal's edit sheet.

@@ -4,6 +4,7 @@ import { TEST_USER } from "../../__tests__/helpers/auth";
 import { deferred, registerTestQueryClient } from "../../__tests__/helpers/queryClient";
 import {
   afterAccountChange,
+  afterAddUnconfirmed,
   afterFoodGone,
   afterFoodNameLanguageChange,
   afterTargetsChange,
@@ -71,4 +72,26 @@ describe("a write that answers while a read from before it is still out", () => 
       unsubscribe();
     },
   );
+});
+
+describe("an add that could not confirm", () => {
+  it("marks the recipes stale without reading them, so a recipe's latest day is read when its page next shows", async () => {
+    const client = registerTestQueryClient(new QueryClient());
+    const detail = queryKeys.recipeDetail("a-recipe");
+    const list = queryKeys.recipeList(false);
+    client.setQueryData(detail, OLD);
+    client.setQueryData(list, OLD);
+    client.setQueryData(queryKeys.foodDetail("a-food"), OLD);
+    // An observer, as an open recipe page has: marked stale, it must not read now.
+    const fn = jest.fn().mockResolvedValue(NEW);
+    const observer = new QueryObserver(client, { queryKey: detail, queryFn: fn, staleTime: Infinity });
+    const unsubscribe = observer.subscribe(() => {});
+    await afterAddUnconfirmed(client, "2026-11-20");
+    expect(client.getQueryState(detail)!.isInvalidated).toBe(true);
+    expect(client.getQueryState(list)!.isInvalidated).toBe(true);
+    expect(fn).not.toHaveBeenCalled();
+    // What the add cannot have changed is left fresh.
+    expect(client.getQueryState(queryKeys.foodDetail("a-food"))!.isInvalidated).toBe(false);
+    unsubscribe();
+  });
 });

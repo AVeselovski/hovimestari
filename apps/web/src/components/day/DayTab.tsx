@@ -14,13 +14,14 @@ import { focusAfterRowRemoval } from "@/lib/focusAfterRemoval";
 import { restoreFocus } from "@/lib/lastInputModality";
 import { addDays, isIsoDate } from "@/lib/localDate";
 import { dayQuery, dayRangeQuery, prefetchLogLists, targetsQuery } from "@/lib/queryOptions";
+import { forgetDayPlace, readDayPlace, scrollPageTo } from "@/lib/recipeNav";
 import { rememberShownDay } from "@/lib/shownDay";
 import { weekOf } from "@/lib/week";
 import type { Entry } from "@hovimestari/types";
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { DateBar } from "./DateBar";
 import { DayHeader } from "./DayHeader";
 import { DayLauncher } from "./DayLauncher";
@@ -70,6 +71,9 @@ import { WeekSheet } from "./WeekSheet";
 //
 // Copy, in the Entries row, opens the copy sheet on the day shown. Focus
 // comes back to Copy when it closes.
+//
+// Back from a recipe that an entry's Open recipe opened, the day shows where
+// it was scrolled, with focus on that entry's row (lib/recipeNav.ts).
 // ---------------------------------------------------------------------------
 
 /**
@@ -143,6 +147,20 @@ export function DayTab(): ReactElement {
     if (!dayLoaded) return;
     prefetchLogLists(client);
   }, [client, dayLoaded]);
+
+  // Back from a recipe an entry's Open recipe opened: the day where it was, with focus on that entry.
+  const [place] = useState(() => (typeof window === "undefined" ? null : readDayPlace()));
+  const returned = useRef(false);
+  useLayoutEffect(() => {
+    if (place === null || returned.current || !dayLoaded) return;
+    returned.current = true;
+    // The place has served its way back.
+    forgetDayPlace();
+    scrollPageTo(place.top);
+    restoreFocus(
+      document.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(place.entryId)}"] [data-row-action="open"]`),
+    );
+  }, [place, dayLoaded]);
 
   // The shown day's week, read once the day is on screen, so the week sheet usually opens with figures.
   useEffect(() => {

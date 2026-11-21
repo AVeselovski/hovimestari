@@ -124,11 +124,31 @@ export const btnText = `inline-flex min-h-11 items-center rounded-sm text-base f
 /** A text button that leads to something destructive, such as Delete account: in the accent. A press or a hover fills in its underline, as with `btnText`. */
 export const btnTextDanger = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-accent underline decoration-accent/70 underline-offset-4 hover:decoration-accent active:decoration-accent ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
+/** Back, at the start of a page's or a sheet view's first row: a chevron and the word, 44px tall. */
+export const backButton = `inline-flex min-h-11 shrink-0 items-center gap-1 rounded-control px-2 text-base font-semibold text-ink hover:bg-surface-raised active:bg-surface-raised ${focusRing}`;
+
 /** A text link inside copy. A press darkens its underline, so a tap shows at once. */
 export const linkClass = `rounded-sm font-medium text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing}`;
 
 /** A field: 48px tall, 16px text so iOS Safari never zooms on focus. */
 export const inputClass = `block h-12 w-full rounded-control border border-field-rule bg-surface-raised px-3.5 text-base text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
+
+/**
+ * A short field for one small whole number between a minus and a plus, such
+ * as a recipe page's servings: the field recipe at a fixed width, its figure
+ * centred in the monospaced face.
+ */
+export const stepperField = `block h-12 w-20 rounded-control border border-field-rule bg-surface-raised px-1 text-center font-mono text-lg text-ink tabular-nums ${focusRing}`;
+
+/** The minus and the plus beside a `stepperField`: 48px squares. At its limit a button dims and keeps focus. */
+export const stepperButton = `inline-flex size-12 shrink-0 items-center justify-center rounded-control border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface aria-disabled:cursor-not-allowed aria-disabled:opacity-40 ${focusRing}`;
+
+/** A text area for prose that runs over several lines, such as a recipe's method: the field recipe, taller, with its own padding. */
+const textareaBox = `block w-full resize-y rounded-control border border-field-rule bg-surface-raised px-3.5 py-3 text-base leading-6 text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
+export const textareaClass = `${textareaBox} min-h-32`;
+
+/** A lower text area, for a few lines, such as a recipe's notes. */
+export const textareaShortClass = `${textareaBox} min-h-24`;
 
 /**
  * The select itself: a field's box (48px, 16px text, so iOS Safari never
@@ -162,10 +182,23 @@ export const codeBox =
 export const tagClass =
   "inline-flex items-center rounded-pill border border-rule px-2.5 py-0.5 text-sm font-medium whitespace-nowrap text-ink-muted";
 
+/**
+ * A tag a person chose, with a cross that takes it off, such as a recipe's
+ * tag in its editor: a pill in the accent's outline, never a hue.
+ */
+export const chosenTag =
+  "inline-flex max-w-full items-center rounded-pill border border-accent bg-surface-raised pl-4 text-base font-semibold text-ink";
+
+/** The cross at the end of a `chosenTag`: a 44px target. */
+export const chosenTagRemove = `inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-ink-muted hover:text-ink ${focusRing}`;
+
 export const labelClass = "mb-1.5 block text-sm font-semibold text-ink";
 
 /** A label on the left of its field, on the same row (`DecimalField`'s `layout="beside"`). */
 export const labelBesideClass = "min-w-0 flex-1 text-base font-semibold text-ink";
+
+/** A label inside a labelled group, such as Number and Unit under As written: smaller and muted. */
+export const subLabelClass = "mb-1 block text-sm text-ink-muted";
 
 /** A line under a field: what the field wants. */
 export const fieldHintClass = "mt-1.5 text-sm text-ink-muted";
@@ -248,6 +281,22 @@ export const linelessBlock = "not-last:mb-2";
 
 /** Sections that each start with a heading, such as the targets form's Calories and Protein: 16px apart. */
 export const sectionStack = "flex flex-col gap-4";
+
+/** Two short fields side by side at every width, such as a recipe's Serves and Time. */
+export const pairRowAlways = "grid grid-cols-2 gap-3";
+
+/**
+ * The first line of a sheet's header that says where the sheet's work goes,
+ * or for a moment what a press did: one line, its room always kept, cut with
+ * an ellipsis, so what is under it never moves.
+ */
+export const statusLineClass = "h-5 truncate text-sm leading-5";
+
+/**
+ * A recipe line's name and amount: the amount under the name on a phone, and
+ * in a column of its own, 15rem wide at most, before the name from `md`.
+ */
+export const ingredientGrid = "grid min-w-0 flex-1 gap-x-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]";
 
 /** Two fields stacked on a phone and side by side from `md`, so a dialog shows its whole form. */
 export const pairRow = "flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-x-3 md:gap-y-2";

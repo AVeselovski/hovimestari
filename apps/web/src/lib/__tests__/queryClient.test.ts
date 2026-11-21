@@ -1,5 +1,5 @@
 import { AxiosError, CanceledError } from "axios";
-import { makeQueryClient, shouldRetry } from "../queryClient";
+import { isFreshRead, makeQueryClient, shouldRetry, STALE } from "../queryClient";
 
 describe("shouldRetry", () => {
   const networkError = new AxiosError("Network Error", "ERR_NETWORK");
@@ -27,5 +27,26 @@ describe("makeQueryClient", () => {
     expect(queries.refetchOnReconnect).toBe(false);
     expect(queries.gcTime).toBe(10 * 60_000);
     expect(queries.staleTime).toBe(30_000);
+  });
+});
+
+describe("isFreshRead", () => {
+  const NOW = Date.parse("2026-11-16T12:00:00Z");
+  beforeEach(() => jest.spyOn(Date, "now").mockReturnValue(NOW));
+  afterEach(() => jest.restoreAllMocks());
+  const read = { data: {}, isInvalidated: false, fetchStatus: "idle" as const, dataUpdatedAt: NOW - 1_000 };
+
+  it("takes an answer read within the stale time, not marked stale and not being read again", () => {
+    expect(isFreshRead(read)).toBe(true);
+    expect(isFreshRead({ ...read, dataUpdatedAt: NOW - STALE.live + 1 })).toBe(true);
+  });
+
+  it("takes no other read: none, one with no answer, an old one, one marked stale, one being read again", () => {
+    expect(isFreshRead(undefined)).toBe(false);
+    expect(isFreshRead({ ...read, data: undefined })).toBe(false);
+    expect(isFreshRead({ ...read, dataUpdatedAt: NOW - STALE.live })).toBe(false);
+    expect(isFreshRead({ ...read, isInvalidated: true })).toBe(false);
+    expect(isFreshRead({ ...read, fetchStatus: "fetching" })).toBe(false);
+    expect(isFreshRead({ ...read, fetchStatus: "paused" })).toBe(false);
   });
 });

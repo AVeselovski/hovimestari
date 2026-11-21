@@ -1,5 +1,5 @@
 import { scaled } from "./figures.js";
-import type { RecipeFilter, RecipeSort, RecipeSummary } from "./recipes.js";
+import { tagKey, type RecipeFilter, type RecipeSort, type RecipeSummary } from "./recipes.js";
 
 // Finding a recipe: the one filter and the one sort, run by the web on the
 // device on every key and by the server for an assistant's list_recipes, so
@@ -28,8 +28,10 @@ function within(value: number, min: number | undefined, max: number | undefined)
  * The recipes `filter` keeps: archived or active, every word of `q` part of
  * the name or a tag, every tag of `tags` among the recipe's, favourites
  * alone when asked, and the figures per serving within the bounds as they
- * are shown, so "at least 30 g" keeps a recipe that shows 30.0 g. Case and
- * accents are folded. The order is kept.
+ * are shown, so "at least 30 g" keeps a recipe that shows 30.0 g. A typed
+ * word folds case and accents. A tag asked for is compared as a tag is kept,
+ * without case and with its accents (`tagKey`), so the chip "Häät" lists no
+ * recipe tagged "Haat". The order is kept.
  */
 export function filterRecipes<R extends RecipeSummary>(
   recipes: readonly R[],
@@ -38,11 +40,11 @@ export function filterRecipes<R extends RecipeSummary>(
   const words = fold(filter.q ?? "")
     .split(/\s+/)
     .filter(Boolean);
-  const wanted = (filter.tags ?? []).map(fold);
+  const wanted = (filter.tags ?? []).map(tagKey);
   return recipes.filter((recipe) => {
     if (recipe.archived !== filter.archived) return false;
     if (filter.favourites === true && !recipe.favourite) return false;
-    const tags = recipe.tags.map(fold);
+    const tags = recipe.tags.map(tagKey);
     if (!wanted.every((tag) => tags.includes(tag))) return false;
     const text = fold(`${recipe.name} ${recipe.tags.join(" ")}`);
     if (!words.every((word) => text.includes(word))) return false;

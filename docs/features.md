@@ -24,7 +24,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Recipes
 
-- **[Recipes](features/recipes.md)**: a dish written once with its servings, ingredient lines that point at foods, lines not counted such as salt, a method, notes and tags, with figures per serving and for the whole recipe computed from its foods and never typed. A recipe reads at another number of servings, is found by words, tags and figures per serving, marked as a favourite, archived and deleted. A recipe goes on a day by servings, with one serving's figures taken when it is added, and its planned entries from today on follow later edits. A recipe that days use is hidden when deleted. A batch that came out different is logged as made, with its own lines and servings: its entries carry its figures, which no food or recipe edit changes, a copy of one plans the recipe again, and a batch can be saved as a new recipe. Recipes are kept and put on days through the API and by a connected assistant, with no screen of their own yet.
+- **[Recipes](features/recipes.md)**: a dish written once with its servings, ingredient lines that point at foods, lines not counted such as salt, a method, notes and tags, with figures per serving and for the whole recipe computed from its foods and never typed. A recipe reads at another number of servings, is found by words, tags and figures per serving, marked as a favourite, archived and deleted. A recipe goes on a day by servings, with one serving's figures taken when it is added, and its planned entries from today on follow later edits. A recipe that days use is hidden when deleted. A batch that came out different is logged as made, with its own lines and servings: its entries carry its figures, which no food or recipe edit changes, a copy of one plans the recipe again, and a batch can be saved as a new recipe. The Recipes tab lists them and makes them from foods in an editor, and a recipe's page shows its figures at any number of servings and puts servings on a day. A connected assistant keeps them, puts them on days and logs batches too, and a batch has no screen of its own yet.
 
 ## Connected AI
 
@@ -39,7 +39,8 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 - **[The app shell](app/shell.md)**: the frame every signed-in screen sits in, with the four tabs, the sheets and the toasts.
 - **[Day](app/day.md)**: one day, its two readings against the person's targets, and its entries to mark, change and remove.
-- **[Recipes](app/recipes.md)**: the saved meals and your own foods, to add, edit, archive and delete.
+- **[Recipes](app/recipes.md)**: the recipes, the saved meals and your own foods, each a segment with its search, to make, add, edit, archive and delete.
+- **[A recipe](app/recipe.md)**: one recipe, its figures at any number of servings, and putting servings on a day.
 - **[The log sheet](app/log-sheet.md)**: logging a food, a saved meal or an estimate to a day, logging a recent item again in one press, finding a food or a meal, looking up a barcode typed or scanned with the camera, reading its figures, and keeping foods and saved meals of your own.
 - **[Settings](app/settings.md)**: targets, the language of food names, the theme, sign-in methods, the account and the food data credit.
 - **[First run](app/first-run.md)**: the page that offers a new account its targets, once, before the tabs, and opens again from a day for a user with none.

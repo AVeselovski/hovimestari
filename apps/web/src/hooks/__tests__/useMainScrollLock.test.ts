@@ -41,6 +41,37 @@ describe("useMainScrollLock", () => {
     expect(main.scrollTop).toBe(120);
   });
 
+  // Measured in Chromium: a sheet's link leaves for another page, that page
+  // scrolls <main> to its top as it mounts, and the sheet's lock lets go
+  // after, when the address is already the new page's. The scroll event of
+  // that move has not fired yet, so the lock still remembers the old page.
+  it("leaves <main> where the next page put it when the page it held has been left", () => {
+    const before = window.location.pathname + window.location.search;
+    const { unmount } = renderHook(() => useMainScrollLock(true));
+    try {
+      window.history.pushState(null, "", "/recipes/one");
+      main.scrollTop = 0;
+      unmount();
+      expect(main.style.overflow).toBe("auto");
+      expect(main.scrollTop).toBe(0);
+    } finally {
+      window.history.replaceState(null, "", before);
+    }
+  });
+
+  it("puts the scroll back when only the address's query changed under the sheet", () => {
+    const before = window.location.pathname + window.location.search;
+    const { unmount } = renderHook(() => useMainScrollLock(true));
+    try {
+      window.history.replaceState(null, "", `${window.location.pathname}?date=2026-11-21`);
+      main.scrollTop = 999;
+      unmount();
+      expect(main.scrollTop).toBe(300);
+    } finally {
+      window.history.replaceState(null, "", before);
+    }
+  });
+
   it("does nothing while inactive", () => {
     renderHook(() => useMainScrollLock(false));
     expect(main.style.overflow).toBe("auto");

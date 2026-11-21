@@ -51,6 +51,7 @@ jest.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => "/",
 }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 
 jest.setTimeout(20_000);
 
@@ -92,6 +93,10 @@ it("a meal renamed on the Recipes tab shows renamed in the log sheet, from the o
   serveMeals([bowl]);
   const client = seededClient();
   const page = renderRecipes(client);
+  // Both lists are read, as a person who looked at either segment has them, before the reads are held.
+  fireEvent.click(screen.getByRole("tab", { name: "Foods" }));
+  await screen.findByText("Foods you add appear here.");
+  fireEvent.click(screen.getByRole("tab", { name: "Meals" }));
   const row = await waitFor(() => {
     const found = document.querySelector<HTMLElement>(`[data-meal-row="${bowl.id}"]`);
     if (!found) throw new Error("The meal row is not there yet");
@@ -136,6 +141,7 @@ it("a food renamed in the log sheet shows renamed on the Recipes tab, from the o
   day.unmount();
 
   renderRecipes(client);
+  fireEvent.click(screen.getByRole("tab", { name: "Foods" }));
   await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Barley bread"]));
   expect(client.getQueryData<FoodList>(queryKeys.foodOwn())?.foods.map((f) => [f.id, f.name])).toEqual([
     [rye.id, "Barley bread"],

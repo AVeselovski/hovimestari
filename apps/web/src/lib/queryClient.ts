@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient, type QueryState } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 
 /**
@@ -7,6 +7,23 @@ import { isAxiosError } from "axios";
  * late a write from another device shows up.
  */
 export const STALE = { live: 30_000, catalog: 5 * 60_000 } as const;
+
+/**
+ * Whether a cached read can open a form as it is: it holds an answer, read
+ * within the live stale time, not marked stale since and not being read
+ * again now. Otherwise the form's opener reads first, so a save never
+ * writes an older copy over a change made elsewhere.
+ */
+export function isFreshRead(
+  state: Pick<QueryState, "data" | "isInvalidated" | "fetchStatus" | "dataUpdatedAt"> | undefined,
+): boolean {
+  return (
+    state?.data !== undefined &&
+    !state.isInvalidated &&
+    state.fetchStatus === "idle" &&
+    Date.now() - state.dataUpdatedAt < STALE.live
+  );
+}
 
 /** One retry, only for a request that never got an answer. Never on a response (4xx, 5xx), a timeout or a cancel. */
 export function shouldRetry(failureCount: number, error: unknown): boolean {

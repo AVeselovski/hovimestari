@@ -4,7 +4,7 @@ import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput, dateHintId } from "@/components/ui/NativeDateInput";
-import { labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
+import { btnText, labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFailureLine } from "@/hooks/useFailureLine";
@@ -13,9 +13,11 @@ import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { isIsoDate } from "@/lib/localDate";
 import { foodDetailQuery } from "@/lib/queryOptions";
+import { isPlainPress, keepDayPlace, markOpenedInApp } from "@/lib/recipeNav";
 import type { Entry, ErrorCode } from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { GRAMS, switchUnit, type UnitChip } from "./amount";
 import { AmountField } from "./AmountField";
@@ -44,7 +46,12 @@ import { StateChoice } from "./StateChoice";
 // `entryFigures` on the entry's stored basis once it changes, so it is the
 // figure Save will store. Save sends only what changed, and closes the sheet
 // with a toast that can undo it. A failure keeps the sheet open with the
-// typed values and says why under the form.
+// typed values and says why under the form. A recipe entry has Open recipe
+// under its figures, which leaves for the recipe's page, and keeps the day's
+// place for the way back (lib/recipeNav.ts). While the sheet holds unsaved
+// changes it is dimmed and does nothing, as Escape, a drag and a press
+// outside do nothing then: only Cancel and Save leave a changed sheet. A
+// line beside it says so, "Save or cancel first.", and describes the link.
 // ---------------------------------------------------------------------------
 
 export interface EntrySheetProps extends FormSheetCallerProps {
@@ -297,6 +304,32 @@ export function EntrySheet({
             </p>
             {/* "Calories", as the estimate's own field and the Day tab's summary say. */}
             <MacroFigures figures={preview} estimate={entry.isEstimate} energyWord="calories" />
+            {entry.kind === "recipe" && entry.recipe && (
+              // The recipe's page, also for a recipe deleted since: it still opens from its entries.
+              <div className="mt-2 flex items-center gap-3">
+                <Link
+                  href={`/recipes/${entry.recipe.id}`}
+                  // With unsaved changes the sheet refuses every way out but Cancel and Save, and this one too.
+                  aria-disabled={dirty || undefined}
+                  aria-describedby={dirty ? `${id}-open-recipe-why` : undefined}
+                  onClick={(e) => {
+                    if (dirty) e.preventDefault();
+                    else if (isPlainPress(e)) {
+                      markOpenedInApp();
+                      keepDayPlace(entry.id);
+                    }
+                  }}
+                  data-open-recipe=""
+                  className={`${btnText} shrink-0`}
+                >
+                  {t("openRecipe")}
+                </Link>
+                {/* Beside the link, so it showing moves nothing in the sheet. */}
+                <p id={`${id}-open-recipe-why`} data-open-recipe-why="" className="min-w-0 text-sm text-ink-muted">
+                  {dirty ? t("openRecipeWaits") : null}
+                </p>
+              </div>
+            )}
           </div>
           <div>
             <label htmlFor={fieldId("date")} className={labelClass}>

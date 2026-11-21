@@ -4,18 +4,16 @@ import { EstimateSheet } from "@/components/log/EstimateSheet";
 import { SavedMealSheet } from "@/components/log/SavedMealSheet";
 import type { AddDone, EntryActions } from "@/hooks/entryActions";
 import type { SheetTarget } from "@/hooks/useSheetTarget";
-import type { FoodDetail, Portion, SavedMeal } from "@hovimestari/types";
+import type { Portion, SavedMeal } from "@hovimestari/types";
 import type { ReactElement, ReactNode } from "react";
-import { OwnFoodSheet, type OwnFoodTarget } from "./OwnFoodSheet";
 import { PortionSheet } from "./PortionSheet";
-import { ScannerSheet } from "./ScannerSheet";
-import type { Scanner } from "./scanner/useScanner";
 
 // ---------------------------------------------------------------------------
 // FoodSheetStack: every sheet stacked on the log sheet, in one place, so the
-// log sheet itself holds its views and nothing else: the barcode scanner, the
-// own-food and portion forms, the saved meal and estimate forms, and the
-// delete confirmations.
+// log sheet itself holds its views and nothing else: the food search's own
+// sheets (the barcode scanner and the own-food form, from `useFoodFinder`),
+// the portion form, the saved meal and estimate forms, and the delete
+// confirmations.
 // Each sheet is kept mounted while it slides out, from the `useSheetTarget`
 // the log sheet owns and passes in. Rendered in the log sheet's `stacked`
 // slot, so each is a nested sheet and the log sheet recedes behind it.
@@ -51,9 +49,8 @@ export interface StackLogging {
 }
 
 export interface FoodSheetStackProps {
-  /** The barcode scanner, from `useScanner`. */
-  scanner: Scanner;
-  ownSheet: SheetTarget<OwnFoodTarget>;
+  /** The food search's scanner and own-food sheets, `useFoodFinder`'s `stacked`. */
+  finder: ReactElement;
   portionSheet: SheetTarget<PortionTarget>;
   mealSheet: SheetTarget<MealSheetTarget>;
   /** The estimate sheet, opened on a name to start from. */
@@ -61,10 +58,6 @@ export interface FoodSheetStackProps {
   logging: StackLogging;
   /** The delete confirmations, from `useConfirmedDelete`. */
   confirmation: ReactNode;
-  /** An own food was saved. */
-  onSavedFood: (food: FoodDetail) => void;
-  /** The own food open in the own-food sheet was deleted from it, and that sheet has closed itself. */
-  onDeletedFood: (id: string) => void;
   /** The food a stacked sheet works on turned out to be gone. */
   onFoodGone: (id: string) => void;
   /** Where focus goes after a portion is deleted. */
@@ -72,43 +65,18 @@ export interface FoodSheetStackProps {
 }
 
 export function FoodSheetStack({
-  scanner,
-  ownSheet,
+  finder,
   portionSheet,
   mealSheet,
   estimateSheet,
   logging,
   confirmation,
-  onSavedFood,
-  onDeletedFood,
   onFoodGone,
   focusAfterPortionDelete,
 }: FoodSheetStackProps): ReactElement {
   return (
     <>
-      {scanner.sheet.shown && (
-        <ScannerSheet
-          key={`scanner-${scanner.sheet.shown.key}`}
-          open={scanner.sheet.isOpen}
-          returnFocusTo={scanner.sheet.shown.opener}
-          restoreFocusOnClose={scanner.restoreFocusOnClose}
-          onClose={scanner.sheet.close}
-          onRead={scanner.onRead}
-          onTypeNumber={scanner.onTypeNumber}
-        />
-      )}
-      {ownSheet.shown && (
-        <OwnFoodSheet
-          key={`own-${ownSheet.shown.key}`}
-          open={ownSheet.isOpen}
-          returnFocusTo={ownSheet.shown.opener}
-          onClose={ownSheet.close}
-          {...ownSheet.shown.value}
-          onSavedFood={onSavedFood}
-          onDeleted={onDeletedFood}
-          onFoodGone={onFoodGone}
-        />
-      )}
+      {finder}
       {portionSheet.shown && (
         <PortionSheet
           key={`portion-${portionSheet.shown.key}`}

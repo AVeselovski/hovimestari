@@ -68,6 +68,17 @@ export function getErrorValues(err: unknown): Record<string, string | number> {
   );
 }
 
+/**
+ * The recipe line a refusal is about, by its index from 0 in the lines sent,
+ * so the editor puts the refusal under that ingredient. Undefined for a
+ * refusal that names no line.
+ */
+export function getErrorLine(err: unknown): number | undefined {
+  if (!axios.isAxiosError(err)) return undefined;
+  const line = (err.response?.data as { line?: unknown } | undefined)?.line;
+  return typeof line === "number" && Number.isInteger(line) && line >= 0 ? line : undefined;
+}
+
 /** The HTTP status of a failed call, or undefined for one that never got an answer. */
 export function getErrorStatus(err: unknown): number | undefined {
   if (err instanceof AuthRequestError) return err.status;
