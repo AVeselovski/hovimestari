@@ -36,6 +36,7 @@ export const ASSISTANT_CHANGE_ACTIONS = [
   "recipe.restored",
   "recipe.favourite_set",
   "recipe.favourite_unset",
+  "cook.logged",
 ] as const;
 
 export const AssistantChangeActionSchema = z.enum(ASSISTANT_CHANGE_ACTIONS);
@@ -47,7 +48,9 @@ export const DELETION_STATUSES = ["pending", "approved", "declined", "gone", "wi
  * An entry in a change's summary, with the values the answer had. A food's
  * amount is its grams, or a count of a portion with the portion's label and
  * the grams it came to. A saved meal's is its count, a recipe's its
- * servings. An estimate has none.
+ * servings, with `asMade` true when the servings come from a batch logged as
+ * made. Rows recorded before cooks existed have no `asMade`. An estimate has
+ * none.
  * The portion form is listed first, because a union takes the first form
  * that fits and would read a portion amount as grams alone.
  *
@@ -70,7 +73,7 @@ export const AssistantEntryLineSchema = z.object({
         grams: z.number(),
       }),
       z.object({ grams: z.number() }),
-      z.object({ servings: z.number() }),
+      z.object({ servings: z.number(), asMade: z.boolean().optional() }),
       z.object({ count: z.number() }),
     ])
     .nullable(),
@@ -123,17 +126,20 @@ export const RecipeLineChangeSchema = z.object({
  * after, of the steps reworded in place, and whether the steps both sides
  * hold moved. A create adds every step. The notes say only how they changed.
  */
+/** The lines a change set: the ones added, removed and changed, and whether the kept ones moved. */
+export const RecipeLinesChangeSchema = z.object({
+  field: z.literal("lines"),
+  added: z.array(RecipeLineRecordSchema),
+  removed: z.array(RecipeLineRecordSchema),
+  changed: z.array(RecipeLineChangeSchema),
+  reordered: z.boolean(),
+});
+
 export const RecipeFieldChangeSchema = z.discriminatedUnion("field", [
   z.object({ field: z.literal("name"), from: z.string(), to: z.string() }),
   z.object({ field: z.literal("servings"), from: z.number().int().nullable(), to: z.number().int() }),
   z.object({ field: z.literal("time"), from: z.number().int().nullable(), to: z.number().int().nullable() }),
-  z.object({
-    field: z.literal("lines"),
-    added: z.array(RecipeLineRecordSchema),
-    removed: z.array(RecipeLineRecordSchema),
-    changed: z.array(RecipeLineChangeSchema),
-    reordered: z.boolean(),
-  }),
+  RecipeLinesChangeSchema,
   z.object({
     field: z.literal("steps"),
     from: z.number().int().nonnegative().nullable(),
@@ -146,6 +152,26 @@ export const RecipeFieldChangeSchema = z.discriminatedUnion("field", [
   z.object({ field: z.literal("notes"), change: TextChangeSchema }),
   z.object({ field: z.literal("tags"), from: z.array(z.string()).nullable(), to: z.array(z.string()) }),
 ]);
+
+/**
+ * What a batch logged as made changed from its recipe, as `cookDiff` counts
+ * a change: the servings it gave beside the recipe's, and its lines, a recipe
+ * line it left out under `removed`. A line is changed only in its food, its
+ * grams, its amount as written or its name. Its parts read as a recipe
+ * line's change. A changed line holds no note: a note is never a change of a
+ * batch, so the record's type has no place for one.
+ */
+export const CookLinesChangeSchema = RecipeLinesChangeSchema.extend({
+  changed: z.array(RecipeLineChangeSchema.omit({ note: true })),
+});
+
+export const CookFieldChangeSchema = z.discriminatedUnion("field", [
+  z.object({ field: z.literal("servings"), from: z.number().int(), to: z.number().int() }),
+  CookLinesChangeSchema,
+]);
+
+/** An entry a batch fed: `attached` when it was already on its day and the batch took it, false when the batch added it. */
+export const CookEntryLineSchema = AssistantEntryLineSchema.extend({ attached: z.boolean() });
 
 /**
  * What a person needs to read one line of the record. Values as the change's
@@ -174,7 +200,25 @@ export const AssistantChangeSummarySchema = z.discriminatedUnion("entity", [
   }),
   z.object({ entity: z.literal("saved_meal"), name: z.string(), changes: z.array(AssistantFieldChangeSchema) }),
   // recipe.created, recipe.changed, recipe.archived, recipe.restored, recipe.favourite_set, recipe.favourite_unset
-  z.object({ entity: z.literal("recipe"), name: z.string(), changes: z.array(RecipeFieldChangeSchema) }),
+  // `fromCook`, on a recipe saved from a batch only: the batch's recipe and the day it was made.
+  z.object({
+    entity: z.literal("recipe"),
+    name: z.string(),
+    changes: z.array(RecipeFieldChangeSchema),
+    fromCook: z.object({ recipeName: z.string(), date: IsoDateSchema }).optional(),
+  }),
+  // cook.logged: the batch, the day it was made and the servings it gave,
+  // what differs from its recipe as the recipe was then, the names of the
+  // lines it wrote a note of its own on, and the entries it fed.
+  z.object({
+    entity: z.literal("cook"),
+    recipeName: z.string(),
+    date: IsoDateSchema,
+    servings: z.number().int(),
+    changes: z.array(CookFieldChangeSchema),
+    lineNotes: z.array(z.string()),
+    entries: z.array(CookEntryLineSchema),
+  }),
   z.object({
     entity: z.literal("targets"),
     effectiveFrom: IsoDateSchema,
@@ -231,6 +275,8 @@ export type AssistantFieldChange = z.infer<typeof AssistantFieldChangeSchema>;
 export type RecipeLineRecord = z.infer<typeof RecipeLineRecordSchema>;
 export type RecipeLineChange = z.infer<typeof RecipeLineChangeSchema>;
 export type RecipeFieldChange = z.infer<typeof RecipeFieldChangeSchema>;
+export type CookFieldChange = z.infer<typeof CookFieldChangeSchema>;
+export type CookEntryLine = z.infer<typeof CookEntryLineSchema>;
 export type AssistantChangeSummary = z.infer<typeof AssistantChangeSummarySchema>;
 export type AssistantChange = z.infer<typeof AssistantChangeSchema>;
 export type AssistantChangePageQuery = z.input<typeof AssistantChangePageQuerySchema>;

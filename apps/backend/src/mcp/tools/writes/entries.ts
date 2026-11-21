@@ -81,10 +81,14 @@ export const logSavedMealTool = defineWriteTool({
 export const logRecipeTool = defineWriteTool({
   name: "log_recipe",
   description:
-    "Log or plan a recipe on a day, by servings. The figures are one serving of the recipe as it is now, times the servings. Planned entries from today on follow later edits of the recipe.",
+    "Log or plan a recipe on a day, by servings. The figures are one serving of the recipe as it is now, times the servings. Planned entries from today on follow later edits of the recipe. With cookId, the servings come from a batch logged as made and carry that batch's figures, which no edit of the recipe or its foods changes.",
   inputSchema: writeInput({
     recipeId: z.uuid().describe("The recipe's id, from list_recipes or get_recipe."),
     servings: EntryCountSchema.describe("How many servings, such as 1 or 1.5."),
+    cookId: z
+      .uuid()
+      .optional()
+      .describe("Optional: a batch of this recipe logged as made, from log_cook or cook.id on an entry from get_day."),
     date: DayDate,
     status: Status,
   }),
@@ -172,7 +176,7 @@ export const setEntriesStatusTool = defineWriteTool({
 export const copyEntriesTool = defineWriteTool({
   name: "copy_entries",
   description:
-    "Copy entries to another day. Every copy is planned, with the figures of the entry it copies, and the copies keep the order the entries have on their days.",
+    "Copy entries to another day. Every copy is planned, with the figures of the entry it copies, and the copies keep the order the entries have on their days. A copy of an entry from a cook plans its recipe again, with the recipe's figures now and no cook.",
   inputSchema: writeInput({
     entryIds: EntryIdSet("The entries to copy"),
     toDate: DayDate.describe("The day to copy to, YYYY-MM-DD, or today."),

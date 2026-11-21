@@ -106,6 +106,10 @@ export const ERROR_CODES = [
   "line_name_too_long",
   "line_note_too_long",
   "written_amount_invalid",
+  "cook_not_found",
+  "cook_id_taken",
+  "cook_entries_required",
+  "cook_entry_invalid",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

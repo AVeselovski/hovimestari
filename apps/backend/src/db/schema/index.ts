@@ -1,5 +1,6 @@
 export * from "./assistantChanges.js";
 export * from "./assistantConnections.js";
+export * from "./cooks.js";
 export * from "./entries.js";
 export * from "./foods.js";
 export * from "./password-reset-tokens.js";

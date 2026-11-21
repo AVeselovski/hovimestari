@@ -117,7 +117,8 @@ export const WrittenAmountSchema = z.strictObject(
   { error: "written_amount_invalid" },
 );
 
-const countedFields = {
+/** The fields of a counted line, beside its id. A cook's line adds its own. */
+export const countedLineFields = {
   counted: z.literal(true),
   foodId: z.uuid(),
   /** `{ grams }`, or `{ portionId, count }`, a count of one of the food's portions, as an entry takes it. */
@@ -126,7 +127,8 @@ const countedFields = {
   note: LineNoteSchema.nullable().default(null),
 };
 
-const notCountedFields = {
+/** The fields of a line not counted, beside its id. */
+export const notCountedLineFields = {
   counted: z.literal(false),
   name: LineNameSchema,
   written: WrittenAmountSchema.nullable().default(null),
@@ -140,7 +142,7 @@ const notCountedFields = {
  */
 export const IngredientLineBodySchema = z.discriminatedUnion(
   "counted",
-  [z.strictObject({ id: z.uuid(), ...countedFields }), z.strictObject({ id: z.uuid(), ...notCountedFields })],
+  [z.strictObject({ id: z.uuid(), ...countedLineFields }), z.strictObject({ id: z.uuid(), ...notCountedLineFields })],
   { error: "invalid_request" },
 );
 
@@ -148,13 +150,14 @@ export const IngredientLineBodySchema = z.discriminatedUnion(
 export const IngredientLineDraftSchema = z.discriminatedUnion(
   "counted",
   [
-    z.strictObject({ id: z.uuid().optional(), ...countedFields }),
-    z.strictObject({ id: z.uuid().optional(), ...notCountedFields }),
+    z.strictObject({ id: z.uuid().optional(), ...countedLineFields }),
+    z.strictObject({ id: z.uuid().optional(), ...notCountedLineFields }),
   ],
   { error: "invalid_request" },
 );
 
-const linesOf = <L extends z.ZodType>(line: L) =>
+/** 1 to 60 lines of `line`. */
+export const linesOf = <L extends z.ZodType>(line: L) =>
   z
     .array(line, { error: "recipe_lines_required" })
     .min(1, { error: "recipe_lines_required" })

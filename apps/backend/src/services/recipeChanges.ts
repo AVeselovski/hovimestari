@@ -1,4 +1,12 @@
-import type { Recipe, RecipeFieldChange, RecipeLine, RecipeLineChange, RecipeLineRecord } from "@hovimestari/types";
+import type {
+  Cook,
+  CookFieldChange,
+  Recipe,
+  RecipeFieldChange,
+  RecipeLine,
+  RecipeLineChange,
+  RecipeLineRecord,
+} from "@hovimestari/types";
 import { isDeepStrictEqual } from "node:util";
 
 // ---------------------------------------------------------------------------
@@ -183,4 +191,54 @@ export function editedChanges(before: Recipe, after: Recipe): RecipeFieldChange[
     isDeepStrictEqual(before.tags, after.tags) ? null : { field: "tags", from: before.tags, to: after.tags },
   ];
   return changes.filter((c) => c !== null);
+}
+
+/** What the record keeps of a batch against its recipe. */
+export interface CookRecord {
+  changes: CookFieldChange[];
+  lineNotes: string[];
+}
+
+/**
+ * What a batch logged as made changed from its recipe as the recipe was
+ * then, as the batch's `diff` counts a change, so the record and the day's
+ * `differs` say the same thing: its servings when they differ, the lines it
+ * added, the recipe lines it left out (under `removed`), and each line
+ * `cookDiff` names as changed, with its parts as a recipe line's change. A
+ * line's portion counts only beside its grams, and its note never: the same
+ * grams typed another way made the same dish. `lineNotes` names apart the
+ * lines on which the batch wrote a note of its own, a line it added and a
+ * line from the recipe alike, since the assistant sent one, without calling
+ * it a change from the recipe.
+ */
+export function cookChanges(recipe: Recipe, cook: Cook): CookRecord {
+  const recipeLines = new Map(recipe.lines.map((l) => [l.id, l]));
+  const cookLines = new Map(cook.lines.map((l) => [l.id, l]));
+  const { diff } = cook;
+  const added = new Set(diff.added);
+  const leftOut = new Set(diff.leftOut);
+  const changed = diff.changed.map(({ lineId, fromLineId, fields }): RecipeLineChange => {
+    const line: RecipeLine = { ...cookLines.get(lineId)!, id: fromLineId };
+    const change = lineChange(recipeLines.get(fromLineId)!, line) ?? { name: lineName(line) };
+    delete change.note;
+    if (!fields.includes("amount")) delete change.portion;
+    return change;
+  });
+  const lines: CookFieldChange = {
+    field: "lines",
+    added: cook.lines.filter((l) => added.has(l.id)).map(lineRecord),
+    removed: recipe.lines.filter((l) => leftOut.has(l.id)).map(lineRecord),
+    changed,
+    reordered: false,
+  };
+  const changes: (CookFieldChange | null)[] = [
+    diff.servings === null ? null : { field: "servings", from: diff.servings.recipe, to: diff.servings.cook },
+    lines.added.length + lines.removed.length + lines.changed.length > 0 ? lines : null,
+  ];
+  const noted = cook.lines.filter((l) => {
+    if (l.note === null) return false;
+    if (l.fromLineId === null || added.has(l.id)) return true;
+    return l.note !== recipeLines.get(l.fromLineId)?.note;
+  });
+  return { changes: changes.filter((c) => c !== null), lineNotes: noted.map(lineName) };
 }

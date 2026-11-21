@@ -4,6 +4,7 @@ import {
   scaleRecipe,
   sortRecipes,
   type FineliPortionUnit,
+  type FoodSource,
   type IngredientUnit,
   type Recipe,
   type RecipeFilter,
@@ -44,60 +45,91 @@ const hintedPortion = (userId: string) =>
     portionVisibleTo(userId),
   );
 
+/** The columns a recipe line and a cook line share, as a line read maps them. */
+type LineColumns = Pick<
+  typeof recipeIngredients.$inferSelect,
+  | "id"
+  | "position"
+  | "foodId"
+  | "grams"
+  | "portionCount"
+  | "portionUnit"
+  | "portionName"
+  | "name"
+  | "writtenAmount"
+  | "writtenUnit"
+  | "note"
+>;
+
+/** What a line read joins beside the line: its food as the app reads it, and its portion when the hint holds. */
+export const lineJoinColumns = (userId: string) => ({
+  foodName: displayName(userId),
+  foodSource: foods.source,
+  energyKcal: foods.energyKcal,
+  proteinG: foods.proteinG,
+  carbsG: foods.carbsG,
+  fatG: foods.fatG,
+  foodRetired: sql<boolean>`${foods.retiredAt} IS NOT NULL`,
+  foodDeleted: sql<boolean>`${foods.deletedAt} IS NOT NULL`,
+  portionId: foodPortions.id,
+});
+
+type LineJoin = {
+  foodName: string;
+  foodSource: FoodSource | null;
+  energyKcal: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  foodRetired: boolean;
+  foodDeleted: boolean;
+  portionId: string | null;
+};
+
+/** A recipe's or a cook's line row, with what it joined, as the API shows a line. */
+export function lineOf(l: LineColumns, r: LineJoin): RecipeLine {
+  return {
+    id: l.id,
+    position: l.position,
+    counted: l.foodId !== null,
+    food:
+      l.foodId === null
+        ? null
+        : {
+            id: l.foodId,
+            name: r.foodName,
+            source: r.foodSource!,
+            per100g: { energyKcal: r.energyKcal!, proteinG: r.proteinG!, carbsG: r.carbsG!, fatG: r.fatG! },
+            retired: r.foodRetired,
+            deleted: r.foodDeleted,
+          },
+    name: l.name,
+    grams: l.grams,
+    portion:
+      l.portionCount === null
+        ? null
+        : {
+            id: r.portionId,
+            unit: l.portionUnit as FineliPortionUnit | null,
+            name: l.portionName,
+            count: l.portionCount,
+          },
+    written: l.writtenAmount === null ? null : { amount: l.writtenAmount, unit: l.writtenUnit as IngredientUnit },
+    note: l.note,
+  };
+}
+
 /** The lines of `recipeIds`, in order, with their foods as the app reads them. */
 async function linesOf(ctx: ReadContext, recipeIds: string[]): Promise<Map<string, RecipeLine[]>> {
   const rows = await ctx.db
-    .select({
-      line: recipeIngredients,
-      foodName: displayName(ctx.userId),
-      foodSource: foods.source,
-      energyKcal: foods.energyKcal,
-      proteinG: foods.proteinG,
-      carbsG: foods.carbsG,
-      fatG: foods.fatG,
-      foodRetired: sql<boolean>`${foods.retiredAt} IS NOT NULL`,
-      foodDeleted: sql<boolean>`${foods.deletedAt} IS NOT NULL`,
-      portionId: foodPortions.id,
-    })
+    .select({ line: recipeIngredients, ...lineJoinColumns(ctx.userId) })
     .from(recipeIngredients)
     .leftJoin(foods, eq(foods.id, recipeIngredients.foodId))
     .leftJoin(foodPortions, hintedPortion(ctx.userId))
     .where(and(eq(recipeIngredients.userId, ctx.userId), inArray(recipeIngredients.recipeId, recipeIds)))
     .orderBy(asc(recipeIngredients.recipeId), asc(recipeIngredients.position));
   const byRecipe = new Map<string, RecipeLine[]>();
-  for (const r of rows) {
-    const l = r.line;
-    const line: RecipeLine = {
-      id: l.id,
-      position: l.position,
-      counted: l.foodId !== null,
-      food:
-        l.foodId === null
-          ? null
-          : {
-              id: l.foodId,
-              name: r.foodName,
-              source: r.foodSource!,
-              per100g: { energyKcal: r.energyKcal!, proteinG: r.proteinG!, carbsG: r.carbsG!, fatG: r.fatG! },
-              retired: r.foodRetired,
-              deleted: r.foodDeleted,
-            },
-      name: l.name,
-      grams: l.grams,
-      portion:
-        l.portionCount === null
-          ? null
-          : {
-              id: r.portionId,
-              unit: l.portionUnit as FineliPortionUnit | null,
-              name: l.portionName,
-              count: l.portionCount,
-            },
-      written: l.writtenAmount === null ? null : { amount: l.writtenAmount, unit: l.writtenUnit as IngredientUnit },
-      note: l.note,
-    };
-    byRecipe.set(l.recipeId, [...(byRecipe.get(l.recipeId) ?? []), line]);
-  }
+  for (const r of rows) byRecipe.set(r.line.recipeId, [...(byRecipe.get(r.line.recipeId) ?? []), lineOf(r.line, r)]);
   return byRecipe;
 }
 

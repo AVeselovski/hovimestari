@@ -1,3 +1,4 @@
+import { logCookTool, saveCookAsRecipeTool } from "./cooks.js";
 import {
   copyEntriesTool,
   logEstimateTool,
@@ -45,6 +46,8 @@ export const WRITE_TOOLS: readonly AnyWriteTool[] = [
   updateRecipeTool,
   setRecipeArchivedTool,
   setRecipeFavouriteTool,
+  logCookTool,
+  saveCookAsRecipeTool,
   setTargetsTool,
   removeTargetsTool,
 ];
