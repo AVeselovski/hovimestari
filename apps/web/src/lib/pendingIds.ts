@@ -6,7 +6,7 @@ import type { QueryClient } from "@tanstack/react-query";
 // The ids of one-tap adds that are not confirmed yet (docs/design/
 // days-and-logging.md, section e). An add carries an id the app chose, so
 // the server applies a request sent twice once. A "+" keeps its id under the
-// key of what it adds (the date, the kind and the food or meal), so a second
+// key of what it adds (the date, the kind and the food, meal or recipe), so a second
 // press after a timeout resends the same id and cannot add a second entry.
 //
 // An id is let go by the first of:
@@ -57,7 +57,7 @@ function pendingOf(client: QueryClient): Map<string, Pending> {
 }
 
 /** The key a one-tap add keeps its id under. */
-export function pendingKey(date: string, kind: "food" | "saved_meal", sourceId: string): string {
+export function pendingKey(date: string, kind: "food" | "saved_meal" | "recipe", sourceId: string): string {
   return `${date}|${kind}|${sourceId}`;
 }
 

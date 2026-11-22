@@ -26,9 +26,13 @@ const slotButton = `absolute top-0.5 right-0.5 inline-flex size-11 items-center 
  * Empty, the same slot holds a camera button that opens the scanner
  * (`onScan`), where the browser can ask for a camera.
  * Enter puts the keyboard away, so the results show in full, and runs
- * `onEnter` when the sheet gives one, such as the lookup of a typed barcode. Its placeholder
- * is its own label, "Search foods and meals", the one field in the app that
- * has one: it says what the field searches, never a value to type.
+ * `onEnter` when the sheet gives one, such as the lookup of a typed barcode. It is the one
+ * field in the app with a placeholder, which says what the field searches, never a value
+ * to type: "Foods, meals and recipes" under the label "Search foods, meals and recipes",
+ * since the magnifier already says search and the shorter words fit a phone 320 px wide.
+ * A host that searches something else gives one text for both. A placeholder too long for
+ * its field ends in an ellipsis rather than mid-letter. The label a screen reader reads is
+ * always whole.
  */
 export function SearchField({
   id,
@@ -74,7 +78,7 @@ export function SearchField({
         autoCapitalize="none"
         spellCheck={false}
         value={value}
-        placeholder={name}
+        placeholder={label ?? t("searchPlaceholder")}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;
@@ -82,7 +86,7 @@ export function SearchField({
           onEnter?.();
         }}
         autoFocus={autoFocus}
-        className={`${inputClass} pr-12 pl-11`}
+        className={`${inputClass} pr-12 pl-11 text-ellipsis placeholder:text-ellipsis`}
       />
       {value !== "" ? (
         <button

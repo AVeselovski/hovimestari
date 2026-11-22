@@ -6,39 +6,64 @@ import {
   chip,
   chipOff,
   chipOn,
+  chipRowEnd,
+  chipRowPinnedEnd,
+  chipRowScroller,
   fieldHintClass,
   listLine,
   listLineFrame,
-  sheetChipRowWrapping,
 } from "@/components/ui/styles";
+import { useSheetTarget } from "@/hooks/useSheetTarget";
+import { useToday } from "@/hooks/useToday";
+import { formatDayShort } from "@/lib/localDate";
 import { recipesQuery } from "@/lib/queryOptions";
-import { forgetListPlace, keepListPlace, scrollPageTo, takeOpenedInApp, type ListPlace } from "@/lib/recipeNav";
+import {
+  forgetListPlace,
+  keepListPlace,
+  scrollPageTo,
+  scrollPageToTop,
+  takeOpenedInApp,
+  type ListPlace,
+} from "@/lib/recipeNav";
 import { filterRecipes, MAX_RECIPE_TAGS, sortRecipes, type RecipeSummary } from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type RefObject } from "react";
+import { RecipeFilterSheet } from "./RecipeFilterSheet";
+import { boundCount, filterCount, NO_FILTER, type ListFilter } from "./recipeListFilter";
 import { RECIPE_ROW_ATTRIBUTE, RecipeRow } from "./RecipeRow";
 import { sameTag, tagsInUse } from "./tags";
 
 // ---------------------------------------------------------------------------
 // RecipeList: the Recipes tab's recipes segment, under its action and its
 // search field. A row of chips, Favourites and each tag the recipes use in
-// Finnish order, narrows the list: every chip chosen must hold. The chip
-// row is drawn from the first frame, Favourites at least, so the tags joining
-// it as the list answers move nothing under it. Then the recipes by name,
-// filtered on the device with the shared `filterRecipes` as each key is
-// typed, then Archived recipes, opened in place and read on its first open.
+// Finnish order, narrows the list: every chip chosen must hold. The row ends
+// in Filter, which keeps its place at the row's end, one width with and
+// without its count, while the chips before it scroll on a phone and wrap
+// from `md`. It opens the filter sheet (`RecipeFilterSheet`): the order
+// of the list and bounds on a serving's protein and calories. While a bound
+// or an order other than by name is in force, Filter reads "Filter · 2", the
+// count of them, and is drawn as chosen. The chip row is drawn from the first
+// frame, Favourites and Filter at least, so the tags joining it as the list
+// answers move nothing under it. Then the recipes, filtered and sorted on the
+// device with the shared `filterRecipes` and `sortRecipes` as each key is
+// typed, then Archived recipes, by name, opened in place and read on its
+// first open. In the order of the latest day, a row says that day.
 //
 // A row pressed keeps the list as it is for the way back: the search, the
-// chips, whether Archived recipes is open, the scroll and the row
-// (lib/recipeNav.ts). Back from the recipe, the list opens on all of it
-// (`arrival`), with focus on that row. After a delete the row named takes
-// focus and is brought into view, in the middle of the page, clear of the
-// title above and the tab bar below.
+// chips, the order and the bounds, whether Archived recipes is open, the
+// scroll and the row (lib/recipeNav.ts). Back from the recipe, the list
+// opens on all of it (`arrival`), with focus on that row. After a delete the
+// row named takes focus and is brought into view, in the middle of the page,
+// clear of the title above and the tab bar below. A kept place's scroll and
+// focus are used only when the recipes are there as the list first shows. A
+// list that answers later keeps its search, chips and filter and opens at
+// its top, so nothing is taken from a person already typing.
 //
 // While the list loads it keeps one line's room. An empty list, a list that
 // cannot be read and a search that matches none each say so in a line, the
-// last with Clear search and filters.
+// last with Clear search and filters, which also puts the order back to by
+// name, as the filter sheet's Clear does.
 // ---------------------------------------------------------------------------
 
 export interface RecipeListProps {
@@ -75,7 +100,20 @@ export function RecipeList({ query, onClearQuery, newRecipe, arrival }: RecipeLi
   const [favourites, setFavourites] = useState(place?.favourites ?? false);
   const [tags, setTags] = useState<string[]>(place?.tags ?? []);
   const [archivedOpen, setArchivedOpen] = useState(place?.archivedOpen ?? false);
+  const [filter, setFilter] = useState<ListFilter>({ sort: place?.sort ?? "name", bounds: place?.bounds ?? {} });
+  const filterSheet = useSheetTarget();
+  const { today } = useToday();
   const rootRef = useRef<HTMLDivElement>(null);
+
+  // A kept place is used only when the recipes are there as the list first shows.
+  const [placeInTime] = useState(recipes !== undefined);
+  useLayoutEffect(() => {
+    if (place === null || placeInTime) return;
+    // Let go unused: the list opens at its top, and takes neither the scroll nor the focus when it answers.
+    forgetListPlace();
+    scrollPageToTop();
+    // Once, as the list mounts.
+  }, []);
 
   const placed = useRef(false);
   useLayoutEffect(() => {
@@ -90,19 +128,21 @@ export function RecipeList({ query, onClearQuery, newRecipe, arrival }: RecipeLi
       const target = rowOf(focusTarget) ?? newRecipe.current;
       target?.focus({ preventScroll: true });
       target?.scrollIntoView({ block: "center" });
-    } else if (place !== null) {
+    } else if (place !== null && placeInTime) {
       scrollPageTo(place.top);
       rowOf(place.rowId)?.focus({ preventScroll: true });
     }
-  }, [focusTarget, place, recipes, newRecipe]);
+  }, [focusTarget, place, placeInTime, recipes, newRecipe]);
 
   /** A row is leaving for its recipe: the list as it is stays with this history entry. */
-  const leave = (rowId: string): void => keepListPlace({ query, favourites, tags, archivedOpen, rowId });
+  const leave = (rowId: string): void =>
+    keepListPlace({ query, favourites, tags, sort: filter.sort, bounds: filter.bounds, archivedOpen, rowId });
 
   const usedTags = tagsInUse(recipes ?? []);
   // A chosen tag stays a chip while chosen, also once no recipe holds it any more.
   const tagChips = [...usedTags, ...tags.filter((tag) => !usedTags.some((u) => sameTag(u, tag)))];
-  const narrowed = favourites || tags.length > 0;
+  const narrowed = favourites || tags.length > 0 || boundCount(filter.bounds) > 0;
+  const inForce = filterCount(filter);
   const shown =
     recipes === undefined
       ? undefined
@@ -112,50 +152,79 @@ export function RecipeList({ query, onClearQuery, newRecipe, arrival }: RecipeLi
             q: query,
             tags: tags.length > 0 ? tags : undefined,
             favourites: favourites || undefined,
+            ...filter.bounds,
           }),
-          "name",
+          filter.sort,
         );
+  /** The row's third line while the list is in the order of the latest day. */
+  const lastOn = (recipe: RecipeSummary): string | undefined =>
+    filter.sort !== "lastPutOn"
+      ? undefined
+      : recipe.lastPutOn === null
+        ? t("notOnDay")
+        : t("onDay", { date: formatDayShort(recipe.lastPutOn, undefined, today ?? undefined) });
 
   function clearAll(): void {
     setFavourites(false);
     setTags([]);
+    // By name with no bound, as the filter sheet's Clear leaves it, so Filter reads plain after either.
+    setFilter(NO_FILTER);
     onClearQuery();
   }
 
   return (
     <div ref={rootRef} data-recipe-list="">
-      <div role="group" aria-label={t("chips")} className={`${sheetChipRowWrapping} mb-4`}>
+      <div data-recipe-chips="" className={`${chipRowPinnedEnd} mb-4`}>
+        {/* The group holds the chips that narrow the list. Filter opens a dialog, so it stands outside it. */}
+        <div role="group" aria-label={t("chips")} className={chipRowScroller}>
+          <button
+            type="button"
+            aria-pressed={favourites}
+            onClick={() => setFavourites((on) => !on)}
+            className={`${chip} ${favourites ? chipOn : chipOff}`}
+          >
+            {t("favourites")}
+          </button>
+          {tagChips.map((tag) => {
+            const on = tags.some((chosen) => sameTag(chosen, tag));
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  setTags((chosen) =>
+                    on
+                      ? chosen.filter((x) => !sameTag(x, tag))
+                      : chosen.length < CHOSEN_LIMIT
+                        ? [...chosen, tag]
+                        : chosen,
+                  )
+                }
+                title={tag}
+                className={`${chip} ${on ? chipOn : chipOff}`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
-          aria-pressed={favourites}
-          onClick={() => setFavourites((on) => !on)}
-          className={`${chip} ${favourites ? chipOn : chipOff}`}
+          aria-haspopup="dialog"
+          data-recipe-filter=""
+          onClick={(e) => filterSheet.open(e.currentTarget)}
+          className={`${chip} ${chipRowEnd} ${inForce > 0 ? chipOn : chipOff}`}
         >
-          {t("favourites")}
+          {inForce > 0 ? (
+            <>
+              <span aria-hidden="true">{t("filterCount", { count: inForce })}</span>
+              <span className="sr-only">{t("filterSaid", { count: inForce })}</span>
+            </>
+          ) : (
+            t("filter")
+          )}
         </button>
-        {tagChips.map((tag) => {
-          const on = tags.some((chosen) => sameTag(chosen, tag));
-          return (
-            <button
-              key={tag}
-              type="button"
-              aria-pressed={on}
-              onClick={() =>
-                setTags((chosen) =>
-                  on
-                    ? chosen.filter((x) => !sameTag(x, tag))
-                    : chosen.length < CHOSEN_LIMIT
-                      ? [...chosen, tag]
-                      : chosen,
-                )
-              }
-              title={tag}
-              className={`${chip} ${on ? chipOn : chipOff}`}
-            >
-              {tag}
-            </button>
-          );
-        })}
       </div>
       <section aria-labelledby={`${id}-title`}>
         <h2 id={`${id}-title`} className="sr-only">
@@ -178,7 +247,7 @@ export function RecipeList({ query, onClearQuery, newRecipe, arrival }: RecipeLi
         ) : (
           <ul data-list="recipes">
             {shown.map((recipe) => (
-              <RecipeRow key={recipe.id} recipe={recipe} onLeave={leave} />
+              <RecipeRow key={recipe.id} recipe={recipe} onLeave={leave} lastOn={lastOn(recipe)} />
             ))}
           </ul>
         )}
@@ -197,6 +266,16 @@ export function RecipeList({ query, onClearQuery, newRecipe, arrival }: RecipeLi
         />
       </button>
       <div id={`${id}-archived`}>{archivedOpen && <ArchivedRecipes query={query} onLeave={leave} />}</div>
+      {filterSheet.shown && (
+        <RecipeFilterSheet
+          key={filterSheet.shown.key}
+          open={filterSheet.isOpen}
+          returnFocusTo={filterSheet.shown.opener}
+          onClose={filterSheet.close}
+          filter={filter}
+          onApply={setFilter}
+        />
+      )}
     </div>
   );
 }

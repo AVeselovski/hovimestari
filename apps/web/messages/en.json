@@ -744,11 +744,13 @@
     },
     "browse": {
       "recent": "Recent",
-      "recentEmpty": "Foods and meals you log appear here.",
+      "recentEmpty": "Foods, meals and recipes you log appear here.",
       "last": "Last {amount}",
-      "recentUnavailable": "Your recent items and saved meals show here once Hovimestari can reach the server.",
+      "recentUnavailable": "Your recent items, recipes and saved meals show here once Hovimestari can reach the server.",
       "newMeal": "New saved meal",
       "addEstimate": "Add an estimate",
+      "recipes": "Recipes",
+      "allRecipes": "All {count, number} recipes",
       "savedMeals": "Saved meals",
       "savedMealsEmpty": "Meals you save appear here.",
       "sources": "Where meals come from",
@@ -758,6 +760,7 @@
     },
     "again": {
       "log": "Log {name} again, {amount}",
+      "logFirst": "Log {name}, {amount}",
       "plan": "Plan {name}, {amount}"
     },
     "block": {
@@ -768,10 +771,12 @@
       "from": "From {source}"
     },
     "mealGone": "This saved meal is no longer available.",
+    "recipeGone": "This recipe is no longer available.",
     "results": {
       "saveAsMeal": "Save “{query}” as a meal",
       "addAsEstimate": "Add “{query}” as an estimate",
       "foods": "Foods",
+      "recipeCount": "{count, plural, one {# recipe} other {# recipes}} found.",
       "mealCount": "{count, plural, one {# saved meal} other {# saved meals}} found."
     },
     "archived": {
@@ -789,6 +794,10 @@
       "deleteTitle": "Delete {name}?",
       "deleteBody": "Days it was logged on keep their figures.",
       "saved": "Saved {name}."
+    },
+    "recipe": {
+      "perServing": "Per serving",
+      "open": "Open recipe"
     },
     "mealSheet": {
       "titleNew": "New saved meal",
@@ -860,7 +869,8 @@
   "foods": {
     "sheet": {
       "name": "Log food",
-      "searchLabel": "Search foods and meals",
+      "searchLabel": "Search foods, meals and recipes",
+      "searchPlaceholder": "Foods, meals and recipes",
       "clear": "Clear the search",
       "favourites": "Favourites",
       "favouritesEmpty": "Tap any food here or in search, then tap its star.",
@@ -1002,14 +1012,40 @@
       "archivedEmpty": "Recipes you archive appear here.",
       "chips": "Show only",
       "favourites": "Favourites",
+      "filter": "Filter",
+      "filterCount": "Filter · {count, number}",
+      "filterSaid": "Filter, {count, number} set",
       "serves": "Serves {servings, number}",
-      "servesTime": "Serves {servings, number}\u2002·\u2002{minutes, number} min",
+      "servesTime": "Serves {servings, number} <dot>·</dot> {minutes, number} min",
       "figures": "{kcal} kcal · {protein} g protein per serving",
       "count": "{count, plural, =0 {No recipes} one {# recipe} other {# recipes}}",
       "favourite": "Favourite",
       "kcal": "{value} kcal",
-      "protein": "{value} g protein",
-      "perServing": "per serving"
+      "protein": "{value} g",
+      "proteinWord": "protein",
+      "perServing": "per serving",
+      "onDay": "On a day {date}",
+      "notOnDay": "Not on a day yet"
+    },
+    "filter": {
+      "title": "Filter recipes",
+      "sort": "Sort by",
+      "sorts": {
+        "name": "Name",
+        "lastPutOn": "Last on a day",
+        "protein": "Most protein per serving",
+        "energy": "Fewest calories per serving"
+      },
+      "perServing": "Per serving",
+      "bounds": {
+        "minProteinG": "Protein at least",
+        "maxProteinG": "Protein at most",
+        "minEnergyKcal": "Calories at least",
+        "maxEnergyKcal": "Calories at most"
+      },
+      "show": "Show recipes",
+      "clear": "Clear",
+      "invalid": "Enter a number, one decimal at most."
     },
     "noMatch": {
       "meals": "No meal matches.",

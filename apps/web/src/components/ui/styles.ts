@@ -360,6 +360,20 @@ export const listLineFrame = "min-h-12";
  */
 export const busyRing = "animate-spin rounded-pill border-2 border-transparent border-t-ink motion-reduce:animate-none";
 
+/** The dot between two facts on one line, such as "Serves 2 · 25 min": a little more room on each side than a space gives. */
+export const midDot = "mx-1";
+
+/**
+ * A row's line of figures after their dots, in the monospaced face, one line
+ * tall at every width. Its pieces wrap as words do, and what wraps is out of
+ * sight, so a piece that does not fit leaves whole and no word is cut. Put
+ * the pieces that must stay first.
+ */
+export const figuresLine =
+  "flex h-5 flex-wrap content-start items-center gap-x-2 overflow-hidden font-mono text-sm whitespace-nowrap text-ink-muted tabular-nums";
+/** A figure after its dot in a `figuresLine`. */
+export const figuresLinePiece = "inline-flex h-5 shrink-0 items-center gap-1.5";
+
 /**
  * A choice chip, such as a unit or a meal's source: a pill 44 pixels tall
  * that never wraps its label. A label longer than its row is cut with an
@@ -388,6 +402,31 @@ export const sheetChipRow =
  * stays inside the body's padding, and nothing clips its focus rings.
  */
 export const sheetChipRowWrapping = `${sheetChipRow} md:mx-0 md:flex-wrap md:overflow-x-visible md:px-0`;
+
+/**
+ * A chip row whose last control keeps its place at the row's end, such as the
+ * recipe list's Filter after its tags. The chips before it are in
+ * `chipRowScroller`: on a phone they scroll sideways under the finger, and
+ * from `md` they wrap. The last control (`chipRowEnd`) sits outside them, at
+ * the row's top right, so it is never scrolled out of view and never moves
+ * when chips join the row.
+ */
+export const chipRowPinnedEnd = "flex items-start gap-1 md:gap-2";
+/**
+ * The chips of a `chipRowPinnedEnd`. On a phone the row bleeds to the page's
+ * left edge as `sheetChipRow` does and stops before the pinned control, with
+ * 4px at its end for a focus ring. Its 4px above and below are the ring's
+ * room too.
+ */
+export const chipRowScroller =
+  "no-scrollbar -ml-(--sheet-pad-x) flex min-w-0 flex-1 scroll-pr-1 scroll-pl-(--sheet-pad-x) gap-2 overflow-x-auto overscroll-x-contain py-1 pr-1 pl-(--sheet-pad-x) md:ml-0 md:flex-wrap md:overflow-x-visible md:pr-0 md:pl-0";
+/**
+ * The pinned control of a `chipRowPinnedEnd`, level with the first line of
+ * chips. It keeps the width of its longest label, such as "Filter · 5", with
+ * its words centred and its digits one width, so a count that comes and goes
+ * changes neither its size nor the room the chips before it have.
+ */
+export const chipRowEnd = "my-1 min-w-23 shrink-0 text-center tabular-nums";
 
 /**
  * The z-index ladder. Page content sits at the default. A page's own header
@@ -565,6 +604,13 @@ export const sheetActionsStart = "col-span-2 m-0 grid min-w-0 border-0 p-0 md:mr
  * stands in the buttons' row at its full height.
  */
 export const sheetActionsStartButton = "max-md:-mt-(--footer-start-reach) max-md:mb-0.5 max-md:pb-2";
+
+/**
+ * Cancel or the submit button in a `sheetActionsPair`. Below `md` each is half
+ * the footer, 136px at 320 wide, so it keeps 12px at its sides and a label
+ * such as "Show recipes" stays on one line.
+ */
+export const sheetActionsButton = `${touchTarget} max-md:px-3`;
 
 /** Cancel and the submit button together: the two halves below `md`, one group at the end of the row from `md`. */
 export const sheetActionsPair = "contents md:ml-auto md:flex md:gap-3";

@@ -6,29 +6,40 @@ import { useAmountLabels } from "@/components/log/amountLabel";
 import type { BrowseLogging } from "@/components/log/browseLogging";
 import { CreateActions } from "@/components/log/CreateActions";
 import { ListsGuard, useHeldList, useListsReady } from "@/components/log/heldList";
+import { activeSource, mealFilter } from "@/components/log/mealFilter";
 import { RecentList } from "@/components/log/RecentList";
+import { RecipeBrowseList, RecipeRows, type RecipeBrowsing } from "@/components/log/RecipeRows";
 import { MealRows, SavedMealList } from "@/components/log/SavedMealList";
 import { btnSecondary, btnWide, fieldHintClass, sectionTitle } from "@/components/ui/styles";
 import { favouriteFoodsQuery, ownFoodsQuery, recentsQuery } from "@/lib/queryOptions";
-import type { FavouriteFood, FoodSummary, SavedMeal } from "@hovimestari/types";
+import {
+  filterRecipes,
+  sortRecipes,
+  type FavouriteFood,
+  type FoodSummary,
+  type RecipeSummary,
+  type SavedMeal,
+} from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import { FoodRow } from "./FoodRow";
+import type { ResultsLead } from "./useFoodFinder";
 
 // ---------------------------------------------------------------------------
 // The log sheet's own content on its search view, which `useFoodFinder`
 // shows around the food results (`FoodSheet` passes them in its slots):
 //
 // - `Browse`, with fewer than two characters typed: "New saved meal" and
-//   "Add an estimate", the recent items, the favourites, the saved meals,
-//   the user's own foods and a button to add one. A recent item, a saved
-//   meal, and a favourite with a last amount, carries the "+" that logs it
-//   again. The sheet's one primary action is its footer, so every button
-//   here is a secondary one.
-// - `MealResults`, the lead of the results: the saved meals that match,
-//   filtered on the device, or, when none does, the lines that save the text
-//   as a meal or add it as an estimate.
+//   "Add an estimate", the recent items, the favourites, the recipes (five
+//   at most, and a button for the rest), the saved meals, the user's own
+//   foods and a button to add one. A recent
+//   item, a recipe, a saved meal, and a favourite with a last amount,
+//   carries the "+" that logs it again. The sheet's one primary action is
+//   its footer, so every button here is a secondary one.
+// - `LeadResults`, the lead of the results: the recipes that match, then the
+//   saved meals that match, both filtered on the device, or, when no meal
+//   does, the lines that save the text as a meal or add it as an estimate.
 // - `FoodList`, one titled list of foods, which the ingredient picker's
 //   browse lists reuse.
 // ---------------------------------------------------------------------------
@@ -53,9 +64,11 @@ export interface BrowseProps {
   /** What browsing needs to log an item again and to open it with its last amount. */
   logging: BrowseLogging;
   meals: MealBrowsing;
+  /** Whether the Recipes list shows all of its recipes, kept by the sheet for one open. */
+  recipes: RecipeBrowsing;
 }
 
-export function Browse({ onOpen, onAddOwn, logging, meals }: BrowseProps): ReactElement {
+export function Browse({ onOpen, onAddOwn, logging, meals, recipes }: BrowseProps): ReactElement {
   const t = useTranslations("foods.sheet");
   const tBrowse = useTranslations("log.browse");
   const labels = useAmountLabels();
@@ -100,6 +113,7 @@ export function Browse({ onOpen, onAddOwn, logging, meals }: BrowseProps): React
             />
           </>
         )}
+        <RecipeBrowseList logging={logging} sayUnavailable={!recentsUnavailable} browsing={recipes} />
         <SavedMealList
           logging={logging}
           source={meals.source}
@@ -161,31 +175,45 @@ export function FoodList<F extends FoodSummary>({
 }
 
 /**
- * The saved meals that match the text, before the food results: every word
- * part of a meal's name or source, from the chosen source alone when one is.
- * Filtered on the device, from the list read once, so they follow every key
- * and show offline from what is cached. When none matches, the lines that
+ * What matches the text among the person's own things, before the food
+ * results: the recipes, every word part of a recipe's name or a tag (the
+ * shared `filterRecipes`), then the saved meals, every word part of a meal's
+ * name or source, from the chosen source alone when one is. Both are
+ * filtered on the device, from lists read once, so they follow every key and
+ * show offline from what is cached. When no meal matches, the lines that
  * save the text as a meal or add it as an estimate, each opening its sheet
  * with the name filled in.
  */
-export function MealResults({
+export function LeadResults({
   query,
+  recipes,
   found,
   logging,
   meals,
 }: {
   query: string;
+  recipes: readonly RecipeSummary[];
   found: readonly SavedMeal[];
   logging: BrowseLogging;
   meals: MealBrowsing;
 }): ReactElement {
   const t = useTranslations("log.results");
   const tBrowse = useTranslations("log.browse");
+  const said = [
+    recipes.length > 0 ? t("recipeCount", { count: recipes.length }) : "",
+    found.length > 0 ? t("mealCount", { count: found.length }) : "",
+  ];
   return (
-    <div className="mb-6">
+    <div className="mb-6 space-y-6">
       <p aria-live="polite" className="sr-only">
-        {found.length > 0 ? t("mealCount", { count: found.length }) : ""}
+        {said.filter(Boolean).join(" ")}
       </p>
+      {recipes.length > 0 && (
+        <section aria-label={tBrowse("recipes")} data-list="recipe-results">
+          <h3 className={`${sectionTitle} mb-1`}>{tBrowse("recipes")}</h3>
+          <RecipeRows recipes={recipes} logging={logging} />
+        </section>
+      )}
       {found.length > 0 ? (
         <section aria-label={tBrowse("savedMeals")} data-list="meal-results">
           <h3 className={`${sectionTitle} mb-1`}>{tBrowse("savedMeals")}</h3>
@@ -203,4 +231,32 @@ export function MealResults({
       )}
     </div>
   );
+}
+
+/**
+ * The lead of the log sheet's results for a typed text: the recipes and the
+ * saved meals it matches, from the lists the sheet holds, the meals from the
+ * chosen source alone when one is. A plain function of the text, as
+ * `useFoodFinder` asks of a lead.
+ */
+export function leadResults({
+  recipes,
+  meals,
+  logging,
+  browsing,
+}: {
+  /** The active recipes and saved meals, undefined while not read. */
+  recipes: readonly RecipeSummary[] | undefined;
+  meals: readonly SavedMeal[] | undefined;
+  logging: BrowseLogging;
+  browsing: MealBrowsing;
+}): ResultsLead {
+  return function lead(query) {
+    const found = mealFilter(meals ?? [], query, activeSource(meals ?? [], browsing.source));
+    const matched = sortRecipes(filterRecipes(recipes ?? [], { archived: false, q: query }), "name");
+    return {
+      node: <LeadResults query={query} recipes={matched} found={found} logging={logging} meals={browsing} />,
+      foodsTitled: found.length > 0 || matched.length > 0,
+    };
+  };
 }

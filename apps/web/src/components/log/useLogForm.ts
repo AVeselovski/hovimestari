@@ -26,6 +26,7 @@ import {
   type FoodDetail,
   type FoodSummary,
   type LastAmount,
+  type RecipeSummary,
   type SavedMeal,
 } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
@@ -33,20 +34,21 @@ import { useId, useMemo, useState } from "react";
 import { foodChipsOf } from "./foodChips";
 
 // ---------------------------------------------------------------------------
-// useLogForm: the log block's state, for the food view and the meal view.
+// useLogForm: the log block's state, for the food, meal and recipe views.
 // The block sits in the sheet's body and Log in its footer, so the state
 // lives here, with the sheet, and both read it.
 //
 // - Prefilled from the last amount: a food's last grams or portion count (a
-//   portion that is gone gives its grams), a meal's last count, else 1 meal.
+//   portion that is gone gives its grams), a meal's last count, else 1 meal,
+//   a recipe's last servings, else 1 serving.
 //   A food opened from a list that does not carry its last amount (a search
 //   result, your foods) takes it from the food's detail when that answers,
 //   while nothing has been typed or chosen. A food never logged opens empty.
 // - The chips are "g", the last amount's own portion at once, then the
 //   food's other portions when its detail answers, after the chips shown.
-// - The figures are `entryFigures` on the food's per-100 g values or the
-//   meal's figures, the values the server takes for a new entry, so the
-//   figures shown are the ones Log stores.
+// - The figures are `entryFigures` on the food's per-100 g values, the
+//   meal's figures or the recipe's basis, the values the server takes for a
+//   new entry, so the figures shown are the ones Log stores.
 // - Eaten or planned: Eaten on today and past days, Planned and fixed on a
 //   future day, read from the sheet's date against today at each render.
 // - The entry's id is minted when the view opens and kept across every Log
@@ -64,7 +66,8 @@ export type LogTarget =
       last: LastAmount | null | undefined;
       detail: FoodDetail | undefined;
     }
-  | { kind: "meal"; meal: SavedMeal; lastCount: number | null };
+  | { kind: "meal"; meal: SavedMeal; lastCount: number | null }
+  | { kind: "recipe"; recipe: RecipeSummary; lastServings: number | null };
 
 interface Fields {
   unit: string;
@@ -98,7 +101,7 @@ export interface LogForm {
 }
 
 export interface UseLogFormOptions {
-  /** Changes when another food or meal opens: the form starts again. */
+  /** Changes when another food, meal or recipe opens: the form starts again. */
   key: string;
   target: LogTarget | null;
   date: string;
@@ -107,6 +110,11 @@ export interface UseLogFormOptions {
   /** The add was answered: close the sheet, then `done.announce()`. */
   onLogged: (done: AddDone) => void;
   onGone: (kind: LogTarget["kind"], id: string) => void;
+}
+
+/** The food, meal or recipe a target logs. */
+function sourceOf(target: LogTarget): { id: string; name: string } {
+  return target.kind === "meal" ? target.meal : target.kind === "recipe" ? target.recipe : target.food;
 }
 
 /** The field values a last amount fills in. */
@@ -124,7 +132,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   const id = useId();
   const guard = useSubmitGuard();
 
-  // Everything the user typed or chose, reset when another food or meal opens.
+  // Everything the user typed or chose, reset when another food, meal or recipe opens.
   const [formKey, setFormKey] = useState(key);
   const [fields, setFields] = useState<Fields | null>(null);
   const [chosen, setChosen] = useState<EntryStatus | null>(null);
@@ -147,6 +155,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   const prefill = useMemo<Fields | null>(() => {
     if (target === null) return null;
     if (target.kind === "meal") return { unit: GRAMS, amount: formatCount(target.lastCount ?? 1, "en") };
+    if (target.kind === "recipe") return { unit: GRAMS, amount: formatCount(target.lastServings ?? 1, "en") };
     if (target.last !== undefined) return fieldsOfLast(target.last);
     return target.detail ? fieldsOfLast(target.detail.lastAmount) : null;
   }, [target]);
@@ -174,6 +183,9 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   } else if (target?.kind === "meal") {
     const count = parseCount(shown.amount);
     preview = typeof count === "number" ? entryFigures(target.meal.figures, { per: "meal", count }) : null;
+  } else if (target?.kind === "recipe") {
+    const count = parseCount(shown.amount);
+    preview = typeof count === "number" ? entryFigures(target.recipe.basis, { per: "serving", count }) : null;
   }
 
   const empty = shown.amount.trim() === "";
@@ -193,6 +205,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
    */
   function amountLabel(n: number): string {
     if (target?.kind === "meal") return tRow("meals", { count: n });
+    if (target?.kind === "recipe") return tRow("servings", { count: n });
     if (unit === GRAMS) return tRow("grams", { grams: formatGrams(n) });
     return tRow("portion", {
       count: formatCount(n),
@@ -207,13 +220,15 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
     const body =
       target.kind === "meal"
         ? { kind: "saved_meal" as const, savedMealId: target.meal.id, count: n, ...common }
-        : {
-            kind: "food" as const,
-            foodId: target.food.id,
-            amount: unit === GRAMS ? { grams: n } : { portionId: unit, count: n },
-            ...common,
-          };
-    const name = target.kind === "meal" ? target.meal.name : target.food.name;
+        : target.kind === "recipe"
+          ? { kind: "recipe" as const, recipeId: target.recipe.id, servings: n, ...common }
+          : {
+              kind: "food" as const,
+              foodId: target.food.id,
+              amount: unit === GRAMS ? { grams: n } : { portionId: unit, count: n },
+              ...common,
+            };
+    const name = sourceOf(target).name;
     return {
       body,
       name,
@@ -225,7 +240,7 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
   async function send(): Promise<void> {
     if (target === null || actions.holding) return;
     setFormError(null);
-    const n = target.kind === "meal" ? parseCount(shown.amount) : parseAmount(shown.amount, unit);
+    const n = target.kind === "food" ? parseAmount(shown.amount, unit) : parseCount(shown.amount);
     if (typeof n !== "number") {
       setError(n);
       focusField(`${id}-amount`);
@@ -245,8 +260,8 @@ export function useLogForm({ key, target, date, today, actions, onLogged, onGone
     } catch (err) {
       setSubmitting(false);
       const code = getErrorCode(err);
-      if (code === "food_not_found" || code === "saved_meal_not_found") {
-        onGone(target.kind, target.kind === "meal" ? target.meal.id : target.food.id);
+      if (code === "food_not_found" || code === "saved_meal_not_found" || code === "recipe_not_found") {
+        onGone(target.kind, sourceOf(target).id);
       } else if (code === "entry_grams_invalid" || code === "entry_count_invalid") {
         setError(code);
         focusField(`${id}-amount`);

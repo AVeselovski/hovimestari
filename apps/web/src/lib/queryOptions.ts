@@ -165,7 +165,7 @@ export function dayRangeQuery(from: string, to: string) {
 }
 
 /**
- * The foods and saved meals eaten most recently, each with its last amount.
+ * The foods, saved meals and recipes eaten most recently, each with its last amount.
  * Read again when the page is shown or the connection returns, as a day is,
  * since another device may have logged.
  */
@@ -193,7 +193,7 @@ export function savedMealsQuery(archived: boolean) {
 /**
  * The user's recipes: the active ones, or the archived ones. The Recipes tab
  * filters and sorts them on the device, so one read serves every search,
- * chip and sort. Their figures follow their foods, so a food write reads
+ * chip and sort, and the log sheet's Recipes list and its search too. Their figures follow their foods, so a food write reads
  * them again.
  */
 export function recipesQuery(archived: boolean) {
@@ -213,8 +213,8 @@ export function recipeQuery(id: string) {
 
 /**
  * Reads every list the log sheet's browsing shows that is stale or not held
- * yet: the recent items, the favourites, the user's own foods and the active
- * saved meals. A fresh one is not read. The Day tab calls it once its day is
+ * yet: the recent items, the favourites, the user's own foods, the active
+ * saved meals and the active recipes. A fresh one is not read. The Day tab calls it once its day is
  * on screen, and the log sheet once it has closed, so the next open shows
  * what a write left stale while the sheet held its lists
  * (components/log/heldList.tsx). These reads take no abort signal: a read
@@ -226,4 +226,5 @@ export function prefetchLogLists(client: QueryClient): void {
   void client.prefetchQuery({ ...favouriteFoodsQuery(), queryFn: () => getFavouriteFoods() });
   void client.prefetchQuery({ ...ownFoodsQuery(), queryFn: () => getOwnFoods() });
   void client.prefetchQuery({ ...savedMealsQuery(false), queryFn: () => getSavedMeals(false) });
+  void client.prefetchQuery({ ...recipesQuery(false), queryFn: () => getRecipes(false) });
 }

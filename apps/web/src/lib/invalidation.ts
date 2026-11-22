@@ -550,13 +550,19 @@ export async function afterRecipeFavourite(client: QueryClient, id: string): Pro
 }
 
 /**
- * After a recipe is deleted, or found gone: it leaves both lists in place,
- * and the lists are read again. Its page is only marked stale, never read
+ * After a recipe is deleted, or found gone: it leaves both lists and the
+ * recent items in place, an open log sheet's held lists too
+ * (`releaseHeldLists`), and the lists are read again. Its page is only marked stale, never read
  * now: the page it was deleted from is still leaving, and a read would show
  * it as gone on its way out. An entry's Open recipe reads it afresh.
  */
 export async function afterRecipeGone(client: QueryClient, id: string): Promise<void> {
-  const { settled } = await editRecipes(client, () => dropRecipe(client, id), [
+  const drop = (): void => {
+    dropRecipe(client, id);
+    // An open list that holds its rows lets the recipe go too.
+    releaseHeldLists(client);
+  };
+  const { settled } = await editRecipes(client, drop, [
     queryKeys.recipeList(false),
     queryKeys.recipeList(true),
     queryKeys.log(),
