@@ -36,7 +36,7 @@ A recipe can be read at another number of servings, from 1 to 100. Every line's 
 
 ### A recipe on a day
 
-A recipe goes on a day as an entry of a number of servings, such as 1 or 1.5, planned or eaten like any [entry](days.md#a-day-and-its-entries). An archived recipe can still be put on a day. The entry takes one serving's figures as the recipe has them when it is added. One serving on a day shows exactly the recipe's per serving. N servings show one serving's figures times N, rounded once, so one entry of all its servings shows the whole recipe. Three entries of one serving each are rounded one by one: the shakshuka set to serve 3 shows 14.5 g of protein on each, 43.5 g in all, while its whole recipe is 43.6 g.
+A recipe goes on a day as an entry of a number of servings, such as 1 or 1.5, planned or eaten like any [entry](days.md#a-day-and-its-entries). An archived recipe can still be put on a day. A recipe carries its last servings: the servings of its latest eaten entry, from a batch or not, or none for a recipe never eaten. An amount changed while marking an entry eaten is the one remembered. A recipe eaten lately is among [the recent items](quick-logging.md#recent-items-and-the-last-amount). The entry takes one serving's figures as the recipe has them when it is added. One serving on a day shows exactly the recipe's per serving. N servings show one serving's figures times N, rounded once, so one entry of all its servings shows the whole recipe. Three entries of one serving each are rounded one by one: the shakshuka set to serve 3 shows 14.5 g of protein on each, 43.5 g in all, while its whole recipe is 43.6 g.
 
 Editing the recipe changes its planned entries dated today or later, and so does editing an own food on one of its lines. Eaten entries and every past day keep [the figures they were added with](days.md#figures-that-stay). Changing an entry's servings, moving it, marking it and copying it keep its figures too. These entries follow [the cap on one serving](#a-recipes-figures). An entry from a batch [logged as made](#logging-as-made) follows none of these edits.
 
@@ -72,7 +72,7 @@ The latest day a recipe is on is the latest date among its entries, planned or e
 
 ### Archiving and deleting
 
-Archiving a recipe moves it from the list to the archived list, and it can be restored. An archived recipe can still be read.
+Archiving a recipe moves it from the list to the archived list, and it can be restored. An archived recipe can still be read. It is left out of the recent items, and so is a hidden one.
 
 Deleting a recipe deletes it with its lines and tags. A recipe that a day uses, or that an entry removed in the last ten minutes used, is hidden instead. It leaves every list and the favourites, keeps its lines and tags, and still opens by its id, marked as deleted. Every entry of it keeps its name and figures. A hidden recipe gains no new entry, but an entry of it can still be copied to another day.
 
@@ -92,7 +92,7 @@ A line already on a recipe keeps its food when the recipe is saved again, even w
 
 ### Finding recipes in code
 
-`filterRecipes` and `sortRecipes` in `packages/types/src/recipeFilter.ts` are the one filter and the one sort. `listRecipes` reads every active or archived recipe of the person, computes each one's figures and runs both. `fold` there lowers the case and takes the accents off, and the log sheet's meal filter uses it too. A sort by name uses `localeCompare` with Finnish rules.
+`filterRecipes` and `sortRecipes` in `packages/types/src/recipeFilter.ts` are the one filter and the one sort. `listRecipes` reads every active or archived recipe of the person, computes each one's figures and runs both. `fold` there lowers the case and takes the accents off, and the log sheet's meal filter uses it too. The web app reads a person's recipes whole and runs both on the device: the Recipes tab for its search, chips, bounds and orders, and the log sheet for the recipes its search finds. A sort by name uses `localeCompare` with Finnish rules.
 
 ### Saving a recipe
 
@@ -116,7 +116,7 @@ An edit replaces the lines and the tags as sent. A line keeps its id across edit
 
 ### Services
 
-`apps/backend/src/services/reads/recipes.ts` has `listRecipes`, `getRecipe` and `previewRecipe`. `getRecipe` answers an archived recipe too, and a hidden one, and with `servings` it adds `scaled`. Both reads answer `lastPutOn` from the entries, through `entries_recipe_idx`. `apps/backend/src/services/writes/recipes.ts` has `createRecipe`, `updateRecipe`, `setRecipeArchived`, `setRecipeFavourite` and `deleteRecipe`. A create carries an id the client chose, so a repeat answers the recipe again and ignores its body. Another user's recipe answers 404 `recipe_not_found` on every route that takes a recipe's id. `services/writes/cooks.ts` has `createCook` and `saveCookAsRecipe`, and `services/reads/cooks.ts` has `getCook`. A connected assistant reads, previews, creates, edits and archives recipes, marks them as favourites, logs them on days and logs batches as made through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. It cannot delete one.
+`apps/backend/src/services/reads/recipes.ts` has `listRecipes`, `getRecipe` and `previewRecipe`. `getRecipe` answers an archived recipe too, and a hidden one, and with `servings` it adds `scaled`. Both reads answer `lastPutOn` from the entries, through `entries_recipe_idx`, and `lastServings` from the latest eaten entry of each recipe. `apps/backend/src/services/writes/recipes.ts` has `createRecipe`, `updateRecipe`, `setRecipeArchived`, `setRecipeFavourite` and `deleteRecipe`. A create carries an id the client chose, so a repeat answers the recipe again and ignores its body. Another user's recipe answers 404 `recipe_not_found` on every route that takes a recipe's id. `services/writes/cooks.ts` has `createCook` and `saveCookAsRecipe`, and `services/reads/cooks.ts` has `getCook`. A connected assistant reads, previews, creates, edits and archives recipes, marks them as favourites, logs them on days and logs batches as made through these same services, each change recorded in the same transaction, as [what an assistant can change](connected-ai.md#what-an-assistant-can-change) describes. It cannot delete one.
 
 ### API
 
@@ -138,7 +138,7 @@ All under `/api/v1`, all Bearer. A refused request answers `{ message, code }`, 
 
 A line in a body is `{ id, counted: true, foodId, amount, written, note }` or `{ id, counted: false, name, written, note }`. `amount` is `{ grams }` or `{ portionId, count }`, as an entry takes it, and `written` is `{ amount, unit }` or null. Line ids are chosen by the client and kept across edits. A preview's lines may leave the id out.
 
-A summary has `id`, `name`, `servings`, `timeMinutes`, `tags`, `favourite`, `archived`, `perServing`, `basis` (one serving at the precision an entry stores), `lastPutOn`, the latest date it is on or null, `lastServings`, `imageId` and `foodsGone`, which says a line's food is deleted or retired. `lastServings` and `imageId` are null until the log sheet remembers servings and recipes have images. A recipe adds `deleted`, `whole`, `lines`, `steps` and `notes`. A line in an answer has `id`, `position`, `counted`, `food` (its id, name in the person's food-name language, source, values per 100 g, `retired` and `deleted`), `name`, `grams`, `portion`, `written` and `note`. `scaled` is `{ servings, lines, figures }`.
+A summary has `id`, `name`, `servings`, `timeMinutes`, `tags`, `favourite`, `archived`, `perServing`, `basis` (one serving at the precision an entry stores), `lastPutOn`, the latest date it is on or null, `lastServings`, the servings of its latest eaten entry or null, `imageId` and `foodsGone`, which says a line's food is deleted or retired. `imageId` is null until recipes have images. A recipe adds `deleted`, `whole`, `lines`, `steps` and `notes`. A line in an answer has `id`, `position`, `counted`, `food` (its id, name in the person's food-name language, source, values per 100 g, `retired` and `deleted`), `name`, `grams`, `portion`, `written` and `note`. `scaled` is `{ servings, lines, figures }`.
 
 A recipe is put on a day through `POST /entries` with `kind: "recipe"`, `recipeId` and `servings`, as [quick logging](quick-logging.md#api) lists. A hidden or unknown recipe answers 404 `recipe_not_found`, and a serving past the cap 400 `recipe_serving_too_large`.
 
@@ -170,7 +170,8 @@ Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06,
 
 ## Where it appears
 
-- [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites and tags, and the editor that makes and changes a recipe from foods.
+- [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites, tags and figures per serving, in any of the four orders, and the editor that makes and changes a recipe from foods.
 - [A recipe's page](../app/recipe.md): the recipe, its figures at any number of servings, logging servings on a day, duplicating, archiving and deleting.
 - [The Day tab](../app/day.md): a recipe's entries, each with its servings, and Open recipe in an entry's sheet.
+- [The log sheet](../app/log-sheet.md#a-recipe): the recipes listed and found by words, a recipe eaten lately among the recent items, and a recipe logged by servings, starting from its last servings.
 - [Settings](../app/settings.md#activity): an assistant's changes to recipes and the recipes it put on days, in a connection's Activity.

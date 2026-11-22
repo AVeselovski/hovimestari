@@ -105,9 +105,9 @@ src/
 │   ├── reads/targets.ts        targetsOn, the in-force rule (null before the first change), inForceOn, its pure form, and targetsOverview, with firstRunDue
 │   ├── reads/foods.ts          searchFoods, getFood, listFavouriteFoods, listOwnFoods
 │   ├── reads/days.ts           getDay and getDayRange: every day through summarizeDay, and a range's average through averageOfDays, from packages/types. getEntry, one entry by its id
-│   ├── reads/log.ts            listRecents and lastAmountsOf, from eaten entries
+│   ├── reads/log.ts            listRecents, the foods, saved meals and recipes eaten lately, and lastAmountsOf, from eaten entries
 │   ├── reads/savedMeals.ts     listSavedMeals and getSavedMeal
-│   ├── reads/recipes.ts        listRecipes, getRecipe and previewRecipe, each recipe's figures computed from its lines as it is read, and lineOf, a recipe's or a cook's line as the API shows it
+│   ├── reads/recipes.ts        listRecipes, getRecipe and previewRecipe, each recipe's figures computed from its lines as it is read, loggableRecipesOf, the summaries the recent items hold, and lineOf, a recipe's or a cook's line as the API shows it
 │   ├── reads/cooks.ts          getCook: a batch with its lines, its stored figures, what it changed from its recipe now, and its entries
 │   ├── reads/connections.ts    listConnections, changeCount and listPastConnections, and connectionAvailability, the two switches as the server holds them now
 │   ├── reads/changeRecord.ts   listChanges: one connection's record, newest first, by cursor, with the cursor's encoding
