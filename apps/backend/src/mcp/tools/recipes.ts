@@ -15,7 +15,7 @@ const { archived, q, tags, minProteinG, maxProteinG, minEnergyKcal, maxEnergyKca
 export const listRecipesTool = defineTool({
   name: "list_recipes",
   description:
-    "The person's recipes, each with its servings, tags, whether it is a favourite, its figures for one serving (perServing) and lastPutOn, the latest date it is on, planned or eaten, or null. lastServings is null. Active recipes, or archived ones with archived true. Every filter is optional.",
+    "The person's recipes, each with its servings, tags, whether it is a favourite, its figures for one serving (perServing) and lastPutOn, the latest date it is on, planned or eaten, or null, and lastServings, the servings of the last time the person ate it, or null. Active recipes, or archived ones with archived true. Every filter is optional.",
   inputSchema: z.strictObject({
     archived: archived.describe("true lists the archived recipes instead of the active ones."),
     q: q.describe("Words that must each be in the recipe's name or one of its tags, case and accents ignored."),

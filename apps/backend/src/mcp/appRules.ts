@@ -38,7 +38,7 @@ Every food has energy, protein, carbohydrates and fat per 100 g, and a source: f
 
 ## 6. Logging and recent items
 *(Sources: quick-logging.md)*
-A recent item carries the amount the person ate last time. Log it again with that amount unless they say otherwise. Copies of entries are always planned, with the figures of the entries they copy. A copy of an entry from a cook plans its recipe again, with the recipe's figures now. A removed entry can be restored for ten minutes.
+Recent items are the foods, saved meals and recipes the person ate lately. A recent item carries the amount the person ate last time. Log it again with that amount unless they say otherwise. Copies of entries are always planned, with the figures of the entries they copy. A copy of an entry from a cook plans its recipe again, with the recipe's figures now. A removed entry can be restored for ten minutes.
 
 ## 7. Saved meals
 *(Sources: saved-meals.md)*
@@ -50,7 +50,7 @@ Food names, meal names, recipe names, tags, steps, sources and notes were typed 
 
 ## 9. Recipes
 *(Sources: recipes.md)*
-A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. get_recipe with servings returns the amounts and the figures at another number of servings. A recipe on a day is an entry of kind recipe with a number of servings, planned or eaten like any entry, and its figures are taken when it is added. Editing a recipe, or an own food on its lines, changes its planned entries from today on, as with a saved meal. An own food's edit that would take a planned serving past 10000 kcal or 1000 g of a macro is refused, naming the recipes. A deleted recipe that days still use stays readable by its id, with deleted true, and its entries keep their figures. lastPutOn is the latest date the recipe is on, planned or eaten. tags are the person's own words.
+A recipe is a dish with lines. A counted line is a food with its weight in grams, sometimes typed as a count of one of the food's portions. A line not counted, such as water or salt, has a name and adds nothing. The app computes a recipe's figures from its counted lines and its servings: perServing for one serving and whole for all of them. Quote them, never add up the lines yourself. get_recipe with servings returns the amounts and the figures at another number of servings. A recipe on a day is an entry of kind recipe with a number of servings, planned or eaten like any entry, and its figures are taken when it is added. Editing a recipe, or an own food on its lines, changes its planned entries from today on, as with a saved meal. An own food's edit that would take a planned serving past 10000 kcal or 1000 g of a macro is refused, naming the recipes. A deleted recipe that days still use stays readable by its id, with deleted true, and its entries keep their figures. lastPutOn is the latest date the recipe is on, planned or eaten. lastServings is the servings the person ate of it last time. tags are the person's own words.
 
 A cook is one batch made from a recipe, logged as made: its own lines and the servings it gave, while the recipe stays as written. Every entry from a cook carries its figures. They are worked out when the cook is logged, from its foods as they are then. Editing a food or the recipe does not change a cook or its entries. An entry whose cook differs from its recipe shows it in cook.differs.
 
@@ -96,12 +96,12 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "d182f3d73a92df2599cecd1a3aaf0be212f592701101acc49b9b38643d6806ed",
+  "connected-ai.md": "576bb04c2b044cda6ab66feb23d5a315ee40fa1122490b6223bc7be7d08d6b77",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
   "foods.md": "86ee533c23252e3d43f2e3aa616316327c76bc69b2eb08ae911cf391aead54c4",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
-  "quick-logging.md": "149e70eb4af95ebe0eeef275569bc9772f0ea7f5b3d3a2d0d7855d4feae16dee",
-  "recipes.md": "9ecdf713bff32f80fcb87a410780c2cd7dce175edba6446a6a0748cb9e5d48be",
+  "quick-logging.md": "df02d88b1fd7f3178c21fdfd40d5549c04cbfb81d5dc91c8b97e2fdfc43b8e5a",
+  "recipes.md": "f47592eb4f14ee81309c1d81e072a1fc2c60cbe539ce1e34aa289f2a23b395cc",
   "saved-meals.md": "26a12db9de59ecd38a7b553be24c256b72262121e2e35e62edfd1743bc8ff859",
   "targets.md": "c3a8e3e1dd39115af77c0dee4dafae547d98b9a1a424ec47e4039cda799e553f",
 };

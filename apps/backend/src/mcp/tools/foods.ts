@@ -55,7 +55,7 @@ export const listOwnFoodsTool = defineTool({
 export const listRecentItemsTool = defineTool({
   name: "list_recent_items",
   description:
-    "What the person logged lately, foods and saved meals, the most recent first, each with the amount of the last time.",
+    "What the person ate lately, foods, saved meals and recipes, the most recent first, each once, with the amount of the last time: grams and a portion for a food, a count for a meal, servings for a recipe. An entry from a batch counts as its recipe. Archived and deleted meals and recipes are left out.",
   inputSchema: z.strictObject({ limit: recentsLimit.describe("At most this many items, 1 to 30.") }),
   async run(args, { service }) {
     return { items: await listRecents(service, args) };

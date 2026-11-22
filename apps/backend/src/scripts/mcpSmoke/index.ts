@@ -163,6 +163,12 @@ async function main(): Promise<void> {
       tags: ["Brunch"],
     });
     await rest("POST", "/entries", entry("recipe", { recipeId: recipe.id, servings: 1.5, status: "planned" }));
+    // Half a serving eaten yesterday, so the recipe is among the recent items and today's entries stay as they are.
+    const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    await rest("POST", "/entries", {
+      ...entry("recipe", { recipeId: recipe.id, servings: 0.5, status: "eaten" }),
+      date: yesterday,
+    });
     // A batch of it logged as made, more of its second line, its one serving planned for tomorrow.
     const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
     const cook = await rest("POST", "/cooks", {
@@ -231,7 +237,15 @@ async function main(): Promise<void> {
     same("get_food", await call("get_food", { foodId: food.id }), await rest("GET", `/foods/${food.id}`));
     same("list_favourite_foods", await call("list_favourite_foods"), await rest("GET", "/foods/favourites"));
     same("list_own_foods", await call("list_own_foods"), await rest("GET", "/foods/own"));
-    same("list_recent_items", await call("list_recent_items"), await rest("GET", "/log/recents"));
+    const recents = await call("list_recent_items");
+    same("list_recent_items", recents, await rest("GET", "/log/recents"));
+    same(
+      "list_recent_items answers the recipe with its last servings",
+      recents.items
+        .filter((i: Json) => i.kind === "recipe")
+        .map((i: Json) => ({ recipe: i.recipe.id, last: i.last, lastServings: i.recipe.lastServings })),
+      [{ recipe: recipe.id, last: { servings: 0.5 }, lastServings: 0.5 }],
+    );
     same("list_saved_meals", await call("list_saved_meals"), await rest("GET", "/saved-meals"));
     same(
       "get_saved_meal",

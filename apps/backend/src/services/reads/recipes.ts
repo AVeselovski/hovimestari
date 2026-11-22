@@ -14,7 +14,7 @@ import {
   type RecipeSummary,
   type ScaledRecipe,
 } from "@hovimestari/types";
-import { and, asc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, max, sql, type SQL } from "drizzle-orm";
 import { entries, foodPortions, foods, recipeIngredients, recipes, recipeTags } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
@@ -155,6 +155,16 @@ async function lastPutOnOf(ctx: ReadContext, recipeIds: string[]): Promise<Map<s
   return new Map(rows.flatMap((r) => (r.recipeId !== null && r.last !== null ? [[r.recipeId, r.last]] : [])));
 }
 
+/** The servings of the user's latest eaten entry of each of `recipeIds`, from a batch or not. */
+async function lastServingsOf(ctx: ReadContext, recipeIds: string[]): Promise<Map<string, number>> {
+  const rows = await ctx.db
+    .selectDistinctOn([entries.recipeId], { recipeId: entries.recipeId, servings: entries.servings })
+    .from(entries)
+    .where(and(eq(entries.userId, ctx.userId), inArray(entries.recipeId, recipeIds), isNotNull(entries.eatenAt)))
+    .orderBy(entries.recipeId, desc(entries.eatenAt), desc(entries.position));
+  return new Map(rows.map((r) => [r.recipeId!, r.servings!]));
+}
+
 /** The user's recipes matching `where`, whole, in no particular order. */
 async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
   const rows = await ctx.db
@@ -163,7 +173,12 @@ async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
     .where(and(eq(recipes.userId, ctx.userId), where));
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
-  const [lines, tags, lastPutOn] = await Promise.all([linesOf(ctx, ids), tagsOf(ctx, ids), lastPutOnOf(ctx, ids)]);
+  const [lines, tags, lastPutOn, lastServings] = await Promise.all([
+    linesOf(ctx, ids),
+    tagsOf(ctx, ids),
+    lastPutOnOf(ctx, ids),
+    lastServingsOf(ctx, ids),
+  ]);
   return rows.map((row) => {
     const recipeLines = lines.get(row.id) ?? [];
     const basis = servingBasis(recipeLines, row.servings);
@@ -178,8 +193,7 @@ async function readRecipes(ctx: ReadContext, where: SQL): Promise<Recipe[]> {
       perServing: entryFigures(basis, { per: "serving", count: 1 }),
       basis,
       lastPutOn: lastPutOn.get(row.id) ?? null,
-      // Recent recipes arrive with the log sheet's recipes.
-      lastServings: null,
+      lastServings: lastServings.get(row.id) ?? null,
       imageId: null,
       foodsGone: recipeLines.some((l) => l.food !== null && (l.food.deleted || l.food.retired)),
       deleted: row.deletedAt !== null,
@@ -220,6 +234,16 @@ export async function listRecipes(
   const all = (await readRecipes(ctx, and(isNull(recipes.deletedAt), archived)!)).map(summaryOf);
   const found = sortRecipes(filterRecipes(all, filter), filter.sort);
   return filter.limit === undefined ? found : found.slice(0, filter.limit);
+}
+
+/** The summaries of those of `ids` the user can log: their own, neither archived nor deleted. */
+export async function loggableRecipesOf(ctx: ReadContext, ids: string[]): Promise<Map<string, RecipeSummary>> {
+  if (ids.length === 0) return new Map();
+  const found = await readRecipes(
+    ctx,
+    and(inArray(recipes.id, ids), isNull(recipes.deletedAt), isNull(recipes.archivedAt))!,
+  );
+  return new Map(found.map((r) => [r.id, summaryOf(r)]));
 }
 
 /**
