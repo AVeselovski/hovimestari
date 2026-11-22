@@ -31,6 +31,7 @@ import { TODAY, favouritesOf, logWorld, openLogSheet, ownFoods, statusLine } fro
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -120,7 +121,7 @@ const rowsOf = (name: string) =>
     .map((li) => li.querySelector("button")!.textContent ?? "");
 const field = (label: string) =>
   within(screen.getAllByRole("dialog").at(-1)!).getByLabelText(label, { selector: "input" }) as HTMLInputElement;
-const searchField = () => within(sheet()).getByLabelText("Search foods and meals") as HTMLInputElement;
+const searchField = () => within(sheet()).getByLabelText("Search foods, meals and recipes") as HTMLInputElement;
 const mealCalls = (archived: boolean) => jest.mocked(getSavedMeals).mock.calls.filter(([a]) => a === archived).length;
 
 async function search(text: string): Promise<void> {
@@ -131,20 +132,21 @@ async function search(text: string): Promise<void> {
 }
 
 describe("Browsing the log sheet", () => {
-  it("puts New saved meal and Add an estimate first under the search field, then Recent, Favourites, Saved meals, Your foods", async () => {
+  it("puts New saved meal and Add an estimate first under the search field, then Recent, Favourites, Recipes, Saved meals, Your foods", async () => {
     renderDay();
     await openLogSheet();
     const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
     const first = [...body.querySelectorAll("button")].slice(0, 2).map((b) => b.textContent);
     expect(first).toEqual(["New saved meal", "Add an estimate"]);
     const lists = [...body.querySelectorAll("section[data-list]")].map((s) => s.getAttribute("data-list"));
-    expect(lists).toEqual(["recent", "favourites", "meals", "own"]);
+    expect(lists).toEqual(["recent", "favourites", "recipes", "meals", "own"]);
   });
 
-  it("says what the search field finds: Search foods and meals, also as its placeholder", async () => {
+  it("says what the search field finds: its label whole, and a placeholder short enough for a narrow phone", async () => {
     renderDay();
     await openLogSheet();
-    expect(searchField()).toHaveAttribute("placeholder", "Search foods and meals");
+    expect(searchField()).toHaveAccessibleName("Search foods, meals and recipes");
+    expect(searchField()).toHaveAttribute("placeholder", "Foods, meals and recipes");
   });
 
   it("opens with the saved meals already read, and no archived list read, with Archived meals under them", async () => {
@@ -180,7 +182,7 @@ describe("Browsing the log sheet", () => {
     expect(
       within(region("Saved meals")).getByRole("button", { name: "Log Chicken bowl again, 2 meals" }),
     ).toBeInTheDocument();
-    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Log Salmon soup again, 1 meal" }));
+    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Log Salmon soup, 1 meal" }));
     await screen.findByText("Logged Salmon soup, 1 meal.");
     expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({
       kind: "saved_meal",

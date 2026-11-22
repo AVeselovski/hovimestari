@@ -59,7 +59,7 @@ export function MealRows({ meals, logging }: { meals: readonly SavedMeal[]; logg
           meta={figures(meal)}
           metaFigures
           onOpen={(m, opener) => logging.onOpenMeal(m, opener, m.lastCount)}
-          trailing={<AgainButton item={mealAgainItem(meal, meal.lastCount ?? 1, labels)} logging={logging} />}
+          trailing={<AgainButton item={mealAgainItem(meal, meal.lastCount, labels)} logging={logging} />}
         />
       ))}
     </ul>

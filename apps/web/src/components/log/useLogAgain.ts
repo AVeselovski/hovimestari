@@ -11,10 +11,10 @@ import { useCallback, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
 // useLogAgain: the "+" of the log sheet, which adds a recent or favourite
-// item again with its last amount in one press.
+// item, a saved meal or a recipe again with its last amount in one press.
 //
 // - The id comes from `pendingIds` under the item's key (the date, the kind
-//   and the food or meal), so a press again after a timeout resends the same
+//   and the food, meal or recipe), so a press again after a timeout resends the same
 //   id and the server adds one entry.
 // - One add at a time: while one runs, every "+" ignores a press.
 // - Success, or a replay, hands the toast to `onLogged`, which closes the
@@ -23,7 +23,7 @@ import { useCallback, useRef, useState } from "react";
 // - A failure keeps the sheet open and says so on the header's status line,
 //   for 6 seconds or until the next press or keystroke: "You are offline."
 //   when nothing was sent, "Could not confirm. Try again." when the add may
-//   have landed, else the refusal's copy. A food or meal that is gone goes to
+//   have landed, else the refusal's copy. A food, meal or recipe that is gone goes to
 //   `onGone`.
 // - An add that may have landed keeps its id for six seconds, as long as its
 //   line shows at most (the add path holds it, lib/pendingIds.ts), so
@@ -33,12 +33,14 @@ import { useCallback, useRef, useState } from "react";
 
 /** An item "+" can add: what it is and the amount it adds. */
 export interface LogAgainItem {
-  kind: "food" | "saved_meal";
-  /** The food's or the saved meal's id. */
+  kind: "food" | "saved_meal" | "recipe";
+  /** The food's, the saved meal's or the recipe's id. */
   sourceId: string;
   name: string;
-  /** How the amount reads: "200 g", "1 meal". */
+  /** How the amount reads: "200 g", "1 meal", "1 serving". */
   amount: string;
+  /** Never eaten before: the amount is one meal or one serving, not a last amount, so "+" is not named "again". */
+  first?: boolean;
   /** The request for `id` on `date`, at `status`. */
   body: (id: string, date: string, status: EntryStatus) => AddEntryBody;
 }
@@ -59,7 +61,7 @@ export interface UseLogAgainOptions {
   actions: Pick<EntryActions, "add" | "holding">;
   /** The add was answered: close the sheet, then `done.announce()`. */
   onLogged: (done: AddDone) => void;
-  /** The food or meal is gone. */
+  /** The food, meal or recipe is gone. */
   onGone: (kind: LogAgainItem["kind"], sourceId: string) => void;
   /** Puts a failure on the sheet's status line, the one the sheet's other messages share. */
   sayFailure: (text: string) => void;
@@ -97,7 +99,8 @@ export function useLogAgain({ date, statusAt, actions, onLogged, onGone, sayFail
           }
         } catch (err) {
           const code = getErrorCode(err);
-          if (code === "food_not_found" || code === "saved_meal_not_found") onGone(item.kind, item.sourceId);
+          if (code === "food_not_found" || code === "saved_meal_not_found" || code === "recipe_not_found")
+            onGone(item.kind, item.sourceId);
           else {
             // An id another account holds can never succeed: the next press mints a new one.
             if (code === "entry_id_taken") settlePending(client, request.body.id);

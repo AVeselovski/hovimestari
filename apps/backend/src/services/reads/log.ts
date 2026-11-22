@@ -1,15 +1,17 @@
 import type { FineliPortionUnit, LastAmount, RecentItem } from "@hovimestari/types";
 import { and, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
-import { entries, foodPortions, foods, savedMeals } from "../../db/schema/index.js";
+import { entries, foodPortions, foods, recipes, savedMeals } from "../../db/schema/index.js";
 import type { Db } from "../../db/types.js";
 import { summaryColumns, summaryOf } from "../foodRows.js";
 import { portionVisibleTo, visibleTo } from "../foodScope.js";
 import type { ReadContext } from "./context.js";
+import { loggableRecipesOf } from "./recipes.js";
 import { savedMealOf } from "./savedMeals.js";
 
 // Recent items and last amounts come from eaten entries only: what the user
 // logged, not what they planned. The last amount is the latest eaten entry's,
-// so an amount changed while marking eaten is the one remembered.
+// so an amount changed while marking eaten is the one remembered. An entry
+// from a batch is an entry of its recipe, so it counts as the recipe.
 
 /** The portion hint as an entry carries it: read only when it is this food's portion and visible. */
 const hintedPortion = (userId: string) =>
@@ -67,18 +69,20 @@ export async function lastAmountsOf(db: Db, userId: string, foodIds: string[]): 
  * sources than `limit`, the last step reads the rest of the history.
  */
 function walkOfLatestEaten(ctx: ReadContext, limit: number): SQL {
-  const source = sql`coalesce(${entries.foodId}, ${entries.savedMealId})`;
+  const source = sql`coalesce(${entries.foodId}, ${entries.savedMealId}, ${entries.recipeId})`;
   const usable = and(
     eq(entries.userId, ctx.userId),
     isNotNull(entries.eatenAt),
     or(
       and(isNotNull(entries.foodId), visibleTo(ctx.userId)),
       and(isNotNull(entries.savedMealId), isNull(savedMeals.archivedAt), isNull(savedMeals.deletedAt)),
+      and(isNotNull(entries.recipeId), isNull(recipes.archivedAt), isNull(recipes.deletedAt)),
     ),
   );
   const from = sql`${entries}
     LEFT JOIN ${foods} ON ${foods.id} = ${entries.foodId}
-    LEFT JOIN ${savedMeals} ON ${savedMeals.id} = ${entries.savedMealId}`;
+    LEFT JOIN ${savedMeals} ON ${savedMeals.id} = ${entries.savedMealId}
+    LEFT JOIN ${recipes} ON ${recipes.id} = ${entries.recipeId}`;
   // NULLS LAST as the index is built, so the walk reads it in order.
   const newest = sql`ORDER BY ${entries.eatenAt} DESC NULLS LAST, ${entries.position} DESC NULLS LAST LIMIT 1`;
   return sql`(
@@ -102,10 +106,13 @@ function walkOfLatestEaten(ctx: ReadContext, limit: number): SQL {
 }
 
 /**
- * The foods and saved meals the user ate most recently, newest first, each
- * once, with the amount of its latest eaten entry. A food the user can no
- * longer see, and an archived or deleted meal, is left out. A retired food
- * stays. One statement, so the walk and what it answers share one snapshot.
+ * The foods, saved meals and recipes the user ate most recently, newest
+ * first, each once, with the amount of its latest eaten entry. A food the
+ * user can no longer see, and an archived or deleted meal or recipe, is left
+ * out. A retired food stays. One statement walks and answers the foods and
+ * meals. A recipe's figures are computed from its lines, so its summary is
+ * the recipes read's, read after the walk: a recipe archived or deleted
+ * between the two is dropped, and the answer is then one short.
  */
 export async function listRecents(ctx: ReadContext, { limit }: { limit: number }): Promise<RecentItem[]> {
   const rows = await ctx.db
@@ -113,6 +120,8 @@ export async function listRecents(ctx: ReadContext, { limit }: { limit: number }
       foodId: entries.foodId,
       mealId: entries.savedMealId,
       mealCount: entries.mealCount,
+      recipeId: entries.recipeId,
+      servings: entries.servings,
       ...amountColumns,
       food: summaryColumns(ctx.userId),
       meal: savedMeals,
@@ -123,10 +132,16 @@ export async function listRecents(ctx: ReadContext, { limit }: { limit: number }
     .leftJoin(savedMeals, eq(savedMeals.id, entries.savedMealId))
     .leftJoin(foodPortions, hintedPortion(ctx.userId))
     .orderBy(sql`walk.n`);
-
-  return rows.map((r): RecentItem =>
-    r.foodId
-      ? { kind: "food", food: summaryOf(r.food!), last: lastAmountOf(r) }
-      : { kind: "saved_meal", meal: savedMealOf(r.meal!, r.mealCount), last: { count: r.mealCount! } },
+  const recipeOf = await loggableRecipesOf(
+    ctx,
+    rows.flatMap((r) => (r.recipeId ? [r.recipeId] : [])),
   );
+
+  return rows.flatMap((r): RecentItem[] => {
+    if (r.foodId) return [{ kind: "food", food: summaryOf(r.food!), last: lastAmountOf(r) }];
+    if (r.mealId)
+      return [{ kind: "saved_meal", meal: savedMealOf(r.meal!, r.mealCount), last: { count: r.mealCount! } }];
+    const recipe = recipeOf.get(r.recipeId!);
+    return recipe ? [{ kind: "recipe", recipe, last: { servings: r.servings! } }] : [];
+  });
 }

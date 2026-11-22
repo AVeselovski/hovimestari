@@ -8,10 +8,10 @@ import {
   btnText,
   btnTextDanger,
   sheetActions,
+  sheetActionsButton,
   sheetActionsPair,
   sheetActionsStart,
   sheetActionsStartButton,
-  touchTarget,
 } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
@@ -142,7 +142,7 @@ export function FormSheetActions({
           onClick={() => {
             if (!submitting) onCancel();
           }}
-          className={`${btnSecondary} ${touchTarget}`}
+          className={`${btnSecondary} ${sheetActionsButton}`}
         >
           {tCommon("cancel")}
         </button>
@@ -153,7 +153,7 @@ export function FormSheetActions({
           disabled={submitDisabled}
           aria-disabled={submitting || held || undefined}
           {...submitGuard}
-          className={`${tone === "danger" ? btnDanger : btnPrimary} ${touchTarget}`}
+          className={`${tone === "danger" ? btnDanger : btnPrimary} ${sheetActionsButton}`}
         >
           <StableLabel active={submitting && runningMode === null} idle={idle} busy={busy} />
         </button>

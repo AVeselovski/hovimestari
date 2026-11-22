@@ -8,7 +8,7 @@ import type { ReactElement } from "react";
 import type { LogForm } from "./useLogForm";
 
 // ---------------------------------------------------------------------------
-// LogFooter: the food and meal views' pinned footer. The log block's refusal
+// LogFooter: the food, meal and recipe views' pinned footer. The log block's refusal
 // line, with its room kept as every form sheet's footer keeps it (and given
 // to the body while the keyboard is open), then one full-width primary
 // button, "Log", or "Add to plan" while Planned is chosen. The button sits

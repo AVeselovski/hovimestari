@@ -1,7 +1,7 @@
 "use client";
 
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
-import { favouriteFoodsQuery, ownFoodsQuery, recentsQuery, savedMealsQuery } from "@/lib/queryOptions";
+import { favouriteFoodsQuery, ownFoodsQuery, recentsQuery, recipesQuery, savedMealsQuery } from "@/lib/queryOptions";
 import { notifyManager, useQueries, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   createContext,
@@ -17,7 +17,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // An open list never reorders under the finger. The log sheet's lists
-// (Recent, Favourites, Saved meals, Your foods) hold the order and the set of
+// (Recent, Favourites, Recipes, Saved meals, Your foods) hold the order and the set of
 // rows they showed while they can be pressed. A read that lands later, from
 // a window coming back into focus, a returning connection, a mount or a
 // write that could not confirm, changes a row in place (its star, its "Last"
@@ -32,9 +32,9 @@ import {
 // The person's own write in a stacked sheet or a rollback of one asks the
 // lists to show their data where they are (`releaseHeldLists`): a meal saved
 // from the stacked sheet takes its place by name as that sheet closes, and a
-// favourite mark the server refused takes its row back out. A food or a saved
-// meal the person's press found gone does the same, so its row leaves every
-// list (`afterFoodGone`, `afterSavedMealGone`). A release makes every held
+// favourite mark the server refused takes its row back out. A food, a saved
+// meal or a recipe the person's press found gone does the same, so its row
+// leaves every list (`afterFoodGone`, `afterSavedMealGone`, `afterRecipeGone`). A release makes every held
 // list follow the cache at once, so a read that landed earlier shows in that
 // moment. That is acceptable, because the person's own action caused it.
 //
@@ -67,6 +67,7 @@ function useEveryListAnswered(): boolean {
     queries: [
       { ...recentsQuery(), enabled: false },
       { ...favouriteFoodsQuery(), enabled: false },
+      { ...recipesQuery(false), enabled: false },
       { ...savedMealsQuery(false), enabled: false },
       { ...ownFoodsQuery(), enabled: false },
     ],

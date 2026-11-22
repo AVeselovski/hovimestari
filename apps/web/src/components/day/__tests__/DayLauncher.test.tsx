@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { DayLauncher } from "../DayLauncher";
 
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn(() => new Promise(() => {})) }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),

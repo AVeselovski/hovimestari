@@ -50,6 +50,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | a recipe's page                                         | `app/recipe.md`                                                         | Doc                                              |
 | the servings stepper, a recipe's figures card           | `app/recipe.md#servings-and-figures`                                    | `### Servings and figures`                       |
 | logging a recipe from its page                          | `app/recipe.md#log`                                                     | `### Log`                                        |
+| the Recipes tab's filter sheet, Filter, its orders      | `app/recipes.md#the-filter-sheet`                                       | `### The filter sheet`                           |
 | the food search hook, useFoodFinder                     | `app/log-sheet.md#route-and-entry`                                      | `### Route and entry`                            |
 | design tokens, colours                                  | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
 | the accent, what it means                               | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
@@ -84,6 +85,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | marks over the camera, on-camera tokens                 | `app/colors.md#over-the-camera`                                         | `### Over the camera`                            |
 | log sheet page, food search screen                      | `app/log-sheet.md`                                                      | Doc                                              |
 | food search results, browse lists, no results           | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
+| the log sheet's Recipes list, All 30 recipes            | `app/log-sheet.md#the-recipes-list`                                     | `### The Recipes list`                           |
 | food view, per 100 g figures, favourite star            | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
 | own-food sheet, add a food, edit food                   | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
 | typed barcode in the log sheet, the barcode block       | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
@@ -93,6 +95,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | "+", logging again on screen                            | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |
 | the log block, a food's log                             | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
 | meal view, edit meal, archive meal, delete meal         | `app/log-sheet.md#a-saved-meal`                                         | `### A saved meal`                               |
+| the log sheet's recipe view, Open recipe from it        | `app/log-sheet.md#a-recipe`                                             | `### A recipe`                                   |
 | archived meals view, restore                            | `app/log-sheet.md#archived-meals`                                       | `### Archived meals`                             |
 | saved meal sheet, save and log, save meal               | `app/log-sheet.md#a-new-saved-meal`                                     | `### A new saved meal`                           |
 | estimate sheet, add an estimate                         | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |

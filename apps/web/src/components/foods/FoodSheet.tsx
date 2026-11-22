@@ -5,8 +5,10 @@ import type { BrowseLogging } from "@/components/log/browseLogging";
 import { HeldLists, releaseHeldLists } from "@/components/log/heldList";
 import { LogBlock } from "@/components/log/LogBlock";
 import { LogFooter } from "@/components/log/LogFooter";
-import { activeSource, mealFilter, sourcesOf } from "@/components/log/mealFilter";
+import { sourcesOf } from "@/components/log/mealFilter";
 import { MealView } from "@/components/log/MealView";
+import { LOG_RECIPE_ROW_ATTRIBUTE } from "@/components/log/RecipeRows";
+import { RecipeView } from "@/components/log/RecipeView";
 import { ARCHIVED_ATTRIBUTE } from "@/components/log/SavedMealList";
 import { MEAL_ROW_ATTRIBUTE } from "@/components/log/SavedMealRow";
 import { StatusLine, useStatusMessage } from "@/components/log/StatusLine";
@@ -24,15 +26,16 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
-import { afterFoodGone, afterSavedMealGone } from "@/lib/invalidation";
-import { foodDetailQuery, prefetchLogLists, savedMealsQuery } from "@/lib/queryOptions";
-import type { EntryStatus, FoodSummary, LastAmount, SavedMeal } from "@hovimestari/types";
+import { afterFoodGone, afterRecipeGone, afterSavedMealGone } from "@/lib/invalidation";
+import { foodDetailQuery, prefetchLogLists, recipesQuery, savedMealsQuery } from "@/lib/queryOptions";
+import { keepDayPlace, markOpenedInApp } from "@/lib/recipeNav";
+import type { EntryStatus, FoodSummary, LastAmount, RecipeSummary, SavedMeal } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { ADD_PORTION_ATTRIBUTE, FoodDetailBody, FoodDetailHeader } from "./FoodDetail";
 import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
-import { Browse, MealResults, type MealBrowsing } from "./FoodSearchView";
+import { Browse, leadResults, type MealBrowsing } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
 import { useFavourite } from "./useFavourite";
 import { useFoodFinder } from "./useFoodFinder";
@@ -46,10 +49,11 @@ import { useSheetNavigation } from "./useSheetNavigation";
 //
 // - Search: the food search (`useFoodFinder`), its field pinned in the
 //   header, its scanner and own-food sheets stacked. Under it "New saved meal"
-//   and "Add an estimate", the recent items, the favourites, the saved meals
-//   and the user's own foods, or the results of what is typed, saved meals
-//   first. A recent item, a saved meal, and a favourite with a last amount,
-//   logs again in one press ("+", `useLogAgain`). A typed barcode puts the
+//   and "Add an estimate", the recent items, the favourites, the recipes, the
+//   saved meals and the user's own foods, or the results of what is typed,
+//   recipes first, then saved meals. A recent item, a recipe, a saved meal,
+//   and a favourite with a last amount, logs again in one press ("+",
+//   `useLogAgain`). A typed barcode puts the
 //   search in barcode mode (`useBarcodeMode`): Look up or Enter sends it, a
 //   food found opens its food view while the search still shows that code,
 //   and anything else offers the own-food form from the label. The camera
@@ -59,6 +63,10 @@ import { useSheetNavigation } from "./useSheetNavigation";
 //   then the food's detail, scrolling. Log in the pinned footer.
 // - Meal: Back and the meal's name. The log block with the number of meals,
 //   then the meal's figures and Edit, Archive or Restore, Delete. Log in the
+//   pinned footer.
+// - Recipe: Back and the recipe's name. The log block with the servings, then
+//   one serving's figures and Open recipe, which leaves the sheet for the
+//   recipe's page and keeps the day's place for the way back. Log in the
 //   pinned footer.
 // - Archived meals: Back and the title. The archived meals, each with Restore.
 //
@@ -93,7 +101,15 @@ type View =
   | { kind: "search" }
   | { kind: "food"; food: FoodSummary; last: LastAmount | null | undefined }
   | { kind: "meal"; meal: SavedMeal; lastCount: number | null }
+  | { kind: "recipe"; recipe: RecipeSummary; lastServings: number | null }
   | { kind: "archived" };
+
+/** The key of a view's log form, which starts again when another food, meal or recipe opens. */
+function viewKey(view: View): string {
+  if (view.kind === "food") return `food-${view.food.id}`;
+  if (view.kind === "meal") return `meal-${view.meal.id}`;
+  return view.kind === "recipe" ? `recipe-${view.recipe.id}` : "search";
+}
 
 export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodSheetProps): ReactElement {
   const t = useTranslations("foods.sheet");
@@ -108,6 +124,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   const [notice, setNotice] = useState<string | null>(null);
   // The source chip chosen while browsing, which filters the meals in the results too.
   const [source, setSource] = useState<string | null>(null);
+  // Whether the Recipes list shows all of its recipes, for this open: through a view and a search and back.
+  const [allRecipes, setAllRecipes] = useState(false);
   const status = useStatusMessage();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,6 +164,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   const listsFollow = !armed.armed || stackedOpen;
   const activeMeals = useQuery(savedMealsQuery(false)).data?.meals;
   const sources = activeMeals ? sourcesOf(activeMeals) : [];
+  const activeRecipes = useQuery(recipesQuery(false)).data?.recipes;
 
   // The toast of a log, shown once the sheet has closed. The sheet closes as
   // the answer lands: a second tap of a double tap meets the closing sheet,
@@ -189,6 +208,11 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     nav.open({ kind: "meal", meal, lastCount }, rowSelectorOf(opener, MEAL_ROW_ATTRIBUTE));
   }
 
+  function showRecipe(recipe: RecipeSummary, opener: HTMLElement, lastServings: number | null): void {
+    setNotice(null);
+    nav.open({ kind: "recipe", recipe, lastServings }, rowSelectorOf(opener, LOG_RECIPE_ROW_ATTRIBUTE));
+  }
+
   /** The meal view shows `meal` as it now is, edited, archived or restored, keeping what was typed. */
   function showMealAs(meal: SavedMeal): void {
     if (nav.view.kind === "meal" && nav.view.meal.id === meal.id) nav.replace({ ...nav.view, meal });
@@ -216,8 +240,15 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     void afterSavedMealGone(client, id);
   }
 
+  /** A recipe is gone, deleted elsewhere: the sheet goes back to browsing with a line that says so. */
+  function recipeGone(id: string): void {
+    setNotice(tLog("recipeGone"));
+    nav.reset();
+    void afterRecipeGone(client, id);
+  }
+
   const onGone = (kind: LogTarget["kind"] | "saved_meal", id: string): void =>
-    kind === "food" ? foodGone(id) : mealGone(id);
+    kind === "food" ? foodGone(id) : kind === "recipe" ? recipeGone(id) : mealGone(id);
 
   const sayFailure = useCallback((text: string) => status.say(text, "failure"), [status]);
   const meals = useMealActions({ held: actions.holding, onGone: mealGone });
@@ -235,9 +266,11 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
       ? { kind: "food", food: detail.data ?? view.food, last: view.last, detail: detail.data }
       : view.kind === "meal"
         ? { kind: "meal", meal: view.meal, lastCount: view.lastCount }
-        : null;
+        : view.kind === "recipe"
+          ? { kind: "recipe", recipe: view.recipe, lastServings: view.lastServings }
+          : null;
   const form = useLogForm({
-    key: view.kind === "food" ? `food-${view.food.id}` : view.kind === "meal" ? `meal-${view.meal.id}` : "search",
+    key: viewKey(view),
     target: logTarget,
     date,
     today,
@@ -253,11 +286,11 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     // Runs when the food turns out to be gone, not on every render.
   }, [gone, favouriteGone]);
 
-  // The deletes run the shared helpers, which also drop the food or meal from every list.
+  // The deletes run the shared helpers, which also drop the own food or the saved meal from every list.
   const remove = useOwnFoodDelete<FoodSummary>({ onDone: (deleted) => afterDelete(deleted.id) });
   const removeMeal = useSavedMealDelete({ onDone: () => afterDelete() });
 
-  /** After the open food or meal is deleted: the browse view, with focus in the search field. */
+  /** After the open own food or saved meal is deleted: the browse view, with focus in the search field. A recipe is deleted on its page. */
   function afterDelete(foodId?: string): void {
     if (foodId !== undefined) finder.forget(foodId);
     finder.ownSheet.close();
@@ -273,6 +306,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     planned: statusAt() === "planned",
     onOpenFood: (row, opener, last) => showFood(row, opener, last),
     onOpenMeal: showMeal,
+    onOpenRecipe: showRecipe,
   };
 
   const mealBrowsing: MealBrowsing = {
@@ -300,6 +334,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     );
   } else if (view.kind === "meal") {
     viewHeader = <FoodDetailHeader name={view.meal.name} backRef={backRef} onBack={nav.back} />;
+  } else if (view.kind === "recipe") {
+    viewHeader = <FoodDetailHeader name={view.recipe.name} backRef={backRef} onBack={nav.back} />;
   } else if (view.kind === "archived") {
     viewHeader = <FoodDetailHeader name={tLog("archived.title")} backRef={backRef} onBack={nav.back} />;
   } else {
@@ -310,7 +346,9 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     <BottomSheet
       open={open}
       onClose={onClose}
-      ariaLabel={food ? food.name : view.kind === "meal" ? view.meal.name : t("name")}
+      ariaLabel={
+        food ? food.name : view.kind === "meal" ? view.meal.name : view.kind === "recipe" ? view.recipe.name : t("name")
+      }
       header={
         <div className="space-y-1.5">
           <StatusLine date={date} message={status.message} />
@@ -330,9 +368,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
         announceRef.current = null;
         announce?.();
       }}
-      footer={
-        view.kind === "food" || view.kind === "meal" ? <LogFooter form={form} held={actions.holding} /> : undefined
-      }
+      footer={logTarget !== null ? <LogFooter form={form} held={actions.holding} /> : undefined}
       stacked={
         <FoodSheetStack
           finder={finder.stacked}
@@ -404,6 +440,17 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               onArchive={(archived) => archiveMeal(view.meal, archived, showMealAs)}
               onDelete={(opener) => removeMeal.open(view.meal, opener)}
             />
+          ) : view.kind === "recipe" ? (
+            <RecipeView
+              recipe={view.recipe}
+              form={form}
+              onLeave={() => {
+                // Back from the recipe's page shows this day where it was (lib/recipeNav.ts).
+                markOpenedInApp();
+                keepDayPlace(null);
+                onClose();
+              }}
+            />
           ) : view.kind === "archived" ? (
             <ArchivedMealsView
               onOpenMeal={(meal, opener) => showMeal(meal, opener, meal.lastCount)}
@@ -422,15 +469,10 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                       onAddOwn={(name, opener) => finder.ownSheet.open(opener, { start: { name } })}
                       logging={logging}
                       meals={mealBrowsing}
+                      recipes={{ all: allRecipes, onShowAll: () => setAllRecipes(true) }}
                     />
                   ),
-                  lead: (query) => {
-                    const found = mealFilter(activeMeals ?? [], query, activeSource(activeMeals ?? [], source));
-                    return {
-                      node: <MealResults query={query} found={found} logging={logging} meals={mealBrowsing} />,
-                      foodsTitled: found.length > 0,
-                    };
-                  },
+                  lead: leadResults({ recipes: activeRecipes, meals: activeMeals, logging, browsing: mealBrowsing }),
                 })}
               </HeldLists>
             </div>

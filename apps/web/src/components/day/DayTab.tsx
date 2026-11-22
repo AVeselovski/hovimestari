@@ -148,19 +148,31 @@ export function DayTab(): ReactElement {
     prefetchLogLists(client);
   }, [client, dayLoaded]);
 
-  // Back from a recipe an entry's Open recipe opened: the day where it was, with focus on that entry.
+  // Back from a recipe that Open recipe opened: the day where it was, with focus on the entry whose sheet held
+  // it, or on the launcher when the log sheet's recipe view did. Only when the day is there at this first layout.
+  // A day that answers later opens at its top, and takes neither the scroll nor the focus from a person by then
+  // using the page.
   const [place] = useState(() => (typeof window === "undefined" ? null : readDayPlace()));
   const returned = useRef(false);
   useLayoutEffect(() => {
-    if (place === null || returned.current || !dayLoaded) return;
+    if (place === null || returned.current) return;
     returned.current = true;
-    // The place has served its way back.
+    // The place has served its way back, or is let go unused.
     forgetDayPlace();
+    if (!dayLoaded) {
+      scrollPageTo(0);
+      return;
+    }
     scrollPageTo(place.top);
     restoreFocus(
-      document.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(place.entryId)}"] [data-row-action="open"]`),
+      place.entryId === null
+        ? document.querySelector<HTMLElement>("[data-day-launcher]")
+        : document.querySelector<HTMLElement>(
+            `[data-entry-id="${CSS.escape(place.entryId)}"] [data-row-action="open"]`,
+          ),
     );
-  }, [place, dayLoaded]);
+    // Once, as the page mounts.
+  }, []);
 
   // The shown day's week, read once the day is on screen, so the week sheet usually opens with figures.
   useEffect(() => {

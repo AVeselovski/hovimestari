@@ -2,7 +2,7 @@ import { EGG, recipeOf, shakshuka } from "@/components/recipes/__tests__/recipeF
 import { afterRecipeGone } from "@/lib/invalidation";
 import { queryKeys } from "@/lib/queryKeys";
 import { dropRecipe, moveRecipe, putRecipe, putRecipeFavourite, recipeSummaryOf } from "@/lib/recipeCache";
-import type { Recipe, RecipeList } from "@hovimestari/types";
+import type { RecentList, Recipe, RecipeList } from "@hovimestari/types";
 import { QueryClient, QueryObserver } from "@tanstack/react-query";
 
 // A recipe write's answer goes into the cached lists and the recipe's page
@@ -77,5 +77,78 @@ describe("the recipe cache", () => {
     expect(read).not.toHaveBeenCalled();
     expect(client.getQueryState(queryKeys.recipeDetail(shak.id))!.isInvalidated).toBe(true);
     unsubscribe();
+  });
+
+  describe("a recipe among the recent items", () => {
+    const quark = {
+      kind: "food" as const,
+      food: {
+        id: "00000000-0000-4000-8000-0000000000c1",
+        name: "Quark",
+        otherName: null,
+        source: "fineli" as const,
+        per100g: { energyKcal: 60, proteinG: 10, carbsG: 4, fatG: 0.2 },
+        isFavourite: false,
+        isOwn: false,
+        retired: false,
+      },
+      last: { grams: 250, portion: null },
+    };
+    function withRecents(shak: Recipe): QueryClient {
+      const client = seeded([shak]);
+      client.setQueryData<RecentList>(queryKeys.recents(), {
+        items: [quark, { kind: "recipe", recipe: recipeSummaryOf(shak), last: { servings: 1.5 } }],
+      });
+      return client;
+    }
+    const recents = (client: QueryClient) => client.getQueryData<RecentList>(queryKeys.recents())!.items;
+
+    it("takes an edit and a favourite mark in place, keeping its last servings and its place", () => {
+      const shak = shakshuka({ lastServings: 1.5 });
+      const client = withRecents(shak);
+      putRecipe(client, { ...shak, name: "Shakshuka, spicy" });
+      putRecipeFavourite(client, shak.id, true);
+      expect(recents(client)).toHaveLength(2);
+      expect(recents(client)[0]).toEqual(quark);
+      expect(recents(client)[1]).toMatchObject({
+        kind: "recipe",
+        recipe: { id: shak.id, name: "Shakshuka, spicy", favourite: true },
+        last: { servings: 1.5 },
+      });
+    });
+
+    it("leaves them when it is archived, as the server leaves it out, and when it is deleted", () => {
+      const shak = shakshuka({ lastServings: 1.5 });
+      const archived = withRecents(shak);
+      moveRecipe(archived, shak.id, true);
+      expect(recents(archived)).toEqual([quark]);
+      // A restore puts nothing back: the next read of the recent items does.
+      moveRecipe(archived, shak.id, false);
+      expect(recents(archived)).toEqual([quark]);
+      const deleted = withRecents(shak);
+      dropRecipe(deleted, shak.id);
+      expect(recents(deleted)).toEqual([quark]);
+    });
+
+    it("writes nothing to them when the write is about a recipe that is not among them", () => {
+      const shak = shakshuka({ lastServings: 1.5 });
+      const client = withRecents(shak);
+      const before = client.getQueryData<RecentList>(queryKeys.recents());
+      // Every write to the recent items that reaches those who watch them.
+      let writes = 0;
+      const stop = client.getQueryCache().subscribe((event) => {
+        if (event.type === "updated" && event.query.queryHash === JSON.stringify(queryKeys.recents())) writes += 1;
+      });
+      const other = "00000000-0000-4000-8000-00000000aaaa";
+      putRecipeFavourite(client, other, true);
+      dropRecipe(client, other);
+      moveRecipe(client, other, true);
+      expect(writes).toBe(0);
+      expect(client.getQueryData<RecentList>(queryKeys.recents())).toBe(before);
+      // A write about the recipe that is among them is written.
+      putRecipeFavourite(client, shak.id, true);
+      expect(writes).toBe(1);
+      stop();
+    });
   });
 });

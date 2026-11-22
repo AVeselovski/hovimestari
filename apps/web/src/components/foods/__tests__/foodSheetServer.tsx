@@ -124,7 +124,7 @@ export function renderSheet(client?: QueryClient): RenderResult {
 }
 
 export const dialog = () => screen.getAllByRole("dialog")[0];
-export const field = () => screen.getByLabelText("Search foods and meals") as HTMLInputElement;
+export const field = () => screen.getByLabelText("Search foods, meals and recipes") as HTMLInputElement;
 export const type = (value: string) => fireEvent.change(field(), { target: { value } });
 export const body = () => dialog().querySelector<HTMLElement>("[data-sheet-body]")!;
 

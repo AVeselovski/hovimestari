@@ -8,8 +8,8 @@ import { AmountFigures } from "./AmountFigures";
 import type { LogForm } from "./useLogForm";
 
 // ---------------------------------------------------------------------------
-// LogBlock: the form at the top of the food view and the meal view. Top to
-// bottom: the unit chips and the amount (or the number of meals), the
+// LogBlock: the form at the top of the food, meal and recipe views. Top to
+// bottom: the unit chips and the amount (or the number of meals or servings), the
 // figures for that amount, then Eaten or planned. Log sits in the sheet's
 // pinned footer (`LogFooter`) and reaches this form by its id, so Enter in
 // the field logs too. The refusal no field owns shows in the footer, above
@@ -48,7 +48,7 @@ export function LogBlock({ form, autoFocus }: { form: LogForm; autoFocus: boolea
       ) : (
         <CountField
           id={form.fieldId}
-          of="meals"
+          of={form.kind === "meal" ? "meals" : "servings"}
           value={form.amount}
           onChange={form.setAmount}
           error={form.error}

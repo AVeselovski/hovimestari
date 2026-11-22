@@ -7,16 +7,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import type { ReactElement } from "react";
 import { AgainButton } from "./AgainButton";
-import { foodAgainItem, mealAgainItem } from "./againItems";
+import { foodAgainItem, mealAgainItem, recipeAgainItem } from "./againItems";
 import { useAmountLabels } from "./amountLabel";
 import type { BrowseLogging } from "./browseLogging";
 import { useHeldList, useListsReady } from "./heldList";
+import { LogRecipeRow } from "./RecipeRows";
 import { SavedMealRow } from "./SavedMealRow";
 
 // ---------------------------------------------------------------------------
-// RecentList: the foods and saved meals eaten most recently, newest first, up
-// to 12, each with "Last 200 g" and the "+" that logs it again with that
-// amount. A food opens its food view and a meal its meal view. While the list
+// RecentList: the foods, saved meals and recipes eaten most recently, newest
+// first, up to 12, each with "Last 200 g" and the "+" that logs it again with
+// that amount. A food opens its food view, a meal its meal view and a recipe
+// its recipe view. While the list
 // loads only its title shows, as the other lists do. The Day tab reads it
 // ahead, so the sheet normally opens with it. Its order holds while it can
 // be pressed (heldList.tsx).
@@ -28,7 +30,11 @@ export function RecentList({ logging }: { logging: BrowseLogging }): ReactElemen
   const recents = useQuery(recentsQuery());
   // The order this list showed holds while it can be pressed (heldList.tsx).
   const items = useHeldList(recents.data?.items, (item) =>
-    item.kind === "food" ? `food-${item.food.id}` : `meal-${item.meal.id}`,
+    item.kind === "food"
+      ? `food-${item.food.id}`
+      : item.kind === "recipe"
+        ? `recipe-${item.recipe.id}`
+        : `meal-${item.meal.id}`,
   );
   // Its line waits for the other lists, as its rows do.
   const unavailable = useListsReady() && items === undefined && (recents.isError || recents.fetchStatus === "paused");
@@ -50,6 +56,22 @@ export function RecentList({ logging }: { logging: BrowseLogging }): ReactElemen
                   food={item.food}
                   meta={t("last", { amount: again.amount })}
                   onOpen={(food, opener) => logging.onOpenFood(food, opener, item.last)}
+                  trailing={<AgainButton item={again} logging={logging} />}
+                />
+              );
+            }
+            if (item.kind === "recipe") {
+              const again = recipeAgainItem(item.recipe, item.last.servings, labels);
+              return (
+                <LogRecipeRow
+                  key={`recipe-${item.recipe.id}`}
+                  recipe={item.recipe}
+                  meta={
+                    <span className="mt-1 block text-sm break-words text-ink-muted">
+                      {t("last", { amount: again.amount })}
+                    </span>
+                  }
+                  onOpen={(recipe, opener) => logging.onOpenRecipe(recipe, opener, item.last.servings)}
                   trailing={<AgainButton item={again} logging={logging} />}
                 />
               );

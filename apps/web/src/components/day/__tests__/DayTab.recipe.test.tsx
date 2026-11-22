@@ -1,15 +1,17 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { clockFrom } from "@/__tests__/helpers/clock";
 import { setTestLocale } from "@/__tests__/helpers/locale";
+import { deferred } from "@/__tests__/helpers/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDay, getDaySummaries } from "@/lib/api/days";
 import { copyEntries, patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
 import { getFood } from "@/lib/api/foods";
 import { getTargets } from "@/lib/api/targets";
 import { formatGrams, formatKcal } from "@/lib/foodFormat";
-import { readDayPlace } from "@/lib/recipeNav";
+import { queryKeys } from "@/lib/queryKeys";
+import { keepDayPlace, readDayPlace } from "@/lib/recipeNav";
 import type { Entry } from "@hovimestari/types";
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { FakeDays, liveToast, renderDay, rowNames, rowOf, serve } from "./harness";
 import { TODAY, dayOf, estimateEntry, foodEntry, mealEntry, recipeEntry } from "./support";
 
@@ -25,6 +27,7 @@ import { TODAY, dayOf, estimateEntry, foodEntry, mealEntry, recipeEntry } from "
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -343,6 +346,44 @@ describe("DayTab, back from a recipe an entry opened", () => {
     renderDay(view.client);
     await screen.findByText("Shakshuka");
     expect(scrolledTo).toEqual([]);
+    expect(mainButton("Shakshuka")).not.toHaveFocus();
+  });
+
+  it("puts focus on the launcher when the log sheet's recipe view held Open recipe, which has no entry", async () => {
+    serve(new FakeDays(today()));
+    const view = renderDay();
+    await screen.findByText("Shakshuka");
+    main.scrollTop = 310;
+    keepDayPlace(null);
+    view.unmount();
+    window.history.pushState(null, "", "/recipes/one");
+    await goBack();
+    renderDay(view.client);
+    await screen.findByText("Shakshuka");
+    expect(scrolledTo).toEqual([310]);
+    expect(document.querySelector("[data-day-launcher]")).toHaveFocus();
+    expect(readDayPlace()).toBeNull();
+  });
+
+  it("lets the place go unused when the day is not there as the page first shows, and opens at its top", async () => {
+    const view = await leaveForRecipe();
+    await goBack();
+    // After a reload on the recipe's page nothing is cached: the day is read as the page shows, and answers late.
+    const read = deferred<ReturnType<FakeDays["day"]>>();
+    jest.mocked(getDay).mockImplementation(() => read.promise);
+    view.client.clear();
+    const { client } = renderDay();
+    expect(scrolledTo).toEqual([0]);
+    expect(readDayPlace()).toBeNull();
+    // The person has moved on by the time the day answers.
+    const launcher = document.querySelector<HTMLElement>("[data-day-launcher]")!;
+    launcher.focus();
+    await act(async () => read.resolve(new FakeDays(today()).day(TODAY)));
+    await screen.findByText("Shakshuka");
+    expect(client.getQueryData(queryKeys.day(TODAY))).toBeDefined();
+    // Nothing scrolled since, and the entry's row took no focus.
+    expect(scrolledTo).toEqual([0]);
+    expect(launcher).toHaveFocus();
     expect(mainButton("Shakshuka")).not.toHaveFocus();
   });
 });

@@ -22,9 +22,8 @@ import { useId, useRef, useState, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
 // RecipeLogSheet: a recipe put on a day from its page. Eaten or planned,
-// the date, today to start with, the servings, 1 to start with (the API
-// answers no last servings yet, and the sheet opens on them once it does),
-// and "For this amount" with the four figures. A future date takes a
+// the date, today to start with, the servings, those last eaten of it to
+// start with, else 1, and "For this amount" with the four figures. A future date takes a
 // planned entry only, as every entry does. Log, or Add to plan while
 // Planned is chosen. The figures are `entryFigures` on the recipe's basis,
 // the values the server writes into the entry, so one serving shows what the

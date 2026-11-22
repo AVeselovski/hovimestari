@@ -21,7 +21,15 @@ let main: HTMLElement;
 let scrolledTo: number[];
 const start = window.location.pathname + window.location.search;
 
-const asLeft = { query: "o", favourites: true, tags: ["Dinner"], archivedOpen: true, rowId: "row-1" };
+const asLeft = {
+  query: "o",
+  favourites: true,
+  tags: ["Dinner"],
+  sort: "protein" as const,
+  bounds: { minProteinG: 20, maxEnergyKcal: 600.5 },
+  archivedOpen: true,
+  rowId: "row-1",
+};
 
 beforeEach(() => {
   main = document.createElement("main");
@@ -86,10 +94,36 @@ describe("the place a page keeps for the way back from a recipe", () => {
       query: "",
       favourites: false,
       tags: ["a"],
+      sort: "name",
+      bounds: {},
       archivedOpen: false,
       top: 12,
       rowId: "row-1",
     });
+  });
+
+  it("keeps the sort and each bound that is a number from 0 up, and reads anything else as not set", () => {
+    window.history.replaceState(
+      {
+        hoviRecipeList: {
+          rowId: "row-1",
+          top: 0,
+          sort: "cheapest",
+          bounds: { minProteinG: 30, maxProteinG: "40", minEnergyKcal: -1, maxEnergyKcal: 0, more: 5 },
+        },
+      },
+      "",
+    );
+    expect(readListPlace()).toMatchObject({ sort: "name", bounds: { minProteinG: 30, maxEnergyKcal: 0 } });
+    expect(Object.keys(readListPlace()!.bounds)).toEqual(["minProteinG", "maxEnergyKcal"]);
+    window.history.replaceState({ hoviRecipeList: { rowId: "row-1", top: 0, sort: "lastPutOn", bounds: 3 } }, "");
+    expect(readListPlace()).toMatchObject({ sort: "lastPutOn", bounds: {} });
+  });
+
+  it("keeps a day's place with no entry, as the log sheet's Open recipe leaves it", () => {
+    main.scrollTop = 96;
+    keepDayPlace(null);
+    expect(readDayPlace()).toEqual({ entryId: null, top: 96 });
   });
 
   it("scrolls the page's one scroller", () => {

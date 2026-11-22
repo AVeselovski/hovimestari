@@ -20,7 +20,7 @@ Then a table, a row per figure with its dot: calories, protein, carbohydrates an
 
 ### Log
 
-**Log** opens "Log Shakshuka": **Eaten or planned**, **Date**, today to start with, **Servings**, 1 to start with, and "For this amount" with the four figures. A future date takes Planned only, with "Future days hold planned entries." under the date, and the button reads **Add to plan**. One serving shows the page's per serving. After the add the sheet closes and a toast names the day, such as "Added Shakshuka to the plan for Sat 21 Nov.", with **Undo**. A log today reads "Logged Shakshuka, 1 serving.".
+**Log** opens "Log Shakshuka": **Eaten or planned**, **Date**, today to start with, **Servings**, [the servings last eaten](../features/recipes.md#a-recipe-on-a-day) to start with, else 1, and "For this amount" with the four figures. A future date takes Planned only, with "Future days hold planned entries." under the date, and the button reads **Add to plan**. One serving shows the page's per serving. [The log sheet](log-sheet.md#a-recipe) logs a recipe too, to the day it opened on. After the add the sheet closes and a toast names the day, such as "Added Shakshuka to the plan for Sat 21 Nov.", with **Undo**. A log today reads "Logged Shakshuka, 1 serving.".
 
 ### Ingredients, method and notes
 
@@ -43,7 +43,7 @@ At the end, three text buttons: **Duplicate**, **Archive recipe** or **Restore r
 
 ### Route and entry
 
-The page is `/recipes/[id]`, `apps/web/src/app/(app)/recipes/[id]/page.tsx`, which renders `RecipePage.tsx` in `apps/web/src/components/recipes/`. [The tab bar](shell.md#the-tabs) shows it under Recipes. `RecipeLogSheet.tsx` is its log sheet, and `useRecipeActions.ts` and `useRecipeDelete.ts` its favourite, archive and delete. `apps/web/src/lib/recipeNav.ts` keeps whether the page was opened from inside the app, and the place of the page that was left. A place is written on the browser's history entry of that page as the press leaves it, so it is there when that entry shows again and nowhere else. The page that comes back reads its place as it mounts and takes it off the entry once used. Any other way to the list or the day, such as the tab bar, is a new entry with no place, and opens fresh.
+The page is `/recipes/[id]`, `apps/web/src/app/(app)/recipes/[id]/page.tsx`, which renders `RecipePage.tsx` in `apps/web/src/components/recipes/`. [The tab bar](shell.md#the-tabs) shows it under Recipes. `RecipeLogSheet.tsx` is its log sheet, and `useRecipeActions.ts` and `useRecipeDelete.ts` its favourite, archive and delete. `apps/web/src/lib/recipeNav.ts` keeps whether the page was opened from inside the app, and the place of the page that was left. A place is written on the browser's history entry of that page as the press leaves it, so it is there when that entry shows again and nowhere else. The page that comes back reads its place as it mounts and takes it off the entry once used. It uses the place only when its data is there as it first shows. A page that answers later opens at its top, so a scroll and a focus never land on a person already using it. Any other way to the list or the day, such as the tab bar, is a new entry with no place, and opens fresh.
 
 ### Layout
 

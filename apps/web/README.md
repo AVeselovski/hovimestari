@@ -69,17 +69,17 @@ src/
 │   │   └── entryForm.ts        The sheet's fields, the PATCH of changed fields, its exact inverse and the preview
 │   ├── figures/                MacroFigures, the four figures in rows or in one row, and MacroDot, the dot in a macro's hue
 │   ├── foods/                  Foods on the web, and the log sheet that holds them:
-│   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's and a meal's view, the archived meals, Log, and the sheets stacked on it
+│   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's, a meal's and a recipe's view, the archived meals, Log, and the sheets stacked on it
 │   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
 │   │   ├── FoodSheetStack.tsx  The scanner, the own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
-│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, "Search foods and meals", with the camera button or the clear cross at its end
+│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, labelled "Search foods, meals and recipes", with the camera button or the clear cross at its end
 │   │   ├── ScannerSheet.tsx    The camera scanner: the live view with its band, Torch and Try again, a line for each state and Type the number
 │   │   ├── scanner/            The scanner's camera and decoder:
 │   │   │   ├── useCameraStream.ts  The camera and its decode loop over the band's part of each frame (`visibleBand`), with a session number so every way out stops every track
 │   │   │   ├── decoder.ts      The one file that imports zxing-wasm: loads the reader with the app's own wasm, reads the retail formats
 │   │   │   └── useScanner.ts   The log sheet's side: opens the scanner, types a read into the field, looks it up and places focus
 │   │   ├── useFoodFinder.tsx   The food search as a hook: the field, the results or the host's browse or the barcode block, and the scanner and own-food sheets, for a host's header, body and stacked slots
-│   │   ├── FoodSearchView.tsx  The log sheet's browse lists, the saved meals that lead its results, and FoodList, one titled list of foods
+│   │   ├── FoodSearchView.tsx  The log sheet's browse lists, the recipes and saved meals that lead its results, and FoodList, one titled list of foods
 │   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
 │   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
 │   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
@@ -96,7 +96,8 @@ src/
 │   ├── log/                    Logging in the log sheet, and the saved meal parts the Recipes tab shares:
 │   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
 │   │   ├── CreateActions.tsx   "New saved meal" and "Add an estimate", the first controls while browsing
-│   │   ├── RecentList.tsx      The recent items, each with its last amount and "+"
+│   │   ├── RecentList.tsx      The recent items, foods, meals and recipes, each with its last amount and "+"
+│   │   ├── RecipeRows.tsx      A recipe's row in the log sheet, the rows the search finds, and the Recipes list while browsing: five recipes and All 30 recipes
 │   │   ├── heldList.tsx        Open lists hold their order and rows while they can be pressed
 │   │   ├── SavedMealList.tsx   The saved meals while browsing: the source chips, each meal with "+", Archived meals
 │   │   ├── SourceChips.tsx     "All" and one chip per source, one row that scrolls sideways
@@ -104,16 +105,17 @@ src/
 │   │   ├── SavedMealRow.tsx    One saved meal in a list, a button that opens its view, and a trailing control
 │   │   ├── LogAgainButton.tsx  The 44px "+", with its busy ring
 │   │   ├── AgainButton.tsx     A "+" named for what it adds, on the sheet's one-press add
-│   │   ├── againItems.ts       What "+" adds for a food or a meal: its last amount
-│   │   ├── amountLabel.ts      How an amount reads: "200 g", "2 × Medium piece · 110 g", "1 meal"
-│   │   ├── browseLogging.ts    What the browse lists need to log again and to open a food or a meal
+│   │   ├── againItems.ts       What "+" adds for a food, a meal or a recipe: its last amount
+│   │   ├── amountLabel.ts      How an amount reads: "200 g", "2 × Medium piece · 110 g", "1 meal", "1 serving"
+│   │   ├── browseLogging.ts    What the browse lists need to log again and to open a food, a meal or a recipe
 │   │   ├── useLogAgain.ts      The one-press add: its pending id, held while its failure shows, one at a time
-│   │   ├── useLogForm.ts       A food's or a meal's log: prefill, chips, figures, state, its id and its submit
-│   │   ├── LogBlock.tsx        The log form: chips and amount or meals, the figures, Eaten or planned
+│   │   ├── useLogForm.ts       A food's, a meal's or a recipe's log: prefill, chips, figures, state, its id and its submit
+│   │   ├── LogBlock.tsx        The log form: chips and amount, or meals or servings, the figures, Eaten or planned
 │   │   ├── AmountFigures.tsx   "For this amount" and the four figures under an amount, shared with the ingredient picker and a recipe's log sheet
 │   │   ├── foodChips.ts        A food's unit chips: grams, the last amount's portion, the food's other portions
 │   │   ├── LogFooter.tsx       The pinned footer: the refusal line and Log or Add to plan
 │   │   ├── MealView.tsx        A saved meal: the log block, its figures per meal, Edit, Archive or Restore, Delete
+│   │   ├── RecipeView.tsx      A recipe in the log sheet: the log block with servings, its figures per serving, Open recipe
 │   │   ├── ArchivedMealsView.tsx  The archived meals, read when the view opens, each with Restore
 │   │   ├── useMealActions.ts   Archiving and restoring a meal, one at a time, with the failure on the status line or where the press names
 │   │   ├── SavedMealSheet.tsx  A new meal or an edit with Delete: Save and log with the log sheet's logging, save only without, Archive meal where passed
@@ -138,8 +140,11 @@ src/
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
 │   ├── recipes/                The Recipes tab and a recipe's page:
 │   │   ├── RecipesTab.tsx      The page: the three segments, each one's action and search, and the editor, meal and own-food sheets
-│   │   ├── RecipeList.tsx      The recipes segment: Favourites and tag chips, the recipes by name, the archived recipes
-│   │   ├── RecipeRow.tsx       One recipe in the list, a link to its page
+│   │   ├── RecipeList.tsx      The recipes segment: Favourites and tag chips, Filter, the recipes in the order chosen, the archived recipes
+│   │   ├── RecipeFilterSheet.tsx  The filter sheet: Sort by and four bounds per serving, held as a draft that only Show recipes applies
+│   │   ├── recipeListFilter.ts The list's order and bounds, their one type and key list, the Filter chip's count, and the sheet's draft read into them
+│   │   ├── RecipeRow.tsx       One recipe in the list, a link to its page, with the latest day under the order by it
+│   │   ├── RecipeFiguresLine.tsx  One serving's calories and protein on one line, for a recipe's row here and in the log sheet
 │   │   ├── SavedMealsSection.tsx  The saved meals, searched, and the archived meals opened in place
 │   │   ├── OwnFoodsSection.tsx The own foods, searched, each opening its edit sheet
 │   │   ├── RecipePage.tsx      One recipe: its figures with the servings stepper, its lines, method and notes, Log, Duplicate, Archive, Delete
@@ -156,7 +161,7 @@ src/
 │   │   ├── TagField.tsx        A recipe's tags, typed or tapped
 │   │   ├── tags.ts             The one comparison of tags on screen, and the tags a list of recipes uses
 │   │   ├── lineAmount.ts       How a line's amount reads
-│   │   ├── useRecipeMeta.ts    "Serves 2 · 25 min" and a recipe's figures per serving as a line
+│   │   ├── useRecipeMeta.tsx   "Serves 2 · 25 min" and a recipe's figures per serving as a line
 │   │   ├── useRecipeActions.ts A recipe's favourite and archive
 │   │   └── useRecipeDelete.ts  The one delete of a recipe, which asks first
 │   ├── shell/                  AppShell, AppHeader, TabBar, SideRail, NavLinks, OfflineStrip, EmptyTab, tabs.ts
@@ -238,8 +243,8 @@ src/
 │   ├── sessionMarker.ts        The non-secret flag that says this device has a known session, and its address
 │   ├── foodCache.ts            Edits to the cached food reads from a write's own answer
 │   ├── mealCache.ts            Edits to the cached saved meal lists and recent items from a meal write's own answer
-│   ├── recipeCache.ts          Edits to the cached recipe lists and a recipe's page from a recipe write's own answer
-│   ├── recipeNav.ts            Whether a recipe's page was opened from inside the app, the list's and the day's place for the way back, kept on the history entry, the row to focus after a delete
+│   ├── recipeCache.ts          Edits to the cached recipe lists, the recent items and a recipe's page from a recipe write's own answer
+│   ├── recipeNav.ts            Whether a recipe's page was opened from inside the app, the list's place, with its order and bounds, and the day's place for the way back, kept on the history entry, the row to focus after a delete
 │   ├── connectionCache.ts      Edits to the cached connections list from a connection write's own answer
 │   ├── revealRefused.ts        Brings a form sheet's first refused field, its label and line where they fit, into view in its body
 │   ├── invalidation.ts         What each write makes stale
@@ -373,7 +378,7 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - The default environment is jsdom plus Node's `Response`, `Request` and `Headers`. `fetch` is not provided, so a test that reaches the network stubs it.
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
-- `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen. It holds the recipes a test puts in its `recipes`, so a recipe entry can be added.
+- `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen. It holds the recipes a test puts in its `recipes`, so a recipe entry can be added, and answers `GET /recipes` from its `recipeSummaries`. `components/log/__tests__/logHarness.tsx` builds the log sheet's worlds: `logWorld()`, and `recipeLogWorld()` with two recipes, one of them a recent item.
 - `components/recipes/__tests__/recipeServer.ts` is a fake of the recipe routes that keeps the rules a screen can see: a create applied once, an edit that keeps the id of an identical line, and a refused line named by its index. `recipeFixtures.ts` builds recipes whose figures come from `recipeBasis` and `entryFigures`, never typed by hand.
 - `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.

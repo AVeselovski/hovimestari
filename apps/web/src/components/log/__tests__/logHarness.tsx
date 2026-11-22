@@ -1,7 +1,9 @@
 import { FakeDays, serve } from "@/components/day/__tests__/harness";
 import { QUARK, TODAY, foodEntry } from "@/components/day/__tests__/support";
 import { fineliFood, ownFood, uuid } from "@/components/foods/__tests__/support";
-import type { FavouriteFood, FoodSummary, RecentItem, SavedMeal } from "@hovimestari/types";
+import { recipeOf, shakshuka } from "@/components/recipes/__tests__/recipeFixtures";
+import { recipeSummaryOf } from "@/lib/recipeCache";
+import type { FavouriteFood, FoodSummary, RecentItem, RecipeSummary, SavedMeal } from "@hovimestari/types";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 
 // ---------------------------------------------------------------------------
@@ -26,12 +28,51 @@ export interface LogWorld {
   pieceId: string;
 }
 
+/** A log world that also holds recipes (`recipeLogWorld`). */
+export interface RecipeWorld extends LogWorld {
+  /** A favourite, last eaten as 1.5 servings, last of the recent items. */
+  shakshuka: RecipeSummary;
+  /** Tagged "Lunch", never eaten. */
+  lentils: RecipeSummary;
+}
+
+/** Puts `recipe` on the server: `GET /recipes` lists it, and an add of it takes its basis. */
+export function holdRecipe(server: FakeDays, recipe: RecipeSummary): RecipeSummary {
+  server.recipeSummaries = [...server.recipeSummaries.filter((r) => r.id !== recipe.id), recipe];
+  server.recipes.set(recipe.id, { name: recipe.name, basis: recipe.basis, archived: recipe.archived });
+  return recipe;
+}
+
 /**
  * A day with one entry, and on the server: quark last eaten as 250 g, banana
  * as 2 pieces of 55 g, a shake of 60 kcal and 8 g protein last eaten as 1,
  * in that order in the recent items. Oats are a favourite last eaten as 80 g.
  */
 export function logWorld(): LogWorld {
+  const world = buildWorld();
+  serve(world.server);
+  return world;
+}
+
+/**
+ * `logWorld` with two recipes too: Shakshuka, a favourite last eaten as 1.5
+ * servings and last of the recent items, and Lentil soup, never eaten.
+ */
+export function recipeLogWorld(): RecipeWorld {
+  const world = buildWorld();
+  const { server } = world;
+  const eaten = holdRecipe(server, recipeSummaryOf(shakshuka({ favourite: true, timeMinutes: 25, lastServings: 1.5 })));
+  const linssi = { id: uuid(), name: "Linssi", per100g: { energyKcal: 116, proteinG: 9, carbsG: 20, fatG: 0.4 } };
+  const lentils = holdRecipe(
+    server,
+    recipeSummaryOf(recipeOf("Lentil soup", 4, [{ food: linssi, grams: 800 }], { tags: ["Lunch"] })),
+  );
+  server.recents = [...server.recents, { kind: "recipe", recipe: eaten, last: { servings: 1.5 } }];
+  serve(server);
+  return { ...world, shakshuka: eaten, lentils };
+}
+
+function buildWorld(): LogWorld {
   const server = new FakeDays([foodEntry("Oats", 80)]);
   const quark = fineliFood("Quark", { per100g: QUARK });
   const banana = fineliFood("Banana", { per100g: { energyKcal: 89, proteinG: 1.1, carbsG: 20, fatG: 0.3 } });
@@ -54,7 +95,6 @@ export function logWorld(): LogWorld {
     { kind: "saved_meal", meal: shake, last: { count: 1 } },
   ];
   server.recents = recents;
-  serve(server);
   return { server, quark, banana, oats, shake, pieceId };
 }
 

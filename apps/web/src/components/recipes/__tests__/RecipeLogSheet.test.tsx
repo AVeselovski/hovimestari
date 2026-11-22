@@ -8,8 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { AddRequest } from "@/hooks/entryActions";
 import { TodayContext } from "@/hooks/useToday";
 import { addEntry } from "@/lib/api/entries";
+import { formatKcal } from "@/lib/foodFormat";
 import { formatDayShort } from "@/lib/localDate";
-import { addDays, type Recipe } from "@hovimestari/types";
+import { addDays, entryFigures, type Recipe } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RecipeLogSheet } from "../RecipeLogSheet";
 import { RecipePage } from "../RecipePage";
@@ -67,12 +68,12 @@ const sheet = () => screen.getByRole("dialog", { name: "Log Shakshuka" });
 const cells = (root: Element) =>
   [...root.querySelectorAll("[data-log-figures] dd")].map((dd) => dd.textContent!.replace(/\s+/g, ""));
 
-function renderAlone(add = jest.fn()) {
+function renderAlone(add = jest.fn(), onClose = jest.fn()) {
   render(
     <TodayContext.Provider
       value={{ today: TODAY, holding: false, confirm: "fresh", unconfirmed: false, retry: () => {} }}
     >
-      <RecipeLogSheet open returnFocusTo={null} onClose={jest.fn()} recipe={shak} actions={{ add, holding: false }} />
+      <RecipeLogSheet open returnFocusTo={null} onClose={onClose} recipe={shak} actions={{ add, holding: false }} />
     </TodayContext.Provider>,
   );
   return add;
@@ -87,6 +88,18 @@ describe("RecipeLogSheet", () => {
     // The page's "Per serving": 365 kcal and 21.8 g.
     expect(cells(sheet())).toEqual(["365kcal", "21.8g", "9.9g", "25.7g"]);
     expect(within(sheet()).getByRole("button", { name: "Log" })).toBeInTheDocument();
+  });
+
+  it("opens on the servings last eaten, and a sheet left as it opened is not changed", () => {
+    shak = { ...shak, lastServings: 1.5 };
+    const onClose = jest.fn();
+    renderAlone(jest.fn(), onClose);
+    expect((within(sheet()).getByLabelText("Servings") as HTMLInputElement).value).toBe("1.5");
+    const expected = entryFigures(shak.basis, { per: "serving", count: 1.5 });
+    expect(cells(sheet())[0]).toBe(`${formatKcal(expected.energyKcal)}kcal`);
+    // 1.5 is where it started, so nothing counts as typed yet: Escape closes it.
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("offers Planned only on a future date, and sends a planned recipe entry", async () => {

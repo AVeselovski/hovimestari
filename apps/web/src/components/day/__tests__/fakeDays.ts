@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/entries";
 import { getFavouriteFoods, getOwnFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
+import { getRecipes } from "@/lib/api/recipes";
 import {
   createSavedMeal,
   deleteSavedMeal,
@@ -39,6 +40,7 @@ import {
   type Figures,
   type FoodSummary,
   type RecentItem,
+  type RecipeSummary,
   type SaveAndLogBody,
   type SavedMeal,
   type SavedMealBody,
@@ -60,6 +62,7 @@ import { RANGES, TODAY, dayOf } from "./support";
 // answers replayed with no entry, eaten on a future date is refused, and a
 // new entry takes the food's per-100 g values or the meal's figures as its
 // basis, at the end of its day. An estimate's basis is its typed figures.
+// `GET /recipes` answers `recipeSummaries`, when the suite mocks that module.
 // A recipe add takes the recipe's basis from `recipes`, which a test fills
 // (a recipe it does not hold answers `recipe_not_found`), and a recipe entry
 // a test starts with changes its servings over its own basis.
@@ -95,6 +98,8 @@ export class FakeDays {
   meals = new Map<string, SavedMeal>();
   /** The recipes an add can take, by id: a recipe's name, its basis per serving and whether it is archived. */
   recipes = new Map<string, { name: string; basis: Figures; archived: boolean }>();
+  /** What `GET /recipes` answers, active and archived. A test that logs one fills `recipes` with it too. */
+  recipeSummaries: RecipeSummary[] = [];
   /** What `GET /log/recents` answers. */
   recents: RecentItem[] = [];
   /** Saved meal ids another account holds. */
@@ -280,11 +285,20 @@ export class FakeDays {
   /** `GET /log/recents`: the recent items, a saved meal as it is now, an archived or deleted one left out. */
   recentList(): { items: RecentItem[] } {
     const items = this.recents.flatMap((item): RecentItem[] => {
+      if (item.kind === "recipe") {
+        // As the server: the recipe as it now is, and none that is archived or gone.
+        const recipe = this.recipeSummaries.find((r) => r.id === item.recipe.id);
+        return recipe && !recipe.archived ? [{ ...item, recipe: { ...recipe } }] : [];
+      }
       if (item.kind !== "saved_meal") return [item];
       const meal = this.meals.get(item.meal.id);
       return meal && !meal.archived ? [{ ...item, meal: { ...meal } }] : [];
     });
     return { items };
+  }
+
+  recipeList(archived: boolean): { recipes: RecipeSummary[] } {
+    return { recipes: this.recipeSummaries.filter((r) => r.archived === archived).map((r) => ({ ...r })) };
   }
 
   mealList(archived: boolean): { meals: SavedMeal[] } {
@@ -426,8 +440,12 @@ export function refused(status: number, code: string): Error {
   });
 }
 
-/** Puts the fake behind the mocked API functions. Each call's arguments stay on the mocks. */
-export function serve(server: FakeDays): void {
+/**
+ * Puts the fake behind the mocked API functions. Each call's arguments stay on the mocks. A suite whose
+ * recipes come from a recipe server of its own (recipeServer.ts) passes `recipes: false`, so `GET /recipes`
+ * stays that server's.
+ */
+export function serve(server: FakeDays, { recipes = true }: { recipes?: boolean } = {}): void {
   jest.mocked(getDay).mockImplementation(async (date) => server.day(date));
   jest.mocked(getDaySummaries).mockImplementation(async (from, to) => server.range(from, to));
   jest.mocked(setEntriesStatus).mockImplementation(async (ids, status) => server.status(ids, status));
@@ -442,6 +460,9 @@ export function serve(server: FakeDays): void {
   // The log sheet's routes, where the suite mocks them.
   if (jest.isMockFunction(addEntry)) jest.mocked(addEntry).mockImplementation(async (body) => server.add(body));
   if (jest.isMockFunction(getRecents)) jest.mocked(getRecents).mockImplementation(async () => server.recentList());
+  if (recipes && jest.isMockFunction(getRecipes)) {
+    jest.mocked(getRecipes).mockImplementation(async (archived) => server.recipeList(archived));
+  }
   if (jest.isMockFunction(getSavedMeals)) {
     jest.mocked(getSavedMeals).mockImplementation(async (archived) => server.mealList(archived));
     jest.mocked(createSavedMeal).mockImplementation(async (body) => server.createMeal(body).meal);

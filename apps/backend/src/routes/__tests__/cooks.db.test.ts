@@ -132,7 +132,8 @@ await describeWithDb("cooks", (suite) => {
       expect(entries[1].status).toBe("planned");
       expect(days.map((day: { date: string }) => day.date)).toEqual([today(), addDays(today(), 1)]);
       const recipeAfter = (await r.get(user, body.id)).body;
-      expect({ ...recipeAfter, lastPutOn: null }).toEqual({ ...recipeBefore, lastPutOn: null });
+      // The recipe stays as written. Only what follows its entries moved: the batch's eaten serving is its last.
+      expect(recipeAfter).toEqual({ ...recipeBefore, lastPutOn: recipeAfter.lastPutOn, lastServings: 1 });
     });
 
     it("adds new servings from the batch, and a later add from it takes the same basis after its food changed", async () => {

@@ -9,7 +9,7 @@ import { useCallback, useMemo } from "react";
 
 // ---------------------------------------------------------------------------
 // How an amount reads in the log sheet and its toasts, in the words a day's
-// rows use: "200 g", "2 × Medium piece · 110 g", "1 meal". A last amount
+// rows use: "200 g", "2 × Medium piece · 110 g", "1 meal", "1 serving". A last amount
 // whose portion is gone (its id is null) reads as its grams, since grams are
 // what "+" sends for it.
 // ---------------------------------------------------------------------------
@@ -19,6 +19,8 @@ export interface AmountLabels {
   food: (last: LastAmount) => string;
   /** A count of meals. */
   meals: (count: number) => string;
+  /** A count of a recipe's servings. */
+  servings: (count: number) => string;
 }
 
 export function useAmountLabels(): AmountLabels {
@@ -34,5 +36,6 @@ export function useAmountLabels(): AmountLabels {
     [t, portionLabel],
   );
   const meals = useCallback((count: number): string => t("meals", { count }), [t]);
-  return useMemo(() => ({ food, meals }), [food, meals]);
+  const servings = useCallback((count: number): string => t("servings", { count }), [t]);
+  return useMemo(() => ({ food, meals, servings }), [food, meals, servings]);
 }
