@@ -9,6 +9,7 @@ import { loosely } from "./logHarness";
 // sheet waits, and Back and closing stay free.
 
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),

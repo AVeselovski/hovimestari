@@ -29,6 +29,7 @@ import { favouritesOf, logWorld, openLogSheet, ownFoods, statusLine } from "./lo
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -118,7 +119,7 @@ const rowsOf = (name: string) =>
     .map((li) => li.querySelector("button")!.textContent ?? "");
 const field = (label: string) =>
   within(screen.getAllByRole("dialog").at(-1)!).getByLabelText(label, { selector: "input" }) as HTMLInputElement;
-const searchField = () => within(sheet()).getByLabelText("Search foods and meals") as HTMLInputElement;
+const searchField = () => within(sheet()).getByLabelText("Search foods, meals and recipes") as HTMLInputElement;
 const mealCalls = (archived: boolean) => jest.mocked(getSavedMeals).mock.calls.filter(([a]) => a === archived).length;
 
 /** From here on, every read of the saved meals and the recent items stays out, unanswered. */

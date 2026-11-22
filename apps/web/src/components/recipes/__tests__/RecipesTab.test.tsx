@@ -298,11 +298,19 @@ describe("Recipes on the Recipes tab", () => {
     expect(row.getAttribute("href")).toMatch(/^\/recipes\/[0-9a-f-]+$/);
     // Read aloud once in full. On screen, "per serving" shows from md only, so a phone's row keeps one line of figures.
     expect(row.textContent!.replace(/[\u00a0\u2002]/g, " ")).toBe(
-      "ShakshukaServes 2 · 25 min365 kcal · 21.8 g protein per serving365 kcal21.8 g protein per servingFavourite",
+      "ShakshukaServes 2 · 25 min365 kcal · 21.8 g protein per serving365 kcal21.8 gprotein per servingFavourite",
     );
     const figures = row.querySelector("[data-recipe-figures-line]")!;
-    expect(figures.className.split(/\s+/)).toContain("whitespace-nowrap");
-    expect(figures.className.split(/\s+/)).not.toContain("flex-wrap");
+    // One line tall whatever its width: a piece that does not fit wraps out of sight, whole.
+    expect(figures.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-5", "overflow-hidden", "flex-wrap"]));
+    // The two figures come first and the words last, so the words are what leaves a narrow row, never half a word.
+    const pieces = [...figures.children].filter((piece) => piece.getAttribute("aria-hidden") === "true");
+    expect(pieces.map((piece) => piece.textContent!.replace(/\u00a0/g, " "))).toEqual([
+      "365 kcal",
+      "21.8 g",
+      "protein per serving",
+    ]);
+    expect(pieces[2].className.split(/\s+/)).not.toContain("truncate");
   });
 
   it("narrows the list by the words typed and by the chips, and clears both from the line that says none match", async () => {
@@ -326,7 +334,8 @@ describe("Recipes on the Recipes tab", () => {
     expect(screen.getByText("No recipe matches.")).toBeInTheDocument();
     fireEvent.click(button("Clear search and filters"));
     expect(recipeNames()).toHaveLength(4);
-    for (const chip of within(chips).getAllByRole("button")) expect(chip).toHaveAttribute("aria-pressed", "false");
+    for (const chip of chips.querySelectorAll("[aria-pressed]")) expect(chip).toHaveAttribute("aria-pressed", "false");
+    expect(chips.querySelectorAll("[aria-pressed]")).toHaveLength(5);
   });
 
   it("gives two tags that differ by an accent a chip each, as the server keeps both on a recipe", async () => {

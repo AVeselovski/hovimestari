@@ -33,6 +33,7 @@ import {
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -240,7 +241,7 @@ describe("The log sheet's '+'", () => {
       fireEvent.click(plus(QUARK_AGAIN));
       await waitFor(() => expect(statusLine()).toHaveTextContent("You are offline."));
       expect(addEntry).not.toHaveBeenCalled();
-      fireEvent.keyDown(screen.getByLabelText("Search foods and meals"), { key: "a" });
+      fireEvent.keyDown(screen.getByLabelText("Search foods, meals and recipes"), { key: "a" });
       expect(statusLine()).toHaveTextContent("Logging to today");
     } finally {
       onLine.mockRestore();

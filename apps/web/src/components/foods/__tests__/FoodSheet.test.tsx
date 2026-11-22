@@ -30,6 +30,7 @@ import {
 
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: jest.fn() }), usePathname: () => "/" }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn().mockResolvedValue({ items: [] }) }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -96,7 +97,7 @@ function renderSheet() {
 }
 
 const dialog = () => screen.getByRole("dialog");
-const field = () => screen.getByLabelText("Search foods and meals") as HTMLInputElement;
+const field = () => screen.getByLabelText("Search foods, meals and recipes") as HTMLInputElement;
 const type = (value: string) => fireEvent.change(field(), { target: { value } });
 const body = () => dialog().querySelector<HTMLElement>("[data-sheet-body]")!;
 const header = () => dialog().querySelector<HTMLElement>("[data-sheet-header]")!;

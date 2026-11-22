@@ -71,7 +71,8 @@ export function savedMeal(name: string, source: string | null, overrides: Partia
 export function serveMeals(meals: readonly SavedMeal[]): FakeDays {
   const server = new FakeDays([]);
   for (const meal of meals) server.meals.set(meal.id, meal);
-  serve(server);
+  // The recipes are the recipe server's (recipeServer.ts), which a suite puts up itself.
+  serve(server, { recipes: false });
   return server;
 }
 

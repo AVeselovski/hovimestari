@@ -293,6 +293,27 @@ await describeWithDb("mcp recipe tools", (suite) => {
       expect(gone).toMatchObject({ isError: true, text: "This recipe is no longer available. (recipe_not_found)" });
     });
 
+    it("list_recent_items answers GET /log/recents with a recipe among the items, and lastServings as the routes do", async () => {
+      const recipe = await createRecipe("Äsken syöty");
+      await written(client, "log_recipe", {
+        requestKey: newRequestKey(),
+        recipeId: recipe.id,
+        servings: 1.5,
+        date: "2026-11-18",
+        status: "eaten",
+      });
+      const recents = await written(client, "list_recent_items", {});
+      expect(recents).toEqual((await d.api().get(d.v1("/log/recents")).set(w.user.auth)).body);
+      expect(recents.items[0]).toEqual({
+        kind: "recipe",
+        recipe: expect.objectContaining({ id: recipe.id, lastServings: 1.5 }),
+        last: { servings: 1.5 },
+      });
+      expect((await written(client, "get_recipe", { recipeId: recipe.id })).lastServings).toBe(1.5);
+      const listed = await written(client, "list_recipes", { q: "Äsken" });
+      expect(listed.recipes).toEqual([recents.items[0].recipe]);
+    });
+
     it("preview_recipe answers what POST /recipes/preview answers", async () => {
       const body = { servings: 3, lines: shakshukaLines(portion.egg) };
       expect(await written(client, "preview_recipe", body)).toEqual((await r.preview(w.user, body)).body);

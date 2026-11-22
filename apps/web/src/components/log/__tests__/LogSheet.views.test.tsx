@@ -23,6 +23,7 @@ import { TODAY, favouritesOf, logWorld, loosely, openLogSheet, ownFoods, plus, t
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn().mockResolvedValue({ meals: [] }),
   createSavedMeal: jest.fn(),
@@ -129,7 +130,7 @@ describe("The log sheet's food view", () => {
     jest.mocked(getFood).mockImplementationOnce(() => new Promise((r) => (answer = r)));
     renderDay();
     await openLogSheet();
-    fireEvent.change(screen.getByLabelText("Search foods and meals"), { target: { value: "quark" } });
+    fireEvent.change(screen.getByLabelText("Search foods, meals and recipes"), { target: { value: "quark" } });
     await waitFor(() => expect(dialog().querySelector("[data-list=results]")).not.toBeNull());
     fireEvent.click(
       within(dialog().querySelector<HTMLElement>("[data-list=results]")!).getByRole("button", { name: /^Quark/ }),
@@ -282,7 +283,7 @@ describe("The log sheet's meal view", () => {
     world.server.meals.clear();
     fireEvent.click(logButton());
     expect(await within(dialog()).findByText("This saved meal is no longer available.")).toBeInTheDocument();
-    expect(within(dialog()).getByLabelText("Search foods and meals")).toHaveFocus();
+    expect(within(dialog()).getByLabelText("Search foods, meals and recipes")).toHaveFocus();
   });
 });
 

@@ -2,30 +2,43 @@ import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { fineliFood, ownFood } from "@/components/foods/__tests__/support";
+import { recipeOf } from "@/components/recipes/__tests__/recipeFixtures";
 import { useAuth } from "@/contexts/AuthContext";
 import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
 import { getDay } from "@/lib/api/days";
 import { addEntry, removeEntry } from "@/lib/api/entries";
 import { getFavouriteFoods, getFood, getOwnFoods } from "@/lib/api/foods";
 import { getRecents } from "@/lib/api/log";
+import { getRecipes } from "@/lib/api/recipes";
 import { createSavedMeal, getSavedMeals } from "@/lib/api/savedMeals";
 import { STALE } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
+import { recipeSummaryOf } from "@/lib/recipeCache";
 import type { FavouriteFood, FoodSummary, SavedMeal } from "@hovimestari/types";
 import { focusManager, onlineManager, type QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { favouritesOf, logWorld, openLogSheet, plus, statusLine, timeout, type LogWorld } from "./logHarness";
+import {
+  favouritesOf,
+  holdRecipe,
+  openLogSheet,
+  plus,
+  recipeLogWorld,
+  statusLine,
+  timeout,
+  type RecipeWorld,
+} from "./logHarness";
 
 // An open list never reorders under the finger (components/log/heldList.tsx).
 // While the log sheet is open, no read that lands in the background changes
-// the order or the set of rows in Recent, Favourites, Saved meals or Your
-// foods: an unconfirmed "+", the window coming back into focus, the
+// the order or the set of rows in Recent, Favourites, Recipes, Saved meals or
+// Your foods: an unconfirmed "+", the window coming back into focus, the
 // connection coming back, or any read at all. A row's own data changes in
 // place. The next open shows what was read.
 
 jest.mock("@/contexts/AuthContext");
 jest.mock("@/lib/api/days", () => ({ getDay: jest.fn(), getDaySummaries: jest.fn() }));
 jest.mock("@/lib/api/log", () => ({ getRecents: jest.fn() }));
+jest.mock("@/lib/api/recipes", () => ({ getRecipes: jest.fn().mockResolvedValue({ recipes: [] }) }));
 jest.mock("@/lib/api/savedMeals", () => ({
   getSavedMeals: jest.fn(),
   createSavedMeal: jest.fn(),
@@ -55,9 +68,9 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-const LISTS = ["Recent", "Favourites", "Saved meals", "Your foods"] as const;
+const LISTS = ["Recent", "Favourites", "Recipes", "Saved meals", "Your foods"] as const;
 
-let world: LogWorld;
+let world: RecipeWorld;
 let favourites: FavouriteFood[];
 let own: FoodSummary[];
 const pasta: FavouriteFood = { ...fineliFood("Pasta", { isFavourite: true }), lastAmount: null };
@@ -71,6 +84,7 @@ const soup: SavedMeal = {
   archived: false,
   lastCount: null,
 };
+const borscht = recipeSummaryOf(recipeOf("Borscht", 4, [{ name: "Beetroot" }]));
 
 beforeEach(() => {
   jest.mocked(useAuth).mockReturnValue(fakeAuth("authenticated"));
@@ -78,7 +92,7 @@ beforeEach(() => {
     jest.mocked(fn).mockReset();
   }
   jest.mocked(getSavedMeals).mockReset();
-  world = logWorld();
+  world = recipeLogWorld();
   favourites = favouritesOf(world).foods;
   own = [rye];
   jest.mocked(getFavouriteFoods).mockImplementation(async () => ({ foods: favourites }));
@@ -117,18 +131,21 @@ function rows(): Record<(typeof LISTS)[number], string[]> {
   return out;
 }
 
-/** Another device logged and saved: every list reads in a new order, with a new row at its top. */
+/** Another device logged and saved: every list reads in a new order, with a new row in it. */
 function everyListChanges(): void {
-  world.server.recents = [world.server.recents[2], world.server.recents[1], world.server.recents[0]];
+  const [quark, banana, shake, shakshuka] = world.server.recents;
+  world.server.recents = [shakshuka, shake, banana, quark];
   favourites = [pasta, ...favourites];
+  holdRecipe(world.server, borscht);
   world.server.meals.set(soup.id, soup);
   own = [apple, rye];
 }
 
 /** The fresh order each list reads after `everyListChanges`. */
 const FRESH = {
-  Recent: ["Shake", "Banana", "Quark"],
+  Recent: ["Shakshuka", "Shake", "Banana", "Quark"],
   Favourites: ["Pasta", "Oats"],
+  Recipes: ["Shakshuka", "Borscht", "Lentil soup"],
   "Saved meals": ["Arctic soup", "Shake"],
   "Your foods": ["Apple cake", "Rye bread"],
 };
@@ -156,7 +173,7 @@ describe("An open list in the log sheet never reorders under the finger", () => 
     await openLogSheet();
     await settle(client);
     const before = rows();
-    expect(before.Recent).toEqual(["Quark", "Banana", "Shake"]);
+    expect(before.Recent).toEqual(["Quark", "Banana", "Shake", "Shakshuka"]);
     jest.mocked(addEntry).mockImplementationOnce(async (body) => {
       world.server.add(body);
       everyListChanges();
@@ -200,7 +217,9 @@ describe("An open list in the log sheet never reorders under the finger", () => 
     // Marked stale, not read while the sheet shows them.
     expect(getRecents).toHaveBeenCalledTimes(reads);
     expect(rows()).toEqual(before);
-    const onServer = world.server.recentList().items.map((i) => (i.kind === "food" ? i.food.name : i.meal.name));
+    const onServer = world.server
+      .recentList()
+      .items.map((i) => (i.kind === "food" ? i.food.name : i.kind === "recipe" ? i.recipe.name : i.meal.name));
     expect(rows().Recent).not.toEqual(onServer);
     await closeAndReopen(client);
     expect(rows().Recent).toEqual(onServer);
@@ -250,7 +269,7 @@ describe("An open list in the log sheet never reorders under the finger", () => 
     const before = rows();
     everyListChanges();
     // Quark, now last of the recent items, was last eaten as 300 g.
-    world.server.recents[2] = { ...world.server.recents[2], last: { grams: 300, portion: null } } as never;
+    world.server.recents[3] = { ...world.server.recents[3], last: { grams: 300, portion: null } } as never;
     await act(() => client.refetchQueries());
     await settle(client);
     expect(rows()).toEqual(before);
@@ -349,14 +368,14 @@ describe("A food or a saved meal found gone in the open log sheet", () => {
     await openLogSheet();
     await settle(client);
     const before = rows();
-    expect(before.Recent).toEqual(["Quark", "Banana", "Shake"]);
+    expect(before.Recent).toEqual(["Quark", "Banana", "Shake", "Shakshuka"]);
     expect(before.Favourites).toEqual(["Banana", "Oats"]);
     deleteFoodOnServer(world.banana);
     fireEvent.click(plus("Log Banana again, 2 × Piece · 110 g"));
     expect(await within(sheet()).findByText("This food is no longer available.")).toBeInTheDocument();
-    await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Shake"]));
+    await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Shake", "Shakshuka"]));
     await settle(client);
-    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Shake"], Favourites: ["Oats"] });
+    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Shake", "Shakshuka"], Favourites: ["Oats"] });
   });
 
   it("'+' on a recent saved meal that is gone: the notice shows and the row leaves Recent and Saved meals", async () => {
@@ -369,9 +388,9 @@ describe("A food or a saved meal found gone in the open log sheet", () => {
     world.server.meals.delete(world.shake.id);
     fireEvent.click(plus("Log Shake again, 1 meal"));
     expect(await within(sheet()).findByText("This saved meal is no longer available.")).toBeInTheDocument();
-    await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Banana"]));
+    await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Banana", "Shakshuka"]));
     await settle(client);
-    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Banana"], "Saved meals": [] });
+    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Banana", "Shakshuka"], "Saved meals": [] });
   });
 
   it("Log from the view of a food that is gone: back to browsing with the notice, without the row", async () => {
@@ -390,7 +409,24 @@ describe("A food or a saved meal found gone in the open log sheet", () => {
     await screen.findByRole("dialog", { name: "Log food" });
     expect(await within(sheet()).findByText("This food is no longer available.")).toBeInTheDocument();
     await settle(client);
-    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Shake"] });
+    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Shake", "Shakshuka"] });
+  });
+
+  it("'+' on a recent recipe that is gone: the notice shows and the row leaves Recent and Recipes", async () => {
+    const client = appClient();
+    renderDay(client);
+    await openLogSheet();
+    await settle(client);
+    const before = rows();
+    expect(before.Recipes).toEqual(["Shakshuka", "Lentil soup"]);
+    // Deleted on another device: the server no longer takes an entry of it, and lists it nowhere.
+    world.server.recipes.delete(world.shakshuka.id);
+    world.server.recipeSummaries = world.server.recipeSummaries.filter((r) => r.id !== world.shakshuka.id);
+    fireEvent.click(plus("Log Shakshuka again, 1.5 servings"));
+    expect(await within(sheet()).findByText("This recipe is no longer available.")).toBeInTheDocument();
+    await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Banana", "Shake"]));
+    await settle(client);
+    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Banana", "Shake"], Recipes: ["Lentil soup"] });
   });
 });
 
@@ -449,11 +485,28 @@ describe("The first read of the log sheet's lists", () => {
     await act(async () => meals.resolve(world.server.mealList(false)));
     await waitFor(() => expect(within(sheet()).queryAllByRole("listitem").length).toBeGreaterThan(0));
     expect(rows()).toEqual({
-      Recent: ["Quark", "Banana", "Shake"],
+      Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
+      Recipes: ["Shakshuka", "Lentil soup"],
       "Saved meals": ["Shake"],
       "Your foods": ["Rye bread"],
     });
+  });
+
+  it("waits for the recipes too: no list shows a row until the Recipes list has answered", async () => {
+    const recipes = held<Awaited<ReturnType<typeof getRecipes>>>();
+    jest.mocked(getRecipes).mockImplementation(() => recipes.promise);
+    const client = appClient();
+    await openWithFastListsIn(client);
+    await waitFor(() => expect(client.getQueryData(queryKeys.recents())).toBeDefined());
+    await waitFor(() => expect(client.getQueryData(queryKeys.savedMealList(false))).toBeDefined());
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    // Every other list has its answer, and waits with the one that has not.
+    expect(within(sheet()).queryAllByRole("listitem")).toHaveLength(0);
+    await act(async () => recipes.resolve(world.server.recipeList(false)));
+    await waitFor(() => expect(within(sheet()).queryAllByRole("listitem").length).toBeGreaterThan(0));
+    expect(rows().Recipes).toEqual(["Shakshuka", "Lentil soup"]);
+    expect(rows().Recent).toEqual(["Quark", "Banana", "Shake", "Shakshuka"]);
   });
 
   it("sends no add while the lists wait, and a press that started before the rows were in place logs nothing", async () => {
@@ -532,13 +585,14 @@ describe("The first read of the log sheet's lists", () => {
     await waitFor(() => expect(getSavedMeals).toHaveBeenCalled());
     await act(() => new Promise((r) => setTimeout(r, 50)));
     expect(within(sheet()).queryAllByRole("listitem")).toHaveLength(0);
-    const line = /^Your recent items and saved meals show here once/;
+    const line = /^Your recent items, recipes and saved meals show here once/;
     expect(within(sheet()).queryByText(line)).toBeNull();
     await act(async () => recents.resolve(world.server.recentList()));
     await waitFor(() => expect(within(sheet()).queryAllByRole("listitem").length).toBeGreaterThan(0));
     expect(rows()).toEqual({
-      Recent: ["Quark", "Banana", "Shake"],
+      Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
+      Recipes: ["Shakshuka", "Lentil soup"],
       "Saved meals": [],
       "Your foods": ["Rye bread"],
     });
@@ -550,13 +604,15 @@ describe("The first read of the log sheet's lists", () => {
     client.setQueryData(queryKeys.recents(), world.server.recentList());
     client.setQueryData(queryKeys.foodFavourites(), { foods: favourites });
     client.setQueryData(queryKeys.savedMealList(false), world.server.mealList(false));
+    client.setQueryData(queryKeys.recipeList(false), world.server.recipeList(false));
     client.setQueryData(queryKeys.foodOwn(), { foods: own });
     renderDay(client);
     await openLogSheet();
     // The render that shows the headings shows the rows, and presses count at once.
     expect(rows()).toEqual({
-      Recent: ["Quark", "Banana", "Shake"],
+      Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
+      Recipes: ["Shakshuka", "Lentil soup"],
       "Saved meals": ["Shake"],
       "Your foods": ["Rye bread"],
     });
