@@ -131,6 +131,7 @@ export function fakeEntryActions(overrides: Partial<EntryActions> = {}): EntryAc
     add: jest.fn(),
     saveAndLog: jest.fn(),
     withdrawAdd: jest.fn(),
+    logCook: jest.fn(),
     copy: jest.fn().mockResolvedValue({ announce: jest.fn() }),
     readDaysAgain: jest.fn(),
     ...overrides,

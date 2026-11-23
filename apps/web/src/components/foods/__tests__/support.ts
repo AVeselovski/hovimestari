@@ -65,8 +65,14 @@ export function ownPortion(name: string, grams: number): Portion {
 }
 
 /** The log sheet's writes, for a suite about foods: nothing is held, and an add is a mock. */
-export function fakeLogActions(): { add: jest.Mock; saveAndLog: jest.Mock; withdrawAdd: jest.Mock; holding: boolean } {
-  return { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: false };
+export function fakeLogActions(): {
+  add: jest.Mock;
+  saveAndLog: jest.Mock;
+  withdrawAdd: jest.Mock;
+  logCook: jest.Mock;
+  holding: boolean;
+} {
+  return { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: false };
 }
 
 /** The date the food suites open the log sheet on. */
