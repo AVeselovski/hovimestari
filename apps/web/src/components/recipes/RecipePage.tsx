@@ -24,10 +24,10 @@ import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { OfflineError } from "@/lib/failure";
 import { formatDayShort } from "@/lib/localDate";
-import { isFreshRead } from "@/lib/queryClient";
 import { queryKeys } from "@/lib/queryKeys";
 import { recipeQuery } from "@/lib/queryOptions";
 import { markOpenedInApp, scrollPageToTop, setFocusAfterDelete, takeOpenedInApp } from "@/lib/recipeNav";
+import { heldRecipeForForm, readRecipeForForm } from "@/lib/recipeRead";
 import {
   entryFigures,
   scaleRecipe,
@@ -45,6 +45,7 @@ import { servingsOf } from "./recipeDraft";
 import { RecipeEditorSheet } from "./RecipeEditorSheet";
 import { RecipeFigures } from "./RecipeFigures";
 import { RecipeLogSheet } from "./RecipeLogSheet";
+import { useCookSheet } from "./useCookSheet";
 import { useRecipeActions } from "./useRecipeActions";
 import { useRecipeDelete } from "./useRecipeDelete";
 import { useRecipeMeta } from "./useRecipeMeta";
@@ -53,8 +54,9 @@ import { useRecipeMeta } from "./useRecipeMeta";
 // RecipePage: one recipe, at /recipes/<id>. Top to bottom: Back and Edit;
 // the name in the display face with its star; "Serves 2 · 25 min", the tags
 // and the last day it is on; the figures card with its servings stepper;
-// Log; the ingredients, scaled with the stepper; the method's numbered
-// steps and the notes; then Duplicate, Archive recipe and Delete recipe.
+// Log and Log as made; the ingredients, scaled with the stepper; the
+// method's numbered steps and the notes; then Duplicate, Archive recipe and
+// Delete recipe.
 //
 // - The stepper scales the lines with `scaleRecipe` and the figures with
 //   `entryFigures` on the recipe's basis, the figures a day shows for that
@@ -83,6 +85,8 @@ import { useRecipeMeta } from "./useRecipeMeta";
 //   takes focus.
 // - The star and Archive wait while the app asks the server for today, and
 //   say so (`aria-disabled`).
+// - Log as made opens the batch sheet (`useCookSheet`) with no entry: made
+//   today, with a first row of new servings for today.
 // ---------------------------------------------------------------------------
 
 export function RecipePage({ id }: { id: string }): ReactElement {
@@ -135,6 +139,12 @@ export function RecipePage({ id }: { id: string }): ReactElement {
   // The button whose press is reading the recipe before the editor opens.
   const [opening, setOpening] = useState<"edit" | "copy" | null>(null);
   const opens = useRef(0);
+  // The page has no sheet open when a read for Log as made fails, so a toast says why. A read that
+  // answers after Edit, Make a copy or Log was pressed opens nothing: the page shows one sheet.
+  const cook = useCookSheet(entryActions, {
+    mayOpen: () => opening === null && !editor.isOpen && !logSheet.isOpen,
+    onReadFailed: (line) => toast.show({ message: line }),
+  });
 
   /** After a delete: the Recipes tab, where the next row by name takes focus, else the one before, else New recipe. */
   function leave(gone: RecipeSummary): void {
@@ -165,27 +175,22 @@ export function RecipePage({ id }: { id: string }): ReactElement {
   async function openEditor(opener: HTMLElement, mode: "edit" | "copy"): Promise<void> {
     opens.current += 1;
     const ticket = opens.current;
-    const options = recipeQuery(id);
-    const state = client.getQueryState(options.queryKey);
-    if (isFreshRead(state) || (offline && state?.data !== undefined)) {
+    const current = (): boolean => ticket === opens.current && mounted.current;
+    if (heldRecipeForForm(client, id, offline)) {
       editor.open(opener, mode);
-      return;
-    }
-    if (offline) {
-      toast.show({ message: offlineLine(new OfflineError()) });
       return;
     }
     setOpening(mode);
     try {
-      await client.fetchQuery({ ...options, staleTime: 0 });
-      if (ticket === opens.current && mounted.current) editor.open(opener, mode);
+      const read = await readRecipeForForm(client, id, offline);
+      if (!current()) return;
+      if (read === null) toast.show({ message: offlineLine(new OfflineError()) });
+      else editor.open(opener, mode);
     } catch (err) {
       // A recipe that is gone shows as gone on the page itself.
-      if (ticket === opens.current && mounted.current && getErrorCode(err) !== "recipe_not_found") {
-        toast.show({ message: errors.forError(err) });
-      }
+      if (current() && getErrorCode(err) !== "recipe_not_found") toast.show({ message: errors.forError(err) });
     } finally {
-      if (ticket === opens.current && mounted.current) setOpening(null);
+      if (current()) setOpening(null);
     }
   }
 
@@ -308,9 +313,30 @@ export function RecipePage({ id }: { id: string }): ReactElement {
           busy={summary === undefined}
         />
         {summary && !deleted && (
-          <button type="button" onClick={(e) => logSheet.open(e.currentTarget)} className={`${btnPrimary} w-full`}>
-            {t("log")}
-          </button>
+          <div className="flex flex-col gap-2">
+            <button type="button" onClick={(e) => logSheet.open(e.currentTarget)} className={`${btnPrimary} w-full`}>
+              {t("log")}
+            </button>
+            {/* A batch made another way than written: its own ingredients and servings, on one or several days. */}
+            <button
+              type="button"
+              data-log-as-made=""
+              aria-haspopup="dialog"
+              aria-busy={cook.reading || undefined}
+              // The batch starts on today, so the button waits until the app knows it, as the star and Archive do.
+              aria-disabled={today === null || undefined}
+              onClick={(e) => {
+                if (today === null) return;
+                // A press here takes the place of a read still out for the editor.
+                opens.current += 1;
+                setOpening(null);
+                cook.open(e.currentTarget, { recipeId: id, day: today });
+              }}
+              className={`${btnSecondary} w-full`}
+            >
+              {t("logAsMade")}
+            </button>
+          </div>
         )}
         {failed && (
           <p role="status" className="text-base text-ink">
@@ -412,6 +438,7 @@ export function RecipePage({ id }: { id: string }): ReactElement {
           actions={entryActions}
         />
       )}
+      {cook.sheet}
       {remove.dialog}
     </PageContainer>
   );

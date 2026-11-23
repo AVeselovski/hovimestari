@@ -1,6 +1,6 @@
 # A recipe
 
-One recipe on a page of its own: what goes in it, what one serving and the whole recipe come to, the same at any number of servings, and the way to put servings on a day. It opens from a row on [the Recipes tab](recipes.md), and from Open recipe in a recipe entry's sheet on [the Day tab](day.md#the-entry-sheet).
+One recipe on a page of its own: what goes in it, what one serving and the whole recipe come to, the same at any number of servings, and the ways to put servings on a day, as written or as it was made. It opens from a row on [the Recipes tab](recipes.md), and from Open recipe in a recipe entry's sheet on [the Day tab](day.md#the-entry-sheet).
 
 ## In detail
 
@@ -22,6 +22,8 @@ Then a table, a row per figure with its dot: calories, protein, carbohydrates an
 
 **Log** opens "Log Shakshuka": **Eaten or planned**, **Date**, today to start with, **Servings**, [the servings last eaten](../features/recipes.md#a-recipe-on-a-day) to start with, else 1, and "For this amount" with the four figures. A future date takes Planned only, with "Future days hold planned entries." under the date, and the button reads **Add to plan**. One serving shows the page's per serving. [The log sheet](log-sheet.md#a-recipe) logs a recipe too, to the day it opened on. After the add the sheet closes and a toast names the day, such as "Added Shakshuka to the plan for Sat 21 Nov.", with **Undo**. A log today reads "Logged Shakshuka, 1 serving.".
 
+**Log as made**, under **Log**, is for a batch that came out different from the recipe. It opens [the as made sheet](as-made-sheet.md) with no entry: made today, with a first row of new servings for today, 1 serving, eaten. The button shows it is busy while the recipe is read for it, and waits, dimmed, while the app does not yet know today.
+
 ### Ingredients, method and notes
 
 **Ingredients**: the lines as [the editor](recipes.md#the-recipe-editor) shows them, scaled with the stepper, so 4 eggs at 2 servings are 8 at 4. A line not counted reads "Not counted". A line whose food is gone says "This food was deleted.", "No longer in Fineli." or "No longer on Open Food Facts." under its name. **Method** lists the steps by number. **Notes** shows the notes as typed, their line breaks kept. A heading shows only when it has something under it.
@@ -37,13 +39,13 @@ At the end, three text buttons: **Duplicate**, **Archive recipe** or **Restore r
 - Opened from a row, the name, the servings and the figures show at once from the list, and the rest as the recipe is read.
 - A recipe that is not there, or another person's, says "This recipe is no longer available." with **Back to recipes**.
 - Offline and never read, the page says "This recipe needs a connection.". A read that fails says "This recipe shows once Hovimestari can reach the server.", under the row's figures when the page was opened from a row.
-- A deleted recipe, opened from a day, says "This recipe was deleted. Days it was on keep their figures." and offers no Edit, Log, star, Duplicate, Archive or Delete.
+- A deleted recipe, opened from a day, says "This recipe was deleted. Days it was on keep their figures." and offers no Edit, Log, Log as made, star, Duplicate, Archive or Delete.
 
 ## How it works
 
 ### Route and entry
 
-The page is `/recipes/[id]`, `apps/web/src/app/(app)/recipes/[id]/page.tsx`, which renders `RecipePage.tsx` in `apps/web/src/components/recipes/`. [The tab bar](shell.md#the-tabs) shows it under Recipes. `RecipeLogSheet.tsx` is its log sheet, and `useRecipeActions.ts` and `useRecipeDelete.ts` its favourite, archive and delete. `apps/web/src/lib/recipeNav.ts` keeps whether the page was opened from inside the app, and the place of the page that was left. A place is written on the browser's history entry of that page as the press leaves it, so it is there when that entry shows again and nowhere else. The page that comes back reads its place as it mounts and takes it off the entry once used. It uses the place only when its data is there as it first shows. A page that answers later opens at its top, so a scroll and a focus never land on a person already using it. Any other way to the list or the day, such as the tab bar, is a new entry with no place, and opens fresh.
+The page is `/recipes/[id]`, `apps/web/src/app/(app)/recipes/[id]/page.tsx`, which renders `RecipePage.tsx` in `apps/web/src/components/recipes/`. [The tab bar](shell.md#the-tabs) shows it under Recipes. `RecipeLogSheet.tsx` is its log sheet, `useCookSheet.tsx` opens [the as made sheet](as-made-sheet.md#route-and-entry), and `useRecipeActions.ts` and `useRecipeDelete.ts` its favourite, archive and delete. `apps/web/src/lib/recipeNav.ts` keeps whether the page was opened from inside the app, and the place of the page that was left. A place is written on the browser's history entry of that page as the press leaves it, so it is there when that entry shows again and nowhere else. The page that comes back reads its place as it mounts and takes it off the entry once used. It uses the place only when its data is there as it first shows. A page that answers later opens at its top, so a scroll and a focus never land on a person already using it. Any other way to the list or the day, such as the tab bar, is a new entry with no place, and opens fresh.
 
 ### Layout
 
@@ -59,3 +61,4 @@ The page reads `GET /recipes/:id` and scales on the device with `scaleRecipe` an
 
 - [Recipes](../features/recipes.md): the recipe, its figures and their scaling, archiving, deleting and [copying](../features/recipes.md#copying-a-recipe).
 - [Quick logging](../features/quick-logging.md): putting servings on a day, with Undo.
+- [Logging as made](../features/recipes.md#logging-as-made): a batch with its own ingredients and servings, from **Log as made**.

@@ -69,6 +69,14 @@ export interface IngredientPickerProps {
   /** The line being changed, as it now is. */
   onSave: (line: CountedDraft) => void;
   onRemove: (id: string) => void;
+  /**
+   * What the picker says where the lines do not go to a recipe, such as a
+   * batch logged as made: the status line while adding and while changing,
+   * and `takeOut`, the label of the action in Remove ingredient's place when
+   * it takes the line out and deletes nothing, such as Leave out. That one
+   * is drawn in ink, as a plain action.
+   */
+  words?: { adding?: string; changing?: string; takeOut?: string };
 }
 
 type View = { kind: "search" } | { kind: "amount"; food: DraftFood };
@@ -102,6 +110,7 @@ export function IngredientPicker({
   onAdd,
   onSave,
   onRemove,
+  words,
 }: IngredientPickerProps): ReactElement {
   const t = useTranslations("recipes.picker");
   const tFoods = useTranslations("foods.sheet");
@@ -241,7 +250,9 @@ export function IngredientPicker({
   const named = recipeName.trim();
   const statusText =
     status.message?.text ??
-    (editing && named ? t("changing", { name: named }) : named ? t("adding", { name: named }) : t("addingNew"));
+    (editing
+      ? (words?.changing ?? (named ? t("changing", { name: named }) : t("addingNew")))
+      : (words?.adding ?? (named ? t("adding", { name: named }) : t("addingNew"))));
   const header = (
     <div className="space-y-1.5">
       <p
@@ -274,9 +285,9 @@ export function IngredientPicker({
                 onRemove(editing.id);
                 onClose();
               }}
-              className={btnTextDanger}
+              className={words?.takeOut ? btnText : btnTextDanger}
             >
-              {t("remove")}
+              {words?.takeOut ?? t("remove")}
             </button>
             <button type="submit" form={formId} className={`${btnPrimary} w-full`}>
               {t("save")}

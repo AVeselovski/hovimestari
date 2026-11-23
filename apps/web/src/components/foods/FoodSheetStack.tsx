@@ -35,7 +35,7 @@ export interface MealSheetTarget {
 export interface StackLogging {
   /** The log sheet's date. */
   date: string;
-  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "holding">;
+  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "logCook" | "holding">;
   /** The sources of the user's meals. */
   sources: readonly string[];
   /** A stacked sheet logged: both sheets close in this update. */

@@ -2,7 +2,7 @@
 
 A recipe is a dish a person cooks again and again, written once with its servings, its ingredients and its method. The app computes its figures from the foods its ingredients point at, so a person never types a recipe's totals.
 
-Recipes are kept on [the Recipes tab](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. A batch is logged through the API and by a connected assistant, with no screen of its own yet.
+Recipes are kept on [the Recipes tab](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. A batch is logged from [the as made sheet](../app/as-made-sheet.md), and by a connected assistant.
 
 ## In detail
 
@@ -165,6 +165,7 @@ Every table cascades from `users`, so deleting an account removes its recipes wi
 - A preview checks lines against the foods the person can see now, so it refuses a line on a food hidden since that a save would keep.
 - A recipe has no cover image yet.
 - A batch cannot be corrected once it is logged.
+- A batch can be dated after today.
 
 Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06, FR-AI-07, FR-AI-08 (requirements 3.3, 3.7 and 3.10)
 
@@ -172,6 +173,7 @@ Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06,
 
 - [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites, tags and figures per serving, in any of the four orders, and the editor that makes and changes a recipe from foods.
 - [A recipe's page](../app/recipe.md): the recipe, its figures at any number of servings, logging servings on a day, duplicating, archiving and deleting.
-- [The Day tab](../app/day.md): a recipe's entries, each with its servings, and Open recipe in an entry's sheet.
+- [The Day tab](../app/day.md): a recipe's entries, each with its servings, a batch's serving marked while the batch differs, and Open recipe and Log as made in an entry's sheet.
+- [The as made sheet](../app/as-made-sheet.md): a batch logged as made, with its own lines and servings, and the days its servings are on.
 - [The log sheet](../app/log-sheet.md#a-recipe): the recipes listed and found by words, a recipe eaten lately among the recent items, and a recipe logged by servings, starting from its last servings.
 - [Settings](../app/settings.md#activity): an assistant's changes to recipes and the recipes it put on days, in a connection's Activity.

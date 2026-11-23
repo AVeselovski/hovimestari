@@ -134,6 +134,8 @@ Tapping a recipe opens it. The top row holds **Back** and the recipe's name. The
 
 Under the log block come the recipe's name, **Per serving** with its four figures, and "Serves 2 · 25 min". **Open recipe** leaves the sheet for [the recipe's page](recipe.md), as **About the food data** leaves it. Back from that page shows the day where it was scrolled, with focus on **Log food**.
 
+**Log as made**, under **Open recipe**, is for a batch that came out different from the recipe. It stacks [the as made sheet](as-made-sheet.md) on this one, made on the day the sheet logs to, with a first row of new servings that starts from the servings and the state the log block holds. Once the batch is logged both sheets close, and the toast shows after them. When the recipe cannot be read for it, the status line says why.
+
 A recipe that is gone, deleted on another device, sends the sheet back to the search with "This recipe is no longer available." when a log or a **+** finds it gone. Its row leaves every list.
 
 ### Archived meals

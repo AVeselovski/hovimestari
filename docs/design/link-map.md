@@ -28,79 +28,83 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## The app
 
-| Concept                                                 | Home                                                                    | Heading                                          |
-| ------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
-| theme, light and dark, following the device             | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
-| the pre-paint theme script                              | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
-| the browser chrome colour, `theme-color`                | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
-| installing the app, home screen                         | `features/installable-app.md#installing`                                | `### Installing`                                 |
-| the web manifest                                        | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
-| offline, the offline line                               | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
-| the service worker, cached pages                        | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
-| safe areas, insets                                      | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
-| the app shell, tabs, tab bar, side rail                 | `app/shell.md`                                                          | Doc                                              |
-| server fault, Something went wrong, Try again           | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
-| the known-session flag, offline sign-in side            | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
-| the shell's layout, one scroll container                | `app/shell.md#layout`                                                   | `### Layout`                                     |
-| Recipes tab, keeping recipes, foods and meals           | `app/recipes.md`                                                        | Doc                                              |
-| the Recipes tab's segments, its action and search       | `app/recipes.md#the-three-segments`                                     | `### The three segments`                         |
-| the archived meals on the Recipes tab                   | `app/recipes.md#meals`                                                  | `### Meals`                                      |
-| the recipe editor                                       | `app/recipes.md#the-recipe-editor`                                      | `### The recipe editor`                          |
-| the ingredient picker, adding an ingredient             | `app/recipes.md#adding-an-ingredient`                                   | `### Adding an ingredient`                       |
-| a recipe's page                                         | `app/recipe.md`                                                         | Doc                                              |
-| the servings stepper, a recipe's figures card           | `app/recipe.md#servings-and-figures`                                    | `### Servings and figures`                       |
-| logging a recipe from its page                          | `app/recipe.md#log`                                                     | `### Log`                                        |
-| the Recipes tab's filter sheet, Filter, its orders      | `app/recipes.md#the-filter-sheet`                                       | `### The filter sheet`                           |
-| the food search hook, useFoodFinder                     | `app/log-sheet.md#route-and-entry`                                      | `### Route and entry`                            |
-| design tokens, colours                                  | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
-| the accent, what it means                               | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
-| macro hues, energy, protein, carbohydrates, fat         | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
-| contrast                                                | `app/colors.md#contrast`                                                | `### Contrast`                                   |
-| type, typefaces, type scale                             | `app/colors.md#type`                                                    | `### Type`                                       |
-| motion tokens, sheet curve, reduced motion              | `app/colors.md#motion`                                                  | `### Motion`                                     |
-| z-index ladder, layers                                  | `app/colors.md#layers`                                                  | `### Layers`                                     |
-| sheets and dialogs, swipe to close                      | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
-| bottom sheet, confirm dialog, sheet conventions         | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
-| sign-in pages, guest pages                              | `app/auth.md`                                                           | Doc                                              |
-| settings, sign-in methods, account actions              | `app/settings.md`                                                       | Doc                                              |
-| first-run page                                          | `app/first-run.md`                                                      | Doc                                              |
-| number fields, date fields, parseDecimalInput           | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
-| targets sheet, change targets, remove a change          | `app/settings.md#targets`                                               | `### Targets`                                    |
-| food names setting, Finnish or English choice           | `app/settings.md#food-names`                                            | `### Food names`                                 |
-| food data credit in Settings, Fineli attribution        | `app/settings.md#food-data`                                             | `### Food data`                                  |
-| Connected AI panel in Settings, connect an assistant    | `app/settings.md#connected-ai`                                          | `### Connected AI`                               |
-| Activity sheet, a connection's changes, Show more       | `app/settings.md#activity`                                              | `### Activity`                                   |
-| Day tab, Log food launcher, date bar                    | `app/day.md`                                                            | Doc                                              |
-| the Day tab's header that stays in view, its hairline   | `app/day.md#the-header`                                                 | `### The header`                                 |
-| the remembered day, the Day link, back to today         | `app/day.md#coming-back-to-the-tab`                                     | `### Coming back to the tab`                     |
-| the day summary, the gauge on screen                    | `app/day.md#the-summary`                                                | `### The summary`                                |
-| the gauge's drawing, band, ticks, end-cap               | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
-| the week sheet, the Week button                         | `app/day.md#the-week`                                                   | `### The week`                                   |
-| entry rows, mark eaten, Mark all eaten                  | `app/day.md#the-entries`                                                | `### The entries`                                |
-| entry sheet                                             | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
-| the copy sheet, Copy in the Entries row                 | `app/day.md#the-copy-sheet`                                             | `### The copy sheet`                             |
-| toast, undo toast                                       | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
-| the toast primitive, useToast                           | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
-| gauge colours, plan tints, target band                  | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
-| marks over the camera, on-camera tokens                 | `app/colors.md#over-the-camera`                                         | `### Over the camera`                            |
-| log sheet page, food search screen                      | `app/log-sheet.md`                                                      | Doc                                              |
-| food search results, browse lists, no results           | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
-| the log sheet's Recipes list, All 30 recipes            | `app/log-sheet.md#the-recipes-list`                                     | `### The Recipes list`                           |
-| food view, per 100 g figures, favourite star            | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
-| own-food sheet, add a food, edit food                   | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
-| typed barcode in the log sheet, the barcode block       | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
-| the scanner sheet, the camera button, Type the number   | `app/log-sheet.md#scanning-a-barcode`                                   | `### Scanning a barcode`                         |
-| portion sheet, add a portion                            | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
-| the log sheet's status line                             | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
-| "+", logging again on screen                            | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |
-| the log block, a food's log                             | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
-| meal view, edit meal, archive meal, delete meal         | `app/log-sheet.md#a-saved-meal`                                         | `### A saved meal`                               |
-| the log sheet's recipe view, Open recipe from it        | `app/log-sheet.md#a-recipe`                                             | `### A recipe`                                   |
-| archived meals view, restore                            | `app/log-sheet.md#archived-meals`                                       | `### Archived meals`                             |
-| saved meal sheet, save and log, save meal               | `app/log-sheet.md#a-new-saved-meal`                                     | `### A new saved meal`                           |
-| estimate sheet, add an estimate                         | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |
-| closing sheet swallows presses, refused field into view | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
-| tall sheet, sheet with a fixed height                   | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| Concept                                                   | Home                                                                    | Heading                                          |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------ |
+| theme, light and dark, following the device               | `features/appearance.md#choosing-a-theme`                               | `### Choosing a theme`                           |
+| the pre-paint theme script                                | `features/appearance.md#the-pre-paint-script`                           | `### The pre-paint script`                       |
+| the browser chrome colour, `theme-color`                  | `features/appearance.md#the-browser-chrome-colour`                      | `### The browser chrome colour`                  |
+| installing the app, home screen                           | `features/installable-app.md#installing`                                | `### Installing`                                 |
+| the web manifest                                          | `features/installable-app.md#the-manifest`                              | `### The manifest`                               |
+| offline, the offline line                                 | `features/installable-app.md#without-a-network`                         | `### Without a network`                          |
+| the service worker, cached pages                          | `features/installable-app.md#the-service-worker`                        | `### The service worker`                         |
+| safe areas, insets                                        | `features/installable-app.md#safe-areas`                                | `### Safe areas`                                 |
+| the app shell, tabs, tab bar, side rail                   | `app/shell.md`                                                          | Doc                                              |
+| server fault, Something went wrong, Try again             | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
+| the known-session flag, offline sign-in side              | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
+| the shell's layout, one scroll container                  | `app/shell.md#layout`                                                   | `### Layout`                                     |
+| Recipes tab, keeping recipes, foods and meals             | `app/recipes.md`                                                        | Doc                                              |
+| the Recipes tab's segments, its action and search         | `app/recipes.md#the-three-segments`                                     | `### The three segments`                         |
+| the archived meals on the Recipes tab                     | `app/recipes.md#meals`                                                  | `### Meals`                                      |
+| the recipe editor                                         | `app/recipes.md#the-recipe-editor`                                      | `### The recipe editor`                          |
+| the ingredient picker, adding an ingredient               | `app/recipes.md#adding-an-ingredient`                                   | `### Adding an ingredient`                       |
+| a recipe's page                                           | `app/recipe.md`                                                         | Doc                                              |
+| the servings stepper, a recipe's figures card             | `app/recipe.md#servings-and-figures`                                    | `### Servings and figures`                       |
+| logging a recipe from its page                            | `app/recipe.md#log`                                                     | `### Log`                                        |
+| the as made sheet, Log as made, logging a batch on screen | `app/as-made-sheet.md`                                                  | Doc                                              |
+| a batch's lines on screen, Leave out, Put back, the marks | `app/as-made-sheet.md#ingredients`                                      | `### Ingredients`                                |
+| From this batch, the other planned servings, a new row    | `app/as-made-sheet.md#from-this-batch`                                  | `### From this batch`                            |
+| the three ways into the as made sheet, useCookSheet       | `app/as-made-sheet.md#route-and-entry`                                  | `### Route and entry`                            |
+| the Recipes tab's filter sheet, Filter, its orders        | `app/recipes.md#the-filter-sheet`                                       | `### The filter sheet`                           |
+| the food search hook, useFoodFinder                       | `app/log-sheet.md#route-and-entry`                                      | `### Route and entry`                            |
+| design tokens, colours                                    | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
+| the accent, what it means                                 | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
+| macro hues, energy, protein, carbohydrates, fat           | `app/colors.md#the-macro-hues`                                          | `### The macro hues`                             |
+| contrast                                                  | `app/colors.md#contrast`                                                | `### Contrast`                                   |
+| type, typefaces, type scale                               | `app/colors.md#type`                                                    | `### Type`                                       |
+| motion tokens, sheet curve, reduced motion                | `app/colors.md#motion`                                                  | `### Motion`                                     |
+| z-index ladder, layers                                    | `app/colors.md#layers`                                                  | `### Layers`                                     |
+| sheets and dialogs, swipe to close                        | `app/shell.md#sheets-and-dialogs`                                       | `### Sheets and dialogs`                         |
+| bottom sheet, confirm dialog, sheet conventions           | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| sign-in pages, guest pages                                | `app/auth.md`                                                           | Doc                                              |
+| settings, sign-in methods, account actions                | `app/settings.md`                                                       | Doc                                              |
+| first-run page                                            | `app/first-run.md`                                                      | Doc                                              |
+| number fields, date fields, parseDecimalInput             | `../apps/web/README.md#numbers-and-dates`                               | `## Numbers and dates`                           |
+| targets sheet, change targets, remove a change            | `app/settings.md#targets`                                               | `### Targets`                                    |
+| food names setting, Finnish or English choice             | `app/settings.md#food-names`                                            | `### Food names`                                 |
+| food data credit in Settings, Fineli attribution          | `app/settings.md#food-data`                                             | `### Food data`                                  |
+| Connected AI panel in Settings, connect an assistant      | `app/settings.md#connected-ai`                                          | `### Connected AI`                               |
+| Activity sheet, a connection's changes, Show more         | `app/settings.md#activity`                                              | `### Activity`                                   |
+| Day tab, Log food launcher, date bar                      | `app/day.md`                                                            | Doc                                              |
+| the Day tab's header that stays in view, its hairline     | `app/day.md#the-header`                                                 | `### The header`                                 |
+| the remembered day, the Day link, back to today           | `app/day.md#coming-back-to-the-tab`                                     | `### Coming back to the tab`                     |
+| the day summary, the gauge on screen                      | `app/day.md#the-summary`                                                | `### The summary`                                |
+| the gauge's drawing, band, ticks, end-cap                 | `app/day.md#the-gauge`                                                  | `### The gauge`                                  |
+| the week sheet, the Week button                           | `app/day.md#the-week`                                                   | `### The week`                                   |
+| entry rows, mark eaten, Mark all eaten                    | `app/day.md#the-entries`                                                | `### The entries`                                |
+| entry sheet                                               | `app/day.md#the-entry-sheet`                                            | `### The entry sheet`                            |
+| the copy sheet, Copy in the Entries row                   | `app/day.md#the-copy-sheet`                                             | `### The copy sheet`                             |
+| toast, undo toast                                         | `app/shell.md#toasts`                                                   | `### Toasts`                                     |
+| the toast primitive, useToast                             | `app/shell.md#the-toast-primitive`                                      | `### The toast primitive`                        |
+| gauge colours, plan tints, target band                    | `app/colors.md#the-gauge`                                               | `### The gauge`                                  |
+| marks over the camera, on-camera tokens                   | `app/colors.md#over-the-camera`                                         | `### Over the camera`                            |
+| log sheet page, food search screen                        | `app/log-sheet.md`                                                      | Doc                                              |
+| food search results, browse lists, no results             | `app/log-sheet.md#the-search`                                           | `### The search`                                 |
+| the log sheet's Recipes list, All 30 recipes              | `app/log-sheet.md#the-recipes-list`                                     | `### The Recipes list`                           |
+| food view, per 100 g figures, favourite star              | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
+| own-food sheet, add a food, edit food                     | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
+| typed barcode in the log sheet, the barcode block         | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
+| the scanner sheet, the camera button, Type the number     | `app/log-sheet.md#scanning-a-barcode`                                   | `### Scanning a barcode`                         |
+| portion sheet, add a portion                              | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
+| the log sheet's status line                               | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
+| "+", logging again on screen                              | `app/log-sheet.md#logging-again-in-one-press`                           | `### Logging again in one press`                 |
+| the log block, a food's log                               | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
+| meal view, edit meal, archive meal, delete meal           | `app/log-sheet.md#a-saved-meal`                                         | `### A saved meal`                               |
+| the log sheet's recipe view, Open recipe from it          | `app/log-sheet.md#a-recipe`                                             | `### A recipe`                                   |
+| archived meals view, restore                              | `app/log-sheet.md#archived-meals`                                       | `### Archived meals`                             |
+| saved meal sheet, save and log, save meal                 | `app/log-sheet.md#a-new-saved-meal`                                     | `### A new saved meal`                           |
+| estimate sheet, add an estimate                           | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |
+| closing sheet swallows presses, refused field into view   | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| tall sheet, sheet with a fixed height                     | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 
 ## Targets
 

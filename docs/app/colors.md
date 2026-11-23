@@ -90,7 +90,7 @@ A sheet slides up on the curve `--ease-sheet` (`cubic-bezier(0.32, 0.72, 0, 1)`)
 
 A toast rises a little and fades in over `--duration-dialog`, and fades out where it is (`toast-motion`). A gauge's fills ease to a new width over 240ms on `--ease-sheet` when the same day's figures change, and paint without motion on a new date and under reduced motion (`gauge-fill-motion`).
 
-A sheet lifts from the page by its surface colour and a hairline `--color-rule` border, never by a shadow. A sheet stacked on another takes `--color-surface-raised`, so the two read apart. `--sheet-min-height` (14rem) is the shortest a sheet stands on a phone. `--sheet-pad-x` (1.25rem on a phone, 1.5rem from `md`) is a sheet's inline padding, in its header, body and footer, and the room a row of chips bleeds through to the sheet's edges.
+A sheet lifts from the page by its surface colour and a hairline `--color-rule` border, never by a shadow. A sheet stacked on another takes `--color-surface-raised`, so the two read apart. A card inside a sheet takes the surface its sheet is not on (`cardInSheetClass`, through `--sheet-card`), so it is filled in both. `--sheet-min-height` (14rem) is the shortest a sheet stands on a phone. `--sheet-pad-x` (1.25rem on a phone, 1.5rem from `md`) is a sheet's inline padding, in its header, body and footer, and the room a row of chips bleeds through to the sheet's edges.
 
 On a phone a sheet with another stacked on it shrinks to `--sheet-stack-scale` (0.94) about its top edge, and keeps `--sheet-stack-peek` (0.75rem) of itself in view above the one on top. The stacked sheet dims what is under it by `--sheet-stack-dim` (0.5) of the scrim, because the page is already dimmed once.
 

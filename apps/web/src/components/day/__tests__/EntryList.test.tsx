@@ -98,14 +98,22 @@ describe("EntryList, a recipe entry's row", () => {
     expect(screen.getByText("1.5 servings")).toBeInTheDocument();
   });
 
-  it("reads an entry from a batch logged as made by its servings, as made, and the batch's figures", () => {
+  it("says as made on a serving of a batch only while the server says the batch differs from its recipe", () => {
     const batch = { energyKcal: 240.53, proteinG: 17.187, carbsG: 8.087, fatG: 15.073 };
-    const cook = { id: "00000000-0000-4000-9000-00000000c00c", date: TODAY, servings: 3, differs: false };
-    const { entries } = dayOf([recipeEntry("Shakshuka", 2, batch, { cook }), recipeEntry("Shakshuka", 1, batch)]);
+    const cook = { id: "00000000-0000-4000-9000-00000000c00c", date: TODAY, servings: 3 };
+    const { entries } = dayOf([
+      recipeEntry("Shakshuka", 2, batch, { cook: { ...cook, differs: true } }),
+      recipeEntry("Lentil soup", 1.5, batch, { cook: { ...cook, differs: false } }),
+      recipeEntry("Pea soup", 1, batch),
+    ]);
     render(list(entries));
-    // Beside a plain serving of the same recipe, the batch's says why its figures may differ.
-    expect(screen.getByText("2 servings · as made")).toBeInTheDocument();
-    expect(screen.getByText("1 serving")).toBeInTheDocument();
+    const meta = (name: string) => screen.getByText(name).nextElementSibling?.textContent;
+    // Said once, in the amount line, and the figures are the batch's.
+    expect(meta("Shakshuka")).toBe("2 servings as made");
+    expect(document.querySelectorAll("li")[0].textContent?.match(/as made/g)).toHaveLength(1);
     expect(document.body.textContent).toContain("481");
+    // A batch made as written reads as a plain serving does.
+    expect(meta("Lentil soup")).toBe("1.5 servings");
+    expect(meta("Pea soup")).toBe("1 serving");
   });
 });

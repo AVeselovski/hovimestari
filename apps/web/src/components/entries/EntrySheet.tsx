@@ -2,6 +2,7 @@
 
 import { MacroFigures } from "@/components/figures/MacroFigures";
 import { focusField } from "@/components/form/focus";
+import { useCookSheet } from "@/components/recipes/useCookSheet";
 import { FormSheet, type FormFailure, type FormSheetCallerProps } from "@/components/ui/FormSheet";
 import { NativeDateInput, dateHintId } from "@/components/ui/NativeDateInput";
 import { btnText, labelClass, noticeClass, sectionStart } from "@/components/ui/styles";
@@ -11,7 +12,7 @@ import { useFailureLine } from "@/hooks/useFailureLine";
 import { useFormDirty } from "@/hooks/useFormDirty";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
-import { isIsoDate } from "@/lib/localDate";
+import { formatDayShort, isIsoDate } from "@/lib/localDate";
 import { foodDetailQuery } from "@/lib/queryOptions";
 import { isPlainPress, keepDayPlace, markOpenedInApp } from "@/lib/recipeNav";
 import type { Entry, ErrorCode } from "@hovimestari/types";
@@ -46,12 +47,22 @@ import { StateChoice } from "./StateChoice";
 // `entryFigures` on the entry's stored basis once it changes, so it is the
 // figure Save will store. Save sends only what changed, and closes the sheet
 // with a toast that can undo it. A failure keeps the sheet open with the
-// typed values and says why under the form. A recipe entry has Open recipe
-// under its figures, which leaves for the recipe's page, and keeps the day's
-// place for the way back (lib/recipeNav.ts). While the sheet holds unsaved
-// changes it is dimmed and does nothing, as Escape, a drag and a press
-// outside do nothing then: only Cancel and Save leave a changed sheet. A
-// line beside it says so, "Save or cancel first.", and describes the link.
+// typed values and says why under the form. A recipe entry has one row of
+// two actions under its figures, 44 pixels tall. Open recipe leaves for the
+// recipe's page, and keeps the day's place for the way back
+// (lib/recipeNav.ts). Beside it, a plain recipe entry has Log as made, which
+// stacks the batch sheet on this one (components/recipes/CookSheet.tsx).
+// Once the batch is logged both sheets close and its toast shows. A serving
+// from a batch says so in Log as made's place, "From the batch made on Sat
+// 21 Nov.", and that it differs from the recipe while the server says it
+// does.
+//
+// While the sheet holds unsaved changes both actions are dimmed and do
+// nothing, as Escape, a drag and a press outside do nothing then: only
+// Cancel and Save leave a changed sheet. One line under the row says so,
+// "Save or cancel first.", and describes both. Its room is kept, so the
+// date under it is at one place whatever the row holds. A recipe read for
+// Log as made that answers after the sheet changed opens nothing.
 // ---------------------------------------------------------------------------
 
 export interface EntrySheetProps extends FormSheetCallerProps {
@@ -102,6 +113,17 @@ export function EntrySheet({
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const { dirty } = useFormDirty(JSON.stringify(fields), true);
+  // The batch sheet, stacked on this one. Logged, both close in one update, never this one alone.
+  const cook = useCookSheet(actions, {
+    // A recipe read that answers after the sheet changed, closed or began a save or a removal opens nothing.
+    mayOpen: () => open && !dirty && !saving && !removing,
+    onReadFailed: (line, cause) => setFormError({ line, cause }),
+    onLogged: (announce) => {
+      cook.close();
+      onClose();
+      announce();
+    },
+  });
 
   // The food's portions, for its other chips. A hidden food reads nothing.
   const food = entry.kind === "food" ? entry.food : null;
@@ -247,7 +269,7 @@ export function EntrySheet({
       // Nobody removes an entry while typing: the row gives its room to the keyboard.
       footerStart={{ label: t("remove"), onPress: () => void handleRemove(), yieldsToKeyboard: true }}
       // A long name keeps two lines, so the fields under the title stay in reach.
-      sheet={{ panelClassName: "md:max-w-md", titleClassName: "line-clamp-2 break-words" }}
+      sheet={{ panelClassName: "md:max-w-md", titleClassName: "line-clamp-2 break-words", stacked: cook.sheet }}
     >
       {({ autoFocus }) => (
         <>
@@ -305,27 +327,52 @@ export function EntrySheet({
             {/* "Calories", as the estimate's own field and the Day tab's summary say. */}
             <MacroFigures figures={preview} estimate={entry.isEstimate} energyWord="calories" />
             {entry.kind === "recipe" && entry.recipe && (
-              // The recipe's page, also for a recipe deleted since: it still opens from its entries.
-              <div className="mt-2 flex items-center gap-3">
-                <Link
-                  href={`/recipes/${entry.recipe.id}`}
-                  // With unsaved changes the sheet refuses every way out but Cancel and Save, and this one too.
-                  aria-disabled={dirty || undefined}
-                  aria-describedby={dirty ? `${id}-open-recipe-why` : undefined}
-                  onClick={(e) => {
-                    if (dirty) e.preventDefault();
-                    else if (isPlainPress(e)) {
-                      markOpenedInApp();
-                      keepDayPlace(entry.id);
-                    }
-                  }}
-                  data-open-recipe=""
-                  className={`${btnText} shrink-0`}
-                >
-                  {t("openRecipe")}
-                </Link>
-                {/* Beside the link, so it showing moves nothing in the sheet. */}
-                <p id={`${id}-open-recipe-why`} data-open-recipe-why="" className="min-w-0 text-sm text-ink-muted">
+              <div className="mt-2">
+                {/* One row for both, 44 pixels tall, so the date under it is at one place for every recipe entry. */}
+                <div data-recipe-actions="" className="flex min-h-11 items-center gap-x-6">
+                  {/* The recipe's page, also for a recipe deleted since: it still opens from its entries. */}
+                  <Link
+                    href={`/recipes/${entry.recipe.id}`}
+                    // With unsaved changes the sheet refuses every way out but Cancel and Save, and this one too.
+                    aria-disabled={dirty || undefined}
+                    aria-describedby={dirty ? `${id}-open-recipe-why` : undefined}
+                    onClick={(e) => {
+                      if (dirty) e.preventDefault();
+                      else if (isPlainPress(e)) {
+                        markOpenedInApp();
+                        keepDayPlace(entry.id);
+                      }
+                    }}
+                    data-open-recipe=""
+                    className={`${btnText} shrink-0`}
+                  >
+                    {t("openRecipe")}
+                  </Link>
+                  {entry.cook ? (
+                    <p data-entry-batch="" className="min-w-0 text-sm text-ink">
+                      {t("fromBatch", { day: formatDayShort(entry.cook.date, undefined, today ?? undefined) })}
+                      {entry.cook.differs ? ` ${t("batchDiffers")}` : null}
+                    </p>
+                  ) : entry.recipe.deleted ? null : (
+                    <button
+                      type="button"
+                      data-log-as-made=""
+                      aria-haspopup="dialog"
+                      aria-busy={cook.reading || undefined}
+                      aria-disabled={dirty || undefined}
+                      aria-describedby={dirty ? `${id}-open-recipe-why` : undefined}
+                      onClick={(e) => {
+                        if (!dirty && entry.recipe)
+                          cook.open(e.currentTarget, { recipeId: entry.recipe.id, entry, day: entry.date });
+                      }}
+                      className={`${btnText} shrink-0`}
+                    >
+                      {t("logAsMade")}
+                    </button>
+                  )}
+                </div>
+                {/* Under the row, its room kept, so it showing moves nothing in the sheet. It is about both actions. */}
+                <p id={`${id}-open-recipe-why`} data-open-recipe-why="" className="min-h-5 text-sm text-ink-muted">
                   {dirty ? t("openRecipeWaits") : null}
                 </p>
               </div>

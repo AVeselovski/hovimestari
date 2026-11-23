@@ -26,7 +26,7 @@ function renderLauncher(props: Partial<Parameters<typeof DayLauncher>[0]> = {}) 
     <DayLauncher
       date="2026-11-16"
       future={false}
-      actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: false }}
+      actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: false }}
       {...props}
     />,
     { wrapper: queryWrapper(client) },
@@ -41,7 +41,7 @@ describe("DayLauncher", () => {
       <DayLauncher
         date="2026-11-18"
         future
-        actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: false }}
+        actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: false }}
       />,
     );
     expect(screen.getByRole("button", { name: "Add to plan" })).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe("DayLauncher", () => {
 
   it("opens nothing while the app asks for today, or while no date is known", () => {
     const { rerender } = renderLauncher({
-      actions: { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: true },
+      actions: { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: true },
     });
     const launcher = screen.getByRole("button", { name: "Log food" });
     expect(launcher).toHaveAttribute("aria-disabled", "true");
@@ -67,7 +67,7 @@ describe("DayLauncher", () => {
       <DayLauncher
         date={null}
         future={false}
-        actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: false }}
+        actions={{ add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: false }}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Log food" }));

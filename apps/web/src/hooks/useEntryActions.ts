@@ -385,7 +385,7 @@ export function useEntryActions(shownDate: string | null): EntryActions {
     [apply, counted, gone, ready, t, toast, undo],
   );
 
-  const { add, saveAndLog, withdrawAdd } = useAddActions({
+  const { add, saveAndLog, withdrawAdd, logCook } = useAddActions({
     client,
     toast,
     t,
@@ -412,6 +412,7 @@ export function useEntryActions(shownDate: string | null): EntryActions {
       remove,
       add,
       saveAndLog,
+      logCook,
       withdrawAdd,
       copy,
       readDaysAgain,
@@ -427,6 +428,7 @@ export function useEntryActions(shownDate: string | null): EntryActions {
       remove,
       add,
       saveAndLog,
+      logCook,
       withdrawAdd,
       copy,
       readDaysAgain,

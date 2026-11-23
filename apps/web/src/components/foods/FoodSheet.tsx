@@ -16,6 +16,7 @@ import { useLogAgain } from "@/components/log/useLogAgain";
 import { useLogForm, type LogTarget } from "@/components/log/useLogForm";
 import { sayIfFailed, useMealActions } from "@/components/log/useMealActions";
 import { useSavedMealDelete } from "@/components/log/useSavedMealDelete";
+import { batchStartOf, useCookSheet } from "@/components/recipes/useCookSheet";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import type { AddDone, EntryActions } from "@/hooks/entryActions";
@@ -94,7 +95,7 @@ export interface FoodSheetProps {
   /** The date the sheet logs to, fixed for the open. */
   date: string;
   /** The add, and whether writes wait (`useEntryActions`). */
-  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "holding">;
+  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "logCook" | "holding">;
 }
 
 type View =
@@ -144,7 +145,16 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   // The lists follow their data only while they cannot be pressed: the sheet
   // slides in, or a sheet stacked on it is open (heldList.tsx). While that
   // sheet slides away its backdrop swallows every press.
-  const hostStackedOpen = [portionSheet, mealSheet, estimateSheet].some((s) => s.isOpen);
+  // The batch sheet, from the recipe view's Log as made. Logged, it and this sheet close in one update.
+  const cook = useCookSheet(actions, {
+    mayOpen: (asked) => open && view.kind === "recipe" && view.recipe.id === asked.recipeId,
+    onReadFailed: (line) => status.say(line, "failure"),
+    onLogged: (announce) => {
+      cook.close();
+      onLogged({ outcome: "created", announce });
+    },
+  });
+  const hostStackedOpen = [portionSheet, mealSheet, estimateSheet, cook].some((s) => s.isOpen);
   const finder = useFoodFinder({
     open,
     canPick: view.kind === "search" && !hostStackedOpen,
@@ -394,6 +404,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
             <>
               {remove.dialog}
               {removeMeal.dialog}
+              {cook.sheet}
             </>
           }
           onFoodGone={foodGone}
@@ -444,6 +455,11 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
             <RecipeView
               recipe={view.recipe}
               form={form}
+              readingForBatch={cook.reading}
+              onLogAsMade={(opener) =>
+                // The batch starts with the servings and the state the log block holds.
+                cook.open(opener, { recipeId: view.recipe.id, day: date, start: batchStartOf(form) })
+              }
               onLeave={() => {
                 // Back from the recipe's page shows this day where it was (lib/recipeNav.ts).
                 markOpenedInApp();

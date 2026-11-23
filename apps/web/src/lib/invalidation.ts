@@ -366,6 +366,24 @@ export async function afterAddUnconfirmed(client: QueryClient, date: string, mea
   ]);
 }
 
+/**
+ * After a batch that could not confirm: no answer came, so it may have
+ * landed. Each day one of its servings is on is read again, with the
+ * ranges, so servings that did land show with the batch's figures. The
+ * recent items and the recipes are only marked stale, as after an add that
+ * could not confirm. The batch keeps its id, so the same press sent again
+ * writes nothing twice.
+ */
+export async function afterCookUnconfirmed(client: QueryClient, dates: readonly string[]): Promise<void> {
+  await client.cancelQueries({ queryKey: queryKeys.log() });
+  await Promise.all([
+    refresh(client, [...[...new Set(dates)].map((date) => queryKeys.day(date)), queryKeys.dayRanges()]),
+    ...[queryKeys.log(), queryKeys.recipes()].map((queryKey) =>
+      client.invalidateQueries({ queryKey, refetchType: "none" }),
+    ),
+  ]);
+}
+
 /** How many times the account's time zone changed, per client. */
 const zoneChanges = new WeakMap<QueryClient, number>();
 

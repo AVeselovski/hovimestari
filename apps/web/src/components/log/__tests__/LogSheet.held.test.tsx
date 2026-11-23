@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 it("holds '+' and Log while the app asks for today, and Back still works", async () => {
-  const actions = { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), holding: true };
+  const actions = { add: jest.fn(), saveAndLog: jest.fn(), withdrawAdd: jest.fn(), logCook: jest.fn(), holding: true };
   const onClose = jest.fn();
   render(<FoodSheet open onClose={onClose} returnFocusTo={null} date="2026-11-16" actions={actions} />);
   const again = await screen.findByRole("button", { name: loosely("Log Quark again, 250 g") });

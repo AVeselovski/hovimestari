@@ -150,11 +150,18 @@ src/
 │   │   ├── RecipePage.tsx      One recipe: its figures with the servings stepper, its lines, method and notes, Log, Duplicate, Archive, Delete
 │   │   ├── RecipeFigures.tsx   The figures card: per serving and whole or scaled, with the stepper on the page
 │   │   ├── RecipeLogSheet.tsx  Servings of a recipe on a day, eaten or planned
+│   │   ├── CookSheet.tsx       The as made sheet: a batch with its own lines and servings, and the days its servings are on
+│   │   ├── CookIngredients.tsx The batch's lines, each with what the batch did with it
+│   │   ├── CookLineSheets.tsx  The two sheets a batch's line opens in: the ingredient picker and the not-counted sheet, with a batch's words
+│   │   ├── CookServings.tsx    Servings from this batch: the opening serving, rows of new servings and the other planned servings
+│   │   ├── cookDraft.ts        The batch as typed: its lines, its marks and figures from the shared functions, what Log as made sends, and whether a stored batch is the one sent
+│   │   ├── useCookSheet.tsx    The one way into the as made sheet, which reads the recipe first when it must and asks its host again when the read answers
+│   │   ├── useOtherServings.ts The other planned servings of a recipe on a batch's day and the six after, kept while a new set of days is read
 │   │   ├── RecipeEditorSheet.tsx  The editor: a new recipe, an edit or a copy, saved whole
 │   │   ├── recipeDraft.ts      The editor's draft: its lines, the figures as typed and what a save sends
 │   │   ├── ProseField.tsx      A labelled text area with its line: the editor's Method and Notes
-│   │   ├── IngredientRows.tsx  A recipe's lines, shown or pressed to change, a refused line's message under it
-│   │   ├── IngredientPicker.tsx  The picker stacked on the editor: the food search, then a food's amount
+│   │   ├── IngredientRows.tsx  A recipe's lines, shown or pressed to change, a refused line's message under it, a batch's mark and a left-out line
+│   │   ├── IngredientPicker.tsx  The picker stacked on the editor or the as made sheet: the food search, then a food's amount
 │   │   ├── PickerAmountForm.tsx  The picker's amount view: the amount, its figures, As written and Note
 │   │   ├── NotCountedSheet.tsx A line not counted, such as salt
 │   │   ├── WrittenFields.tsx   A line's amount as the recipe writes it: a number and a unit
@@ -196,7 +203,7 @@ src/
 │   ├── useDocumentTitle.ts     Names the browser's title after what a page shows, such as a recipe
 │   ├── useEntryActions.ts      Every write to an entry from the Day tab and the log sheet, its cache update, its toast and its undo
 │   ├── entryActions.ts         The types and plain helpers useEntryActions shares
-│   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, their toasts and undo
+│   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, a batch logged as made, their toasts and undo
 │   ├── useCopyActions.ts       Copying entries, composed into useEntryActions: the send, the removal of superseded ids, its toast and undo
 │   ├── useKnownOffline.ts      Whether the app knows it is offline: no network, or the server out of reach
 │   ├── useFailureLine.ts       The line for a failed write, in a form or on the log sheet's status line
@@ -218,7 +225,7 @@ src/
 │   └── useScrollHold.ts        Keeps a scrolled container still when its content shrinks
 ├── lib/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
-│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts, recipes.ts, connections.ts
+│   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts, recipes.ts, cooks.ts, connections.ts
 │   ├── mcpConnection.ts        The assistant's server address and the Claude Code and Claude Desktop setup snippets, with mcp-remote pinned
 │   ├── barcode.ts              barcodeOf() reads a typed barcode with the shared schema, sameBarcode() and openFoodFactsUrl()
 │   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
@@ -244,6 +251,7 @@ src/
 │   ├── foodCache.ts            Edits to the cached food reads from a write's own answer
 │   ├── mealCache.ts            Edits to the cached saved meal lists and recent items from a meal write's own answer
 │   ├── recipeCache.ts          Edits to the cached recipe lists, the recent items and a recipe's page from a recipe write's own answer
+│   ├── recipeRead.ts           A recipe as the server holds it, for a form that starts from it: the cached one when fresh, else read first
 │   ├── recipeNav.ts            Whether a recipe's page was opened from inside the app, the list's place, with its order and bounds, and the day's place for the way back, kept on the history entry, the row to focus after a delete
 │   ├── connectionCache.ts      Edits to the cached connections list from a connection write's own answer
 │   ├── revealRefused.ts        Brings a form sheet's first refused field, its label and line where they fit, into view in its body
@@ -379,7 +387,7 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - Route handler suites start with `/** @jest-environment node */` and build requests with `browserRequest()` from `src/app/api/auth/__tests__/support.ts`.
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
 - `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen. It holds the recipes a test puts in its `recipes`, so a recipe entry can be added, and answers `GET /recipes` from its `recipeSummaries`. `components/log/__tests__/logHarness.tsx` builds the log sheet's worlds: `logWorld()`, and `recipeLogWorld()` with two recipes, one of them a recent item.
-- `components/recipes/__tests__/recipeServer.ts` is a fake of the recipe routes that keeps the rules a screen can see: a create applied once, an edit that keeps the id of an identical line, and a refused line named by its index. `recipeFixtures.ts` builds recipes whose figures come from `recipeBasis` and `entryFigures`, never typed by hand.
+- `components/recipes/__tests__/recipeServer.ts` is a fake of the recipe routes that keeps the rules a screen can see: a create applied once, an edit that keeps the id of an identical line, and a refused line named by its index. `recipeFixtures.ts` builds recipes whose figures come from `recipeBasis` and `entryFigures`, never typed by hand. `cookServer.ts` is a fake of `POST /cooks` over the fake days and recipe servers, which answers a second request under one id as a replay. It computes a batch's figures and what it changed with the shared functions too, so a suite's "the figures equal the server's" compares the sheet's reading of its lines with the request it sends. A browser walk against the real backend is what shows the two agree.
 - `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.
 - Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them. The scanner runs in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, and `--use-file-for-fake-video-capture=<file>.y4m` plays a barcode to it. Make the `.y4m` from a barcode image with `ffmpeg -loop 1 -i code.png -t 5 -pix_fmt yuv420p code.y4m`, outside the repository.

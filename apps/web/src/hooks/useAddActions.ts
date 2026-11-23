@@ -1,17 +1,26 @@
 "use client";
 
 import type { ToastApi, ToastPress } from "@/components/ui/Toast";
+import { createCook } from "@/lib/api/cooks";
 import { addEntry, removeEntry } from "@/lib/api/entries";
 import { saveAndLog as sendSaveAndLog } from "@/lib/api/savedMeals";
 import { getErrorCode } from "@/lib/errors";
 import { OfflineError, unconfirmed } from "@/lib/failure";
-import { afterAddUnconfirmed } from "@/lib/invalidation";
+import { afterAddUnconfirmed, afterCookUnconfirmed } from "@/lib/invalidation";
 import { UNCONFIRMED_HOLD_MS, holdPending, settlePending } from "@/lib/pendingIds";
 import type { Day } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import type { useTranslations } from "next-intl";
 import { useCallback, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
-import type { AddDone, AddRequest, SaveAndLogDone, SaveAndLogRequest, UndoOptions } from "./entryActions";
+import type {
+  AddDone,
+  AddRequest,
+  CookDone,
+  CookRequest,
+  SaveAndLogDone,
+  SaveAndLogRequest,
+  UndoOptions,
+} from "./entryActions";
 
 // ---------------------------------------------------------------------------
 // The adds of `useEntryActions`: an entry (the log sheet's "+", Log and an
@@ -36,6 +45,12 @@ import type { AddDone, AddRequest, SaveAndLogDone, SaveAndLogRequest, UndoOption
 // - `withdrawAdd` takes back an add that may have landed, with no toast, so a
 //   "Save and log" pressed again with other figures logs those, not the old
 //   ones (components/log/mealSends.ts). It answers whether it removed one.
+// - `logCook` logs a batch as made. It is counted against every day one of
+//   its servings is on. The batch keeps its id across a resend, so a second
+//   send after a lost answer writes nothing and answers `replayed`, which
+//   the sheet compares with what it sent. One that could not confirm reads
+//   its days again. Its toast has no Undo, and names the days when the
+//   batch fed more than one.
 // ---------------------------------------------------------------------------
 
 type ToastT = ReturnType<typeof useTranslations<"toast">>;
@@ -57,6 +72,7 @@ export interface AddDeps {
 }
 
 export interface AddActions {
+  logCook: (request: CookRequest) => Promise<CookDone | "held">;
   add: (request: AddRequest) => Promise<AddDone | "held">;
   saveAndLog: (request: SaveAndLogRequest) => Promise<SaveAndLogDone | "held">;
   withdrawAdd: (id: string, date: string) => Promise<boolean>;
@@ -180,6 +196,31 @@ export function useAddActions({
     [announceReplay, apply, ready, sendAdd, t, toast, undoAdd],
   );
 
+  const logCook = useCallback(
+    async (request: CookRequest): Promise<CookDone | "held"> => {
+      if (!ready()) return "held";
+      let result;
+      try {
+        result = await counted(request.dates, async (zone) => {
+          const answer = await createCook(request.body);
+          await apply(answer.days, zone);
+          return answer;
+        });
+      } catch (err) {
+        if (!(err instanceof OfflineError) && unconfirmed(err)) void afterCookUnconfirmed(client, request.dates);
+        throw err;
+      }
+      // The toast names the days when the batch fed more than one.
+      const days = new Set(request.dates).size;
+      const message =
+        days > 1
+          ? t("loggedAsMadeOnDays", { name: request.name, count: days })
+          : t("loggedAsMade", { name: request.name });
+      return { result, announce: () => toast.show({ message }) };
+    },
+    [apply, client, counted, ready, t, toast],
+  );
+
   const withdrawAdd = useCallback(
     async (id: string, date: string): Promise<boolean> => {
       // Throws while known offline. A removal by id does not depend on today, so it does not wait.
@@ -218,5 +259,5 @@ export function useAddActions({
     };
   });
 
-  return useMemo(() => ({ add, saveAndLog, withdrawAdd }), [add, saveAndLog, withdrawAdd]);
+  return useMemo(() => ({ add, saveAndLog, withdrawAdd, logCook }), [add, saveAndLog, withdrawAdd, logCook]);
 }
