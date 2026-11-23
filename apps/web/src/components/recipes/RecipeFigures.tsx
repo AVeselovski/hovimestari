@@ -2,7 +2,7 @@
 
 import { MacroDot, type Macro } from "@/components/figures/MacroDot";
 import { Icon } from "@/components/Icon";
-import { btnText, cardClass, stepperButton, stepperField } from "@/components/ui/styles";
+import { btnText, cardClass, cardInSheetClass, stepperButton, stepperField } from "@/components/ui/styles";
 import { formatKcal, formatMacroGrams } from "@/lib/foodFormat";
 import { MAX_RECIPE_SERVINGS, type Figures } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
@@ -75,8 +75,10 @@ export interface RecipeFiguresProps {
   headingId: string;
   /** A line under the table, such as why the figures are empty. */
   note?: ReactElement | null;
-  /** The card is in a form sheet, whose body is narrower than a page: on a phone it keeps less room at its sides. */
+  /** The card is in a form sheet, whose body is narrower than a page: on a phone it keeps less room at its sides, and it takes the surface the sheet is not on. */
   inSheet?: boolean;
+  /** The second column's heading where it is not a whole recipe, such as "Whole batch". */
+  wholeLabel?: string;
 }
 
 const headCell = "pb-2 text-right align-bottom font-semibold max-md:h-12 md:whitespace-nowrap";
@@ -94,11 +96,12 @@ export function RecipeFigures({
   headingId,
   note,
   inSheet = false,
+  wholeLabel,
 }: RecipeFiguresProps): ReactElement {
   const t = useTranslations("recipes.page");
   const tFigures = useTranslations("figures");
   const scaled = stepper !== undefined && stepper.shown !== stepper.servings;
-  const wholeHeading = scaled ? t("forServings", { count: stepper.shown }) : t("whole");
+  const wholeHeading = scaled ? t("forServings", { count: stepper.shown }) : (wholeLabel ?? t("whole"));
   const labelOf = (macro: Macro): ReactElement =>
     macro === "carbs" ? (
       // "Carbs" on a phone, where the column is narrow, and "Carbohydrates" aloud and from md.
@@ -127,7 +130,7 @@ export function RecipeFigures({
       aria-labelledby={headingId}
       aria-busy={busy || undefined}
       data-recipe-figures=""
-      className={`${cardClass} ${inSheet ? "px-2.5 py-4" : "p-4"} md:p-6`}
+      className={`${inSheet ? `${cardInSheetClass} px-2.5 py-4` : `${cardClass} p-4`} md:p-6`}
     >
       <h3 id={headingId} className="sr-only">
         {t("figures")}

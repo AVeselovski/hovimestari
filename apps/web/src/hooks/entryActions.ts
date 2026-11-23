@@ -1,6 +1,8 @@
 import {
   MAX_ENTRY_BATCH,
   type AddEntryBody,
+  type CookBody,
+  type CookWriteResult,
   type Entry,
   type EntryPatchBody,
   type SaveAndLogBody,
@@ -70,6 +72,22 @@ export interface SaveAndLogRequest {
   again: () => AddRequest;
 }
 
+/** One batch logged as made, ready to send, with what its toast names. */
+export interface CookRequest {
+  /** The request, with the ids the app chose for the batch, its lines and its new entries. */
+  body: CookBody;
+  /** The recipe's name, for the toast. */
+  name: string;
+  /** The date of every entry the batch attaches or adds: each is counted as a write on its day. */
+  dates: readonly string[];
+}
+
+/** A batch the server answered: the answer, and its toast, shown once the sheets have closed. */
+export interface CookDone {
+  result: CookWriteResult;
+  announce: () => void;
+}
+
 /** An id a copy was sent under, and the date it was sent to. */
 export interface SentCopy {
   id: string;
@@ -135,6 +153,14 @@ export interface EntryActions {
   add: (request: AddRequest) => Promise<AddDone | "held">;
   /** Saves a new meal and logs it in one request, as `add` does an entry. */
   saveAndLog: (request: SaveAndLogRequest) => Promise<SaveAndLogDone | "held">;
+  /**
+   * Logs a batch as made, with the servings it attaches and adds, in one
+   * request. Answers "held" without sending while the app asks for today,
+   * throws `OfflineError` while known offline, and throws the request's own
+   * error on a failure. Its toast has no Undo: each serving has its own
+   * through its entry.
+   */
+  logCook: (request: CookRequest) => Promise<CookDone | "held">;
   /**
    * Removes an entry whose add may have landed, with no toast, before the
    * same press is sent again in another form. Answers true when it removed

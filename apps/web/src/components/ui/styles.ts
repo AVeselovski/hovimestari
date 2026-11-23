@@ -121,6 +121,13 @@ export const btnGhost = `${btnShape} ${btnSize} text-ink hover:bg-surface active
  */
 export const btnText = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-ink underline decoration-field-rule underline-offset-4 hover:decoration-ink active:decoration-ink ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
+/**
+ * The slot at the end of a row whose one control is a chevron in one state
+ * and a word in another, such as Put back on a line left out: one width for
+ * both, wide enough for the word, so the row's text wraps the same in each.
+ */
+export const rowTrailSlot = "w-17 shrink-0 justify-end";
+
 /** A text button that leads to something destructive, such as Delete account: in the accent. A press or a hover fills in its underline, as with `btnText`. */
 export const btnTextDanger = `inline-flex min-h-11 items-center rounded-sm text-base font-semibold text-accent underline decoration-accent/70 underline-offset-4 hover:decoration-accent active:decoration-accent ${focusRing} disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60`;
 
@@ -338,6 +345,12 @@ export const standaloneLinkClass = `${linkClass} inline-flex min-h-11 items-cent
 
 /** A panel on the page. */
 export const cardClass = "rounded-card border border-rule bg-surface";
+/**
+ * A panel in a sheet. It takes the surface its sheet is not on, so it is
+ * filled in a sheet of either ground: a sheet on its own stands on the
+ * surface colour, one stacked on another on the raised one.
+ */
+export const cardInSheetClass = "rounded-card border border-rule bg-(--sheet-card)";
 export const cardPadClass = "p-5 md:p-6";
 export const cardPadDenseClass = "p-4";
 export const panelHeadClass = "mb-4 flex items-center justify-between gap-3";
@@ -521,11 +534,11 @@ export const sheetViewportAnchored = `fixed inset-0 ${zSheet} flex touch-none it
 const sheetPopupShape =
   "[--sheet-footer-pad:calc(1rem+max(var(--safe-bottom),var(--drawer-keyboard-inset,0px)))] relative flex w-full flex-col outline-hidden rounded-t-card border border-rule max-md:border-x-0 max-md:border-b-0 md:rounded-card max-h-[calc(100dvh-var(--safe-top)-1.5rem)] max-md:min-h-[calc(var(--sheet-min-height)+var(--safe-bottom))] md:max-h-[calc(100dvh-2rem)] sheet-popup-motion";
 
-/** The sheet itself, on the surface colour. */
-export const sheetPopup = `${sheetPopupShape} bg-surface`;
+/** The sheet itself, on the surface colour. A card in it takes the other surface (`cardInSheetClass`). */
+export const sheetPopup = `${sheetPopupShape} bg-surface [--sheet-card:var(--color-surface-raised)]`;
 
 /** A sheet stacked on another: the raised surface, so the two read apart. */
-export const sheetPopupStacked = `${sheetPopupShape} bg-surface-raised`;
+export const sheetPopupStacked = `${sheetPopupShape} bg-surface-raised [--sheet-card:var(--color-surface)]`;
 
 /**
  * A tall sheet (`BottomSheet size="tall"`): one fixed height that never

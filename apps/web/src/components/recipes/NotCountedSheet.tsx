@@ -32,6 +32,8 @@ export type NotCountedSheetProps = FormSheetCallerProps & {
   onAdd: (line: Omit<PlainDraft, "id">) => void;
   onSave: (line: PlainDraft) => void;
   onRemove: (id: string) => void;
+  /** The label of the action in Remove ingredient's place where it takes the line out and deletes nothing: drawn in ink. */
+  takeOutLabel?: string;
 };
 
 interface Fields {
@@ -48,6 +50,7 @@ export function NotCountedSheet({
   onAdd,
   onSave,
   onRemove,
+  takeOutLabel,
 }: NotCountedSheetProps): ReactElement {
   const t = useTranslations("recipes.notCounted");
   const tPicker = useTranslations("recipes.picker");
@@ -104,7 +107,8 @@ export function NotCountedSheet({
       footerStart={
         line
           ? {
-              label: t("remove"),
+              label: takeOutLabel ?? t("remove"),
+              tone: takeOutLabel ? "neutral" : undefined,
               onPress: () => {
                 onRemove(line.id);
                 onClose();

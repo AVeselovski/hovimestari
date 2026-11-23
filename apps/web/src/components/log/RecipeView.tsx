@@ -18,8 +18,8 @@ import type { LogForm } from "./useLogForm";
 // recipe's name, one serving's own figures, "Serves 2 · 25 min" and Open
 // recipe, which leaves the sheet for the recipe's page. Log is in the
 // footer. It logs the recipe as written. The actions under the figures are
-// one column, where a later way to log a batch as it was made joins Open
-// recipe.
+// one column: Open recipe, and Log as made, which stacks the batch sheet on
+// the log sheet for a batch made another way than written.
 //
 // The figures for the amount are `entryFigures` on the recipe's basis, the
 // values the server writes into the entry (`useLogForm`), so one serving
@@ -31,9 +31,13 @@ export interface RecipeViewProps {
   form: LogForm;
   /** A plain press on Open recipe is leaving for the recipe's page: the sheet closes. */
   onLeave: () => void;
+  /** Log as made: opens the batch sheet, stacked on the log sheet. */
+  onLogAsMade: (opener: HTMLElement) => void;
+  /** The recipe is being read for a press on Log as made. */
+  readingForBatch: boolean;
 }
 
-export function RecipeView({ recipe, form, onLeave }: RecipeViewProps): ReactElement {
+export function RecipeView({ recipe, form, onLeave, onLogAsMade, readingForBatch }: RecipeViewProps): ReactElement {
   const t = useTranslations("log.recipe");
   const meta = useRecipeMeta();
   const headingId = `${useId()}-per-serving`;
@@ -63,6 +67,16 @@ export function RecipeView({ recipe, form, onLeave }: RecipeViewProps): ReactEle
           >
             {t("open")}
           </Link>
+          <button
+            type="button"
+            data-log-as-made=""
+            aria-haspopup="dialog"
+            aria-busy={readingForBatch || undefined}
+            onClick={(e) => onLogAsMade(e.currentTarget)}
+            className={`${btnSecondary} w-full`}
+          >
+            {t("logAsMade")}
+          </button>
         </div>
       </div>
     </div>

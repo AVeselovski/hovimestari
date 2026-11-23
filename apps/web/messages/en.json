@@ -639,7 +639,7 @@
       "servings": "{count, plural, one {# serving} other {# servings}}",
       "estimate": "Estimate",
       "withSource": "{amount} · {source}",
-      "asMade": "{amount} · as made",
+      "asMade": "{amount} as made",
       "kcal": "{value} kcal",
       "protein": "{value} g",
       "approx": "≈",
@@ -700,7 +700,10 @@
       "recipeGone": "This recipe was deleted.",
       "figuresOnSave": "Figures update when you save.",
       "openRecipe": "Open recipe",
-      "openRecipeWaits": "Save or cancel first."
+      "openRecipeWaits": "Save or cancel first.",
+      "logAsMade": "Log as made",
+      "fromBatch": "From the batch made on {day}.",
+      "batchDiffers": "It differs from the recipe."
     },
     "copy": {
       "title": "Copy entries",
@@ -797,7 +800,8 @@
     },
     "recipe": {
       "perServing": "Per serving",
-      "open": "Open recipe"
+      "open": "Open recipe",
+      "logAsMade": "Log as made"
     },
     "mealSheet": {
       "titleNew": "New saved meal",
@@ -864,7 +868,9 @@
     "savedAndLogged": "Saved {name} and logged 1 meal.",
     "savedAndPlanned": "Saved {name} and added it to the plan.",
     "removeFromDay": "Remove from day",
-    "removeFromPlan": "Remove from plan"
+    "removeFromPlan": "Remove from plan",
+    "loggedAsMade": "Logged {name} as made.",
+    "loggedAsMadeOnDays": "Logged {name} as made, on {count, number} days."
   },
   "foods": {
     "sheet": {
@@ -1088,7 +1094,8 @@
       "figuresSaid": "{heading}: {kcal} kcal, {protein} g protein, {carbs} g carbohydrates, {fat} g fat.",
       "archivedToast": "Archived {name}.",
       "restoredToast": "Restored {name}.",
-      "deletedToast": "Deleted {name}."
+      "deletedToast": "Deleted {name}.",
+      "logAsMade": "Log as made"
     },
     "editor": {
       "titleNew": "New recipe",
@@ -1114,7 +1121,10 @@
       "tagRemove": "Remove tag {tag}",
       "otherTags": "Your other tags",
       "save": "Save recipe",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "leftOutSpoken": "Left out.",
+      "putBack": "Put back",
+      "putBackNamed": "Put back {name}"
     },
     "picker": {
       "name": "Add ingredient",
@@ -1188,6 +1198,36 @@
     "logSheet": {
       "title": "Log {name}",
       "date": "Date"
+    },
+    "cook": {
+      "title": "Log {name} as made",
+      "log": "Log as made",
+      "logging": "Logging…",
+      "madeOn": "Made on",
+      "gave": "It gave",
+      "recipeMakes": "The recipe makes {count, number}.",
+      "markAdded": "Added",
+      "markChanged": "Changed. Recipe: {recipe}",
+      "markLeftOut": "Left out. Recipe: {recipe}",
+      "nameAndAmount": "{name}, {amount}",
+      "leaveOut": "Leave out",
+      "pickerAdding": "Adding to this batch of {name}",
+      "pickerChanging": "Changing this batch of {name}",
+      "wholeBatch": "Whole batch",
+      "recipeFigures": "Recipe: {kcal} kcal · {protein} g protein per serving",
+      "fromBatch": "Servings from this batch",
+      "servingOn": "{day} · {amount}",
+      "addServings": "Add servings on another day",
+      "others": "Other planned servings of {name}",
+      "othersWhat": "A ticked serving takes this batch's figures and stays planned.",
+      "rowName": "New servings {n, number}",
+      "removeRow": "Remove these servings",
+      "needsServings": "Enter servings on at least one day.",
+      "needsRow": "Add servings on at least one day.",
+      "needsTickOrRow": "Add servings on a day, or tick a planned serving.",
+      "mostServings": "A batch takes {count, number} servings at most.",
+      "tryAgain": "This could not be logged. Try again.",
+      "loggedAsFirstSent": "This batch was already logged as it was first sent. Press Cancel to see it on the day."
     }
   },
   "session": {

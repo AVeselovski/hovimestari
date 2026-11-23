@@ -25,7 +25,7 @@ export interface DayLauncherProps {
   date: string | null;
   /** The day shown is after today. */
   future: boolean;
-  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "holding">;
+  actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "logCook" | "holding">;
 }
 
 export function DayLauncher({ date, future, actions }: DayLauncherProps): ReactElement {
