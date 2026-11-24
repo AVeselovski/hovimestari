@@ -762,3 +762,4 @@
 [orchestrator DONE] (2026-11-23T20:59:50Z) recipes slice R4a wrap-up at 6708217: the opening entry's meant state in the replay comparison, the footer line naming Cancel, the open items of the last two checks filed, the build progress row. Build, typecheck and lint pass on the final tree, with types 290 and web 2439 tests. The backend is unchanged since its 1501 tests and the smoke check's 76 of 76.
 [architect STARTED] (2026-11-24T20:41:15Z) design of the food search ranking and Finnish inflection, on the real Fineli release 18.
 [architect DONE] (2026-11-24T21:14:38Z) design of the food search ranking at docs/design/food-search-ranking.md: one rule from two counts of Fineli's recipe rows, 19 Finnish word pairs, an all-but-one list; measured on release 18 over 66 searches, with what gets worse listed; no requirement change.
+[reviewer STARTED] (2026-11-24T21:15:38Z) review of the food search ranking design at e0a327a, before any build.
