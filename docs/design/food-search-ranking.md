@@ -1,10 +1,12 @@
 # Design: food search that finds the ordinary ingredient first
 
-Branch `fix/food-search-ranking`. Written 2026-11-24, revised the same day after the design review (verdict: approve after changes). The review's findings are answered one by one in [Review round 1](#review-round-1-findings-answered). Every figure here was measured on Fineli release 18 (4,023 live foods: 1,405 FOOD, 2,618 DISH, and 27 more retired as "(arc)") in a scratch Postgres, with the rule as built and the proposal run side by side. The before and after tables for 83 searches are in [food-search-ranking-evidence.md](food-search-ranking-evidence.md).
+Branch `fix/food-search-ranking`. Written 2026-11-24, revised the same day after the design review, and amended on 2026-11-25 after the second review and the owner's decisions. The findings are answered one by one in [Review round 1](#review-round-1-findings-answered) and [Review round 2](#review-round-2-findings-answered). Every figure here was measured on Fineli release 18 (4,023 live foods: 1,405 FOOD, 2,618 DISH, and 27 more retired as "(arc)") in a scratch Postgres, with the rule as built and the proposal run side by side. The before and after tables for 83 searches are in [food-search-ranking-evidence.md](food-search-ranking-evidence.md).
 
 ## For the owner
 
-**Build it, in two steps around one more run of the Fineli import. No requirement changes. One thing to check first.**
+**Build it, in two steps around one more run of the Fineli import. No requirement changes. Artur said yes to all seven choices below on 2026-11-25. Two things stay open: his folder listing, and a check of the result on his own catalogue, which is release 20.**
+
+Every search below was run on Fineli release 18, the release the tests use. Artur's local catalogue is release 20, which holds more foods, so a rank can differ on his machine. The order of use he gave (scan the pack first, search Fineli second, add an own food last) agrees with choice 1.
 
 **What changes.**
 
@@ -20,7 +22,7 @@ Branch `fix/food-search-ranking`. Written 2026-11-24, revised the same day after
 | spagetti           | Two ready meals, a Knorr sauce powder, two casseroles. The dry pasta is 6th | "Pasta, spagetti, makaroni" 1st, its two gluten-free kinds, then boiled spaghetti. No ready meal in the first eight                                           |
 | jauheliha 10 nauta | The pork and beef mince at 10 %, and nothing that says beef                 | The same mince first, because it is the only one at 10 %. Then, under "All but one of your words": pork and beef mince, beef mince at 9 %, at 17 % and at 7 % |
 
-Fineli release 18 holds no beef mince at 10 %. It has beef at 7 %, 9 % and 17 %, and pork and beef at 7 % and 10 %. The search cannot say "there is none" in words. It shows the one food with all three words and the nearest ones under it.
+Fineli release 18 holds no beef mince at 10 %. It has beef at 7 %, 9 % and 17 %, and pork and beef at 7 % and 10 %. The search cannot say "there is none" in words. It shows the one food with all three words and the nearest ones under it. This is true of release 18 and unchecked for release 20.
 
 **Everyday searches.**
 
@@ -30,7 +32,7 @@ Fineli release 18 holds no beef mince at 10 %. It has beef at 7 %, 9 % and 17 %,
 | rahka  | A flavoured quark. Plain quark is 8th | Plain quark, then its low-lactose twin               |
 | peruna | "Peruna, uusi". Boiled potato is 12th | "Peruna, vanha, kuorittu". Boiled potato 6th         |
 | omena  | Dried apple                           | The average apple. Dried apple 4th                   |
-| egg    | Quail egg                             | The shelled hen's egg. Quail after the hen's eggs    |
+| egg    | Quail egg                             | The shelled hen's egg. Quail egg 6th                 |
 | nauta  | Pork and beef minces only             | Eight beef cuts, "Naudanpaisti" first                |
 | juusto | "Juusto, tuotekeskiarvo"              | Emmental, then the average cheese                    |
 
@@ -38,30 +40,30 @@ Fineli release 18 holds no beef mince at 10 %. It has beef at 7 %, 9 % and 17 %,
 
 - **A dish under a one-word ingredient search moves down, and some leave the 30 rows.** "omena": Omenapiirakka from 14th to 35th. "muna": Munakas from 17th to 38th. "sipuli": Sipulikeitto from 14th to 39th. "makaroni": Makaronilaatikko from 25th to 31st. "kana": Kanakeitto from 25th to 109th. "tomaatti": Tomaattikeitto from 8th to 29th. Typing the dish's own name finds each at once.
 - **A few food classes Fineli types as dishes lose their first row** to a basic food that mentions the word: "mysli" starts with a yoghurt with muesli, "keksi" with a rice cake, "smoothie" with twelve meal-replacement powders (the first smoothie is 13th), "salaatti" with pickles and lettuces (the first salad is 8th, was 3rd).
-- **English names lose more than Finnish ones.** "soup" starts with meal-replacement soup powders, and the first pea soup goes from 1st to 14th. "bread" starts with a flour mixture for bread rolls. The first "Rye bread" was 35th and is 38th.
+- **English names lose more than Finnish ones.** "soup" starts with meal-replacement soup powders, and the pea soups move down: a canned pea soup is 9th, and the first row named "Peasoup", which was 1st, is 14th. "bread" starts with a flour mixture for bread rolls. The first "Rye bread" was 35th and is 38th.
 - "leipä" starts with one odd home-made flatbread, then today's order. "chicken" puts chicken strips first and plain "Chicken" 4th. "naudan jauheliha" puts pork and beef mince first and beef mince second.
 - "kana" still shows carrots from 4th, and "kaura" still shows pulled oats before oat flakes.
 
-**One thing to check first.** Nobody has seen whether your own download of Fineli holds the recipe file. Please send the output of these two commands from the repository root:
+**Still to send.** Nobody has seen whether your own download of Fineli holds the recipe file. Please send the output of these two commands from the repository root:
 
 ```bash
 ls apps/backend/data/fineli/
 grep -i -m 3 "release" apps/backend/data/fineli/descript.txt
 ```
 
-**Yours to decide.** The build follows the recommendation in each until you say otherwise.
+**Decided by Artur on 2026-11-25: yes to each of the seven, as recommended.**
 
 1. **Your own and scanned foods above Fineli's, whenever they hold the word.** An own food "Oma maitorahka" would top "rahka", above "Rahka, maitorahka, maustamaton". Today it sits under every food that begins "Rahka". Favourites move the same way. Recommended: yes.
 2. **Dry and raw foods before their cooked forms**, or mixed by how many recipes use each. Recommended: dry first. Boiled spaghetti is then 4th and boiled rice 4th.
 3. **A scan button under a short result list**, now or later. Recommended: later. It is a second way into the scanner, and nobody reported needing it.
 4. **Dishes that now need a fuller name**, as listed above. Recommended: accept it. The other choice is a second rule for the log sheet.
-5. **If your download has no recipe file: may the two counts for release 18 be committed to the repository**, about 2,500 rows, with Fineli's credit? Recommended: yes. Without the counts only "spagetti" and "nauta" get better.
+5. **The two counts for release 18 are committed to the repository**, about 2,500 rows, with Fineli's credit. Decided: yes. Because the folder listing has not arrived, the build takes the route that works either way: the counts are committed, and the import uses the folder's own recipe file when it is there and says in its report which it used.
 6. **One pull request or two.** Recommended: two. The first only teaches the import to read the counts and changes nothing you see. You run the import and send its report. The second changes the search. In one pull request, search on a database that has not been re-imported is worse than today for some words.
 7. **The "All but one of your words" list** is new on the most-used screen. Recommended: build it. It is how your second search shows the beef minces.
 
 ## 0. Product decisions the owner may want to shelve
 
-The design assumes each recommendation. Each flip is local.
+Artur decided 0.1 to 0.7 on 2026-11-25, each as recommended. 0.8 and 0.9 follow from them and stand as the orchestrator's defaults. The last column stays as the record of what the other branch would cost.
 
 | #   | The fork                                                                                                                                                                      | Recommendation and why                                                                                                                                                                                                                                                                                                                                                             | If the other branch is picked                                                                                                                             |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -127,7 +129,7 @@ The earlier design (`targets-and-foods.md`, section g, decision 6) said nothing 
 | `food.csv` `FUCLASS`, the use class                            | Separates plain quark from flavoured, not light milk from goat milk, and would need a hand-kept order of classes                                                                              | Not used                                                 |
 | Fineli id                                                      | Goat milk (604) is older than light milk (684)                                                                                                                                                | Not used                                                 |
 
-**Where the file was seen.** Not in Fineli's own download: nobody here has it. The release 18 folder in the session scratchpad was itself copied from a community mirror, and only the files the import reads were copied, so its lack of the file says nothing. The mirror's `basic-package-2/contribfood.csv` joins to release 18's `food.csv` with no id missing on either side (the review checked this), and `basic-package-1` holds the same file. So Fineli published it in the Basic packages of release 18. Whether the current release has it is unverified. Section h has both outcomes.
+**Where the file was seen.** Not in Fineli's own download: nobody here has it. The release 18 folder in the session scratchpad was itself copied from a community mirror, and only the files the import reads were copied, so its lack of the file says nothing. The mirror's `basic-package-2/contribfood.csv` joins to release 18's `food.csv` with no id missing on either side (the review checked this), and `basic-package-1` holds the same file. So Fineli published it in the Basic packages of release 18. Whether release 20, which Artur has imported locally, has it is unverified. Section h has the route that works either way.
 
 The first count on the cases:
 
@@ -286,7 +288,11 @@ export const SEARCH_FORMS: ReadonlyArray<readonly [base: string, genitive: strin
   ["poro", "poron"],
   ["peruna", "perunan"],
 ];
-/** The other member of every pair `word` is in. `compound` is true for a changed-stem genitive reached from its base. */
+/**
+ * The forms a typed word also searches. A typed genitive answers its base, for every pair. A typed base answers its
+ * genitive only for a changed-stem pair, with `compound` true. The base of a regular pair answers nothing: "kana"
+ * is already part of "kanan".
+ */
 export function formsOf(word: string): { form: string; compound: boolean }[];
 ```
 
@@ -318,7 +324,7 @@ A listed form never ends a word or sits inside one.
 
 - A base reached from a typed genitive ("nauta" for "naudan") gives 0, 2, 4 or 5, as a word would.
 - A changed-stem genitive reached from its typed base is a compound's first part, and "naudanpaisti" is as much beef as "kananmuna" is egg. At the start of a longer word it counts as an end does: 0 as the head, 1 starting the head ("Naudanpaisti"), 2 as a later whole word ("Jauheliha, naudan"), 3 starting a later word ("Jauheliha, naudanpaisti").
-- A regular genitive gets no such step, and needs none going this way: typed "kana" is already part of "kanan", and "Kananmuna" stays a word that merely starts with it.
+- **Typing the base of a regular pair adds no form.** "kana", "broileri", "kalkkuna", "poro" and "peruna" search as typed, and a name word "poron" or "broilerin" is met as any word that starts with the typed one: 4 or 5. So "poro" puts "Poronliha" first, not "Maksa, poron". The evidence was run this way. A regular pair works in one direction only, from the typed genitive to its base. "Kananmuna" stays a word that merely starts with "kana".
 
 Over all typed words: **strength** is strong when every word is 0 to 3, start when the worst is 4 or 5, inside when any is 6. **Position** is the best word's t when strong, 4 or 5 when start (4 if any word met the head), 6 when inside.
 
@@ -340,7 +346,7 @@ A food the recipe file does not know, such as a new food of a later release, an 
 
 ### The SQL shape
 
-One query, built in TypeScript as today, every pattern one bound parameter. Shown for the words `jauheliha` and `nauta`. `formsOf("nauta")` answers `naudan` with `compound` true, so it takes `t_gen`. Had the person typed `naudan`, `formsOf` would answer `nauta` with `compound` false, and it would take `t_form`.
+One query, built in TypeScript as today, every pattern one bound parameter. Shown for the words `jauheliha` and `nauta`. `formsOf("nauta")` answers `naudan` with `compound` true, so it takes `t_gen`. Had the person typed `naudan`, `formsOf` would answer `nauta` with `compound` false, and it would take `t_form`. `compound` false only ever comes from a typed genitive.
 
 ```sql
 SELECT <summaryColumns>
@@ -413,22 +419,22 @@ The Fineli import reads the release's recipe rows and stores two counts on each 
 
 ## b) Components and responsibilities
 
-| Component                                                                     | Change                                                                                                                      | Owns                                                           | Depends on                                 |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------ |
-| `apps/backend/src/db/schema/foods.ts`, migration `0012`                       | Two columns                                                                                                                 | The counts                                                     | Nothing                                    |
-| `scripts/fineliImport/readRelease.ts`                                         | Reads `contribfood.csv` when present, and `IGCLASS` from `food.csv`                                                         | `FineliFood.recipeUses`, `recipeFoods`, `Release.recipeSource` | The release folder                         |
-| `scripts/fineliImport/recipeCountsR18.ts` (only under outcome b of section h) | The committed counts of release 18                                                                                          | The fallback source                                            | Nothing                                    |
-| `scripts/fineliImport/applyRelease.ts`                                        | Writes the two counts, counts them as a change, leaves them alone when there is no source                                   | The upsert                                                     | `readRelease`                              |
-| `scripts/fineliImport/report.ts`                                              | Three new lines                                                                                                             | The report                                                     | `applyRelease`                             |
-| `services/foodSearchForms.ts` (new)                                           | `SEARCH_FORMS`, `formsOf`                                                                                                   | The pair list                                                  | Nothing                                    |
-| `services/foodSearch.ts`                                                      | `searchQuery` rewritten to the rule, `nearQuery` added, `tierOf` replaced by the three builders, `NEAR_BELOW`, `NEAR_LIMIT` | The rule                                                       | `foodRows`, `foodScope`, `foodSearchForms` |
-| `services/reads/foods.ts`                                                     | `searchFoods` answers `{ foods, near }`                                                                                     | The decision to run the second query                           | `foodSearch`                               |
-| `packages/types/src/foods.ts`                                                 | `FoodSearchResultSchema`, `FoodSearchResult`                                                                                | The shape                                                      | `FoodSummarySchema`                        |
-| `routes` for `GET /foods/search`                                              | Sends the new shape                                                                                                         | Nothing new                                                    | The service                                |
-| `mcp/tools/foods.ts`, `mcp/appRules.ts`                                       | Description and section 5 reworded                                                                                          | The assistant's text                                           | The service                                |
-| `apps/web/src/lib/api/foods.ts`, `foodCache.ts`, `queryOptions.ts`            | The new type. `foodCache` maps and removes rows in `near` as it does in `foods`                                             | The cached search                                              | Types                                      |
-| `apps/web/src/components/foods/useFoodFinder.tsx`                             | `Results` shows `near` and the add block                                                                                    | The results view                                               | The above                                  |
-| `apps/web/messages/en.json`                                                   | Three new lines                                                                                                             | Copy                                                           | Nothing                                    |
+| Component                                                                            | Change                                                                                                                       | Owns                                                           | Depends on                                 |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------ |
+| `apps/backend/src/db/schema/foods.ts`, migration `0012`                              | Two columns                                                                                                                  | The counts                                                     | Nothing                                    |
+| `scripts/fineliImport/readRelease.ts`                                                | Reads `contribfood.csv` when the folder has it, and then `IGCLASS` from `food.csv`. Takes the fallback counts as a parameter | `FineliFood.recipeUses`, `recipeFoods`, `Release.recipeSource` | The release folder                         |
+| `scripts/fineliImport/recipeCountsR18.ts`, `recipeCounts.ts`, `buildRecipeCounts.ts` | The committed counts of release 18, the one function that counts recipe rows, and the script that built the module with it   | The fallback source                                            | Nothing                                    |
+| `scripts/fineliImport/applyRelease.ts`                                               | Writes the two counts, counts them as a change, leaves them alone when there is no source                                    | The upsert                                                     | `readRelease`                              |
+| `scripts/fineliImport/report.ts`                                                     | The recipe counts block of section h                                                                                         | The report                                                     | `applyRelease`                             |
+| `services/foodSearchForms.ts` (new)                                                  | `SEARCH_FORMS`, `formsOf`                                                                                                    | The pair list                                                  | Nothing                                    |
+| `services/foodSearch.ts`                                                             | `searchQuery` rewritten to the rule, `nearQuery` added, `tierOf` replaced by the three builders, `NEAR_BELOW`, `NEAR_LIMIT`  | The rule                                                       | `foodRows`, `foodScope`, `foodSearchForms` |
+| `services/reads/foods.ts`                                                            | `searchFoods` answers `{ foods, near }`                                                                                      | The decision to run the second query                           | `foodSearch`                               |
+| `packages/types/src/foods.ts`                                                        | `FoodSearchResultSchema`, `FoodSearchResult`                                                                                 | The shape                                                      | `FoodSummarySchema`                        |
+| `routes` for `GET /foods/search`                                                     | Sends the new shape                                                                                                          | Nothing new                                                    | The service                                |
+| `mcp/tools/foods.ts`, `mcp/appRules.ts`                                              | Description and section 5 reworded                                                                                           | The assistant's text                                           | The service                                |
+| `apps/web/src/lib/api/foods.ts`, `foodCache.ts`, `queryOptions.ts`                   | The new type. `foodCache` maps and removes rows in `near` as it does in `foods`                                              | The cached search                                              | Types                                      |
+| `apps/web/src/components/foods/useFoodFinder.tsx`                                    | `Results` shows `near` and the add block                                                                                     | The results view                                               | The above                                  |
+| `apps/web/messages/en.json`                                                          | Three new lines                                                                                                              | Copy                                                           | Nothing                                    |
 
 `search_head` and `food_search_head` stay in use. No SQL function changes. `SearchField` and `useScanner` are not touched.
 
@@ -472,7 +478,7 @@ export type FoodSearchResult = z.infer<typeof FoodSearchResultSchema>;
 
 `near` is always present. It is empty when the query has one word, when `foods` holds `min(limit, 8)` rows or more, or when nothing matches all but one. `limit` bounds `foods` only. A food is never in both. `FoodListSchema` stays for the favourites and own lists.
 
-`search_foods` (MCP) answers the same object. Its description becomes: "Foods whose Finnish or English name holds every word of q, basic foods before dishes, and among basic foods one that more of Fineli's recipes use first. The person's favourites, own foods and scanned products come first among foods that match as strongly. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. near lists up to 8 foods that hold all words but one, when q has two words or more and fewer than 8 foods hold them all. Each with its source and its figures per 100 g."
+`search_foods` (MCP) answers the same object. Its description becomes: "Foods whose Finnish or English name holds every word of q, basic foods before dishes, and among basic foods one that more of Fineli's recipes use first. The person's favourites, own foods and scanned products come first among foods that match as strongly. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. near lists up to 8 foods that hold all words but one, when q has two words or more and few foods hold them all: fewer than 8, or fewer than limit when limit is under 8. Each with its source and its figures per 100 g."
 
 ## e) Data flow
 
@@ -485,7 +491,7 @@ export type FoodSearchResult = z.infer<typeof FoodSearchResultSchema>;
 
 A failed second query fails the request as any read does. The two queries run one after the other on one connection, with no transaction: a food changed in between shows at worst in neither list for one answer.
 
-The import: `readRelease` parses `contribfood.csv` into two maps while it reads, `applyRelease` compares the two counts with the stored ones in its change test and writes them in the upsert, in the one transaction it has. With no source of counts, `Release.recipeSource` is null and `applyRelease` neither compares nor writes the two columns.
+The import: `readRelease` takes the counts from the folder's `contribfood.csv` when there is one, else from the fallback it was given, else it has none. `applyRelease` compares the two counts with the stored ones in its change test and writes them in the upsert, in the one transaction it has. With no source, `Release.recipeSource` is null and `applyRelease` neither compares nor writes the two columns. The command always passes the committed module, so it never reaches that state. A test does.
 
 ## f) Frontend architecture
 
@@ -517,22 +523,22 @@ The block is one button, **Add “…” as your own food** (`foods.sheet.addQue
 
 ### Rejected alternatives
 
-| Alternative                                                                     | Why not                                                                                                                                                                |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FOOD before DISH moved up, nothing else                                         | Fixes "spagetti" and "nauta" only. It is the no-counts state, measured                                                                                                 |
-| Rule A, strength first                                                          | Oat flakes 9th, crushed tomatoes 34th                                                                                                                                  |
-| Rule B, basic first                                                             | A cheese before the breads for "leipä", the first salad 15th                                                                                                           |
-| Recipe uses ordering dishes too                                                 | "Ruisleipä, ruista 51%" 13th for "leipä". The first draft had this                                                                                                     |
-| A score that adds weights                                                       | Nobody can say from the doc why one food beat another                                                                                                                  |
-| Snowball `finnish_stem`                                                         | Splits nauta from naudan, joins peruna with "peru"                                                                                                                     |
-| Trigram fallback for inflection                                                 | Finds no "naudan" for "nauta"                                                                                                                                          |
-| A `food_search_forms` table in the database                                     | A join and a migration per row, for 18 constants the query binds as parameters anyway                                                                                  |
-| Voikko, a real Finnish analyser                                                 | A native library or a multi-megabyte dictionary in the backend, run on every own-food write and every query, to gain about a dozen forms                               |
-| A "basic foods first" flag for the picker                                       | 0.4                                                                                                                                                                    |
-| Counts filled by a migration from a committed table, so no import run is needed | Two writers of one column, the migration and the import, which then disagree on the next release. And it commits the table even when the owner's download has the file |
-| `PROCESS`, `FUCLASS` or the Fineli id as the commonness signal                  | None separates light milk from goat milk                                                                                                                               |
-| Naming the missing word over the `near` list ("Without “10”")                   | See the review table, m3: the service holds only the normalised word                                                                                                   |
-| Dropping "10" silently when nothing has it                                      | The person would not learn that Fineli has no such mince                                                                                                               |
+| Alternative                                                                     | Why not                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FOOD before DISH moved up, nothing else                                         | Fixes "spagetti" and "nauta" only. It is the no-counts state, measured                                                                                                                                                                                              |
+| Rule A, strength first                                                          | Oat flakes 9th, crushed tomatoes 34th                                                                                                                                                                                                                               |
+| Rule B, basic first                                                             | A cheese before the breads for "leipä", the first salad 15th                                                                                                                                                                                                        |
+| Recipe uses ordering dishes too                                                 | "Ruisleipä, ruista 51%" 13th for "leipä". The first draft had this                                                                                                                                                                                                  |
+| A score that adds weights                                                       | Nobody can say from the doc why one food beat another                                                                                                                                                                                                               |
+| Snowball `finnish_stem`                                                         | Splits nauta from naudan, joins peruna with "peru"                                                                                                                                                                                                                  |
+| Trigram fallback for inflection                                                 | Finds no "naudan" for "nauta"                                                                                                                                                                                                                                       |
+| A `food_search_forms` table in the database                                     | A join and a migration per row, for 18 constants the query binds as parameters anyway                                                                                                                                                                               |
+| Voikko, a real Finnish analyser                                                 | A native library or a multi-megabyte dictionary in the backend, run on every own-food write and every query, to gain about a dozen forms                                                                                                                            |
+| A "basic foods first" flag for the picker                                       | 0.4                                                                                                                                                                                                                                                                 |
+| Counts filled by a migration from a committed table, so no import run is needed | Two writers of one column, the migration and the import, which then disagree on the next release. A migration cannot read a TypeScript module, so the counts would exist twice. And on a fresh database the migration runs before any food exists and fills nothing |
+| `PROCESS`, `FUCLASS` or the Fineli id as the commonness signal                  | None separates light milk from goat milk                                                                                                                                                                                                                            |
+| Naming the missing word over the `near` list ("Without “10”")                   | See the review table, m3: the service holds only the normalised word                                                                                                                                                                                                |
+| Dropping "10" silently when nothing has it                                      | The person would not learn that Fineli has no such mince                                                                                                                                                                                                            |
 
 ### Non-questions
 
@@ -543,22 +549,39 @@ The block is one button, **Add “…” as your own food** (`foods.sheet.addQue
 
 ## h) Open questions and risks
 
-### The recipe file's source (blocks B1's last detail, not its start)
+### The recipe file's source
 
-The orchestrator has asked Artur for the folder listing and the release line. Both outcomes are designed:
+Artur allowed the derived counts to be committed (0.5), and his folder listing has not arrived. So the build takes the route that works either way:
 
-| Outcome                                    | What is built                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **(a) `contribfood.csv` is in his folder** | The design as written. The import reads the file from the release folder. Nothing derived is committed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **(b) It is not**                          | **Recommended: commit the derived counts.** `scripts/fineliImport/recipeCountsR18.ts` holds `[fineliId, recipeUses, recipeFoods]` for the 2,556 foods of release 18 that have either, about 40 KB, built once by a small committed script from the mirror's `food.csv` and `contribfood.csv`, with a header that names the release, the source and the credit: THL Fineli, CC BY 4.0, as the fixtures' README does. A TypeScript module, not a CSV, so it ships in the built image with no Docker change. The import reads the folder's `contribfood.csv` when there is one and the committed counts when there is none, and its report says which |
+- **The counts of release 18 are always committed.** `scripts/fineliImport/recipeCountsR18.ts` holds `[fineliId, recipeUses, recipeFoods]` for the 2,556 foods of release 18 that have either, about 40 KB. A TypeScript module, not a CSV, so it ships in the built image with no Docker change. Its header names the release, the mirror path it was built from and the credit: THL Fineli, CC BY 4.0, as the fixtures' README does.
+- **The import prefers the folder's own recipe file.** `readRelease(dir, fallback?)` reads `contribfood.csv` when the folder has it and ignores the fallback. Without the file it takes the fallback. With neither it has no counts. `Release.recipeSource` is `"release" | "committed" | null`. The command passes the module. A test passes a small table, or none.
+- **The report says which source it used.**
 
-The cost of (b): the counts are release 18's view. A food a later release adds has no count and sorts as section 4 says, and a later recipe change is not seen. Decision 0.5 is the owner's, because it commits data derived from Fineli.
+**The owner's catalogue is release 20.** `docs/setup/fineli-import.md` says release 20 of Basic package 2 has been imported on a local machine, and `TODO.md` still holds the check of whether its ids match release 18's. So both likely cases are about release 20:
 
-What Artur checks: `ls apps/backend/data/fineli/` shows `contribfood.csv` or does not, and `grep -i -m 3 "release" apps/backend/data/fineli/descript.txt` shows the release number. A rule that needs no file is not an option: it is the no-counts state of section 3.
+- **His folder has the recipe file.** The folder wins and the module is ignored. His counts then differ from every figure in this design, which is fine: the tests pin release 18's fixture, not his database.
+- **His folder has no recipe file.** Release 18's counts land on release 20's foods by Fineli id.
 
-B1 can start on the columns, the reader and the report before the answer comes. Only the fallback source waits.
+> **Assumption:** a Fineli id names the same food in release 18 and in release 20. The import already rests on this for a food's identity from one release to the next. It is unverified for 18 to 20, and if it failed, wrong foods would rank first under a clean report. The report's "Most used" lines are the check: a person reads five names. Flip: none in code. If the names are wrong, the committed source is not used for that release, and search runs without counts until a release with the file is imported.
 
-> **Assumption:** until Artur answers, B1 is built for outcome (a), with `Release.recipeSource` typed as `"release" | "committed" | null` so (b) is one more branch and one file.
+The cost of the committed source: the counts are release 18's view. A food a later release adds has no count and sorts as section 4 says, and a later recipe change is not seen.
+
+**The report's new block**, after the portions block:
+
+```text
+Recipe counts: from contribfood.csv in the folder (10797 rows read)
+Foods with a count: 2560 of 4058 read. Counts for ids not in this release: 0
+Most used:
+  Ruokasuola, jodioitu 1081
+  Vesi, vesijohtovesi 689
+  Ruoanvalmistusrasva, keskiarvo 546
+  Jauho, vehnäjauho, puolikarkea 463
+  Sipuli, keltasipuli 463
+```
+
+With the committed source the first line reads `Recipe counts: committed counts of release 18. The folder has no contribfood.csv and is release 20.0`, with the folder's own release label, or "an unnamed release" when `descript.txt` gives none. The second line then counts the module's ids found among the foods read, and how many of its ids the release no longer has. With no source: `Recipe counts: none. Stored counts are left as they are.` The block above shows the shape, with release 18's rows and uses. Its second line's first figure is illustrative: release 18 stores 2,556 foods with a count, and a few of the 8 foods it leaves out have one too. "Most used" lists the five foods with the most uses by the name the release gives them, ties by name. On any release the list should read as kitchen staples: salt, water, a cooking fat, flour, onion, the shelled egg, sugar, light milk.
+
+What Artur still sends: the output of `ls apps/backend/data/fineli/` and `grep -i -m 3 "release" apps/backend/data/fineli/descript.txt`. It no longer blocks anything. It says which source his import will use.
 
 ### Between the migration and the import
 
@@ -604,22 +627,22 @@ Before PR 1 is finished:
 After PR 1 merges:
 
 2. `pnpm install`, `pnpm --filter @hovimestari/types build`, `pnpm --filter @hovimestari/backend db:migrate`.
-3. `pnpm --filter @hovimestari/backend fineli:import --dry-run`. The report should say where the recipe counts come from, "Recipe rows read" with a number near 10,800 on release 18, and about 2,550 foods changed, none renamed, none retired. On a newer release the numbers differ. Send the report.
+3. `pnpm --filter @hovimestari/backend fineli:import --dry-run`. Send the whole report. In its "Recipe counts" block, read the source line, the "Counts for ids not in this release" figure, and the five "Most used" names. They should be kitchen staples such as salt, water, flour, onion and the shelled egg. If one is not, stop and say so: the ids no longer name the same foods. A first run after PR 1 reports a few thousand foods changed, none renamed and none retired.
 4. `pnpm --filter @hovimestari/backend fineli:import`, then once more. The second run changes nothing.
-5. If the report says the folder has no recipe file and no committed counts were used, stop and say so. Downloading again does not help when Fineli's zip never held the file.
+5. Nothing else to do here. The command always has a source of counts: the folder's file, or the committed counts.
 
 After PR 2 merges:
 
 6. On the phone, search "spagetti", "maito", "rahka", "nauta" and "jauheliha 10 nauta". Expect the dry pasta, light milk, plain quark, the beef cuts, and the "All but one of your words" list.
-7. When the app is first deployed, the Fly runbook's import step puts `contribfood.csv` beside the other files, under outcome (a).
+7. When the app is first deployed, copy to Fly exactly the files the local folder holds, `contribfood.csv` among them when the release has it. A Fly folder without it would rank from the committed counts while the local database ranks from the file.
 
-Not verified here: the current release's file names and whether its recipe file has the same columns. The import stops and names what it did not find.
+Not verified here: release 20's file names, whether its `food.csv` has `IGCLASS`, whether it has a recipe file, and whether that file has the same columns. The import stops and names what it did not find, and only when it reads the folder's recipe file.
 
 ## i) Docs
 
 | Doc                                                  | Change                                                                                                                                                                                                                                                                                                                                                             | PR   |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| `docs/setup/fineli-import.md`                        | Step 2's listing and step 8's `put` lines gain `contribfood.csv` under outcome (a). Step 6 gains the report lines. A short section: run the import again after an update that changes what it reads                                                                                                                                                                | 1    |
+| `docs/setup/fineli-import.md`                        | Step 2's listing and step 8's `put` lines name `contribfood.csv` as "when the release has it". A line that the Fly copy must hold the same files as the local one, or the two rank from different sources. Step 6 gains the recipe counts block and how to read "Most used". A short section: run the import again after an update that changes what it reads      | 1    |
 | `docs/features/foods.md`                             | "The Fineli import" and "The import in code": the recipe file and the two counts. "Data": the two columns                                                                                                                                                                                                                                                          | 1    |
 | `docs/features/foods.md`                             | "Searching for a food": the matching with word forms "for meats and a few staples", the rule's steps in plain words, what a basic food is, that the user's own foods lead, the "all but one" list, and the honest limits (the flatbread, "kana", dishes needing their name, English). "The search rule in code", "API", "Known gaps". No requirement id reaches it | 2    |
 | `apps/backend/src/mcp/appRules.ts`                   | Section 5's sentence on `search_foods`, and the new hash of `foods.md` in `APP_RULES_SOURCES`. Re-stamped in each PR that changes `foods.md`                                                                                                                                                                                                                       | 1, 2 |
@@ -637,10 +660,19 @@ Two pull requests, each on its own branch cut from master, each through the full
 
 **PR 1, `feat/fineli-recipe-counts`.** No behaviour change.
 
-| Step | Agent                                         | Work                                                                                                                                                 | Files                                                                                                                                                                                                                                                                                                                                                                     |
-| ---- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B1   | backend-engineer                              | The two columns, the migration, the import reading and writing the counts, the report lines, the runbook, the feature doc's import and data sections | `db/schema/foods.ts`, `drizzle/migrations/0012_*`, `scripts/fineliImport/{readRelease,applyRelease,report}.ts`, `recipeCountsR18.ts` and its build script under outcome (b), their tests and fixtures (`release-a` and `release-b` gain a `contribfood.csv`, `release-utf8` has none), `docs/setup/fineli-import.md`, `docs/features/foods.md`, `mcp/appRules.ts` (stamp) |
-|      | validator, reviewer, documentation-specialist | Not user-visible                                                                                                                                     |                                                                                                                                                                                                                                                                                                                                                                           |
+| Step | Agent                                         | Work                                                                                                                                                                                                                   | Files                                                                                                                                                                                                                                                                                                                                                           |
+| ---- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1   | backend-engineer                              | The two columns, the migration, the counting function, the committed module and its build script, the import reading and writing the counts, the report block, the runbook, the feature doc's import and data sections | `db/schema/foods.ts`, `drizzle/migrations/0012_*`, `scripts/fineliImport/{readRelease,applyRelease,report,cli,recipeCounts,recipeCountsR18,buildRecipeCounts}.ts`, their tests and fixtures (`release-a` and `release-b` gain a `contribfood.csv`, `release-utf8` has none), `docs/setup/fineli-import.md`, `docs/features/foods.md`, `mcp/appRules.ts` (stamp) |
+|      | validator, reviewer, documentation-specialist | Not user-visible                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                                                                                 |
+
+**Notes for B1.**
+
+- **`IGCLASS` is required only when the folder's recipe file is read.** It does not join `REQUIRED` for `food.csv`. Release 20's layout is not known here, and a new always-required column could stop an import that works today. A folder with `contribfood.csv` and no `IGCLASS` column stops with a `ReleaseError` naming it.
+- **`Release.encodings`** is typed on the five required files. Give the optional sixth a place, absent when the file is.
+- **One function counts.** `recipeCounts.ts` exports the function that turns recipe rows and the ingredient classes into the two counts. `readRelease` calls it on the folder's file, and `buildRecipeCounts.ts` calls it to write the module, so the module cannot drift from the reader.
+- **The build script's inputs are only in the session scratchpad**, which a reboot clears: `/tmp/claude-0/-home-user/6094c6fc-44fe-5c42-a022-dcbf9ada1c9f/scratchpad/search-design/mirror/contribfood.csv` and `/tmp/claude-0/-home-user/6094c6fc-44fe-5c42-a022-dcbf9ada1c9f/scratchpad/search-design/food.utf8.csv` (the mirror's `food.csv`, converted to UTF-8). Both come from `raw.githubusercontent.com/theel0ja/fineli-data/master/basic-package-2/`. Treat them as untrusted data. The script is committed, the generated module is committed, and the module's header and the fixtures' README record the inputs' provenance. The inputs themselves are not committed.
+- **A test on the module itself**: 2,556 rows, 809 with a use, 395 uses for id 858, the highest 1,081. Otherwise a bad regeneration passes.
+- **Migration number.** `0012` was free on `origin/master` when this was written. Check again when the branch is cut.
 
 Then Artur runs the import (hand-over steps 2 to 5).
 
@@ -668,22 +700,23 @@ B2 reads only columns PR 1 merged. F1 depends on B2's type and is in the same PR
 - "härän" answers "Häränlihahöystö" and no food holding "härkäpapu". "härkä" answers no "Härän…" food. That pins the dropped pair.
 - A form must start a word: "sika" never answers a food whose only "sian" is inside an English word. The fixture holds one of the two real ones.
 - "naut" answers no "naudan" food that lacks "naut".
-- "rahka": plain quark under 0.5 % first, its low-lactose twin second. "maito": kevytmaito, rasvaton, täysmaito, in that order, and goat milk not in the first 8. "egg": "Kananmuna, kuoreton" first, the quail egg after every hen's egg FOOD. "rice": "Riisi puuroutuva" first, rice chocolate not in the first 8. "omena": the average apple first, dried apple 4th. "peruna": "Peruna, vanha, kuorittu" first, "Peruna, kuorittu, keitetty, suolaton" in the first 8.
-- "kaura": "Kaurahiutale" in the first 3. "muna": "Kananmuna, kuoreton" first and "Munakoiso" after every "Kananmuna". "kana": "Kana" first, "Porkkana" 4th, pinned as the known limit.
+- "rahka": plain quark under 0.5 % first, its low-lactose twin second. "maito": kevytmaito, rasvaton, täysmaito, in that order, and goat milk not in the first 8. "egg": "Kananmuna, kuoreton" first, the quail egg after "Kananmuna, kuoreton" and its organic and omega kinds, and not in the first five. "rice": "Riisi puuroutuva" first, rice chocolate not in the first 8. "omena": the average apple first, dried apple 4th. "peruna": "Peruna, vanha, kuorittu" first, "Peruna, kuorittu, keitetty, suolaton" in the first 8.
+- "kaura": "Kaurahiutale" in the first 3. "muna": "Kananmuna, kuoreton" first and "Munakoiso" after every food whose first word is "Kananmuna". "kana": "Kana" first, "Porkkana" 4th, pinned as the known limit.
+- A regular pair works one way: "poro" puts "Poronliha" first and "Maksa, poron" after every food that begins "Poron". "poron" finds a food headed "Poro" when the fixture has one.
 - A one-food dish is basic: "kana" puts "Kana, keitetty, suolaa" before "Porkkana". With its `recipe_foods` set to 2 in a copy of the row, it falls behind.
 - Recipe uses never order dishes: "leipä" puts "Ruisleipä, ruista 51%" 2nd, before "Paahtoleipä, vehnä, vesi", which seven recipes use. With the step applied to dishes the toast would lead. "ruisleipä" puts the 51 % rye first.
 - Accepted limits, pinned so a later change shows: "leipä" first row is "Sekaleipä, nyrkkirieska, ohra, kotitekoinen". "mysli" first row is the yoghurt with muesli, and "Mysli, perus" is 2nd.
 - One English dish word: "soup" by English names puts a meal-replacement soup powder first and the first "Peasoup" after them, within the first 20.
-- Group order, on real rows for "kaura": a basic strong match, then a dish whose head is the word, then "Kaurahiutale", then a dish holding "kaura" later.
+- Group order, on real rows for "leipä", which has the groups "kaura" lacks: the one-food flatbread "Sekaleipä, nyrkkirieska, ohra, kotitekoinen" (group 1), then "Ruisleipä, ruista 51%" (group 2), then "Juusto, leipäjuusto, rasvaa 17-23 %" (group 3), then a dish that holds the word only later in its name (group 4), picked from the release when the fixture is built.
 - **Yours before position**: an own food "Oma maitorahka" and a Fineli "Rahka, maitorahka, maustamaton, rasvaa <0,5 %" both match "rahka" in group 1. The own food is first. The same with a favourite Fineli food whose match is a later word, and with a scanned product that has its `food_lookups` row. None of the three outranks a food of a better group. Another user's scanned product never appears.
-- **The no-counts state**: with every count set to 0 and NULL in a copy of the fixture, "spagetti" still puts the dry pasta first, "maito" puts goat milk first, and "kana" has no boiled chicken in its first six. The test's name says this is a database that has not been imported since the counts came.
+- **The no-counts state**: with every count set to 0 and NULL in a copy of the fixture, "spagetti" still puts the dry pasta first, "maito" puts goat milk first, and "kana" has no boiled chicken in its first six. The test's name says this is a database that has not been imported since the counts came. The fixture holds at least five basic foods besides "Kana" that match "kana" strongly ("Porkkana", "Porkkana, kuivattu", the meal-replacement powder, the vegetable mix, the juice), or the boiled chicken would stay in the six for want of rows.
 - `near`: empty for one word, empty when `min(limit, 8)` rows or more came back, at most 8, ordered by the rule, never a retired food, never another user's food. **With `limit=5` on a search that matches more than five, `near` is empty.** With `limit=5` on a two-word search that matches three, `near` has rows.
 - Empty input: `%`, `_`, `-`, `a` and `%%` answer `{ foods: [], near: [] }`.
 - Plan: at 10,000 rows after `VACUUM ANALYZE`, `EXPLAIN` for "rah" and for "nauta" (a word with a form) shows `foods_search_all_trgm`. No new test reads a clock.
 
-**`foodSearchForms.test.ts`.** Every member is normalised and two characters or more. `formsOf` answers both directions, marks a changed-stem genitive reached from its base and no other, and answers nothing for a prefix or for "harka".
+**`foodSearchForms.test.ts`.** Every member is normalised and two characters or more. `formsOf` answers the base for every typed genitive, with `compound` false. It answers the genitive for the typed base of a changed-stem pair, with `compound` true. It answers nothing for the typed base of a regular pair ("kana", "poro"), for a prefix ("naut") or for "harka".
 
-**Import tests.** `release-a` with a recipe file: the counts land, water and salt are left out of `recipeFoods`, an ingredient id missing from `food.csv` counts. The same release twice changes nothing. `release-b` changes one count and the food is reported changed, not renamed. A folder without the file leaves stored counts as they were and prints the line. A recipe file without `CONFDID` stops with a `ReleaseError` naming the column. Under outcome (b): a folder without the file takes the committed counts and the report says so, and a folder with the file ignores them.
+**Import tests.** `release-a` with a recipe file: the counts land, water and salt are left out of `recipeFoods`, an ingredient id missing from `food.csv` counts, and the report's block names the folder as the source with five "Most used" names. The same release twice changes nothing. `release-b` changes one count and the food is reported changed, not renamed. A recipe file without `CONFDID` stops with a `ReleaseError` naming the column, and so does a recipe file beside a `food.csv` without `IGCLASS`. The fallback is a parameter, so these three are each writable: a folder without the file and **no** fallback leaves stored counts as they were and prints the "none" line. A folder without the file and a small fallback table takes its counts, reports the committed source with the folder's release label, and counts a fallback id the release lacks. A folder with the file ignores the fallback. The module has its own test (notes for B1).
 
 **Route and tool.** Supertest on `GET /foods/search` for the shape. The MCP smoke check and the tool test for `near`. `appRules.test.ts` passes after the re-stamp.
 
@@ -696,7 +729,7 @@ B2 reads only columns PR 1 merged. F1 depends on B2's type and is in the same PR
 | B1, the recipe file's source                   | **Fixed.** Section 3 says where the file was and was not seen. Section h has both outcomes, the recommendation for (b), what the owner checks, and hand-over step 5 no longer says "download again"                                                                                                                                                                                                                                                                            |
 | B2, the window without counts                  | **Fixed by two pull requests** (0.6, sections h and j). The state is measured in section 3 and pinned by a test. What it means with nothing deployed is in section h                                                                                                                                                                                                                                                                                                           |
 | M1, recipe uses on dishes                      | **Applied.** Step 5 is `CASE WHEN dish THEN 0 ELSE uses END`. Evidence re-run: "leipä" has the 51 % rye 2nd, "ruisleipä", "pulla" and "muro" keep today's order                                                                                                                                                                                                                                                                                                                |
-| M2, evidence weighted to ingredients           | **Applied.** 25 log sheet searches added to the evidence, the drop-outs and English losses are named in section 3 and in the owner's summary, and 0.4 and 0.9 give the measured reason. One rule stands                                                                                                                                                                                                                                                                        |
+| M2, evidence weighted to ingredients           | **Applied.** 17 searches added to the evidence, which now has 25 log sheet searches among its 83, the drop-outs and English losses are named in section 3 and in the owner's summary, and 0.4 and 0.9 give the measured reason. One rule stands                                                                                                                                                                                                                                |
 | M3, standing before position                   | **Stated** in the owner's decision 1, in 0.1, in step 2 of the rule and in the tool's description, with three tests. The first draft's "as today" for favourites was wrong                                                                                                                                                                                                                                                                                                     |
 | M4, the scan button                            | **Applied.** Not in this change (0.3), filed in `TODO.md`. The block shows only when `near` has rows or nothing matched                                                                                                                                                                                                                                                                                                                                                        |
 | m1, the "härän" pair                           | **Dropped.** Tests pin it                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -713,7 +746,27 @@ B2 reads only columns PR 1 merged. F1 depends on B2's type and is in the same PR
 
 Nothing else in the review is disputed.
 
-## Resolved defaults (orchestrator, 2026-11-24, owner may veto)
+## Review round 2: findings answered
+
+| Finding                                      | Answer                                                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Major 1, the owner's catalogue is release 20 | **Fixed.** Section h names release 20, states the assumption that ids are stable from 18 to 20, and spells out the report's block with its "Most used" five. Hand-over step 3 asks for the block and no longer expects "near 10,800". The owner's summary says the evidence is release 18's and that the 10 % mince is unchecked for 20                                |
+| Major 2, the base of a regular pair          | **Fixed.** It adds no form: one bullet in section 4, `formsOf`'s comment, the forms test reworded, and a pin that "poro" puts "Poronliha" first. The evidence was run this way and is unchanged                                                                                                                                                                        |
+| Minor 1, text written for "outcome (a)"      | **Rewritten.** The module is always committed, the fallback is a parameter of `readRelease`, the two import tests no longer contradict, hand-over steps 5 and 7 and sections b, e and i follow                                                                                                                                                                         |
+| Minor 2, three tests                         | **Fixed.** "egg" and "muna" reworded to what release 18 holds, and the group order test uses "leipä"                                                                                                                                                                                                                                                                   |
+| Notes for B1                                 | **In the B1 slice**: `IGCLASS` only with the folder's file, `Release.encodings`, one counting function, the inputs' place and provenance, a test on the module, the migration number                                                                                                                                                                                   |
+| Note 9, the missing word                     | **Filed** in `TODO.md` under "Ready to pick up", with the review's reasons. The review is right that SQL could keep the raw token beside each word, so my stated reason was half of it. The reasons that hold: the missing word is the same in every row only sometimes, so the heading would need two forms, and in the owner's case every row visibly lacks the 10 % |
+| Nit 1, "soup"                                | The summary now says a canned pea soup is 9th and the first row named "Peasoup" is 14th                                                                                                                                                                                                                                                                                |
+| Nit 2, the tool's description                | "fewer than 8, or fewer than limit when limit is under 8". "Basic foods before dishes" stays as a simplification: the full order is in `foods.md`                                                                                                                                                                                                                      |
+| Nit 3, the no-counts fixture                 | The test names the five rows it needs                                                                                                                                                                                                                                                                                                                                  |
+| Nit 4, "25 searches added"                   | 17 were added. 25 of the 83 are log sheet searches                                                                                                                                                                                                                                                                                                                     |
+| The two disputes of round 1                  | Both stand, and the review agrees with each. Of my reasons for two pull requests, "it commits the table even when the download has the file" is moot now. The reason that holds, with the review's two: a migration cannot read a TypeScript module, and on a fresh database it runs before any food exists                                                            |
+
+Nothing in round 2 is disputed.
+
+## Resolved defaults (orchestrator, 2026-11-24, with the owner's decisions of 2026-11-25)
+
+Artur decided 0.1 to 0.7 on 2026-11-25, each as recommended. The lines below that restate them are his. The rest are the orchestrator's and he may veto them.
 
 - One rule for both screens and the assistant. No flag.
 - Group, then yours, then position: own foods, scanned products and favourites lead their group (0.1).
@@ -726,6 +779,7 @@ Nothing else in the review is disputed.
 - `near` needs two words and fewer than `min(limit, 8)` rows, and answers at most 8. It does not name the missing word.
 - The add block shows only when `near` has rows or nothing matched.
 - Two pull requests, with the import run between them (0.6).
-- Under outcome (b), the counts of release 18 are committed as a TypeScript module and the import prefers the folder's file (0.5).
+- The counts of release 18 are committed as a TypeScript module, and the import prefers the folder's own recipe file (0.5).
+- The typed base of a regular pair adds no form.
 - The stored figures are counts, and "one food" is decided in the query.
 - The scratch database `hovi_search_design` is dropped. The prototype is in the session scratchpad under `search-design/` (`rev_setup.sql`, `rev_evidence.sql`).

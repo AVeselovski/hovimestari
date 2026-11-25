@@ -2,6 +2,8 @@
 
 The tables behind [food-search-ranking.md](food-search-ranking.md), as revised after the design review. Each of 83 searches was run on the full release 18 catalogue (4,023 live foods) in a scratch Postgres, under the rule as built at master 4b48c6f ("Before") and under the proposed rule ("After"), once with the food-name language set to Finnish and once to English. Each cell is the name shown at that rank. `[D]` marks a food Fineli types as a dish. A search with fewer than eight matches has fewer rows.
 
+Release 18 is the release the tests use. The owner's local catalogue is release 20, which holds more foods, so a rank can differ there.
+
 The proposed rule here is the revised one: recipe uses order basic foods only, and the "härän" pair is gone. No user is signed in, so no food is a favourite, an own food or a scanned product, and the "yours" step decides nothing.
 
 The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the proposed rule also answers a `near` list: "Jauheliha, sika-nauta", "Jauheliha, naudanpaisti, rasvaa 9 %", "Jauheliha, naudan, rasvaa 17 %", "Jauheliha, naudan, vähärasvainen, rasvaa 7 %", "Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 7 %", then three fried forms.
