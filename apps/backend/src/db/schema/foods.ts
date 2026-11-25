@@ -44,6 +44,10 @@ export const foods = pgTable(
     // Fineli's FOODTYPE (FOOD or DISH) and PROCESS code (RAW, BOIL, ...). Null elsewhere.
     fineliType: text("fineli_type"),
     fineliProcess: text("fineli_process"),
+    // How many of the release's recipes use this food. 0 for a food no recipe uses, and for every food that is not Fineli's.
+    fineliRecipeUses: integer("fineli_recipe_uses").notNull().default(0),
+    // For a Fineli food with a recipe: its ingredient rows besides water and salt. NULL without a recipe.
+    fineliRecipeFoods: integer("fineli_recipe_foods"),
     // Set when a Fineli food is absent from the latest release, or when an operator takes down an
     // Open Food Facts food. Hidden from search, still readable. A lookup answers not found for it.
     retiredAt: timestamp("retired_at", { withTimezone: true }),
@@ -64,6 +68,10 @@ export const foods = pgTable(
     check(
       "foods_values_in_range",
       sql`${t.energyKcal} BETWEEN 0 AND 1000 AND ${t.proteinG} BETWEEN 0 AND 100 AND ${t.carbsG} BETWEEN 0 AND 100 AND ${t.fatG} BETWEEN 0 AND 100`,
+    ),
+    check(
+      "foods_fineli_recipe_counts",
+      sql`${t.fineliRecipeUses} >= 0 AND (${t.fineliRecipeFoods} IS NULL OR ${t.fineliRecipeFoods} >= 0)`,
     ),
     check("foods_barcode_digits", sql`${t.barcode} ~ '^[0-9]{8,14}$'`),
     uniqueIndex("foods_user_barcode_uq")

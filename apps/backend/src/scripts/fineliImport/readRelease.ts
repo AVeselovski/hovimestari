@@ -1,8 +1,11 @@
 import { FINELI_PORTION_UNITS, MAX_PORTION_GRAMS, type FineliPortionUnit } from "@hovimestari/types";
-import { parse } from "csv-parse/sync";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import path from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import { sentenceCase, type NameLocale } from "./nameCase.js";
+import type { RecipeCountsTable } from "./recipeCounts.js";
+import { RECIPE_FILE, recipeCountsOf, type RecipeSource } from "./recipeFile.js";
+import { decode, findFile, readColumns, ReleaseError, type Encoding, type Row } from "./releaseFiles.js";
+
+export { ReleaseError } from "./releaseFiles.js";
 
 // Reads an unzipped Fineli open data release into the foods the catalogue
 // keeps. Pure: no database. Files and columns are found by name, never by
@@ -54,6 +57,10 @@ export interface FineliFood {
   fatG: number;
   /** The Finnish name starts with "(arc)", in any case. */
   archived: boolean;
+  /** How many of the release's recipes use this food. 0 when none does, and when the release has no counts. */
+  recipeUses: number;
+  /** For a food with a recipe: its ingredient rows besides water and salt. Null without a recipe. */
+  recipeFoods: number | null;
   portions: FineliPortion[];
 }
 
@@ -66,61 +73,32 @@ export interface SkippedFood {
 export interface Release {
   /** The release number from descript.txt, when the release has one. */
   label: string | null;
-  /** The encoding each file was read in. */
-  encodings: Record<FileName, "utf-8" | "windows-1252">;
+  /** The encoding each file was read in. The recipe file has one only when the folder holds it. */
+  encodings: Record<FileName, Encoding> & { [RECIPE_FILE]?: Encoding };
   /** Every food in food.csv, in its order, minus those left out. */
   foods: FineliFood[];
   /** Foods left out, each with the reason. */
   skipped: SkippedFood[];
   /** Household measures left out, counted by reason. */
   skippedPortions: Record<string, number>;
+  /**
+   * Where the recipe counts came from, the folder's own recipe file or the
+   * counts handed to readRelease, and what the report says about them. Null
+   * when there is no source: every food then reads 0 and null, and the
+   * import leaves the stored counts as they are.
+   */
+  recipeCounts: RecipeCountsSummary | null;
 }
 
-/** A release the importer cannot read. The message names the file, and the column or row. */
-export class ReleaseError extends Error {
-  override name = "ReleaseError";
-}
+/** A release's source of recipe counts, with how its counts meet the foods of food.csv. */
+export type RecipeCountsSummary = RecipeSource & {
+  /** Foods in food.csv that have either count, left-out foods among them. */
+  foodsWithCount: number;
+  /** Ids the counts name that food.csv does not list. */
+  idsNotInRelease: number;
+};
 
 const KEPT_UNITS: ReadonlySet<string> = new Set(FINELI_PORTION_UNITS);
-
-// Windows-1252's characters for the bytes 0x80 to 0x9F, where it differs from
-// Latin-1, as the WHATWG encoding standard maps them. Node 22's TextDecoder
-// decodes "windows-1252" as Latin-1 and turns these bytes into control
-// characters, so they are mapped here.
-const CP1252_HIGH = "€\u0081‚ƒ„…†‡ˆ‰Š‹Œ\u008dŽ\u008f" + "\u0090‘’“”•–—˜™š›œ\u009džŸ";
-
-/**
- * How many valid UTF-8 multibyte sequences a file may hold and still be read
- * as Windows-1252. Release 18's Windows-1252 files hold none, and a UTF-8
- * name file holds about a thousand.
- */
-export const MAX_UTF8_SEQUENCES_IN_WINDOWS_1252 = 10;
-const UTF8_SEQUENCE = /[\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{3}/g;
-
-/**
- * UTF-8 when the bytes decode strictly as UTF-8, else Windows-1252 (a superset
- * of Latin-1). A BOM is dropped. A file that fails strict UTF-8 but holds many
- * valid UTF-8 sequences is a damaged UTF-8 file, and reading it as
- * Windows-1252 would garble every accented name, so it is refused.
- */
-export function decode(bytes: Buffer, file = "The file"): { text: string; encoding: "utf-8" | "windows-1252" } {
-  try {
-    return { text: new TextDecoder("utf-8", { fatal: true }).decode(bytes), encoding: "utf-8" };
-  } catch {
-    const sequences = bytes.toString("latin1").match(UTF8_SEQUENCE)?.length ?? 0;
-    if (sequences > MAX_UTF8_SEQUENCES_IN_WINDOWS_1252) {
-      const loose = new TextDecoder("utf-8").decode(bytes);
-      const line = loose.slice(0, loose.indexOf("\uFFFD")).split("\n").length;
-      throw new ReleaseError(
-        `${file} holds ${sequences} UTF-8 characters but also bytes that are not valid UTF-8, first on line ${line}. ` +
-          "It looks like a damaged UTF-8 file. Download and unzip the release again. " +
-          `If the file really is Windows-1252, the check in readRelease.ts (MAX_UTF8_SEQUENCES_IN_WINDOWS_1252, now ${MAX_UTF8_SEQUENCES_IN_WINDOWS_1252}) needs adjusting.`,
-      );
-    }
-    const text = bytes.toString("latin1").replace(/[\u0080-\u009f]/g, (c) => CP1252_HIGH[c.charCodeAt(0) - 0x80]);
-    return { text, encoding: "windows-1252" };
-  }
-}
 
 /** A Fineli number: a decimal comma or point, no sign. Empty is null, anything else unreadable is NaN. */
 export function parseDecimal(raw: string): number | null {
@@ -134,16 +112,6 @@ const round = (value: number, decimals: number) => {
   return Math.round(value * f) / f;
 };
 
-/** The file `name` in `dir`, matched without regard to case. */
-function findFile(dir: string, name: string): string | null {
-  const exact = path.join(dir, name);
-  if (existsSync(exact)) return exact;
-  const found = readdirSync(dir).find((f) => f.toLowerCase() === name.toLowerCase());
-  return found ? path.join(dir, found) : null;
-}
-
-export type Row = Record<string, string>;
-
 /** component_value.csv holds every nutrient of every food. Only the four the catalogue keeps are read. */
 export const keepComponent = (row: Row) => row.EUFDNAME in COMPONENTS;
 
@@ -155,58 +123,10 @@ export function readTable(
   dir: string,
   file: FileName,
   keep: (row: Row) => boolean = () => true,
-): { rows: Row[]; encoding: "utf-8" | "windows-1252" } {
+): { rows: Row[]; encoding: Encoding } {
   const full = findFile(dir, file);
   if (!full) throw new ReleaseError(`${file} is missing from ${dir}.`);
-  const { text, encoding } = decode(readFileSync(full), file);
-  let index: Record<string, number> | null = null;
-  /** The required columns of `record`, trimmed, or a ReleaseError naming the line. */
-  const rowOf = (record: string[], line: number): Row => {
-    const row: Row = {};
-    for (const column of REQUIRED[file]) {
-      const value = record[(index as Record<string, number>)[column]];
-      if (value === undefined) throw new ReleaseError(`${file} row ${line} has no ${column} value.`);
-      row[column] = value.trim();
-    }
-    return row;
-  };
-  const rows: Row[] = [];
-  try {
-    parse(text, {
-      delimiter: ";",
-      skip_empty_lines: true,
-      relax_quotes: true,
-      bom: true,
-      // Each record becomes a row here and the parser keeps none, so only the kept rows stay in memory.
-      on_record: (record, { lines }) => {
-        if (!index) {
-          const header = record.map((h) => h.trim().toUpperCase());
-          if (header.length === 1)
-            throw new ReleaseError(
-              `${file} does not look separated by semicolons: its header row is one field, "${record[0]}". Fineli's files separate values with ";".`,
-            );
-          index = {};
-          for (const column of REQUIRED[file]) {
-            const at = header.indexOf(column);
-            if (at < 0)
-              throw new ReleaseError(
-                `${file} has no ${column} column. Its columns are: ${header.join(", ") || "none"}.`,
-              );
-            index[column] = at;
-          }
-          return null;
-        }
-        const row = rowOf(record, lines);
-        if (keep(row)) rows.push(row);
-        return null;
-      },
-    });
-  } catch (err) {
-    if (err instanceof ReleaseError) throw err;
-    throw new ReleaseError(`${file} could not be read: ${(err as Error).message}`);
-  }
-  if (!index) throw new ReleaseError(`${file} is empty. It has no header row.`);
-  return { rows, encoding };
+  return readColumns(full, file, REQUIRED[file], keep);
 }
 
 /** Rows grouped by FOODID. */
@@ -264,8 +184,12 @@ function valuesOf(rows: Row[]): { kcal: number; protein: number; carbs: number; 
   return { kcal, protein, carbs, fat };
 }
 
-/** Reads the release in `dir`. Throws ReleaseError on a missing file or column. */
-export function readRelease(dir: string): Release {
+/**
+ * Reads the release in `dir`. Throws ReleaseError on a missing file or
+ * column. `fallback` gives the recipe counts when the folder has no recipe
+ * file of its own, and is ignored when it has one.
+ */
+export function readRelease(dir: string, fallback?: RecipeCountsTable): Release {
   if (!existsSync(dir)) throw new ReleaseError(`The folder ${dir} does not exist.`);
   const tables = {} as Record<FileName, Row[]>;
   const encodings = {} as Release["encodings"];
@@ -279,6 +203,8 @@ export function readRelease(dir: string): Release {
   const english = names(tables["foodname_EN.csv"], "en");
   const values = byFood(tables["component_value.csv"]);
   const units = byFood(tables["foodaddunit.csv"]);
+  const recipes = recipeCountsOf(dir, fallback);
+  if (recipes.source?.source === "release") encodings[RECIPE_FILE] = recipes.source.encoding;
 
   const foods: FineliFood[] = [];
   const skipped: SkippedFood[] = [];
@@ -334,9 +260,24 @@ export function readRelease(dir: string): Release {
       carbsG: v.carbs,
       fatG: v.fat,
       archived: ARCHIVED_MARK.test(name),
+      recipeUses: recipes.counts.get(fineliId)?.uses ?? 0,
+      recipeFoods: recipes.counts.get(fineliId)?.foods ?? null,
       portions,
     });
   });
 
-  return { label: releaseLabel(dir), encodings, foods, skipped, skippedPortions };
+  const listed = new Set([...seen].map(Number));
+  const recipeCounts: RecipeCountsSummary | null = recipes.source && {
+    ...recipes.source,
+    foodsWithCount: [...recipes.counts.keys()].filter((id) => listed.has(id)).length,
+    idsNotInRelease: [...recipes.counts.keys()].filter((id) => !listed.has(id)).length,
+  };
+  return {
+    label: releaseLabel(dir),
+    encodings,
+    foods,
+    skipped,
+    skippedPortions,
+    recipeCounts,
+  };
 }
