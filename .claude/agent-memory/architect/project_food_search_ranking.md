@@ -15,3 +15,11 @@ The food search rule was redesigned on 2026-11-24 (`docs/design/food-search-rank
 **Why:** each of these took a measurement to learn, and the first two overturn a conclusion recorded in `docs/design/targets-and-foods.md`.
 
 **How to apply:** for any later search or catalogue design, read every file of the release, and measure a candidate on the full catalogue with the harness pattern (a scratch database, a `queries` table, before and after tables). Calling one SQL search function per cell of an evidence table is slow: about 2,000 calls took over five minutes.
+
+**Added after the design review (2026-11-24):**
+
+- The scratchpad's release 18 folder is itself a copy from the community mirror, with only the files the import reads. Nobody has seen Fineli's official download. Never argue from what that folder lacks, and say plainly where a file was and was not seen.
+- A count that is right for ingredients is noise for dishes: recipe uses ordered breads by how many sandwiches name them. Apply a signal only to the class it describes, and measure the other class too.
+- Evidence weighted to the reported problem (ingredient words) hid the log sheet's losses: dishes leaving the 30 rows, and English names, where the class word is a separate later word. Add the most-used path's everyday searches and both languages before claiming "one rule".
+- A new column filled by a hand-run import leaves a state in between that can be worse than today. Measure that state, and plan the pull requests around the run.
+- A changed sort-key order (group, yours, position) is a behaviour change for own foods and favourites too, even when the row in the decision table only speaks of scanned products.

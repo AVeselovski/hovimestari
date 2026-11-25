@@ -1,10 +1,14 @@
 # Evidence: food search before and after, on Fineli release 18
 
-The tables behind [food-search-ranking.md](food-search-ranking.md). Each of 66 searches was run on the full release 18 catalogue (4,050 live foods) in a scratch Postgres, under the rule as built at master 4b48c6f ("Before") and under the proposed rule ("After"), once with the food-name language set to Finnish and once to English. Each cell is the name shown at that rank. `[D]` marks a food Fineli types as a dish. A search with fewer than eight matches has fewer rows.
+The tables behind [food-search-ranking.md](food-search-ranking.md), as revised after the design review. Each of 83 searches was run on the full release 18 catalogue (4,023 live foods) in a scratch Postgres, under the rule as built at master 4b48c6f ("Before") and under the proposed rule ("After"), once with the food-name language set to Finnish and once to English. Each cell is the name shown at that rank. `[D]` marks a food Fineli types as a dish. A search with fewer than eight matches has fewer rows.
 
-No user is signed in, so no food is a favourite, an own food or a scanned product. The searches come in this order: the owner's two, the eight of the `TODO.md` item, everyday ingredients in Finnish, then in English, the inflection pairs, two-word searches, and dish words.
+The proposed rule here is the revised one: recipe uses order basic foods only, and the "härän" pair is gone. No user is signed in, so no food is a favourite, an own food or a scanned product, and the "yours" step decides nothing.
 
 The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the proposed rule also answers a `near` list: "Jauheliha, sika-nauta", "Jauheliha, naudanpaisti, rasvaa 9 %", "Jauheliha, naudan, rasvaa 17 %", "Jauheliha, naudan, vähärasvainen, rasvaa 7 %", "Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 7 %", then three fried forms.
+
+A first screen does not show a dish that leaves the 30 rows. Those are listed with their ranks in the design, under "The log sheet's everyday searches".
+
+## The owner's two searches
 
 ### `spagetti`
 
@@ -25,6 +29,8 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | --- | -------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------- | ----------------------------------- |
 | 1   | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 10 % | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 10 % | Pork and beef steak mince, 10% fat  | Pork and beef steak mince, 10% fat  |
 | 2   | Jauheliha, kevyt, sika-nauta, paistettu [D]              | Jauheliha, kevyt, sika-nauta, paistettu [D]              | Pork beef mince, 10% fat, fried [D] | Pork beef mince, 10% fat, fried [D] |
+
+## The searches of the TODO.md item
 
 ### `rahka`
 
@@ -129,6 +135,8 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 6   | Peruna, paistettu [D]                                | Peruna, kuorittu, keitetty, suolaton [D]             | Potato, fried [D]                       | Potato, peeled, boiled without salt [D] |
 | 7   | Peruna, paistettu, voi [D]                           | Peruna, kuorittu, keitetty, suolaa [D]               | Potato, fried in butter [D]             | Potato, peeled, boiled with salt [D]    |
 | 8   | Peruna, uusi, keitetty, suolaa [D]                   | Peruna, kuorineen, keitetty, suolaa [D]              | Potato, new, boiled with salt [D]       | Potato, unpeeled, boiled with salt [D]  |
+
+## Everyday ingredients, Finnish
 
 ### `kerma`
 
@@ -236,16 +244,16 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 
 ### `kurkku`
 
-| #   | Before, Finnish names                      | After, Finnish names                                           | Before, English names                            | After, English names                            |
-| --- | ------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------- |
-| 1   | Kurkku                                     | Kurkku                                                         | Cucumber                                         | Cucumber                                        |
-| 2   | Etikkakurkku, ei lisättyä sokeria          | Maustekurkku, herkkukurkku, sokerisuolattu                     | Soured cucumber                                  | Pickled cucumber, sweet, flavoured              |
-| 3   | Hapankurkku liemineen, venäläinen kurkku   | Etikkakurkku, ei lisättyä sokeria                              | Pickled cucumber, sweet, flavoured               | Cucumber, pickled cucumber, without added sugar |
-| 4   | Maustekurkku, herkkukurkku, sokerisuolattu | Hapankurkku liemineen, venäläinen kurkku                       | Cucumber, pickled cucumber, without added sugar  | Soured cucumber                                 |
-| 5   | Kurkkukeitto, kylmä [D]                    | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi       | Cold cucumber soup [D]                           | Salad, sweet pickle relish                      |
-| 6   | Salaatti, kaali-kurkku-purjo [D]           | Majoneesi, kurkkumajoneesi, hampurilaiskastike, hesburger      | Sushi maki with cucumber and seaweed [D]         | Mayonnaise, cucumber mayonnaise, hesburger      |
-| 7   | Salaatti, kaali-omena-maustekurkku [D]     | Salaatti, lehtisalaatti-kurkku-tomaatti, vihersekasalaatti [D] | Salad, cucumber slices with dill and vinegar [D] | Salad, lettuce, cucumber and tomato [D]         |
-| 8   | Salaatti, kiinankaali-kurkku-tomaatti [D]  | Salaatti, kiinankaali-kurkku-tomaatti [D]                      | Salad, cabbage, cucumber and leek [D]            | Salad, chinese cabbage, cucumber and tomato [D] |
+| #   | Before, Finnish names                      | After, Finnish names                                      | Before, English names                            | After, English names                            |
+| --- | ------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------- |
+| 1   | Kurkku                                     | Kurkku                                                    | Cucumber                                         | Cucumber                                        |
+| 2   | Etikkakurkku, ei lisättyä sokeria          | Maustekurkku, herkkukurkku, sokerisuolattu                | Soured cucumber                                  | Pickled cucumber, sweet, flavoured              |
+| 3   | Hapankurkku liemineen, venäläinen kurkku   | Etikkakurkku, ei lisättyä sokeria                         | Pickled cucumber, sweet, flavoured               | Cucumber, pickled cucumber, without added sugar |
+| 4   | Maustekurkku, herkkukurkku, sokerisuolattu | Hapankurkku liemineen, venäläinen kurkku                  | Cucumber, pickled cucumber, without added sugar  | Soured cucumber                                 |
+| 5   | Kurkkukeitto, kylmä [D]                    | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi  | Cold cucumber soup [D]                           | Salad, sweet pickle relish                      |
+| 6   | Salaatti, kaali-kurkku-purjo [D]           | Majoneesi, kurkkumajoneesi, hampurilaiskastike, hesburger | Sushi maki with cucumber and seaweed [D]         | Mayonnaise, cucumber mayonnaise, hesburger      |
+| 7   | Salaatti, kaali-omena-maustekurkku [D]     | Salaatti, kaali-kurkku-purjo [D]                          | Salad, cucumber slices with dill and vinegar [D] | Sushi maki with cucumber and seaweed [D]        |
+| 8   | Salaatti, kiinankaali-kurkku-tomaatti [D]  | Salaatti, kiinankaali-kurkku-tomaatti [D]                 | Salad, cabbage, cucumber and leek [D]            | Salad, cabbage, cucumber and leek [D]           |
 
 ### `porkkana`
 
@@ -427,32 +435,6 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 7   | Herkkusieni, täytetty, tuorejuusto, pekoni [D]  | Herkkusieni, täytetty, tuorejuusto, pekoni [D]  | Mushrooms filled with bacon and cream cheese spread [D] | Mushrooms filled with bacon and cream cheese spread [D] |
 | 8   | Herkkusieni, täytetty, sulatejuusto, pekoni [D] | Herkkusieni, täytetty, sulatejuusto, pekoni [D] | Hamburger, baconburger [D]                              | Hamburger, baconburger [D]                              |
 
-### `leipä`
-
-| #   | Before, Finnish names           | After, Finnish names                                         | Before, English names          | After, English names                                               |
-| --- | ------------------------------- | ------------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------------ |
-| 1   | Ruisleipä, ruista 51% [D]       | Sekaleipä, nyrkkirieska, ohra, kotitekoinen [D]              | Toast, rye toast [D]           | Multigrain bread, flatbread, barley, home-made [D]                 |
-| 2   | Paahtoleipä, monivilja [D]      | Paahtoleipä, vehnä, vesi [D]                                 | Rye bread, 51% rye [D]         | Toast, wheat toast [D]                                             |
-| 3   | Ruisleipä, varrasleipä [D]      | Sekaleipä, rouhesämpylä, vesi, vaalea [D]                    | Toast, wheat toast [D]         | Multigrain bread, bread roll, crushed grains, water [D]            |
-| 4   | Sekaleipä, ruissämpylä [D]      | Paahtoleipä, ruispaahtoleipä [D]                             | Toast, graham toast [D]        | Toast, rye toast [D]                                               |
-| 5   | Tippaleipä, kevytmaito [D]      | Paahtoleipä, monivilja [D]                                   | Pita kebab, kebab roll [D]     | Toast, multigrain toast [D]                                        |
-| 6   | Ruisleipä, ruissekaleipä [D]    | Ruisleipä, ruisrouheleipä perunainen, ruispalat [D]          | Toast, multigrain toast [D]    | Blood bread, rye and barley bread with blood [D]                   |
-| 7   | Tippaleipä, rasvaton maito [D]  | Verileipä, veriklimppi, verivanukas, veripalttu [D]          | Multigrain bread, rye roll [D] | Rye bread, wholegrain rye, potato, ruispalat [D]                   |
-| 8   | Voileipä, lämmin sienileipä [D] | Sekaleipä, moniviljapatonki, fazer, ruiskuitua, siemeniä [D] | Rye bread, dried rye bread [D] | Multigrain bread, multigrain baguette, rye fiber, seeds, fazer [D] |
-
-### `ruisleipä`
-
-| #   | Before, Finnish names                            | After, Finnish names                                | Before, English names                        | After, English names                                        |
-| --- | ------------------------------------------------ | --------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| 1   | Ruisleipä, ruista 51% [D]                        | Ruisleipä, ruisrouheleipä perunainen, ruispalat [D] | Rye bread, 51% rye [D]                       | Rye bread, wholegrain rye, potato, ruispalat [D]            |
-| 2   | Ruisleipä, varrasleipä [D]                       | Ruisleipä, ruis-, hiivaleipäjauho, teollinen [D]    | Rye bread, dried rye bread [D]               | Rye bread, wholegrain rye, dark wheat flour, industrial [D] |
-| 3   | Ruisleipä, ruissekaleipä [D]                     | Ruisleipä, ruista 51% [D]                           | Rye bread, rye mixed grain bread [D]         | Rye bread, 51% rye [D]                                      |
-| 4   | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D] | Ruisleipä, varrasleipä [D]                          | Rye bread, sweet and sour rye malt bread [D] | Rye bread, dried rye bread [D]                              |
-| 5   | Ruisleipä, ruispalat, vaasan [D]                 | Ruisleipä, ruissekaleipä [D]                        | Rye bread, puikula, fazer [D]                | Rye bread, rye mixed grain bread [D]                        |
-| 6   | Ruisleipä, puikula ruis, fazer [D]               | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D]    | Rye bread, ruispalat, vaasan [D]             | Rye bread, sweet and sour rye malt bread [D]                |
-| 7   | Ruisleipä, tosi rukiinen, vaasan [D]             | Ruisleipä, ruispalat, vaasan [D]                    | Rye bread, tosi rukiinen, vaasan [D]         | Rye bread, puikula, fazer [D]                               |
-| 8   | Ruisleipä, oululainen ruislimppu, fazer [D]      | Ruisleipä, puikula ruis, fazer [D]                  | Rye bread, oululainen reilu, fazer [D]       | Rye bread, ruispalat, vaasan [D]                            |
-
 ### `kaurahiutale`
 
 | #   | Before, Finnish names                                                      | After, Finnish names                                                       | Before, English names                                                      | After, English names                                                       |
@@ -479,18 +461,7 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 7   | Banaanipannukakku [D]                             | Muro, weetabix, banaani, muroke [D]                       | Banana egg pancake [D]                        | Breakfast cereal, weetabix banana flavour [D] |
 | 8   | Muro, weetabix, banaani, muroke [D]               | Hedelmäsalaatti, appelsiini, banaani, omena, persikka [D] | Breakfast cereal, weetabix banana flavour [D] | Fruit salad, orange, banana, apple, grape [D] |
 
-### `jäätelö`
-
-| #   | Before, Finnish names            | After, Finnish names                     | Before, English names     | After, English names                       |
-| --- | -------------------------------- | ---------------------------------------- | ------------------------- | ------------------------------------------ |
-| 1   | Jäätelö, rasvaton                | Jäätelö, kermajäätelö                    | Rice ice cream            | Ice cream, milk based                      |
-| 2   | Jäätelö, snickers                | Jäätelö, maitojäätelö                    | Soft ice cream            | Ice cream, cream based                     |
-| 3   | Jäätelö, kermajäätelö            | Jäätelö, pehmytjäätelö, ei vohvelia      | Soft ice cream with wafer | Soft ice cream                             |
-| 4   | Jäätelö, maitojäätelö            | Jäätelö, soijajäätelö, tofuline, vanilja | Ice cream, fat-free       | Soy milk frozen dessert, tofuline, vanilla |
-| 5   | Jäätelö, riisijäätelö            | Jäätelö, rasvaton                        | Ice cream, snickers       | Rice ice cream                             |
-| 6   | Jäätelö, kasvirasvajäätelö       | Jäätelö, snickers                        | Ice cream, milk based     | Soft ice cream with wafer                  |
-| 7   | Jäätelö, kermajäätelötuutti      | Jäätelö, riisijäätelö                    | Ice cream, cream based    | Ice cream, fat-free                        |
-| 8   | Jäätelö, kasvirasvajäätelötuutti | Jäätelö, kasvirasvajäätelö               | Ice cream, vegetable fat  | Ice cream, snickers                        |
+## Everyday ingredients, English
 
 ### `milk`
 
@@ -533,16 +504,16 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 
 ### `onion`
 
-| #   | Before, Finnish names               | After, Finnish names                                     | Before, English names                            | After, English names                             |
-| --- | ----------------------------------- | -------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------ |
-| 1   | Sipuli, kuivattu                    | Sipuli, keltasipuli                                      | Onion                                            | Onion                                            |
-| 2   | Sipuli, punasipuli                  | Sipuli, punasipuli                                       | Onion, dried                                     | Onion, red onion                                 |
-| 3   | Sipuli, keltasipuli                 | Sipuli, kuivattu                                         | Onion, red onion                                 | Onion, dried                                     |
-| 4   | Sipulikeitto [D]                    | Sipuli, keitetty, suolaton [D]                           | Onion soup [D]                                   | Onion, boiled without salt [D]                   |
-| 5   | Sipuli, paistettu [D]               | Sipuli, paistettu [D]                                    | Onion stuffed with rice and pork beef mince [D]  | Onion, fried [D]                                 |
-| 6   | Sipulipiirakka, muropohja [D]       | Sipuli, paistettu, haudutettu, kasvisliemi, siirappi [D] | Onion cooked in vegetable bouillon and syrup [D] | Onion cooked in vegetable bouillon and syrup [D] |
-| 7   | Sipulimuhennos, kevytmaito [D]      | Sipulikeitto [D]                                         | Onion, fried [D]                                 | Onion soup [D]                                   |
-| 8   | Sipulikeitto, juustokuorrutettu [D] | Sipulipiirakka, muropohja [D]                            | Onion stew, low-fat milk [D]                     | Onion stuffed with rice and pork beef mince [D]  |
+| #   | Before, Finnish names               | After, Finnish names           | Before, English names                            | After, English names                             |
+| --- | ----------------------------------- | ------------------------------ | ------------------------------------------------ | ------------------------------------------------ |
+| 1   | Sipuli, kuivattu                    | Sipuli, keltasipuli            | Onion                                            | Onion                                            |
+| 2   | Sipuli, punasipuli                  | Sipuli, punasipuli             | Onion, dried                                     | Onion, red onion                                 |
+| 3   | Sipuli, keltasipuli                 | Sipuli, kuivattu               | Onion, red onion                                 | Onion, dried                                     |
+| 4   | Sipulikeitto [D]                    | Sipuli, keitetty, suolaton [D] | Onion soup [D]                                   | Onion, boiled without salt [D]                   |
+| 5   | Sipuli, paistettu [D]               | Sipulikeitto [D]               | Onion stuffed with rice and pork beef mince [D]  | Onion soup [D]                                   |
+| 6   | Sipulipiirakka, muropohja [D]       | Sipuli, paistettu [D]          | Onion cooked in vegetable bouillon and syrup [D] | Onion stuffed with rice and pork beef mince [D]  |
+| 7   | Sipulimuhennos, kevytmaito [D]      | Sipulipiirakka, muropohja [D]  | Onion, fried [D]                                 | Onion cooked in vegetable bouillon and syrup [D] |
+| 8   | Sipulikeitto, juustokuorrutettu [D] | Sipulimuhennos, kevytmaito [D] | Onion stew, low-fat milk [D]                     | Onion, fried [D]                                 |
 
 ### `butter`
 
@@ -595,6 +566,8 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 6   | Peruna, kuorittu, suurtaloustuote, suojakaasupakattu | Peruna, kuorittu, suurtaloustuote, suojakaasupakattu | Potato, peeled, vacuum packed, catering   | Potato, peeled, vacuum packed, catering   |
 | 7   | Lohkoperuna [D]                                      | Peruna, kuorittu, keitetty, suolaton [D]             | Potato cutlet [D]                         | Potato, peeled, boiled without salt [D]   |
 | 8   | Röstiperuna [D]                                      | Peruna, kuorittu, keitetty, suolaa [D]               | Potato cauliflower curry [D]              | Potato, peeled, boiled with salt [D]      |
+
+## Inflected and base forms
 
 ### `nauta`
 
@@ -713,6 +686,8 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 7   |                                                        | Hirvenlihakeitto, peruna, porkkana [D]        |                                                | Elk meat gravy, with cooking cream [D] |
 | 8   |                                                        | Hirvenlihakastike, ruskea kastike, rasvaa [D] |                                                | Meat soup, elk, potato, carrot [D]     |
 
+## Two words
+
 ### `jauheliha nauta`
 
 | #   | Before, Finnish names                                    | After, Finnish names                                       | Before, English names                  | After, English names                       |
@@ -725,6 +700,19 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 6   | Jauheliha, kevyt, sika-nauta, paistettu [D]              | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 7 %    | Pork beef mince, 10% fat, fried [D]    | Pork and beef steak mince, 7% fat          |
 | 7   | Jauhelihakeitto, sika-nauta [D]                          | Jauheliha, naudanpaisti, paistettu ilman rasvaa [D]        | Pork beef mince soup [D]               | Lean beef mince, fried without fat [D]     |
 | 8   | Jauheliha-kasvispata, sika-nauta [D]                     | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa [D] | Pork beef mince gravy [D]              | Beef mince, 17% fat, fried without fat [D] |
+
+### `naudan jauheliha`
+
+| #   | Before, Finnish names                                                | After, Finnish names                                         | Before, English names                               | After, English names                       |
+| --- | -------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------ |
+| 1   | Jauheliha, naudan, rasvaa 17 %                                       | Jauheliha, sika-nauta                                        | Beef mince, 17% fat                                 | Pork beef mince                            |
+| 2   | Jauheliha, naudan, vähärasvainen, rasvaa 7 %                         | Jauheliha, naudan, rasvaa 17 %                               | Lean steak mince, 7% fat                            | Beef mince, 17% fat                        |
+| 3   | Vorschmack, lampaan ja naudan jauheliha [D]                          | Jauheliha, naudan, vähärasvainen, rasvaa 7 %                 | Macaroni stew with beef mince [D]                   | Lean steak mince, 7% fat                   |
+| 4   | Jauheliha-makaronimuhennos, naudan jauheliha 17% [D]                 | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 10 %     | Lean beef mince, fried without fat [D]              | Pork and beef steak mince, 10% fat         |
+| 5   | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa [D]           | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 7 %      | Vorschmack, lamb mince, beef mince [D]              | Pork and beef steak mince, 7% fat          |
+| 6   | Jauheliha, naudan, vähärasvainen, paistettu ilman rasvaa [D]         | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa [D]   | Beef mince, 17% fat, fried without fat [D]          | Lean beef mince, fried without fat [D]     |
+| 7   | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa, suolaton [D] | Jauheliha, naudan, vähärasvainen, paistettu ilman rasvaa [D] | Beef mince, 17% fat, fried without fat and salt [D] | Beef mince, 17% fat, fried without fat [D] |
+| 8   | Jauheliha, naudanpaisti, rasvaa 9 %                                  | Jauheliha, sika-nauta, paistettu ilman rasvaa [D]            | Lean steak mince, 9% fat                            | Pork beef mince, fried without fat [D]     |
 
 ### `rahka vl`
 
@@ -763,31 +751,56 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 6   | Ohukainen, soijajuoma, riisijauho, gluteeniton, maidoton, kananmunaton [D]         | Ohukainen, soijajuoma, riisijauho, gluteeniton, maidoton, kananmunaton [D]         | Sweet chili chicken teriyaki with jasmine rice, kitchen joy, ready meal [D] | Sweet chili chicken teriyaki with jasmine rice, kitchen joy, ready meal [D] |
 | 7   | Ateriasalaatti, kanasalaatti, riisi, herne, maustekurkku, purjo, ei kastiketta [D] | Ateriasalaatti, kanasalaatti, riisi, herne, maustekurkku, purjo, ei kastiketta [D] | Thin pancake, soya drink, rice flour, gluten-free, dairy-free, egg-free [D] | Thin pancake, soya drink, rice flour, gluten-free, dairy-free, egg-free [D] |
 
-### `pizza`
+### `kevytmaito laktoositon`
 
-| #   | Before, Finnish names          | After, Finnish names           | Before, English names             | After, English names              |
-| --- | ------------------------------ | ------------------------------ | --------------------------------- | --------------------------------- |
-| 1   | Pizza, kinkkupizza [D]         | Pizza, kinkkupizza [D]         | Pizza, ham pizza [D]              | Pizza, ham pizza [D]              |
-| 2   | Pizza, salamipizza [D]         | Pizza, salamipizza [D]         | Pizza, tuna pizza [D]             | Pizza, tuna pizza [D]             |
-| 3   | Pizza, tonnikalapizza [D]      | Pizza, tonnikalapizza [D]      | Pizza, salami pizza [D]           | Pizza, salami pizza [D]           |
-| 4   | Pizza, herkkusienipizza [D]    | Pizza, herkkusienipizza [D]    | Pizza, beef mince pizza [D]       | Pizza, beef mince pizza [D]       |
-| 5   | Pizza, kana-ananaspizza [D]    | Pizza, kana-ananaspizza [D]    | Pizza, champignon pizza [D]       | Pizza, champignon pizza [D]       |
-| 6   | Pizzapohja, hiivataikina [D]   | Pizzapohja, hiivataikina [D]   | Pizza, ham and tuna pizza [D]     | Pizza, ham and tuna pizza [D]     |
-| 7   | Pizza, kinkku-ananaspizza [D]  | Pizza, kinkku-ananaspizza [D]  | Pizza, pork beef mince pizza [D]  | Pizza, pork beef mince pizza [D]  |
-| 8   | Pizza, anjovis-oliivipizza [D] | Pizza, anjovis-oliivipizza [D] | Pizza, ham and mushroom pizza [D] | Pizza, ham and mushroom pizza [D] |
+| #   | Before, Finnish names                                                     | After, Finnish names                                                      | Before, English names                                          | After, English names                                           |
+| --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
+| 1   | Maito, kevytmaito, laktoositon maitojuoma, d-vitamiinia 1 ug              | Maito, kevytmaito, laktoositon maitojuoma, d-vitamiinia 1 ug              | Milk, 1.5% fat, lactose-free, 1 ug added vitamin d             | Milk, 1.5% fat, lactose-free, 1 ug added vitamin d             |
+| 2   | Maito, kevytmaito, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug  | Maito, kevytmaito, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug  | Milk, 1.5% fat, lactose-free, valio eila, 2 ug added vitamin d | Milk, 1.5% fat, lactose-free, valio eila, 2 ug added vitamin d |
+| 3   | Maito, kevytmaito, laktoositon maitojuoma, ei lisätty d-vitamiinia, luomu | Maito, kevytmaito, laktoositon maitojuoma, ei lisätty d-vitamiinia, luomu | Milk, 1.5% fat, lactose-free, without added vitamin d, organic | Milk, 1.5% fat, lactose-free, without added vitamin d, organic |
+| 4   | Perunasose, kevytmaito, laktoositon [D]                                   | Perunasose, kevytmaito, laktoositon [D]                                   | Bun, low-fat milk, lactose-free [D]                            | Bun, low-fat milk, lactose-free [D]                            |
+| 5   | Pulla, keskirasvainen, kevytmaito, laktoositon [D]                        | Pulla, keskirasvainen, kevytmaito, laktoositon [D]                        | Mashed potatoes, low-fat milk, lactose-free [D]                | Mashed potatoes, low-fat milk, lactose-free [D]                |
 
-### `kaurapuuro`
+## Everyday log sheet searches, Finnish
 
-| #   | Before, Finnish names                    | After, Finnish names                     | Before, English names                                     | After, English names                                      |
-| --- | ---------------------------------------- | ---------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| 1   | Kaurapuuro, vesi, suolaa [D]             | Kaurapuuro, vesi, suolaa [D]             | Oat porridge, oat flakes, water, salt [D]                 | Oat porridge, oat flakes, water, salt [D]                 |
-| 2   | Kaurapuuro, vesi, suolaton [D]           | Kaurapuuro, vesi, suolaton [D]           | Oat porridge, oat flakes, low-fat milk, salt [D]          | Oat porridge, oat flakes, water, without salt [D]         |
-| 3   | Kaurapuuro, kevytmaito, suolaa [D]       | Kaurapuuro, kevytmaito, suolaa [D]       | Oat porridge, oat flakes, fat-free milk, salt [D]         | Oat porridge, oat flakes, low-fat milk, salt [D]          |
-| 4   | Kaurapuuro, kevytmaito, suolaton [D]     | Kaurapuuro, kevytmaito, suolaton [D]     | Oat porridge, oat flakes, water, without salt [D]         | Oat porridge, oat flakes, fat-free milk, salt [D]         |
-| 5   | Kaurapuuro, omena-kaneli, elovena [D]    | Kaurapuuro, omena-kaneli, elovena [D]    | Oat porridge, oat flakes, fruit and berries, elovena [D]  | Oat porridge, oat flakes, fruit and berries, elovena [D]  |
-| 6   | Kaurapuuro, marja-hedelmä, elovena [D]   | Kaurapuuro, marja-hedelmä, elovena [D]   | Oat porridge, oat flakes, low-fat milk, without salt [D]  | Oat porridge, oat flakes, low-fat milk, without salt [D]  |
-| 7   | Kaurapuuro, rasvaton maito, suolaa [D]   | Kaurapuuro, rasvaton maito, suolaa [D]   | Oat porridge, oat flakes, apple and cinnamon, elovena [D] | Oat porridge, oat flakes, apple and cinnamon, elovena [D] |
-| 8   | Kaurapuuro, rasvaton maito, suolaton [D] | Kaurapuuro, rasvaton maito, suolaton [D] | Oat porridge, oat flakes, fat-free milk, without salt [D] | Oat porridge, oat flakes, fat-free milk, without salt [D] |
+### `leipä`
+
+| #   | Before, Finnish names           | After, Finnish names                            | Before, English names          | After, English names                               |
+| --- | ------------------------------- | ----------------------------------------------- | ------------------------------ | -------------------------------------------------- |
+| 1   | Ruisleipä, ruista 51% [D]       | Sekaleipä, nyrkkirieska, ohra, kotitekoinen [D] | Toast, rye toast [D]           | Multigrain bread, flatbread, barley, home-made [D] |
+| 2   | Paahtoleipä, monivilja [D]      | Ruisleipä, ruista 51% [D]                       | Rye bread, 51% rye [D]         | Toast, rye toast [D]                               |
+| 3   | Ruisleipä, varrasleipä [D]      | Paahtoleipä, monivilja [D]                      | Toast, wheat toast [D]         | Rye bread, 51% rye [D]                             |
+| 4   | Sekaleipä, ruissämpylä [D]      | Ruisleipä, varrasleipä [D]                      | Toast, graham toast [D]        | Toast, wheat toast [D]                             |
+| 5   | Tippaleipä, kevytmaito [D]      | Sekaleipä, ruissämpylä [D]                      | Pita kebab, kebab roll [D]     | Toast, graham toast [D]                            |
+| 6   | Ruisleipä, ruissekaleipä [D]    | Tippaleipä, kevytmaito [D]                      | Toast, multigrain toast [D]    | Pita kebab, kebab roll [D]                         |
+| 7   | Tippaleipä, rasvaton maito [D]  | Ruisleipä, ruissekaleipä [D]                    | Multigrain bread, rye roll [D] | Toast, multigrain toast [D]                        |
+| 8   | Voileipä, lämmin sienileipä [D] | Tippaleipä, rasvaton maito [D]                  | Rye bread, dried rye bread [D] | Multigrain bread, rye roll [D]                     |
+
+### `ruisleipä`
+
+| #   | Before, Finnish names                            | After, Finnish names                             | Before, English names                        | After, English names                         |
+| --- | ------------------------------------------------ | ------------------------------------------------ | -------------------------------------------- | -------------------------------------------- |
+| 1   | Ruisleipä, ruista 51% [D]                        | Ruisleipä, ruista 51% [D]                        | Rye bread, 51% rye [D]                       | Rye bread, 51% rye [D]                       |
+| 2   | Ruisleipä, varrasleipä [D]                       | Ruisleipä, varrasleipä [D]                       | Rye bread, dried rye bread [D]               | Rye bread, dried rye bread [D]               |
+| 3   | Ruisleipä, ruissekaleipä [D]                     | Ruisleipä, ruissekaleipä [D]                     | Rye bread, rye mixed grain bread [D]         | Rye bread, rye mixed grain bread [D]         |
+| 4   | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D] | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D] | Rye bread, sweet and sour rye malt bread [D] | Rye bread, sweet and sour rye malt bread [D] |
+| 5   | Ruisleipä, ruispalat, vaasan [D]                 | Ruisleipä, ruispalat, vaasan [D]                 | Rye bread, puikula, fazer [D]                | Rye bread, puikula, fazer [D]                |
+| 6   | Ruisleipä, puikula ruis, fazer [D]               | Ruisleipä, puikula ruis, fazer [D]               | Rye bread, ruispalat, vaasan [D]             | Rye bread, ruispalat, vaasan [D]             |
+| 7   | Ruisleipä, tosi rukiinen, vaasan [D]             | Ruisleipä, tosi rukiinen, vaasan [D]             | Rye bread, tosi rukiinen, vaasan [D]         | Rye bread, tosi rukiinen, vaasan [D]         |
+| 8   | Ruisleipä, oululainen ruislimppu, fazer [D]      | Ruisleipä, oululainen ruislimppu, fazer [D]      | Rye bread, oululainen reilu, fazer [D]       | Rye bread, oululainen reilu, fazer [D]       |
+
+### `kahvi`
+
+| #   | Before, Finnish names                         | After, Finnish names                          | Before, English names               | After, English names                |
+| --- | --------------------------------------------- | --------------------------------------------- | ----------------------------------- | ----------------------------------- |
+| 1   | Kahvi, pannukahvijuoma                        | Kahvi, kahvijuoma, keskiarvo                  | Boiled coffee drink                 | Coffee, average                     |
+| 2   | Kahvi, suodatinkahvijuoma                     | Kahvi, suodatinkahvijuoma                     | Filtered coffee drink               | Filtered coffee drink               |
+| 3   | Kahvi, kahvijuoma, keskiarvo                  | Kahvi, pannukahvijuoma                        | Coffee, average                     | Boiled coffee drink                 |
+| 4   | Kahvi, murukahvi, pikakahvi, valmistamaton    | Kahvi, murukahvi, pikakahvi, valmistamaton    | Instant coffee, powder              | Instant coffee, powder              |
+| 5   | Kahvi, cappuccino, makeuttamaton, täysmaito   | Kahvi, cappuccino, makeuttamaton, täysmaito   | Coffee, instant, drink              | Coffee, instant, drink              |
+| 6   | Kahvi, caffe latte, makeuttamaton, täysmaito  | Kahvi, caffe latte, makeuttamaton, täysmaito  | Cafe latte, unsweetened, soy drink  | Cafe latte, unsweetened, soy drink  |
+| 7   | Kahvi, cappuccino, makeuttamaton, kevytmaito  | Kahvi, cappuccino, makeuttamaton, kevytmaito  | Cafe latte, unsweetened, whole milk | Cafe latte, unsweetened, whole milk |
+| 8   | Kahvi, cafe au lait, makeuttamaton, täysmaito | Kahvi, cafe au lait, makeuttamaton, täysmaito | Cappuccino, unsweetened, whole milk | Cappuccino, unsweetened, whole milk |
 
 ### `jogurtti`
 
@@ -802,51 +815,275 @@ The "After" columns are the `foods` list only. For "jauheliha 10 nauta" the prop
 | 7   | Jogurtti, maustettu, rasvaa 2,5 %   | Jogurtti, juotava, rasvaa 0,1 %                            | Yoghurt, flavoured, 7% fat   | Yoghurt, plain, 1.5% fat                            |
 | 8   | Jogurtti, maustamaton, rasvaa 1,5 % | Jogurtti, maustamaton, rasvaton                            | Yoghurt, flavoured, 2.5% fat | Yoghurt, plain, fat-free                            |
 
-### `naudan jauheliha`
+### `puuro`
 
-| #   | Before, Finnish names                                                | After, Finnish names                                         | Before, English names                               | After, English names                       |
-| --- | -------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------ |
-| 1   | Jauheliha, naudan, rasvaa 17 %                                       | Jauheliha, sika-nauta                                        | Beef mince, 17% fat                                 | Pork beef mince                            |
-| 2   | Jauheliha, naudan, vähärasvainen, rasvaa 7 %                         | Jauheliha, naudan, rasvaa 17 %                               | Lean steak mince, 7% fat                            | Beef mince, 17% fat                        |
-| 3   | Vorschmack, lampaan ja naudan jauheliha [D]                          | Jauheliha, naudan, vähärasvainen, rasvaa 7 %                 | Macaroni stew with beef mince [D]                   | Lean steak mince, 7% fat                   |
-| 4   | Jauheliha-makaronimuhennos, naudan jauheliha 17% [D]                 | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 10 %     | Lean beef mince, fried without fat [D]              | Pork and beef steak mince, 10% fat         |
-| 5   | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa [D]           | Jauheliha, sika-nauta, kevyt, vähärasvainen, rasvaa 7 %      | Vorschmack, lamb mince, beef mince [D]              | Pork and beef steak mince, 7% fat          |
-| 6   | Jauheliha, naudan, vähärasvainen, paistettu ilman rasvaa [D]         | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa [D]   | Beef mince, 17% fat, fried without fat [D]          | Lean beef mince, fried without fat [D]     |
-| 7   | Jauheliha, naudan, rasvaa 17 %, paistettu ilman rasvaa, suolaton [D] | Jauheliha, naudan, vähärasvainen, paistettu ilman rasvaa [D] | Beef mince, 17% fat, fried without fat and salt [D] | Beef mince, 17% fat, fried without fat [D] |
-| 8   | Jauheliha, naudanpaisti, rasvaa 9 %                                  | Jauheliha, sika-nauta, paistettu ilman rasvaa [D]            | Lean steak mince, 9% fat                            | Pork beef mince, fried without fat [D]     |
+| #   | Before, Finnish names          | After, Finnish names                | Before, English names                      | After, English names                          |
+| --- | ------------------------------ | ----------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| 1   | Tuorepuuro, jogurtti [D]       | Kaurapuuro, vesi, suolaa [D]        | Raw porridge, yoghurt [D]                  | Maize porridge, polenta [D]                   |
+| 2   | Kaurapuuro, vesi, suolaa [D]   | Grahampuuro, vesi, suolaa [D]       | Maize porridge, polenta [D]                | Rice porridge, water, salt [D]                |
+| 3   | Grahampuuro, vesi, suolaa [D]  | Hirssipuuro, vesi, suolaa [D]       | Semolina lingonberry porridge, whipped [D] | Graham porridge, water, salt [D]              |
+| 4   | Hirssipuuro, vesi, suolaa [D]  | Kaurapuuro, vesi, suolaton [D]      | Rice porridge, milk, salt [D]              | Millet porridge, water, salt [D]              |
+| 5   | Mannapuuro, maito, suolaa [D]  | Tattaripuuro, vesi, suolaa [D]      | Rice porridge, water, salt [D]             | Buckwheat porridge, water, salt [D]           |
+| 6   | Hirssipuuro, maito, suolaa [D] | Talkkunapuuro, vesi, suolaa [D]     | Millet porridge, milk, salt [D]            | Mixed flake porridge, water, salt [D]         |
+| 7   | Kaurapuuro, vesi, suolaton [D] | Maissipuuro, polenta, suolaa [D]    | Graham porridge, water, salt [D]           | Rice porridge, water, without salt [D]        |
+| 8   | Tattaripuuro, vesi, suolaa [D] | Neljänviljanpuuro, vesi, suolaa [D] | Millet porridge, water, salt [D]           | Mixed flake porridge, water, without salt [D] |
 
-### `kevytmaito laktoositon`
+### `kaurapuuro`
 
-| #   | Before, Finnish names                                                     | After, Finnish names                                                      | Before, English names                                          | After, English names                                           |
-| --- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------- |
-| 1   | Maito, kevytmaito, laktoositon maitojuoma, d-vitamiinia 1 ug              | Maito, kevytmaito, laktoositon maitojuoma, d-vitamiinia 1 ug              | Milk, 1.5% fat, lactose-free, 1 ug added vitamin d             | Milk, 1.5% fat, lactose-free, 1 ug added vitamin d             |
-| 2   | Maito, kevytmaito, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug  | Maito, kevytmaito, laktoositon maitojuoma, valio eila, d-vitamiinia 2 ug  | Milk, 1.5% fat, lactose-free, valio eila, 2 ug added vitamin d | Milk, 1.5% fat, lactose-free, valio eila, 2 ug added vitamin d |
-| 3   | Maito, kevytmaito, laktoositon maitojuoma, ei lisätty d-vitamiinia, luomu | Maito, kevytmaito, laktoositon maitojuoma, ei lisätty d-vitamiinia, luomu | Milk, 1.5% fat, lactose-free, without added vitamin d, organic | Milk, 1.5% fat, lactose-free, without added vitamin d, organic |
-| 4   | Perunasose, kevytmaito, laktoositon [D]                                   | Perunasose, kevytmaito, laktoositon [D]                                   | Bun, low-fat milk, lactose-free [D]                            | Bun, low-fat milk, lactose-free [D]                            |
-| 5   | Pulla, keskirasvainen, kevytmaito, laktoositon [D]                        | Pulla, keskirasvainen, kevytmaito, laktoositon [D]                        | Mashed potatoes, low-fat milk, lactose-free [D]                | Mashed potatoes, low-fat milk, lactose-free [D]                |
-
-### `salaatti`
-
-| #   | Before, Finnish names                                    | After, Finnish names                                     | Before, English names           | After, English names           |
-| --- | -------------------------------------------------------- | -------------------------------------------------------- | ------------------------------- | ------------------------------ |
-| 1   | Salaatti, kurpitsasalaatti, pikkelssi                    | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi | Salad, pickled pumpkin          | Salad, sweet pickle relish     |
-| 2   | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi | Salaatti, kurpitsasalaatti, pikkelssi                    | Salad, sweet pickle relish      | Salad, pickled pumpkin         |
-| 3   | Salaatti, kaali-ananas [D]                               | Jäävuorisalaatti, rapea keräsalaatti, amerikansalaatti   | Salad, average mixture [D]      | Iceberg lettuce                |
-| 4   | Salaatti, kaali-kurpitsa [D]                             | Lehtisalaatti, ruukkusalaatti, lollo rosso               | Salad, tomato and onion [D]     | Lettuce                        |
-| 5   | Salaatti, kaali-puolukka [D]                             | Jääsalaatti                                              | Salad, beetroot and apple [D]   | Garden lettuce                 |
-| 6   | Salaatti, pasta-vihannes [D]                             | Punasalaatti, punasikuri                                 | Salad, cabbage and pumpkin [D]  | Radicchio                      |
-| 7   | Salaatti, kaali-punajuuri [D]                            | Roomansalaatti, sidesalaatti                             | Salad, cabbage and beetroot [D] | Romaine lettuce                |
-| 8   | Salaatti, punajuuri-omena [D]                            | Salaatti, kaali-kurpitsa [D]                             | Salad, pasta and vegetables [D] | Salad, cabbage and pumpkin [D] |
+| #   | Before, Finnish names                    | After, Finnish names                     | Before, English names                                     | After, English names                                      |
+| --- | ---------------------------------------- | ---------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| 1   | Kaurapuuro, vesi, suolaa [D]             | Kaurapuuro, vesi, suolaa [D]             | Oat porridge, oat flakes, water, salt [D]                 | Oat porridge, oat flakes, water, salt [D]                 |
+| 2   | Kaurapuuro, vesi, suolaton [D]           | Kaurapuuro, vesi, suolaton [D]           | Oat porridge, oat flakes, low-fat milk, salt [D]          | Oat porridge, oat flakes, water, without salt [D]         |
+| 3   | Kaurapuuro, kevytmaito, suolaa [D]       | Kaurapuuro, kevytmaito, suolaa [D]       | Oat porridge, oat flakes, fat-free milk, salt [D]         | Oat porridge, oat flakes, low-fat milk, salt [D]          |
+| 4   | Kaurapuuro, kevytmaito, suolaton [D]     | Kaurapuuro, kevytmaito, suolaton [D]     | Oat porridge, oat flakes, water, without salt [D]         | Oat porridge, oat flakes, fat-free milk, salt [D]         |
+| 5   | Kaurapuuro, omena-kaneli, elovena [D]    | Kaurapuuro, omena-kaneli, elovena [D]    | Oat porridge, oat flakes, fruit and berries, elovena [D]  | Oat porridge, oat flakes, fruit and berries, elovena [D]  |
+| 6   | Kaurapuuro, marja-hedelmä, elovena [D]   | Kaurapuuro, marja-hedelmä, elovena [D]   | Oat porridge, oat flakes, low-fat milk, without salt [D]  | Oat porridge, oat flakes, low-fat milk, without salt [D]  |
+| 7   | Kaurapuuro, rasvaton maito, suolaa [D]   | Kaurapuuro, rasvaton maito, suolaa [D]   | Oat porridge, oat flakes, apple and cinnamon, elovena [D] | Oat porridge, oat flakes, apple and cinnamon, elovena [D] |
+| 8   | Kaurapuuro, rasvaton maito, suolaton [D] | Kaurapuuro, rasvaton maito, suolaton [D] | Oat porridge, oat flakes, fat-free milk, without salt [D] | Oat porridge, oat flakes, fat-free milk, without salt [D] |
 
 ### `keitto`
 
-| #   | Before, Finnish names | After, Finnish names                              | Before, English names | After, English names                       |
-| --- | --------------------- | ------------------------------------------------- | --------------------- | ------------------------------------------ |
-| 1   | Kesäkeitto [D]        | Hernekeitto, säilyke, laimennettu, sianliha [D]   | Onion soup [D]        | Pea soup, canned, diluted, with pork [D]   |
-| 2   | Porokeitto [D]        | Hernekeitto, säilyke, laimentamaton, sianliha [D] | Lentil soup [D]       | Pea soup, canned, undiluted, with pork [D] |
-| 3   | Nakkikeitto [D]       | Kesäkeitto [D]                                    | Tomato soup [D]       | Onion soup [D]                             |
-| 4   | Linssikeitto [D]      | Porokeitto [D]                                    | Chicken soup [D]      | Lentil soup [D]                            |
-| 5   | Sipulikeitto [D]      | Nakkikeitto [D]                                   | Sausage soup [D]      | Tomato soup [D]                            |
-| 6   | Makkarakeitto [D]     | Linssikeitto [D]                                  | Spinach soup [D]      | Chicken soup [D]                           |
-| 7   | Broilerikeitto [D]    | Sipulikeitto [D]                                  | Beetroot soup [D]     | Sausage soup [D]                           |
-| 8   | Pinaattikeitto [D]    | Makkarakeitto [D]                                 | Reindeer soup [D]     | Spinach soup [D]                           |
+| #   | Before, Finnish names | After, Finnish names                            | Before, English names | After, English names                     |
+| --- | --------------------- | ----------------------------------------------- | --------------------- | ---------------------------------------- |
+| 1   | Kesäkeitto [D]        | Hernekeitto, säilyke, laimennettu, sianliha [D] | Onion soup [D]        | Pea soup, canned, diluted, with pork [D] |
+| 2   | Porokeitto [D]        | Kesäkeitto [D]                                  | Lentil soup [D]       | Onion soup [D]                           |
+| 3   | Nakkikeitto [D]       | Porokeitto [D]                                  | Tomato soup [D]       | Lentil soup [D]                          |
+| 4   | Linssikeitto [D]      | Nakkikeitto [D]                                 | Chicken soup [D]      | Tomato soup [D]                          |
+| 5   | Sipulikeitto [D]      | Linssikeitto [D]                                | Sausage soup [D]      | Chicken soup [D]                         |
+| 6   | Makkarakeitto [D]     | Sipulikeitto [D]                                | Spinach soup [D]      | Sausage soup [D]                         |
+| 7   | Broilerikeitto [D]    | Makkarakeitto [D]                               | Beetroot soup [D]     | Spinach soup [D]                         |
+| 8   | Pinaattikeitto [D]    | Broilerikeitto [D]                              | Reindeer soup [D]     | Beetroot soup [D]                        |
+
+### `pizza`
+
+| #   | Before, Finnish names          | After, Finnish names           | Before, English names             | After, English names              |
+| --- | ------------------------------ | ------------------------------ | --------------------------------- | --------------------------------- |
+| 1   | Pizza, kinkkupizza [D]         | Pizza, kinkkupizza [D]         | Pizza, ham pizza [D]              | Pizza, ham pizza [D]              |
+| 2   | Pizza, salamipizza [D]         | Pizza, salamipizza [D]         | Pizza, tuna pizza [D]             | Pizza, tuna pizza [D]             |
+| 3   | Pizza, tonnikalapizza [D]      | Pizza, tonnikalapizza [D]      | Pizza, salami pizza [D]           | Pizza, salami pizza [D]           |
+| 4   | Pizza, herkkusienipizza [D]    | Pizza, herkkusienipizza [D]    | Pizza, beef mince pizza [D]       | Pizza, beef mince pizza [D]       |
+| 5   | Pizza, kana-ananaspizza [D]    | Pizza, kana-ananaspizza [D]    | Pizza, champignon pizza [D]       | Pizza, champignon pizza [D]       |
+| 6   | Pizzapohja, hiivataikina [D]   | Pizzapohja, hiivataikina [D]   | Pizza, ham and tuna pizza [D]     | Pizza, ham and tuna pizza [D]     |
+| 7   | Pizza, kinkku-ananaspizza [D]  | Pizza, kinkku-ananaspizza [D]  | Pizza, pork beef mince pizza [D]  | Pizza, pork beef mince pizza [D]  |
+| 8   | Pizza, anjovis-oliivipizza [D] | Pizza, anjovis-oliivipizza [D] | Pizza, ham and mushroom pizza [D] | Pizza, ham and mushroom pizza [D] |
+
+### `hampurilainen`
+
+| #   | Before, Finnish names                              | After, Finnish names                               | Before, English names                         | After, English names                          |
+| --- | -------------------------------------------------- | -------------------------------------------------- | --------------------------------------------- | --------------------------------------------- |
+| 1   | Hampurilainen, kalahampurilainen [D]               | Hampurilainen, kalahampurilainen [D]               | Fish burger [D]                               | Fish burger [D]                               |
+| 2   | Hampurilainen, lohihampurilainen [D]               | Hampurilainen, lohihampurilainen [D]               | Salmon burger [D]                             | Salmon burger [D]                             |
+| 3   | Hampurilainen, kerroshampurilainen [D]             | Hampurilainen, kerroshampurilainen [D]             | Double hamburger [D]                          | Double hamburger [D]                          |
+| 4   | Hampurilainen, nyhtöpossu ja rouhesämpylä [D]      | Hampurilainen, nyhtöpossu ja rouhesämpylä [D]      | Hamburger with beef and rye bread [D]         | Hamburger with beef and rye bread [D]         |
+| 5   | Hampurilainen, naudanlihapihvi ja rouhesämpylä [D] | Hampurilainen, naudanlihapihvi ja rouhesämpylä [D] | Hamburger with pork sirloin and rye bread [D] | Hamburger with pork sirloin and rye bread [D] |
+| 6   | Hampurilainen, naudanlihapihvi ja vehnäsämpylä [D] | Hampurilainen, naudanlihapihvi ja vehnäsämpylä [D] | Hamburger, hk [D]                             | Hamburger, hk [D]                             |
+| 7   | Hampurilainen, sika-nautapihvi ja vehnäsämpylä [D] | Hampurilainen, sika-nautapihvi ja vehnäsämpylä [D] | Hamburger, lidl [D]                           | Hamburger, lidl [D]                           |
+| 8   | Hampurilainen, mcfeast, mcdonald's [D]             | Hampurilainen, mcfeast, mcdonald's [D]             | Hamburger, atria [D]                          | Hamburger, atria [D]                          |
+
+### `pulla`
+
+| #   | Before, Finnish names                           | After, Finnish names                            | Before, English names          | After, English names           |
+| --- | ----------------------------------------------- | ----------------------------------------------- | ------------------------------ | ------------------------------ |
+| 1   | Pulla, dallaspulla, fazer [D]                   | Pulla, dallaspulla, fazer [D]                   | Bun, water [D]                 | Bun, water [D]                 |
+| 2   | Pulla, keskirasvainen, vesi [D]                 | Pulla, keskirasvainen, vesi [D]                 | Bun, low-fat milk [D]          | Bun, low-fat milk [D]          |
+| 3   | Pulla, big texaspulla, fazer [D]                | Pulla, big texaspulla, fazer [D]                | Bun, water, oil [D]            | Bun, water, oil [D]            |
+| 4   | Pulla, pirkka/x-tra, pakaste [D]                | Pulla, pirkka/x-tra, pakaste [D]                | Bun, water, butter [D]         | Bun, water, butter [D]         |
+| 5   | Pulla, vähärasvainen, kevytmaito [D]            | Pulla, vähärasvainen, kevytmaito [D]            | Bun, low-fat milk, oil [D]     | Bun, low-fat milk, oil [D]     |
+| 6   | Pulla, keskirasvainen, kevytmaito [D]           | Pulla, keskirasvainen, kevytmaito [D]           | Bun, low-fat milk, butter [D]  | Bun, low-fat milk, butter [D]  |
+| 7   | Pulla, tiikerikranssi, vaasan isoäidin [D]      | Pulla, tiikerikranssi, vaasan isoäidin [D]      | Bun, pirkka/x-tra, frozen [D]  | Bun, pirkka/x-tra, frozen [D]  |
+| 8   | Pulla, laskiaispulla, hillo ja mantelimassa [D] | Pulla, laskiaispulla, hillo ja mantelimassa [D] | Bun, low-fat, low-fat milk [D] | Bun, low-fat, low-fat milk [D] |
+
+### `suklaa`
+
+| #   | Before, Finnish names                                  | After, Finnish names                                   | Before, English names                    | After, English names                     |
+| --- | ------------------------------------------------------ | ------------------------------------------------------ | ---------------------------------------- | ---------------------------------------- |
+| 1   | Suklaa, tumma                                          | Suklaa, tumma                                          | Chocolate, average                       | Chocolate, plain, dark chocolate         |
+| 2   | Suklaa, keskiarvo                                      | Suklaa, keskiarvo                                      | Chocolate, milk chocolate                | Chocolate, average                       |
+| 3   | Suklaa, maitosuklaa                                    | Suklaa, maitosuklaa                                    | Chocolate, white chocolate               | Chocolate, milk chocolate                |
+| 4   | Suklaa, tumma, 80 %                                    | Suklaa, tumma, 80 %                                    | Chocolate, artificially sweetened        | Chocolate, plain, dark chocolate, 80%    |
+| 5   | Suklaa, valkoinen, valkosuklaa                         | Suklaa, valkoinen, valkosuklaa                         | Chocolate, milk chocolate with hazelnuts | Chocolate, white chocolate               |
+| 6   | Suklaa, sokeriton, keinotekoisesti makeutettu          | Suklaa, sokeriton, keinotekoisesti makeutettu          | Chocolate, plain, dark chocolate         | Chocolate, artificially sweetened        |
+| 7   | Suklaa, pähkinäsuklaa, maitosuklaata ja hasselpähkinää | Suklaa, pähkinäsuklaa, maitosuklaata ja hasselpähkinää | Chocolate bar, caramel and cookie, twix  | Chocolate, milk chocolate with hazelnuts |
+| 8   | Suklaa, suklaapatukka, twix, keksiä ja toffeeta        | Suklaa, suklaapatukka, twix, keksiä ja toffeeta        | Chocolate, plain, dark chocolate, 80%    | Chocolate bar, caramel and cookie, twix  |
+
+### `makkara`
+
+| #   | Before, Finnish names                 | After, Finnish names                   | Before, English names                         | After, English names              |
+| --- | ------------------------------------- | -------------------------------------- | --------------------------------------------- | --------------------------------- |
+| 1   | Makkara, verimakkara, mustamakkara    | Makkara, verimakkara, mustamakkara     | Blood sausage, black sausage                  | Blood sausage, black sausage      |
+| 2   | Makkara, kasvismakkara, soijapitoinen | Makkara, kasvismakkara, soijapitoinen  | Vegetarian sausage, contains soya             | Vegetarian sausage, contains soya |
+| 3   | Lenkkimakkara, keskiarvo              | Lenkkimakkara, keskiarvo               | Sausage bratwurst                             | Sausage, ring bologna, average    |
+| 4   | Grillimakkara, bratwursti             | Grillimakkara, tuotekeskiarvo          | Barbeque sausage, cheese                      | Barbeque sausage, average         |
+| 5   | Grillimakkara, juustoinen             | Grillimakkara, juustoinen              | Barbeque sausage, average                     | Barbeque sausage, cheese          |
+| 6   | Lenkkimakkara, juustoinen             | Grillimakkara, kevyt, tuotekeskiarvo   | Groat sausage, average of industrial products | Barbeque sausage, light, average  |
+| 7   | Raakamakkara, siskonmakkara           | Grillimakkara, lihaisa, tuotekeskiarvo | Sausage, ring bologna, average                | Barbeque sausage, meaty, average  |
+| 8   | Ryynimakkara, tuotekeskiarvo          | Grillimakkara, bratwursti              | Barbeque sausage, light, 7% fat               | Sausage bratwurst                 |
+
+### `kinkku`
+
+| #   | Before, Finnish names               | After, Finnish names                                        | Before, English names           | After, English names             |
+| --- | ----------------------------------- | ----------------------------------------------------------- | ------------------------------- | -------------------------------- |
+| 1   | Siankinkku, silavoineen             | Siankinkku, silavoineen                                     | Ham, fatty                      | Ham, fatty                       |
+| 2   | Siankinkku, rasvaton, uunissa [D]   | Siankinkku, rasvaton, uunissa [D]                           | Ham, lean, oven-baked [D]       | Ham, lean, oven-baked [D]        |
+| 3   | Siankinkku, rasvoineen, uunissa [D] | Siankinkku, rasvoineen, uunissa [D]                         | Ham, fatty, oven-baked [D]      | Ham, fatty, oven-baked [D]       |
+| 4   | Kinkkupasta [D]                     | Kokolihaleikkele, saunapalvikinkku, rasvaa 6 %              | Ham gravy [D]                   | Ham, smoked, 6% fat              |
+| 5   | Kinkkukastike, ruokakerma [D]       | Kokolihaleikkele, keittokinkku, rasvaa 3 %                  | Ham pasta [D]                   | Ham, cooked ham, 3% fat          |
+| 6   | Kinkkupiirakka, muropohja [D]       | Kokolihaleikkele, korppukinkku, rasvaa 3 %                  | Ham gravy with tomato [D]       | Crumbed ham, 3% fat              |
+| 7   | Kinkkukastike, tomaattinen [D]      | Kokolihaleikkele, kinkkuleikkele, vähärasvainen, rasvaa 3 % | Ham gravy with whole milk [D]   | Ham, cooked ham, low-fat, 3% fat |
+| 8   | Kinkkukastike, ruskea kastike [D]   | Leikkelemakkara, kinkkumakkara, rasvaa 16 %                 | Ham gravy with low-fat milk [D] | Ham, cooked, 2% fat              |
+
+### `olut`
+
+| #   | Before, Finnish names                                             | After, Finnish names                                              | Before, English names                     | After, English names                      |
+| --- | ----------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------- |
+| 1   | Olut, i-olut, <2,8 til% alkoholia                                 | Olut, keskiolut, 4,5 til% alkoholia                               | Beer, alcohol-free, 0.0% volume           | Beer, lager, medium strength, 4.5% volume |
+| 2   | Olut, vahva, 7,5-8 til% alkoholia                                 | Olut, i-olut, <2,8 til% alkoholia                                 | Beer, strong ale, 7.5-8% volume           | Beer, alcohol-free, 0.0% volume           |
+| 3   | Olut, a-olut, 5-5,5 til% alkoholia                                | Olut, vahva, 7,5-8 til% alkoholia                                 | Beer, lager, very mild <2.8% volume       | Beer, strong ale, 7.5-8% volume           |
+| 4   | Olut, keskiolut, 4,5 til% alkoholia                               | Olut, a-olut, 5-5,5 til% alkoholia                                | Beer, lager, strong, 5-5.5% volume        | Beer, lager, very mild <2.8% volume       |
+| 5   | Olut, alkoholiton olut, nikolai, 0,0 til% alkoholia, sinebrychoff | Olut, alkoholiton olut, nikolai, 0,0 til% alkoholia, sinebrychoff | Beer, lager, medium strength, 4.5% volume | Beer, lager, strong, 5-5.5% volume        |
+| 6   | Kalja, kotiolut                                                   | Kalja, kotiolut                                                   | Beer home-made, alcohol-free              | Beer home-made, alcohol-free              |
+
+### `jäätelö`
+
+| #   | Before, Finnish names            | After, Finnish names                     | Before, English names     | After, English names                       |
+| --- | -------------------------------- | ---------------------------------------- | ------------------------- | ------------------------------------------ |
+| 1   | Jäätelö, rasvaton                | Jäätelö, kermajäätelö                    | Rice ice cream            | Ice cream, milk based                      |
+| 2   | Jäätelö, snickers                | Jäätelö, maitojäätelö                    | Soft ice cream            | Ice cream, cream based                     |
+| 3   | Jäätelö, kermajäätelö            | Jäätelö, pehmytjäätelö, ei vohvelia      | Soft ice cream with wafer | Soft ice cream                             |
+| 4   | Jäätelö, maitojäätelö            | Jäätelö, soijajäätelö, tofuline, vanilja | Ice cream, fat-free       | Soy milk frozen dessert, tofuline, vanilla |
+| 5   | Jäätelö, riisijäätelö            | Jäätelö, rasvaton                        | Ice cream, snickers       | Rice ice cream                             |
+| 6   | Jäätelö, kasvirasvajäätelö       | Jäätelö, snickers                        | Ice cream, milk based     | Soft ice cream with wafer                  |
+| 7   | Jäätelö, kermajäätelötuutti      | Jäätelö, riisijäätelö                    | Ice cream, cream based    | Ice cream, fat-free                        |
+| 8   | Jäätelö, kasvirasvajäätelötuutti | Jäätelö, kasvirasvajäätelö               | Ice cream, vegetable fat  | Ice cream, snickers                        |
+
+### `mysli`
+
+| #   | Before, Finnish names           | After, Finnish names                                                        | Before, English names                | After, English names                           |
+| --- | ------------------------------- | --------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------- |
+| 1   | Mysli, perus [D]                | Jogurtti, luonnonjogurtti ja marjamysli, a+, rasvaa 3,5 %, vl, d-vit 0,9 ug | Muesli with nuts [D]                 | Yoghurt with muesli, a+, fat 3.5%, low-lactose |
+| 2   | Mysli, muromysli [D]            | Mysli, perus [D]                                                            | Muesli with dried fruit [D]          | Muesli with nuts [D]                           |
+| 3   | Mysli, viljainen [D]            | Mysli, muromysli [D]                                                        | Muesli with dried fruit and nuts [D] | Muesli with dried fruit [D]                    |
+| 4   | Mysli, hedelmäinen [D]          | Mysli, viljainen [D]                                                        | Muesli, basic [D]                    | Muesli with dried fruit and nuts [D]           |
+| 5   | Mysli, pähkinäinen [D]          | Mysli, hedelmäinen [D]                                                      | Muesli, cereal [D]                   | Muesli, basic [D]                              |
+| 6   | Mysli, härkäpapugranola [D]     | Mysli, pähkinäinen [D]                                                      | Muesli, crunchy [D]                  | Muesli, cereal [D]                             |
+| 7   | Mysli, ei lisättyä sokeria [D]  | Mysli, härkäpapugranola [D]                                                 | Muesli, no added sugar [D]           | Muesli, crunchy [D]                            |
+| 8   | Mysli, hedelmä-pähkinämysli [D] | Mysli, ei lisättyä sokeria [D]                                              | Muesli, kellogg's extra fruit [D]    | Muesli, no added sugar [D]                     |
+
+### `keksi`
+
+| #   | Before, Finnish names              | After, Finnish names               | Before, English names              | After, English names               |
+| --- | ---------------------------------- | ---------------------------------- | ---------------------------------- | ---------------------------------- |
+| 1   | Keksi, pikkuleipä [D]              | Riisikakku, riisikeksi             | Biscuit [D]                        | Rice cake                          |
+| 2   | Keksi, suolakeksi [D]              | Keksi, pikkuleipä [D]              | Wafer biscuit [D]                  | Biscuit [D]                        |
+| 3   | Keksi, marie-keksi [D]             | Keksi, suolakeksi [D]              | Digestive biscuit [D]              | Wafer biscuit [D]                  |
+| 4   | Keksi, lusikkaleipä [D]            | Keksi, marie-keksi [D]             | Chocolate chip cookie [D]          | Digestive biscuit [D]              |
+| 5   | Keksi, vohvelikeksi [D]            | Keksi, lusikkaleipä [D]            | Chocolate digestive biscuit [D]    | Chocolate chip cookie [D]          |
+| 6   | Keksi, hanna-tädin pikkuleipä [D]  | Keksi, vohvelikeksi [D]            | Shortbread biscuit with egg [D]    | Chocolate digestive biscuit [D]    |
+| 7   | Keksi, digestive välipalakeksi [D] | Keksi, hanna-tädin pikkuleipä [D]  | Biscuit covered with chocolate [D] | Shortbread biscuit with egg [D]    |
+| 8   | Keksi, fruktoosilla makeutettu [D] | Keksi, digestive välipalakeksi [D] | Shortbread biscuit without egg [D] | Biscuit covered with chocolate [D] |
+
+### `salaatti`
+
+| #   | Before, Finnish names                                    | After, Finnish names                                     | Before, English names           | After, English names       |
+| --- | -------------------------------------------------------- | -------------------------------------------------------- | ------------------------------- | -------------------------- |
+| 1   | Salaatti, kurpitsasalaatti, pikkelssi                    | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi | Salad, pickled pumpkin          | Salad, sweet pickle relish |
+| 2   | Salaatti, kurkkusalaatti, kurkkupikkelssi, kurkkurelissi | Salaatti, kurpitsasalaatti, pikkelssi                    | Salad, sweet pickle relish      | Salad, pickled pumpkin     |
+| 3   | Salaatti, kaali-ananas [D]                               | Jäävuorisalaatti, rapea keräsalaatti, amerikansalaatti   | Salad, average mixture [D]      | Iceberg lettuce            |
+| 4   | Salaatti, kaali-kurpitsa [D]                             | Lehtisalaatti, ruukkusalaatti, lollo rosso               | Salad, tomato and onion [D]     | Lettuce                    |
+| 5   | Salaatti, kaali-puolukka [D]                             | Jääsalaatti                                              | Salad, beetroot and apple [D]   | Garden lettuce             |
+| 6   | Salaatti, pasta-vihannes [D]                             | Punasalaatti, punasikuri                                 | Salad, cabbage and pumpkin [D]  | Radicchio                  |
+| 7   | Salaatti, kaali-punajuuri [D]                            | Roomansalaatti, sidesalaatti                             | Salad, cabbage and beetroot [D] | Romaine lettuce            |
+| 8   | Salaatti, punajuuri-omena [D]                            | Salaatti, kaali-ananas [D]                               | Salad, pasta and vegetables [D] | Salad, average mixture [D] |
+
+### `smoothie`
+
+| #   | Before, Finnish names                                        | After, Finnish names                                                          | Before, English names                                              | After, English names                                                         |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| 1   | Smoothie, marja/hedelmäjuoma [D]                             | Ateriankorvike, smoothie, juomajauhe, allevo                                  | Smoothie, fruit/berry [D]                                          | Meal replacement, smoothie, drink powder, allevo                             |
+| 2   | Smoothie, mustikka-kookosmaito [D]                           | Ateriankorvike, smoothie, juomajauhe, easy diet                               | Smoothie, blueberry and coconut milk [D]                           | Meal replacement, smoothie, drink powder, average                            |
+| 3   | Smoothie, mango-ananas-kookosmaito [D]                       | Ateriankorvike, smoothie, juomajauhe, nutrifast                               | Smoothie, fruit/berry, quark and milk [D]                          | Meal replacement, smoothie, drink powder, easy diet                          |
+| 4   | Smoothie, porkkana-appelsiini-mansikkasmoothie [D]           | Ateriankorvike, smoothie, juomajauhe, tuotekeskiarvo                          | Smoothie, fruit/berry, yoghurt and milk [D]                        | Meal replacement, smoothie, drink powder, nutrifast                          |
+| 5   | Smoothie, marja/hedelmä-rahkajuoma, rahka ja maito [D]       | Ateriankorvike, smoothie, valmisjuoma, naturdiet                              | Smoothie, mango, pineapple and coconut milk [D]                    | Meal replacement, smoothie, naturdiet                                        |
+| 6   | Smoothie, marja/hedelmä-jogurttijuoma, jogurtti ja maito [D] | Urheilujuoma, proteiinijuoma, protein smoothie, fast                          | Smoothie, carrot, orange and strawberry smoothie [D]               | Oat product, fermented oat and fruit, yosa smoothie                          |
+| 7   | Smoothie, mangosmoothie, jogurtti, ananasmehu [D]            | Kauravalmiste, hapatettu, marja-hedelmä, yosa smoothie, probiootteja          | Smoothie, mango smoothie, yoghurt, pineapple juice [D]             | Sport beverage, protein drink, protein smoothie, fast                        |
+| 8   | Smoothie, vihersmoothie, omena, selleri, kurkku [D]          | Jogurtti, juotava, gefilus smoothie, rasvaa 1,4 %, laktoositon, d-vit. 1,5 ug | Smoothie, berry smoothie, yoghurt, oat bran and sunflower seed [D] | Yoghurt, drinkable, gefilus smoothie, 1.4% fat, lactose-free, 1 ug vitamin d |
+
+## Everyday log sheet searches, English
+
+### `bread`
+
+| #   | Before, Finnish names                                                    | After, Finnish names                                                     | Before, English names                                  | After, English names                                           |
+| --- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------- |
+| 1   | Leipäpuuro, vesi, puolukka, mannasuurimo, ruisleipä, sokeria, suolaa [D] | Jauho, jauhoseos, sämpyläjauho, vehnäjauho, ruisjauho, vehnärouhe        | Bread porridge, lingonberries, rye bread, semolina [D] | Flour mixture, for bread rolls, wheat flour, wheat groats, rye |
+| 2   | Poro-rieskarulla [D]                                                     | Sekaleipä, nyrkkirieska, ohra, kotitekoinen [D]                          | Gingerbread cake [D]                                   | Multigrain bread, flatbread, barley, home-made [D]             |
+| 3   | Makean piirakan murotaikinapohja [D]                                     | Leipäpuuro, vesi, puolukka, mannasuurimo, ruisleipä, sokeria, suolaa [D] | Shortbread biscuit with egg [D]                        | Bread porridge, lingonberries, rye bread, semolina [D]         |
+| 4   | Keksi, lusikkaleipä [D]                                                  | Poro-rieskarulla [D]                                                     | Flatbread roll with reindeer [D]                       | Gingerbread cake [D]                                           |
+| 5   | Kuivakakku, kermakakku [D]                                               | Makean piirakan murotaikinapohja [D]                                     | Shortbread biscuit without egg [D]                     | Shortbread biscuit with egg [D]                                |
+| 6   | Kuivakakku, piimäkakku [D]                                               | Keksi, lusikkaleipä [D]                                                  | Gingerbread cake made with cream [D]                   | Flatbread roll with reindeer [D]                               |
+| 7   | Kuivakakku, maustekakku [D]                                              | Kuivakakku, kermakakku [D]                                               | Gingerbread cake made with sourmilk [D]                | Shortbread biscuit without egg [D]                             |
+| 8   | Piparkakkutaikina, teollinen [D]                                         | Kuivakakku, piimäkakku [D]                                               | Shortbread pie crust, sweet [D]                        | Gingerbread cake made with cream [D]                           |
+
+### `rye bread`
+
+| #   | Before, Finnish names                            | After, Finnish names                                              | Before, English names                        | After, English names                                           |
+| --- | ------------------------------------------------ | ----------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------- |
+| 1   | Ruissipsi [D]                                    | Jauho, jauhoseos, sämpyläjauho, vehnäjauho, ruisjauho, vehnärouhe | Rye bread snack [D]                          | Flour mixture, for bread rolls, wheat flour, wheat groats, rye |
+| 2   | Ruisleipä, ruista 51% [D]                        | Ruissipsi [D]                                                     | Rye bread, 51% rye [D]                       | Rye bread snack [D]                                            |
+| 3   | Ruisleipä, varrasleipä [D]                       | Ruisleipä, ruista 51% [D]                                         | Rye bread, dried rye bread [D]               | Rye bread, 51% rye [D]                                         |
+| 4   | Ruisleipä, ruissekaleipä [D]                     | Ruisleipä, varrasleipä [D]                                        | Rye bread, potato rye bread [D]              | Rye bread, dried rye bread [D]                                 |
+| 5   | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D] | Ruisleipä, ruissekaleipä [D]                                      | Rye bread, rye mixed grain bread [D]         | Rye bread, potato rye bread [D]                                |
+| 6   | Ruisleipä, ruispalat, vaasan [D]                 | Ruisleipä, tumma täysjyväleipä vähäsuolainen [D]                  | Rye bread, sweet and sour rye malt bread [D] | Rye bread, rye mixed grain bread [D]                           |
+| 7   | Ruisleipä, puikula ruis, fazer [D]               | Ruisleipä, ruispalat, vaasan [D]                                  | Rye bread, puikula, fazer [D]                | Rye bread, sweet and sour rye malt bread [D]                   |
+| 8   | Ruisleipä, tosi rukiinen, vaasan [D]             | Ruisleipä, puikula ruis, fazer [D]                                | Rye bread, ruispalat, vaasan [D]             | Rye bread, puikula, fazer [D]                                  |
+
+### `soup`
+
+| #   | Before, Finnish names                                             | After, Finnish names                                              | Before, English names                                                     | After, English names                                                      |
+| --- | ----------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 1   | Hernekeitto, naudanpaistijauheliha [D]                            | Ateriankorvike, keittojauhe, nutrilett                            | Peasoup with medium fat beef [D]                                          | Meal replacement, soup powder, average                                    |
+| 2   | Hernekeitto, keskirasvainen naudanliha [D]                        | Ateriankorvike, keittojauhe, tuotekeskiarvo                       | Peasoup with beef steak mince [D]                                         | Meal replacement, soup powder, nutrilett                                  |
+| 3   | Ateriankorvike, keittojauhe, nutrilett                            | Ateriankorvike, keittojauhe, peruna/purjo, allevo                 | Meal replacement, soup powder, average                                    | Meal replacement, soup powder, potato and leek, allevo                    |
+| 4   | Ateriankorvike, keittojauhe, tuotekeskiarvo                       | Ateriankorvike, keittojauhe, tomaatti/texmex/thai, easy diet      | Meal replacement, soup powder, nutrilett                                  | Meal replacement, soup powder, tomato/texmex/thai, easy diet              |
+| 5   | Ateriankorvike, keittojauhe, peruna/purjo, allevo                 | Ateriankorvike, keittojauhe, parsa/kala/kana/sieni, easy diet     | Meal replacement, soup powder, potato and leek, allevo                    | Meal replacement, soup powder, asparagus/fish/chicken/mushroom, easy diet |
+| 6   | Ateriankorvike, keittojauhe, tomaatti/texmex/thai, easy diet      | Ateriankorvike, keittojauhe, parsakaali/basilika/couscous, allevo | Meal replacement, soup powder, tomato/texmex/thai, easy diet              | Meal replacement, soup powder, broccoli, basil and couscous, allevo       |
+| 7   | Ateriankorvike, keittojauhe, parsa/kala/kana/sieni, easy diet     | Ateriankorvike, keittojauhe ja vesi, keskiarvo [D]                | Meal replacement, soup powder, asparagus/fish/chicken/mushroom, easy diet | Meal replacement, soup powder and water, average [D]                      |
+| 8   | Ateriankorvike, keittojauhe, parsakaali/basilika/couscous, allevo | Ateriankorvike, keittojauhe ja vesi, nutrilett [D]                | Meal replacement, soup powder, broccoli, basil and couscous, allevo       | Meal replacement, soup powder and water, nutrilett [D]                    |
+
+### `cheese`
+
+| #   | Before, Finnish names                     | After, Finnish names                                                     | Before, English names              | After, English names                                    |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------------- |
+| 1   | Juustonaksu                               | Juusto, emmentaljuusto, rasvaa 27-30 %, punaleima                        | Cheese puffs                       | Cheese, emmental, 27-30% fat, red-label                 |
+| 2   | Juusto, tuotekeskiarvo                    | Juusto, tuotekeskiarvo                                                   | Cheese, average                    | Cheese, average                                         |
+| 3   | Juusto, cheddar, rasvaa 34 %              | Juusto, emmentaljuusto, rasvaa 27-30 %, suurikoloinen, sinileima/gruyere | Cheese, polar, 20% fat             | Cheese, emmental, 27-30% fat, blue-label                |
+| 4   | Juusto, polar 5 % rasvaa, valio           | Juusto, salaattijuusto, rasvaa 18 %, lehmänmaito, suolaliemessä          | Cheese, cheddar type, 34% fat      | Cheese, feta type salad cheese in brine, 18% fat        |
+| 5   | Juusto, polar 10 % rasvaa, valio          | Juusto, sinihomejuusto, rasvaa 27-30 %, aura/danazole, keskiarvo         | Cheese, vegetable fat, 28% fat     | Cheese, blue cheese, aura/danazole, average, 27-30% fat |
+| 6   | Juusto, polar 15 % rasvaa, valio          | Juusto, cheddar, rasvaa 34 %                                             | Cheese, halloumi cheese, 22% fat   | Cheese, cheddar type, 34% fat                           |
+| 7   | Juusto, leipäjuusto, rasvaa 17-23 %       | Juusto, mozzarella, rasvaa 20 %, tuorejuusto                             | Cheese, mozzarella cheese, 20% fat | Cheese, mozzarella cheese, 20% fat                      |
+| 8   | Juusto, rasvaa 28 %, sisältää kasvirasvaa | Juusto, kova pienikoloinen juusto, rasvaa 24-27 %, edam                  | Cheese, polar täyteläinen, 28% fat | Cheese, hard cheese, edam type, 24-27% fat              |
+
+### `coffee`
+
+| #   | Before, Finnish names                                         | After, Finnish names                                          | Before, English names                                         | After, English names                                          |
+| --- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| 1   | Kahvi, kahvijuoma, keskiarvo                                  | Kahvi, kahvijuoma, keskiarvo                                  | Coffee, average                                               | Coffee, average                                               |
+| 2   | Kahvi, kahvijuoma, murukahvi, pikakahvi, keitetty             | Kahvi, kahvijuoma, murukahvi, pikakahvi, keitetty             | Coffee, instant, drink                                        | Coffee, instant, drink                                        |
+| 3   | Kahvijuoma, kylmä, maitokahvijuoma, d-vitamiinia, laktoositon | Kahvijuoma, kylmä, maitokahvijuoma, d-vitamiinia, laktoositon | Coffee beverage, iced coffee, 1.8% fat, lactose-free          | Coffee beverage, iced coffee, 1.8% fat, lactose-free          |
+| 4   | Kahvijuoma, kylmä, maitokahvijuoma, rasvaa 1,8 %, laktoositon | Kahvijuoma, kylmä, maitokahvijuoma, rasvaa 1,8 %, laktoositon | Coffee drink, cold, coffee with milk, vitamin d, lactose-free | Coffee drink, cold, coffee with milk, vitamin d, lactose-free |
+| 5   | Kahvi, pannukahvijuoma                                        | Kahvi, suodatinkahvijuoma                                     | Boiled coffee drink                                           | Filtered coffee drink                                         |
+| 6   | Kahvi, suodatinkahvijuoma                                     | Kahvi, pannukahvijuoma                                        | Filtered coffee drink                                         | Boiled coffee drink                                           |
+| 7   | Kahvi, murukahvi, pikakahvi, valmistamaton                    | Kahvi, murukahvi, pikakahvi, valmistamaton                    | Instant coffee, powder                                        | Instant coffee, powder                                        |
+| 8   | Maito, kahvimaito, rasvaa 2 %, laktoositon, d-vitamiinia 1ug  | Maito, kahvimaito, rasvaa 2 %, laktoositon, d-vitamiinia 1ug  | Milk, coffee milk 2% fat, lactose-free, 1 ug added vitamin d  | Milk, coffee milk 2% fat, lactose-free, 1 ug added vitamin d  |
+
+### `porridge`
+
+| #   | Before, Finnish names              | After, Finnish names               | Before, English names                       | After, English names                        |
+| --- | ---------------------------------- | ---------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| 1   | Nalle kuitupuuroseos, hiutale      | Nalle kuitupuuroseos, hiutale      | Porridge flake mix with fibre, nalle        | Porridge flake mix with fibre, nalle        |
+| 2   | Nalle kuitupuuro, vesi, suolaa [D] | Nalle kuitupuuro, vesi, suolaa [D] | Porridge with fibre, water, salt, nalle [D] | Porridge with fibre, water, salt, nalle [D] |
+| 3   | Mämmi [D]                          | Kaurapuuro, vesi, suolaa [D]       | Raw porridge, yoghurt [D]                   | Maize porridge, polenta [D]                 |
+| 4   | Tuorepuuro, jogurtti [D]           | Grahampuuro, vesi, suolaa [D]      | Maize porridge, polenta [D]                 | Rice porridge, water, salt [D]              |
+| 5   | Kaurapuuro, vesi, suolaa [D]       | Hirssipuuro, vesi, suolaa [D]      | Semolina lingonberry porridge, whipped [D]  | Graham porridge, water, salt [D]            |
+| 6   | Grahampuuro, vesi, suolaa [D]      | Kaurapuuro, vesi, suolaton [D]     | Rice porridge, milk, salt [D]               | Millet porridge, water, salt [D]            |
+| 7   | Hirssipuuro, vesi, suolaa [D]      | Tattaripuuro, vesi, suolaa [D]     | Rice porridge, water, salt [D]              | Buckwheat porridge, water, salt [D]         |
+| 8   | Mannapuuro, maito, suolaa [D]      | Talkkunapuuro, vesi, suolaa [D]    | Millet porridge, milk, salt [D]             | Mixed flake porridge, water, salt [D]       |
