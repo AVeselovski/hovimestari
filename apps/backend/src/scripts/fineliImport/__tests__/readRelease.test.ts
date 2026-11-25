@@ -2,7 +2,8 @@ import { afterAll, describe, expect, it } from "@jest/globals";
 import { cpSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { decode, keepComponent, parseDecimal, readRelease, readTable, ReleaseError } from "../readRelease.js";
+import { keepComponent, parseDecimal, readRelease, readTable, ReleaseError } from "../readRelease.js";
+import { decode } from "../releaseFiles.js";
 import { capitalRelease, removeCapitalReleases } from "./support/capitalRelease.js";
 
 // The fixtures are rows of Fineli release 18 in its own format (see
@@ -42,6 +43,7 @@ describe("readRelease on release A", () => {
       "foodname_EN.csv": "windows-1252",
       "component_value.csv": "utf-8",
       "foodaddunit.csv": "utf-8",
+      "contribfood.csv": "utf-8",
     });
   });
 
@@ -169,7 +171,9 @@ describe("readRelease on other encodings and line ends", () => {
     const latin = readRelease(releaseA);
     const utf8 = readRelease(path.join(FIXTURES, "release-utf8"));
     expect(utf8.encodings["foodname_FI.csv"]).toBe("utf-8");
-    expect(utf8.foods).toEqual(latin.foods);
+    // Release A has a recipe file and this folder has none, so only the recipe counts differ.
+    expect(utf8.encodings).not.toHaveProperty(["contribfood.csv"]);
+    expect(utf8.foods).toEqual(latin.foods.map((f) => ({ ...f, recipeUses: 0, recipeFoods: null })));
     expect(utf8.skipped).toEqual(latin.skipped);
   });
 
@@ -209,7 +213,7 @@ describe("readRelease refuses a release it cannot read", () => {
     expect(() => readRelease(dir)).toThrow(
       "foodname_FI.csv holds 24 UTF-8 characters but also bytes that are not valid UTF-8, first on line 3. " +
         "It looks like a damaged UTF-8 file. Download and unzip the release again. " +
-        "If the file really is Windows-1252, the check in readRelease.ts (MAX_UTF8_SEQUENCES_IN_WINDOWS_1252, now 10) needs adjusting.",
+        "If the file really is Windows-1252, the check in releaseFiles.ts (MAX_UTF8_SEQUENCES_IN_WINDOWS_1252, now 10) needs adjusting.",
     );
   });
 

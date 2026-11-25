@@ -59,6 +59,8 @@ export interface ImportResult {
   renamed: { fineliId: number; from: string; to: string }[];
   /** Foods whose Finnish or English name changed in case only, and neither in more than case. */
   namesChangedInCaseOnly: number;
+  /** Foods already stored whose recipe counts this import changed. 0 when the release has no source of counts. */
+  recipeCountsChanged: number;
 }
 
 /** The import would retire more than RETIRE_GUARD_SHARE of the live Fineli foods. Nothing was written. */
@@ -106,6 +108,8 @@ type Existing = Pick<
   | "fatG"
   | "fineliType"
   | "fineliProcess"
+  | "fineliRecipeUses"
+  | "fineliRecipeFoods"
   | "retiredAt"
 >;
 
@@ -128,7 +132,11 @@ function nameChange(e: Existing, f: FineliFood): "renamed" | "case" | "same" {
   return (fiCase || enCase) && !enRewritten ? "case" : "same";
 }
 
-/** Whether the release changes anything the catalogue stores about a food, besides its retirement. */
+/** Whether the release's recipe counts differ from the stored ones. */
+const countsDiffer = (e: Existing, f: FineliFood) =>
+  e.fineliRecipeUses !== f.recipeUses || e.fineliRecipeFoods !== f.recipeFoods;
+
+/** Whether the release changes anything the catalogue stores about a food, besides its retirement and its recipe counts. */
 const differs = (e: Existing, f: FineliFood) =>
   e.name !== f.name ||
   e.nameEn !== f.nameEn ||
@@ -155,7 +163,10 @@ export async function applyRelease(db: Db, release: Release, options: ImportOpti
     portions: { inserted: 0, updated: 0, unchanged: 0, removed: 0 },
     renamed: [],
     namesChangedInCaseOnly: 0,
+    recipeCountsChanged: 0,
   };
+  // A release with no source of recipe counts neither compares nor writes them: the stored counts stay.
+  const hasCounts = release.recipeCounts !== null;
 
   try {
     await db.transaction(async (tx) => {
@@ -173,6 +184,8 @@ export async function applyRelease(db: Db, release: Release, options: ImportOpti
           fatG: foods.fatG,
           fineliType: foods.fineliType,
           fineliProcess: foods.fineliProcess,
+          fineliRecipeUses: foods.fineliRecipeUses,
+          fineliRecipeFoods: foods.fineliRecipeFoods,
           retiredAt: foods.retiredAt,
         })
         .from(foods)
@@ -212,9 +225,11 @@ export async function applyRelease(db: Db, release: Release, options: ImportOpti
           result.foods.inserted++;
         } else {
           const wasRetired = e.retiredAt !== null;
+          const newCounts = hasCounts && countsDiffer(e, f);
+          if (newCounts) result.recipeCountsChanged++;
           if (wasRetired && !f.archived) result.foods.revived++;
           else if (!wasRetired && f.archived) result.foods.archived++;
-          else if (differs(e, f)) result.foods.updated++;
+          else if (differs(e, f) || newCounts) result.foods.updated++;
           else {
             result.foods.unchanged++;
             continue;
@@ -231,6 +246,7 @@ export async function applyRelease(db: Db, release: Release, options: ImportOpti
           fatG: f.fatG,
           fineliType: f.fineliType,
           fineliProcess: f.fineliProcess,
+          ...(hasCounts && { fineliRecipeUses: f.recipeUses, fineliRecipeFoods: f.recipeFoods }),
           retiredAt,
           updatedAt: now,
         });
@@ -251,6 +267,10 @@ export async function applyRelease(db: Db, release: Release, options: ImportOpti
               fatG: sql`excluded.fat_g`,
               fineliType: sql`excluded.fineli_type`,
               fineliProcess: sql`excluded.fineli_process`,
+              ...(hasCounts && {
+                fineliRecipeUses: sql`excluded.fineli_recipe_uses`,
+                fineliRecipeFoods: sql`excluded.fineli_recipe_foods`,
+              }),
               retiredAt: sql`excluded.retired_at`,
               updatedAt: sql`excluded.updated_at`,
             },

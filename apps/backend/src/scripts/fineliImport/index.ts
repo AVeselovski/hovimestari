@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import * as schema from "../../db/schema/index.js";
 import { runCli } from "./cli.js";
+import { RECIPE_COUNTS_R18 } from "./recipeCountsR18.js";
 
 // The Fineli import command:
 //   pnpm --filter @hovimestari/backend fineli:import [dir] [--dry-run] [--allow-retire] [--allow-rename]
@@ -26,5 +27,7 @@ const code = await runCli(process.argv.slice(2), drizzle(pool, { schema }), cons
   defaultDir: fileURLToPath(new URL("../../../data/fineli/", import.meta.url)),
   // pnpm runs a package script in the package's folder, and keeps the folder the person was in as INIT_CWD.
   cwd: process.env.INIT_CWD ?? process.cwd(),
+  // The recipe counts for a release folder that has no contribfood.csv of its own.
+  recipeCounts: RECIPE_COUNTS_R18,
 }).finally(() => pool.end().catch(() => {}));
 process.exit(code);

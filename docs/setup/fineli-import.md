@@ -17,7 +17,9 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    ls apps/backend/data/fineli
    ```
 
-   The listing must show `food.csv`, `foodname_FI.csv`, `foodname_EN.csv`, `component_value.csv`, `foodaddunit.csv` and `descript.txt` directly in the folder. `descript.txt` gives the release number in the report. If the zip put them in a subfolder, move them up one level, because the steps below read them from this folder.
+   The listing must show `food.csv`, `foodname_FI.csv`, `foodname_EN.csv`, `component_value.csv`, `foodaddunit.csv` and `descript.txt` directly in the folder. `descript.txt` gives the release number in the report. If the zip put the files in a subfolder, move them up one level, because the steps below read them from this folder.
+
+   The listing also shows `contribfood.csv` when the release has it. That file holds Fineli's recipes, and the import reads its recipe counts from it. A folder without it takes the counts of release 18 that the repository holds.
 
 3. Prepare the local backend and its database, from the repository root. `pnpm env:init` writes `apps/backend/.env`, which holds the `DATABASE_URL` the import uses, and never overwrites a file that exists. The migrations read constants from the shared types package, so it is built first. [The local development runbook](local-development.md) explains each step.
 
@@ -52,17 +54,44 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    - every food left out, with the reason, such as a food with no protein value,
    - the catalogue foods it retired: those no longer in the release, and, named one by one, those the release still lists but without usable values,
    - how many household measures were added, changed, unchanged and removed, and how many were left out for each reason,
+   - the recipe counts: where they came from, how many foods have one, the five foods most recipes use, and how many stored counts changed,
    - how many foods had their name changed in case only and in nothing else, as "Names changed in case only",
    - every food whose Finnish name changed in more than case under the same Fineli id, as "Renamed under the same id",
    - the credit to Fineli and THL that the licence asks for.
 
    Some releases write every food name in capitals. The import stores those names in sentence case, so "KANANMUNA, KEITETTY" reads "Kananmuna, keitetty". An import over a catalogue that holds such names in capitals rewrites each of them once. That run counts them under "Names changed in case only", lists none of them as renamed, and counts each food under "Changed". A food whose name starts with "(ARC)" and was imported live is retired in the same run, and counted on the report's "(arc)" line.
 
+   The recipe counts block starts with one of two lines:
+
+   ```text
+   Recipe counts: from contribfood.csv in the folder (10797 rows read)
+   Recipe counts: committed counts of release 18.0. The folder has no contribfood.csv and is release 20.0
+   ```
+
+   The first is a folder with its own recipe file. The second is a folder without one, which takes the counts of release 18.0 by Fineli id. It ends with the folder's release number as `descript.txt` gives it, or with "an unnamed release" when `descript.txt` gives none.
+
+   A folder with its own recipe file prints one more line under the first, "Recipe rows left out as water or salt". A recipe's food count leaves out its water and salt, which `food.csv` marks in its `IGCLASS` column as `WATER` and `SALT`. Release 18 leaves out 1,847 of its 10,797 rows. A 0 on this line, or a figure far below a tenth of the rows, means the release marks water and salt with other words. The import still runs, and every recipe with water or salt then counts one food too many. Say so before anything is built on the counts. To use the counts of release 18.0 meanwhile, move `contribfood.csv` out of the folder and run the import again.
+
+   The next line holds two figures. "Foods with a count" says how many of the foods read have a count. "Counts for ids not in this release" says how many ids the counts name that this release does not list. With the committed counts on a later release, those are foods of release 18 that the release in the folder lacks. Then come the five "Most used" foods, each with the number of recipes that use it. On release 18 they read:
+
+   ```text
+   Most used:
+     Ruokasuola, jodioitu 1081
+     Vesi, vesijohtovesi 689
+     Ruoanvalmistusrasva, keskiarvo 546
+     Jauho, vehnäjauho, puolikarkea 463
+     Sipuli, keltasipuli 463
+   ```
+
+   Read the five names. They should be kitchen staples, such as salt, water, a cooking fat, flour, onion, the shelled egg, sugar and light milk. This matters most with the committed counts, because they are release 18's and land on this release's foods by Fineli id. The figures are then the ones above, so check that each still stands beside the same food: 1081 beside iodised salt, 689 beside tap water, 546 beside the cooking fat, and 463 beside both the wheat flour and the yellow onion. A line is missing only when this release lacks that food, and the next most used food then takes the fifth place. A name that is not a staple means an id now names another food. Stop there and say so, because the counts are then on the wrong foods.
+
+   The last line of the block, "Stored counts changed", says how many foods already in the catalogue got a new count. Each of them is also counted under "Changed", unless the same run counts it as back after being retired or as retired for "(arc)". The first import onto a catalogue that has no counts yet changes a few thousand foods this way, 2,556 on release 18. A new count alone never lists a food as renamed or retired.
+
    Check each renamed food is still the same food. Fineli's id is how the import recognises a food, so if THL ever gave an old id to a different food, the catalogue would change that food's name and figures under every entry that points at it.
 
 7. Run the same command again. The report must show nothing added, changed or removed.
 
-8. Import on Fly. The backend image holds the built command, so the release is copied to the machine and imported there, and the database password never leaves Fly. Make a folder on the machine, then copy into it the five files the import needs and `descript.txt`, which holds the release number. `flyctl ssh sftp shell` opens a prompt that takes `put` commands:
+8. Import on Fly. The backend image holds the built command, so the release is copied to the machine and imported there, and the database password never leaves Fly. Make a folder on the machine, then copy into it the five files the import needs and `descript.txt`, which holds the release number. Copy `contribfood.csv` too when the local folder has it. The folder on Fly must hold the same files as the local one. If only one of them has `contribfood.csv`, the two databases take their recipe counts from different sources. `flyctl ssh sftp shell` opens a prompt that takes `put` commands:
 
    ```bash
    flyctl ssh console -a hovimestari-backend -C "mkdir -p /tmp/fineli"
@@ -75,6 +104,8 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
    # put foodname_EN.csv /tmp/fineli/foodname_EN.csv
    # put component_value.csv /tmp/fineli/component_value.csv
    # put foodaddunit.csv /tmp/fineli/foodaddunit.csv
+   # Only when the local folder has it:
+   # put contribfood.csv /tmp/fineli/contribfood.csv
    cd -
    ```
 
@@ -97,7 +128,14 @@ This runbook loads a Fineli release into the food catalogue, first on your own m
 
 The command answers exit code 1, says "Fineli import stopped." and writes nothing when:
 
-- A file or a column is missing. The message names the file, the column and the columns it found. A new release may have renamed a file or a column. The importer reads files and columns by name, so a rename needs a change in `apps/backend/src/scripts/fineliImport/readRelease.ts`.
+- A file or a column is missing. The message names the file, the column and the columns it found. A new release may have renamed a file or a column. The importer reads files and columns by name, so a rename needs a change in `apps/backend/src/scripts/fineliImport/readRelease.ts` for the five files every release has, and in `recipeFile.ts` beside it for `contribfood.csv`.
+- `contribfood.csv` is in the folder and cannot be used. Every such message ends with "To import with the committed counts of release 18.0 instead, move contribfood.csv out of the folder." Move it out and run the command again. The message starts with one of these:
+  - "contribfood.csv has no FOODID column" or "no CONFDID column", with the columns it found. The release names the columns differently.
+  - "food.csv has no IGCLASS column". The recipe file needs that column to tell water and salt from foods.
+  - "contribfood.csv has a header row and no recipe rows", or "contribfood.csv is empty. It has no header row." The file is cut off.
+  - "contribfood.csv row" and a number, then "has FOODID" or "has CONFDID" and a value "which is not a number", or "has no CONFDID value". That row is damaged or the file is not Fineli's.
+  - "contribfood.csv could not be read", with the reason, such as a row with too few values.
+- The database lacks a table or a column the import reads. The message says "its migrations have not all been run" and "Nothing was written." A dry run stops the same way. Run `pnpm --filter @hovimestari/backend db:migrate` from the repository root, then the import again. On Fly a deploy runs the migrations, so deploy the app before the import.
 - A file does not look separated by semicolons. Fineli's files are, so the file is not the one the import expects.
 - A file is UTF-8 with some bytes that are not. The message names the file and the first bad line. The file was damaged on the way, so download and unzip the release again.
 - The release would retire more than 10 % of the Fineli foods in the catalogue. A wrong folder or a cut-off file looks exactly like that. Check the folder first. If THL really dropped that many foods, run the command again with `--allow-retire`.
@@ -109,6 +147,17 @@ It says "The import was written. Refreshing statistics failed:" with the databas
 
 A wrong option or two folders answer exit code 2 with the usage line.
 
+### When to run the import again
+
+Run the import again after an update of the app that changes what the import reads or stores, such as the recipe counts. The release already in the folder is the one to import, so steps 1 and 2 are skipped. After pulling the update:
+
+1. Run the commands of step 3. The last of them runs the migrations. Such an update can bring one, and the import stops on a database that lacks it.
+2. Do the dry run of step 4, and read its recipe counts block as step 6 says.
+3. Import for real, as in step 5. This run reports the foods it rewrote under "Changed".
+4. Run the import once more, as in step 7. This run changes nothing.
+
+Do the same on Fly with steps 8 to 10, after the update is deployed there.
+
 ## Check it works
 
 Look at one food in the database. On your machine, from the repository root:
@@ -118,7 +167,17 @@ docker compose exec db psql -U postgres -d hovimestari -c "SELECT name, energy_k
 docker compose exec db psql -U postgres -d hovimestari -c "SELECT p.fineli_unit, p.grams FROM food_portions p JOIN foods f ON f.id = p.food_id WHERE f.fineli_id = 858;"
 ```
 
-In release 18, Fineli id 858 is "Kananmuna, kuoreton", a hen's egg, with `134.17` kcal and `12.610` g protein per 100 g. Its measures include `KPL_M`, a medium egg, at `55.0` g. A release that writes its names in capitals gives every name in sentence case here too, never in capitals. On Fly, open the database with `flyctl postgres connect -a hovimestari-db --database hovimestari_backend` and type the same two queries at the prompt.
+In release 18, Fineli id 858 is "Kananmuna, kuoreton", a hen's egg, with `134.17` kcal and `12.610` g protein per 100 g. Its measures include `KPL_M`, a medium egg, at `55.0` g. A release that writes its names in capitals gives every name in sentence case here too, never in capitals.
+
+Look at the recipe counts of the same food:
+
+```bash
+docker compose exec db psql -U postgres -d hovimestari -c "SELECT name, fineli_recipe_uses, fineli_recipe_foods FROM foods WHERE fineli_id IN (858, 1561);"
+```
+
+With the counts of release 18, 858 has `395` uses and no recipe of its own, so its second figure is empty. Fineli id 1561 is "Kaurapuuro, vesi, suolaton", an oat porridge made of oats and water, with `0` uses and `1` food in its recipe.
+
+On Fly, open the database with `flyctl postgres connect -a hovimestari-db --database hovimestari_backend` and type the same queries at the prompt.
 
 ## Before production
 

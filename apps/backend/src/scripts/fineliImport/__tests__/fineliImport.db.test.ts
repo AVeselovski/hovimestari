@@ -8,7 +8,8 @@ import { describeWithDb } from "../../../db/__tests__/support/throwawayDb.js";
 
 // The import on a real database, from the release 18 fixtures. Release B
 // changes the banana's protein, renames 153, drops 31924, adds 627, removes
-// the quark's TL measure and drops "(arc)" from 572 (fixtures/README.md).
+// the quark's TL measure, drops "(arc)" from 572 and drops the one recipe
+// that uses the turkey, 752 (fixtures/README.md).
 
 const FIXTURES = path.resolve("src/scripts/fineliImport/__tests__/fixtures");
 const A = path.join(FIXTURES, "release-a");
@@ -167,7 +168,7 @@ await describeWithDb("fineliImport", (suite) => {
       const { rows } = await suite.client.query("SELECT protein_g FROM foods WHERE fineli_id = 11049");
       expect(rows[0].protein_g).toBe("1.300");
       expect(after.get(1)?.updatedAt).toEqual(T1);
-      expect(result.foods).toEqual({ inserted: 1, updated: 2, unchanged: 12, revived: 1, archived: 0 });
+      expect(result.foods).toEqual({ inserted: 1, updated: 3, unchanged: 11, revived: 1, archived: 0 });
       expect(result.retired).toEqual({ absent: 1, leftOut: [] });
     });
 
@@ -307,7 +308,7 @@ await describeWithDb("fineliImport", (suite) => {
       cpSync(A, dir, { recursive: true });
       // An empty food list: every food would retire.
       const { writeFileSync } = await import("node:fs");
-      writeFileSync(path.join(dir, "food.csv"), "FOODID;FOODNAME;FOODTYPE;PROCESS\r\n");
+      writeFileSync(path.join(dir, "food.csv"), "FOODID;FOODNAME;FOODTYPE;PROCESS;IGCLASS\r\n");
       expect(await mod.runCli([dir], suite.db, io.out, defaults)).toBe(1);
       expect(io.error[0]).toContain("would retire 15 of the 15 Fineli foods");
       expect(io.error[0]).toContain("--allow-retire");

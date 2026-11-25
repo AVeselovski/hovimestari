@@ -189,7 +189,7 @@ await describeWithDb("fineliImportEdges", (suite) => {
       const result = await mod.applyRelease(suite.db, release, options(T2));
       const report = mod.formatReport(B, release, result);
       const sum = report.split("\n").find((l) => l.includes(" read = ")) as string;
-      expect(sum).toBe('18 read = 1 added + 2 changed + 12 unchanged + 1 back + 0 newly "(arc)" + 2 left out');
+      expect(sum).toBe('18 read = 1 added + 3 changed + 11 unchanged + 1 back + 0 newly "(arc)" + 2 left out');
       const [total, ...parts] = sum.match(/\d+/g)!.map(Number);
       expect(parts.reduce((a, b) => a + b, 0)).toBe(total);
     });

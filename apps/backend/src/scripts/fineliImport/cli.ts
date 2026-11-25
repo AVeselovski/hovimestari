@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Db } from "../../db/types.js";
 import { applyRelease, RenameGuardError, RetireGuardError, type ImportResult } from "./applyRelease.js";
 import { readRelease, ReleaseError, type Release } from "./readRelease.js";
+import type { RecipeCountsTable } from "./recipeCounts.js";
 import { formatReport } from "./report.js";
 
 export const USAGE = "Usage: fineli:import [dir] [--dry-run] [--allow-retire] [--allow-rename]";
@@ -41,13 +42,17 @@ export function parseArgs(argv: string[], { defaultDir, cwd }: { defaultDir: str
   return args;
 }
 
-/** Reads the release and applies it. */
+/**
+ * Reads the release and applies it. `recipeCounts` gives the recipe counts
+ * when the folder has no recipe file of its own.
+ */
 export async function importRelease(
   db: Db,
   args: CliArgs,
   now = new Date(),
+  recipeCounts?: RecipeCountsTable,
 ): Promise<{ release: Release; result: ImportResult }> {
-  const release = readRelease(args.dir);
+  const release = readRelease(args.dir, recipeCounts);
   const result = await applyRelease(db, release, {
     allowRetire: args.allowRetire,
     allowRename: args.allowRename,
@@ -70,13 +75,25 @@ export async function runImport(
   db: Db,
   args: CliArgs,
   now = new Date(),
+  recipeCounts?: RecipeCountsTable,
 ): Promise<{ release: Release; result: ImportResult }> {
-  const done = await importRelease(db, args, now);
+  const done = await importRelease(db, args, now, recipeCounts);
   if (!args.dryRun) await refreshStatistics(db);
   return done;
 }
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** Postgres's codes for a table and a column that do not exist. */
+const MISSING_IN_SCHEMA = new Set(["42P01", "42703"]);
+
+/** Whether `err`, or the error it wraps, is Postgres saying a table or a column does not exist. */
+function schemaIsBehind(err: unknown): boolean {
+  for (let e = err, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
+    if (MISSING_IN_SCHEMA.has((e as { code?: unknown }).code as string)) return true;
+  }
+  return false;
+}
 
 /**
  * Runs the command and answers its exit code: 0 done, 1 not written (the
@@ -91,7 +108,7 @@ export async function runCli(
   argv: string[],
   db: Db,
   out: { log: (line: string) => void; error: (line: string) => void },
-  defaults: { defaultDir: string; cwd: string },
+  defaults: { defaultDir: string; cwd: string; recipeCounts?: RecipeCountsTable },
 ): Promise<number> {
   let args: CliArgs;
   try {
@@ -102,10 +119,17 @@ export async function runCli(
   }
   let done: { release: Release; result: ImportResult };
   try {
-    done = await importRelease(db, args);
+    done = await importRelease(db, args, new Date(), defaults.recipeCounts);
   } catch (err) {
     if (err instanceof ReleaseError || err instanceof RetireGuardError || err instanceof RenameGuardError) {
       out.error(`Fineli import stopped. ${err.message}`);
+    } else if (schemaIsBehind(err)) {
+      // The import's first query names every column it reads, so it fails before any write.
+      out.error(
+        "Fineli import stopped. The database lacks a table or a column the import reads, so its migrations have not all been run. " +
+          "Nothing was written. Run the migrations, then the import again. " +
+          "On your own machine: pnpm --filter @hovimestari/backend db:migrate",
+      );
     } else {
       // The import runs in one transaction, so a failure rolls it back, except
       // a connection lost during COMMIT, which leaves the outcome unknown.

@@ -1,7 +1,7 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { decode } from "../../readRelease.js";
+import { decode } from "../../releaseFiles.js";
 
 // A release written in capitals, as Fineli writes its later releases: a temp
 // copy of a fixture release with both name files upper-cased, written as

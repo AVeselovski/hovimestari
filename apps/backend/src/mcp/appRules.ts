@@ -98,7 +98,7 @@ export const APP_RULES_SOURCES: Record<string, string> = {
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
   "connected-ai.md": "576bb04c2b044cda6ab66feb23d5a315ee40fa1122490b6223bc7be7d08d6b77",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
-  "foods.md": "86ee533c23252e3d43f2e3aa616316327c76bc69b2eb08ae911cf391aead54c4",
+  "foods.md": "ba76c5d80c6f9c52e1ae84152d20dcdbc3e375f1bbf2042169ae402a5965bf47",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "df02d88b1fd7f3178c21fdfd40d5549c04cbfb81d5dc91c8b97e2fdfc43b8e5a",
   "recipes.md": "c18f55e3f28ed6915142d3db9cfe9a19840c4c36d3f18019984d28b66c539d01",
