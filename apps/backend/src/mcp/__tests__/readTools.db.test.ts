@@ -307,6 +307,27 @@ await describeWithDb("mcp read tools", (suite) => {
         expect(one.foods).toHaveLength(1);
       });
 
+      it("search_foods answers the route's near list, the foods with all words but one", async () => {
+        const few = (await data("search_foods", { q: "rahka qzqz" })) as { foods: unknown[]; near: { id: string }[] };
+        expect(few).toEqual(await route("/foods/search", { q: "rahka qzqz" }));
+        expect(few.foods).toEqual([]);
+        expect(few.near.map((f) => f.id)).toContain(ids.own);
+        const { tools } = await client.listTools();
+        const description = tools.find((t) => t.name === "search_foods")?.description;
+        expect(description).toContain("near lists up to 8 foods that hold all words but one");
+        expect(description).toContain("fewer than 8, or fewer than limit when limit is under 8");
+        expect(description).toContain("For meats and a few staples");
+      });
+
+      it("search_foods refuses a control character in q as the route does", async () => {
+        const refused = await call("search_foods", { q: "rahka\u0000vl" });
+        expect(refused.isError).toBe(true);
+        expect(refused.content[0].text).toContain(
+          "Input validation error: Invalid arguments for tool search_foods: q:",
+        );
+        expect((await api().get("/api/v1/foods/search").query({ q: "rahka\u0000vl" }).set(user.auth)).status).toBe(400);
+      });
+
       it("get_food answers GET /foods/:id, and refuses another person's own food as the route does", async () => {
         for (const id of [ids.fineli, ids.own]) {
           expect(await data("get_food", { foodId: id })).toEqual(await route(`/foods/${id}`));

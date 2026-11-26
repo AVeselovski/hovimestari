@@ -37,6 +37,7 @@ const details: Record<string, FoodDetail> = {
 beforeEach(() => {
   jest.mocked(searchFoods).mockImplementation(async (q) => ({
     foods: [feta, egg].filter((f) => f.name.toLowerCase().startsWith(q.toLowerCase().slice(0, 4))),
+    near: [],
   }));
   jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
   jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });
@@ -74,6 +75,26 @@ describe("IngredientPicker", () => {
     // A count of a portion is not weighed: the line goes with the grams.
     fireEvent.click(await within(picker()).findByRole("radio", { name: /^Medium piece/ }));
     expect(within(picker()).queryByText("Weigh it as it goes into the pot.")).toBeNull();
+  });
+
+  it("lists the foods that hold all but one word under their heading, with the offer to add the text and no other heading", async () => {
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [feta], near: [egg] });
+    renderPicker();
+    fireEvent.change(search(), { target: { value: "feta 20 kananmuna" } });
+    await settle();
+    const near = await within(picker()).findByRole("region", { name: "All but one of your words" });
+    expect(within(near).getByRole("button", { name: /^Kananmuna/ })).toBeInTheDocument();
+    expect(
+      within(picker())
+        .getAllByRole("heading")
+        .map((h) => h.textContent),
+    ).toEqual(["All but one of your words"]);
+    expect(
+      within(picker()).getByRole("button", { name: "Add “feta 20 kananmuna” as your own food" }),
+    ).toBeInTheDocument();
+    // A near food is picked like any other: its amount opens.
+    fireEvent.click(within(near).getByRole("button", { name: /^Kananmuna/ }));
+    expect(await screen.findByRole("dialog", { name: "Kananmuna, kuoreton" })).toBeInTheDocument();
   });
 
   it("names the dialog after what it shows: the food on its amount, since the header's name is hidden from assistive technology", async () => {

@@ -157,8 +157,8 @@ describe("useBarcodeLookup", () => {
 
   it("marks every cached search stale on newlyVisible, also when the answer lands after unmount", async () => {
     const client = registerTestQueryClient(createTestQueryClient());
-    client.setQueryData(queryKeys.foodSearch("eila"), { foods: [] });
-    client.setQueryData(queryKeys.foodSearch("valio"), { foods: [] });
+    client.setQueryData(queryKeys.foodSearch("eila"), { foods: [], near: [] });
+    client.setQueryData(queryKeys.foodSearch("valio"), { foods: [], near: [] });
     const { hook } = setup(client);
     await act(async () => hook.result.current.lookUp("6408430000258"));
     hook.unmount();
@@ -172,7 +172,7 @@ describe("useBarcodeLookup", () => {
 
   it("leaves cached searches alone when the food was visible already", async () => {
     const client = registerTestQueryClient(createTestQueryClient());
-    client.setQueryData(queryKeys.foodSearch("eila"), { foods: [] });
+    client.setQueryData(queryKeys.foodSearch("eila"), { foods: [], near: [] });
     const { hook } = setup(client);
     await act(async () => hook.result.current.lookUp("6408430000258"));
     await act(async () => sent[0].answer.resolve({ result: "found", food: product, newlyVisible: false }));

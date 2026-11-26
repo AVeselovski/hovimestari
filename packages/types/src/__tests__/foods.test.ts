@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   FoodListQuerySchema,
   FoodSearchQuerySchema,
+  FoodSearchResultSchema,
   hasAtMostDecimals,
   OwnFoodBodySchema,
   OwnFoodUpdateBodySchema,
@@ -179,6 +180,42 @@ describe("FoodSearchQuerySchema", () => {
       expect(FoodSearchQuerySchema.safeParse(input).success).toBe(false);
     },
   );
+
+  it.each(["rahka\u0000vl", "\u0000", "ra\u0000", "rahka\u001Bvl", "rahka\u007Fvl", "rahka\u0085vl"])(
+    "refuses %j, a query with a control character",
+    (q) => {
+      expect(FoodSearchQuerySchema.safeParse({ q }).success).toBe(false);
+    },
+  );
+
+  it.each(["jäätelö", "rahka 🍓", "👨\u200D👩\u200D👧", "rahka\tvl", "rahka\nvl", "kevyt\u00ADmaito"])(
+    "accepts %j: accents, emoji, the zero-width joiner, white space between words and a soft hyphen",
+    (q) => {
+      expect(FoodSearchQuerySchema.parse({ q })).toEqual({ q, limit: 30 });
+    },
+  );
+});
+
+describe("FoodSearchResultSchema", () => {
+  const food = {
+    id: "0b0e7a52-5b0f-4e0c-9a55-0e9b3f6f2d11",
+    source: "fineli",
+    name: "Rahka",
+    otherName: "Quark",
+    per100g,
+    isFavourite: false,
+    isOwn: false,
+    retired: false,
+  };
+
+  it("holds two lists of foods, foods and near", () => {
+    expect(FoodSearchResultSchema.parse({ foods: [food], near: [food] })).toEqual({ foods: [food], near: [food] });
+    expect(FoodSearchResultSchema.parse({ foods: [], near: [] })).toEqual({ foods: [], near: [] });
+  });
+
+  it("refuses an answer without near", () => {
+    expect(FoodSearchResultSchema.safeParse({ foods: [food] }).success).toBe(false);
+  });
 });
 
 describe("SettingsBodySchema", () => {

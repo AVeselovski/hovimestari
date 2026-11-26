@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { countRecipes, countsOfTable } from "../recipeCounts.js";
+import { countRecipes, countsOfTable, mostUsedIds, namesThatDiffer } from "../recipeCounts.js";
 import { RECIPE_COUNTS_R18 } from "../recipeCountsR18.js";
 
 const row = (foodId: number, ingredientId: number) => ({ foodId, ingredientId });
@@ -82,6 +82,17 @@ describe("RECIPE_COUNTS_R18", () => {
     expect(rows.filter((r) => r[2] !== null)).toHaveLength(1968);
     expect(rows.filter((r) => r[1] === 0 && r[2] === null)).toEqual([]);
     expect(rows.every((r) => r.every((n) => n === null || (Number.isInteger(n) && n >= 0)))).toBe(true);
+  });
+
+  it("names its ten most used foods, most used first, staples every one", () => {
+    expect(RECIPE_COUNTS_R18.mostUsed.map(([id]) => id)).toEqual(mostUsedIds(countsOfTable(RECIPE_COUNTS_R18)));
+    expect(RECIPE_COUNTS_R18.mostUsed).toHaveLength(10);
+    expect(RECIPE_COUNTS_R18.mostUsed.slice(0, 2)).toEqual([
+      [30, "Ruokasuola, jodioitu"],
+      [922, "Vesi, vesijohtovesi"],
+    ]);
+    expect(RECIPE_COUNTS_R18.mostUsed).toContainEqual([858, "Kananmuna, kuoreton"]);
+    expect(namesThatDiffer(RECIPE_COUNTS_R18, (id) => new Map(RECIPE_COUNTS_R18.mostUsed).get(id) ?? null)).toEqual([]);
   });
 
   it("holds the release's own figures for the foods the design names", () => {

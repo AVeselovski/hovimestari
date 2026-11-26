@@ -110,6 +110,18 @@ describe("BottomSheet title", () => {
     expect(tokens).not.toContain("md:pt-6");
     expect(tokens).not.toContain("md:pb-6");
   });
+
+  it("pads a body with no footer under it by the footer's own room, so a list's end clears the keyboard", () => {
+    render(
+      <BottomSheet open onClose={jest.fn()} title="Titled">
+        <p>Body</p>
+      </BottomSheet>,
+    );
+    const tokens = screen.getByText("Body").parentElement!.className.split(" ");
+    // The room the footer takes: the home indicator, or the keyboard while one is open. From md, the dialog's own.
+    expect(tokens).toEqual(expect.arrayContaining(["pb-(--sheet-footer-pad)", "md:pb-6"]));
+    expect(tokens).not.toContain("pb-4");
+  });
 });
 // A second tap on the control that opened a sheet (a double tap on the
 // header's +) lands on the backdrop already covering it. Until the sheet has

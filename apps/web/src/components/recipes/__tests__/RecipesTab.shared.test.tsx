@@ -75,7 +75,7 @@ beforeEach(() => {
   jest.mocked(useAuth).mockReturnValue(fakeAuth("authenticated"));
   for (const fn of MOCKS) jest.mocked(fn).mockReset();
   jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
-  jest.mocked(searchFoods).mockResolvedValue({ foods: [] });
+  jest.mocked(searchFoods).mockResolvedValue({ foods: [], near: [] });
 });
 afterEach(() => clock.mockRestore());
 

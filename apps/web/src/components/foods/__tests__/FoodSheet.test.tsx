@@ -11,7 +11,7 @@ import {
   searchFoods,
   setFavourite,
 } from "@/lib/api/foods";
-import type { FoodDetail, FoodList, FoodSummary } from "@hovimestari/types";
+import type { FoodDetail, FoodSearchResult, FoodSummary } from "@hovimestari/types";
 import { onlineManager } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { FoodSheet, SEARCH_DEBOUNCE_MS } from "../FoodSheet";
@@ -67,7 +67,7 @@ beforeEach(() => {
   jest
     .mocked(searchFoods)
     .mockReset()
-    .mockImplementation((q) => Promise.resolve({ foods: results[q] ?? [] }));
+    .mockImplementation((q) => Promise.resolve({ foods: results[q] ?? [], near: [] }));
   jest
     .mocked(getFavouriteFoods)
     .mockReset()
@@ -133,7 +133,7 @@ describe("FoodSheet, searching", () => {
   });
 
   it("aborts the request a newer query replaces", async () => {
-    const first = deferred<FoodList>();
+    const first = deferred<FoodSearchResult>();
     jest.mocked(searchFoods).mockImplementationOnce(() => first.promise);
     renderSheet();
     type("ra");
@@ -220,14 +220,14 @@ describe("FoodSheet, searching", () => {
 
 describe("FoodSheet, where the body is scrolled", () => {
   it("goes to the top when the results replace the lists, so the best match is in view", async () => {
-    const answer = deferred<{ foods: FoodSummary[] }>();
+    const answer = deferred<FoodSearchResult>();
     jest.mocked(searchFoods).mockReturnValueOnce(answer.promise);
     renderSheet();
     type("rahka");
     await settle();
     // The lists still show while the first answer is out: scrolled down in them, as a person may.
     body().scrollTop = 300;
-    await act(async () => answer.resolve({ foods: quarks }));
+    await act(async () => answer.resolve({ foods: quarks, near: [] }));
     await screen.findByText("Rahka, maustamaton");
     expect(body().scrollTop).toBe(0);
   });

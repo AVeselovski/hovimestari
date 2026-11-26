@@ -12,7 +12,7 @@ import {
   updateFood,
   updatePortion,
 } from "@/lib/api/foods";
-import type { FoodDetail, FoodSummary } from "@hovimestari/types";
+import type { FoodDetail, FoodSearchResult, FoodSummary } from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, type RenderResult } from "@testing-library/react";
 import { FoodSheet, SEARCH_DEBOUNCE_MS } from "../FoodSheet";
@@ -33,6 +33,8 @@ export const server = {
   favouriteIds: [] as string[],
   /** While true, every read hangs, as on a slow phone network. */
   holdReads: false,
+  /** A search's whole answer by its text, for a text whose answer is not the matching foods alone. */
+  answers: {} as Record<string, FoodSearchResult>,
 };
 
 const hang = <T,>(answer: () => T): Promise<T> =>
@@ -56,13 +58,18 @@ export function installServer(): void {
   server.holdReads = false;
   server.foods = Object.fromEntries(quarks.map((q) => [q.id, detailOf(q)]));
   server.favouriteIds = [];
+  server.answers = {};
   jest
     .mocked(searchFoods)
     .mockReset()
     .mockImplementation((q) =>
-      hang(() => ({
-        foods: ranked(summaries().filter((f) => q.split(" ").every((w) => f.name.toLowerCase().includes(w)))),
-      })),
+      hang(
+        () =>
+          server.answers[q] ?? {
+            foods: ranked(summaries().filter((f) => q.split(" ").every((w) => f.name.toLowerCase().includes(w)))),
+            near: [],
+          },
+      ),
     );
   jest
     .mocked(getFavouriteFoods)
@@ -134,8 +141,9 @@ export async function settle(): Promise<void> {
   for (let i = 0; i < 3; i += 1) await act(() => new Promise((r) => setTimeout(r, 0)));
 }
 
-export const rowNames = () =>
-  Array.from(body().querySelectorAll<HTMLElement>("[data-food-row]")).map(
+/** The names of the food rows in the sheet's body, or in one part of it. */
+export const rowNames = (within: ParentNode = body()) =>
+  Array.from(within.querySelectorAll<HTMLElement>("[data-food-row]")).map(
     (row) => row.querySelector("span span")!.textContent,
   );
 export const back = () => fireEvent.click(screen.getByRole("button", { name: "Back" }));

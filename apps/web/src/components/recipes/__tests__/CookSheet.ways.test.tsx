@@ -60,7 +60,7 @@ jest.mock("@/lib/api/entries", () => ({
   removeEntries: jest.fn(),
 }));
 jest.mock("@/lib/api/foods", () => ({
-  searchFoods: jest.fn().mockResolvedValue({ foods: [] }),
+  searchFoods: jest.fn().mockResolvedValue({ foods: [], near: [] }),
   getFavouriteFoods: jest.fn(),
   getOwnFoods: jest.fn(),
   getFood: jest.fn(),
