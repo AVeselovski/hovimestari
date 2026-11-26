@@ -26,7 +26,7 @@ import { DateBar } from "./DateBar";
 import { DayHeader } from "./DayHeader";
 import { DayLauncher } from "./DayLauncher";
 import { DaySummary } from "./DaySummary";
-import { EntryList } from "./EntryList";
+import { EntryList, type DayWhen } from "./EntryList";
 import { loadedNoTargets, predictedNoTargets } from "./noTargets";
 import { WeekSheet } from "./WeekSheet";
 
@@ -206,6 +206,7 @@ export function DayTab(): ReactElement {
 
   const past = date !== null && today !== null && date < today;
   const future = date !== null && today !== null && date > today;
+  const when: DayWhen | null = date === null || today === null ? null : past ? "past" : future ? "future" : "today";
 
   function go(next: string): void {
     router.replace(next === today ? "/" : `/?date=${next}`, { scroll: false });
@@ -244,7 +245,7 @@ export function DayTab(): ReactElement {
   }
 
   return (
-    <PageContainer wide clearToast untitled>
+    <PageContainer wide clearToast="full" untitled>
       <DayHeader>
         <DateBar date={date} today={today} onChange={go} labelRef={dateLabelRef} />
         <div data-launcher-row="" className="flex gap-3">
@@ -279,7 +280,7 @@ export function DayTab(): ReactElement {
         </div>
         <EntryList
           entries={day?.entries ?? null}
-          future={future}
+          when={when}
           actions={actions}
           onOpen={(entry, opener) => sheet.open(opener, entry)}
           onCopy={(opener) => {

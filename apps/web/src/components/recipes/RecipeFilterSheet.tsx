@@ -27,7 +27,7 @@ import {
 } from "./recipeListFilter";
 
 // ---------------------------------------------------------------------------
-// RecipeFilterSheet: the Recipes tab's sort and figure filter. Sort by, a
+// RecipeFilterSheet: the Library's sort and figure filter. Sort by, a
 // native select, then "Per serving" with four bounds two by two: protein at
 // least and at most, calories at least and at most. Every bound is optional.
 //

@@ -105,6 +105,9 @@
      three lines of text (3 x 1.5rem), the line's and the toast's padding (1.25rem and 1rem), and
      the 0.5rem gap the toast hangs above the tab bar by (styles.ts, toastViewport). */
   --spacing-toast-clearance: 7.25rem;
+  /* Half that room, the room the owner chose under a recipe's page. A tall toast may then cover
+     part of the page's last row, Delete recipe, for the seconds it shows. */
+  --spacing-toast-clearance-half: calc(var(--spacing-toast-clearance) / 2);
 
   /* Page title: 1.75rem on a phone, 2.25rem from md. */
   --text-title: 1.75rem;
@@ -201,12 +204,21 @@
      `sheetBodyClass`, `sheetFooter`). A row of chips in its body bleeds
      through it to the sheet's edges (`sheetChipRow`). 1.5rem from md. */
   --sheet-pad-x: 1.25rem;
+
+  /* A page's inline gutter (`PAGE_GUTTER_CLASS`), clear of a phone's side
+     insets when it is held sideways. A row of chips on a page bleeds through
+     it to the screen's edges (`pageChipRow`). From md the left side is the
+     side rail's, so it takes no inset. */
+  --page-pad-left: calc(var(--safe-left) + 1rem);
+  --page-pad-right: calc(var(--safe-right) + 1rem);
 }
 
 @media (width >= 48rem) {
   :root {
     --day-header-top: 2rem;
     --sheet-pad-x: 1.5rem;
+    --page-pad-left: 2rem;
+    --page-pad-right: calc(var(--safe-right) + 2rem);
   }
 }
 

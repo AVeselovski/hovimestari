@@ -62,7 +62,7 @@
     "navLabel": "Main",
     "tabs": {
       "day": "Day",
-      "recipes": "Recipes",
+      "recipes": "Library",
       "groceries": "Groceries",
       "settings": "Settings"
     },
@@ -626,6 +626,7 @@
       "title": "Entries",
       "markAll": "Mark all eaten",
       "emptyLogged": "Nothing logged yet.",
+      "emptyPast": "Nothing logged.",
       "emptyPlanned": "Nothing planned yet.",
       "copy": "Copy"
     },
@@ -735,6 +736,13 @@
       "grams": "g"
     }
   },
+  "lists": {
+    "myMeals": "My meals",
+    "myFoods": "My foods",
+    "newRecipe": "New recipe",
+    "newMeal": "New meal",
+    "newFood": "New food"
+  },
   "log": {
     "status": {
       "today": "Logging to today",
@@ -750,11 +758,9 @@
       "recentEmpty": "Foods, meals and recipes you log appear here.",
       "last": "Last {amount}",
       "recentUnavailable": "Your recent items, recipes and saved meals show here once Hovimestari can reach the server.",
-      "newMeal": "New saved meal",
       "addEstimate": "Add an estimate",
       "recipes": "Recipes",
       "allRecipes": "All {count, number} recipes",
-      "savedMeals": "Saved meals",
       "savedMealsEmpty": "Meals you save appear here.",
       "sources": "Where meals come from",
       "allSources": "All",
@@ -804,8 +810,8 @@
       "logAsMade": "Log as made"
     },
     "mealSheet": {
-      "titleNew": "New saved meal",
-      "titleEdit": "Edit saved meal",
+      "titleNew": "New meal",
+      "titleEdit": "Edit meal",
       "name": "Name",
       "source": "From (optional)",
       "sourceHint": "Such as a delivery service.",
@@ -880,10 +886,8 @@
       "clear": "Clear the search",
       "favourites": "Favourites",
       "favouritesEmpty": "Tap any food here or in search, then tap its star.",
-      "ownFoods": "Your foods",
       "ownFoodsEmpty": "Foods you add appear here.",
       "listsUnavailable": "Your favourites and your foods show here once Hovimestari can reach the server.",
-      "addOwn": "Add your own food",
       "noResults": "No food matches “{query}”.",
       "addQuery": "Add “{query}” as your own food",
       "offline": "Search needs a connection.",
@@ -936,7 +940,7 @@
       "grams": "{value} g",
       "sourceFineli": "From Fineli",
       "aboutData": "About the food data",
-      "sourceOwn": "Your own food",
+      "sourceOwn": "My food",
       "sourceOpenFoodFacts": "From Open Food Facts",
       "seeOnOpenFoodFacts": "See it on Open Food Facts",
       "retired": "This food is no longer in Fineli. Its figures are from an earlier release.",
@@ -949,7 +953,7 @@
       "delete": "Delete food",
       "deleteTitle": "Delete {name}?",
       "deleteBody": "This removes the food and its portions.",
-      "copyToOwn": "Copy to your foods"
+      "copyToOwn": "Copy to my foods"
     },
     "portionUnits": {
       "KPL_S": "Small piece",
@@ -964,7 +968,7 @@
       "TL": "Teaspoon"
     },
     "ownFood": {
-      "titleAdd": "Add a food",
+      "titleAdd": "New food",
       "titleEdit": "Edit food",
       "name": "Name",
       "per100g": "Per 100 g",
@@ -995,7 +999,6 @@
     }
   },
   "recipes": {
-    "addFood": "Add a food",
     "mealsUnavailable": "Your saved meals show here once Hovimestari can reach the server.",
     "foodsUnavailable": "Your foods show here once Hovimestari can reach the server.",
     "rowOpens": "Opens it to edit.",
@@ -1005,11 +1008,10 @@
       "meals": "Meals",
       "foods": "Foods"
     },
-    "newRecipe": "New recipe",
     "search": {
-      "recipes": "Search recipes",
-      "meals": "Search meals",
-      "foods": "Search your foods"
+      "recipes": "Search my recipes",
+      "meals": "Search my meals",
+      "foods": "Search my foods"
     },
     "list": {
       "title": "Recipes",
@@ -1022,8 +1024,7 @@
       "chips": "Show only",
       "favourites": "Favourites",
       "filter": "Filter",
-      "filterCount": "Filter · {count, number}",
-      "filterSaid": "Filter, {count, number} set",
+      "filterSaid": "Filter, {count, number} on",
       "serves": "Serves {servings, number}",
       "servesTime": "Serves {servings, number} <dot>·</dot> {minutes, number} min",
       "figures": "{kcal} kcal · {protein} g protein per serving",
@@ -1064,16 +1065,15 @@
     "page": {
       "back": "Back",
       "edit": "Edit",
-      "onDay": "On a day {date}",
       "tags": "Tags",
       "figures": "Figures",
       "servings": "Servings",
       "fewer": "Fewer servings",
       "more": "More servings",
       "perServing": "Per serving",
-      "whole": "Whole recipe",
+      "total": "Total",
       "forServings": "For {count, plural, one {# serving} other {# servings}}",
-      "backTo": "Back to {count, number}",
+      "backTo": "Back to {count, plural, one {# serving} other {# servings}}",
       "log": "Log",
       "ingredients": "Ingredients",
       "method": "Method",
@@ -1216,7 +1216,6 @@
       "leaveOut": "Leave out",
       "pickerAdding": "Adding to this batch of {name}",
       "pickerChanging": "Changing this batch of {name}",
-      "wholeBatch": "Whole batch",
       "recipeFigures": "Recipe: {kcal} kcal · {protein} g protein per serving",
       "fromBatch": "Servings from this batch",
       "servingOn": "{day} · {amount}",

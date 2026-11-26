@@ -31,6 +31,14 @@ export const btnPrimary = `${btnShape} ${btnSize} bg-accent text-on-accent hover
 export const btnSecondary = `${btnShape} ${btnSize} border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface`;
 
 /**
+ * A secondary action in a row that leads the page, such as Edit beside Back
+ * on a recipe's page: 40px tall where a full button is 48, with a press
+ * target of 44px, 2px above and below it. The target is placed from inside
+ * the button's 1px edge, so it reaches 3px past that.
+ */
+export const btnCompact = `${btnShape} relative h-10 border border-field-rule bg-surface-raised px-4 text-base text-ink after:absolute after:inset-x-0 after:-inset-y-0.75 after:content-[''] hover:bg-surface active:bg-surface`;
+
+/**
  * The scanner's camera view: the body's width at 4:3, on the surface under
  * the video, so the box holds its place before the stream shows and after
  * the camera fails.
@@ -87,7 +95,7 @@ export const cameraToggle =
   "inline-flex h-12 items-center gap-2 rounded-pill border-2 border-on-camera-edge bg-on-camera px-5 text-base font-semibold text-on-camera-edge transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-6 focus-visible:outline-on-camera-edge aria-pressed:border-on-camera aria-pressed:bg-on-camera-edge aria-pressed:text-on-camera aria-pressed:focus-visible:outline-on-camera";
 
 /**
- * Two equal actions side by side at every width, such as "New saved meal"
+ * Two equal actions side by side at every width, such as "New meal"
  * and "Add an estimate". The grid stretches both to the taller one, so a
  * label that wraps to two lines never leaves its neighbour shorter.
  */
@@ -145,10 +153,37 @@ export const inputClass = `block h-12 w-full rounded-control border border-field
  * as a recipe page's servings: the field recipe at a fixed width, its figure
  * centred in the monospaced face.
  */
-export const stepperField = `block h-12 w-20 rounded-control border border-field-rule bg-surface-raised px-1 text-center font-mono text-lg text-ink tabular-nums ${focusRing}`;
+export const stepperField = `block h-12 w-14 rounded-control border border-field-rule bg-surface-raised px-1 text-center font-mono text-lg text-ink tabular-nums ${focusRing}`;
 
 /** The minus and the plus beside a `stepperField`: 48px squares. At its limit a button dims and keeps focus. */
 export const stepperButton = `inline-flex size-12 shrink-0 items-center justify-center rounded-control border border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface aria-disabled:cursor-not-allowed aria-disabled:opacity-40 ${focusRing}`;
+
+/**
+ * A stepper's title and the stepper on one row: the title at the start, the
+ * stepper at the end. Where the row is too narrow for both, the stepper takes
+ * a line of its own under the title, still at the row's end. The stepper is
+ * one width whatever it shows (`stepperGroup`), so a row wraps by its width
+ * alone, the same way in every state.
+ */
+export const stepperRow = "flex flex-wrap items-center justify-between gap-x-2 gap-y-1";
+
+/** The title in a `stepperRow`: 44px tall, so a wrapped row is its line and the stepper's. */
+export const stepperTitle = "flex min-h-11 items-center text-base font-semibold text-ink";
+
+/**
+ * The stepper in a `stepperRow`: the revert button's room, the minus, the
+ * field and the plus, 6px apart, 214px in all, which leaves a row 294px
+ * wide (a card on a phone 360px wide) room for a title beside it. The width
+ * is stated, so the room it keeps while empty is the same.
+ */
+export const stepperGroup = "ml-auto flex h-12 w-53.5 shrink-0 items-center gap-1.5";
+
+/**
+ * The button before a stepper's minus that puts the number back, such as a
+ * recipe's own servings: a 44px square with no edge, so it reads apart from
+ * the minus and the plus. It keeps its room while hidden.
+ */
+export const stepperRevert = `inline-flex size-11 shrink-0 items-center justify-center rounded-control text-ink-muted hover:bg-surface-raised hover:text-ink active:bg-surface-raised ${focusRing}`;
 
 /** A text area for prose that runs over several lines, such as a recipe's method: the field recipe, taller, with its own padding. */
 const textareaBox = `block w-full resize-y rounded-control border border-field-rule bg-surface-raised px-3.5 py-3 text-base leading-6 text-ink placeholder:text-ink-muted ${focusRing} aria-invalid:border-accent`;
@@ -333,6 +368,13 @@ export const refusalLine = `${errorTextClass} md:min-h-10`;
  */
 export const footerRefusal = `${refusalLine} mb-2 max-md:empty:mb-0`;
 
+/**
+ * A food's source line, one row for every source. Its least height is a
+ * link's 44 px target, so an own food's line, which has no link, stands as
+ * tall as a Fineli food's, and what follows starts at the same place.
+ */
+export const foodSourceRow = "flex min-h-11 flex-wrap items-center gap-x-3 text-sm text-ink-muted";
+
 /** A note above a form, such as "Password updated." */
 export const noticeClass = "rounded-control border border-rule bg-surface px-4 py-3 text-sm text-ink";
 
@@ -417,29 +459,43 @@ export const sheetChipRow =
 export const sheetChipRowWrapping = `${sheetChipRow} md:mx-0 md:flex-wrap md:overflow-x-visible md:px-0`;
 
 /**
- * A chip row whose last control keeps its place at the row's end, such as the
- * recipe list's Filter after its tags. The chips before it are in
- * `chipRowScroller`: on a phone they scroll sideways under the finger, and
- * from `md` they wrap. The last control (`chipRowEnd`) sits outside them, at
- * the row's top right, so it is never scrolled out of view and never moves
- * when chips join the row.
+ * A row of chips on a page, such as the recipe list's Favourites and tags.
+ * On a phone it keeps one line that scrolls sideways and bleeds through the
+ * page's gutter (`--page-pad-left` and `--page-pad-right`, safe areas
+ * included) to both edges, padding itself back, so at rest the first chip
+ * lines up with the page's content and a chip mid-scroll is cut by the
+ * screen's edge alone. From `md` it wraps inside the page's column. Its 4px
+ * above and below are the focus ring's room, which the scroll clips.
  */
-export const chipRowPinnedEnd = "flex items-start gap-1 md:gap-2";
+export const pageChipRow =
+  "no-scrollbar -mr-(--page-pad-right) -ml-(--page-pad-left) flex scroll-pr-(--page-pad-right) scroll-pl-(--page-pad-left) gap-2 overflow-x-auto overscroll-x-contain pr-(--page-pad-right) pl-(--page-pad-left) py-1 md:mx-0 md:flex-wrap md:overflow-x-visible md:px-0";
+
 /**
- * The chips of a `chipRowPinnedEnd`. On a phone the row bleeds to the page's
- * left edge as `sheetChipRow` does and stops before the pinned control, with
- * 4px at its end for a focus ring. Its 4px above and below are the ring's
- * room too.
+ * A field and one icon button after it, such as the recipes' search and
+ * Filter: the field takes the row, the button keeps its square.
  */
-export const chipRowScroller =
-  "no-scrollbar -ml-(--sheet-pad-x) flex min-w-0 flex-1 scroll-pr-1 scroll-pl-(--sheet-pad-x) gap-2 overflow-x-auto overscroll-x-contain py-1 pr-1 pl-(--sheet-pad-x) md:ml-0 md:flex-wrap md:overflow-x-visible md:pr-0 md:pl-0";
+export const fieldWithButtonRow = "flex items-start gap-2";
+/** The field's part of a `fieldWithButtonRow`. Alone, it is the whole row. */
+export const fieldWithButtonField = "min-w-0 flex-1";
+
 /**
- * The pinned control of a `chipRowPinnedEnd`, level with the first line of
- * chips. It keeps the width of its longest label, such as "Filter · 5", with
- * its words centred and its digits one width, so a count that comes and goes
- * changes neither its size nor the room the chips before it have.
+ * An icon button beside a field: a 48px square, as tall as the field, with
+ * the field's edge and fill. `iconButtonOn` puts it in the accent while what
+ * it opens is in force, as a chosen chip is.
  */
-export const chipRowEnd = "my-1 min-w-23 shrink-0 text-center tabular-nums";
+export const iconButtonBesideField = `relative inline-flex size-12 shrink-0 items-center justify-center rounded-control border transition-colors duration-150 ${focusRing}`;
+export const iconButtonOff = "border-field-rule bg-surface-raised text-ink hover:bg-surface active:bg-surface";
+export const iconButtonOn = "border-accent bg-accent text-on-accent";
+
+/**
+ * A count on the corner of an icon button, such as how many filters are in
+ * force. It hangs over the button's top right corner, out of its flow, so the
+ * button is one size with and without it, whatever the count. Ink on the
+ * page's colour reversed, with a ring of the page's colour, so it reads apart
+ * from the accent under it in both themes.
+ */
+export const cornerBadge =
+  "pointer-events-none absolute -top-1.5 -right-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-ink px-1 text-xs leading-none font-semibold text-bg tabular-nums ring-2 ring-bg";
 
 /**
  * The z-index ladder. Page content sits at the default. A page's own header
@@ -648,6 +704,17 @@ export const segmentActive = "bg-accent text-on-accent";
 
 /** An option not chosen. */
 export const segmentInactive = "text-ink-muted hover:text-ink active:bg-surface";
+
+/**
+ * A tray in a column of fields and buttons, such as the Library's Recipes,
+ * Meals and Foods over its action and its search: 48 pixels tall, as they
+ * are, with 2 pixels of padding around options drawn 42 tall. Each option's
+ * press target is the tray's whole height (`segmentButtonFieldHeight`).
+ */
+export const segmentedTrayFieldHeight = "p-0.5!";
+/** An option in a `segmentedTrayFieldHeight`: drawn 42 pixels tall, pressed over 48. */
+export const segmentButtonFieldHeight =
+  "relative min-h-10.5! after:absolute after:inset-x-0 after:-inset-y-0.75 after:content-['']";
 
 /**
  * A tray that sits beside a field from `md`, such as Eaten or planned beside

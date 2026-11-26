@@ -3,7 +3,7 @@ import { formatDecimalForField } from "@/lib/foodFormat";
 import type { RecipeFilter, RecipeSort } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
-// The Recipes tab's sort and figure filter: what is in force on the list, and
+// The Library's sort and figure filter: what is in force on the list, and
 // the draft the filter sheet holds while it is open. The list filters and
 // sorts with the shared `filterRecipes` and `sortRecipes`, so this file only
 // carries the choice and reads what is typed. It computes no figure.
@@ -31,7 +31,7 @@ export function boundCount(bounds: FigureBounds): number {
   return BOUND_KEYS.filter((key) => bounds[key] !== undefined).length;
 }
 
-/** What the Filter chip counts: each bound set, and a sort other than by name. */
+/** What Filter counts on its corner: each bound set, and a sort other than by name. */
 export function filterCount(filter: ListFilter): number {
   return boundCount(filter.bounds) + (filter.sort === "name" ? 0 : 1);
 }

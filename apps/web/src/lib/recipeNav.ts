@@ -2,16 +2,16 @@ import { BOUND_KEYS, type FigureBounds } from "@/components/recipes/recipeListFi
 import { RECIPE_SORTS, type RecipeSort } from "@hovimestari/types";
 
 // ---------------------------------------------------------------------------
-// What the Recipes tab, the Day tab and the recipe page need to know about a
+// What the Library, the Day tab and the recipe page need to know about a
 // navigation between them.
 //
 // - Whether the recipe page was opened from inside the app (a recipe row, or
 //   an entry's Open recipe), so Back goes back to that place as it was.
-//   Opened by its address, Back goes to the Recipes tab. The page asks once,
+//   Opened by its address, Back goes to the Library. The page asks once,
 //   as it mounts.
-// - Which row of the Recipes tab takes focus as the list shows again after a
+// - Which row of the Library takes focus as the list shows again after a
 //   delete: the next row by name, else the one before, else New recipe.
-// - Where a page was when a press on it left for a recipe. The Recipes tab:
+// - Where a page was when a press on it left for a recipe. The Library:
 //   its search, its chips, its sort and figure filter, whether Archived
 //   recipes was open, how far it was scrolled and which row was pressed. The
 //   Day tab: its scroll and the entry whose sheet held Open recipe, or no
@@ -45,7 +45,7 @@ export function takeOpenedInApp(): boolean {
   return was;
 }
 
-/** The recipe whose row takes focus when the Recipes tab shows its list, or "new" for New recipe. */
+/** The recipe whose row takes focus when the Library shows its list, or "new" for New recipe. */
 export function setFocusAfterDelete(target: string): void {
   focusNext = target;
 }
@@ -75,7 +75,7 @@ export function isPlainPress(e: {
 /** The page's scroller, `<main>`. */
 const main = (): HTMLElement | null => document.querySelector("main");
 
-/** The Recipes tab's list as a row left it. */
+/** The Library's list as a row left it. */
 export interface ListPlace {
   /** What the recipes' search field held. */
   query: string;

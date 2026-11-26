@@ -36,7 +36,7 @@ import { useOwnFoodDelete } from "./useOwnFoodDelete";
 // from Open Food Facts adds a line that asks to check each value.
 // An edit's open with what was saved. A value left as it opened saves as the
 // figure it came from, under the same checks as a typed one. Stacked on the
-// food sheet, or on its own on the Recipes tab. Editing adds Delete, which
+// food sheet, or on its own in the Library. Editing adds Delete, which
 // asks first.
 //
 // It stands tall, so its top and Save hold still. Every field keeps two

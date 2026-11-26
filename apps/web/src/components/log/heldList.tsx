@@ -17,7 +17,7 @@ import {
 
 // ---------------------------------------------------------------------------
 // An open list never reorders under the finger. The log sheet's lists
-// (Recent, Favourites, Recipes, Saved meals, Your foods) hold the order and the set of
+// (Recent, Favourites, Recipes, My meals, My foods) hold the order and the set of
 // rows they showed while they can be pressed. A read that lands later, from
 // a window coming back into focus, a returning connection, a mount or a
 // write that could not confirm, changes a row in place (its star, its "Last"

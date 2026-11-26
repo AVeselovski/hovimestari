@@ -14,6 +14,7 @@ import {
   MACROS,
   positionKey,
   READINGS,
+  RULE_GAP_CELL,
   type WeekKind,
   type Which,
 } from "./weekCells";
@@ -28,6 +29,10 @@ import {
 // Its label is out of flow: absolute in a `relative` header cell, beside a
 // zero-width spacer that holds the row's height. So no wording, font or
 // fallback face adds to the day column's width, and no column moves.
+//
+// A rule stands between Sunday and the average, in a `<tbody>` of its own
+// before the `<tfoot>`: a gap, the rule, a gap. The gaps are rows, so the
+// average's two rows keep a day's heights.
 //
 // It is not a button: there is no day to pick.
 // ---------------------------------------------------------------------------
@@ -118,27 +123,38 @@ export function WeekAverageRow({ average, kind, predictedWithout }: WeekAverageR
   };
 
   return (
-    <tfoot data-week-average="">
-      <tr className="border-t border-rule">
-        <th scope="row" rowSpan={2} className="relative p-0 text-left align-middle font-normal">
-          {/* The row's height, as a day's button gives it, with no width. */}
-          <span aria-hidden="true" data-week-average-spacer="" className="block min-h-11 w-0 md:min-h-13" />
-          <span
-            data-week-average-label=""
-            className="absolute inset-y-0 left-0 flex items-center text-xs font-semibold whitespace-nowrap text-ink md:text-sm"
-          >
-            {t("week.average.label")}
-          </span>
-        </th>
-        {noEntries ? (
-          <td colSpan={4} data-week-average-empty="" className={EMPTY_CELL}>
-            {t("reading.noEntries")}
-          </td>
-        ) : (
-          MACROS.flatMap((macro) => READINGS.map((which) => figureCell(macro, which)))
-        )}
-      </tr>
-      <tr aria-hidden="true">{MACROS.map(gaugeCell)}</tr>
-    </tfoot>
+    <>
+      {/* The rule between Sunday and the average, with room on both sides of it. */}
+      <tbody aria-hidden="true" data-week-average-rule="">
+        <tr>
+          <td colSpan={5} className={RULE_GAP_CELL} />
+        </tr>
+        <tr className="border-t border-rule">
+          <td colSpan={5} className={RULE_GAP_CELL} />
+        </tr>
+      </tbody>
+      <tfoot data-week-average="">
+        <tr>
+          <th scope="row" rowSpan={2} className="relative p-0 text-left align-middle font-normal">
+            {/* The row's height, as a day's button gives it, with no width. */}
+            <span aria-hidden="true" data-week-average-spacer="" className="block min-h-11 w-0 md:min-h-13" />
+            <span
+              data-week-average-label=""
+              className="absolute inset-y-0 left-0 flex items-center text-xs font-semibold whitespace-nowrap text-ink md:text-sm"
+            >
+              {t("week.average.label")}
+            </span>
+          </th>
+          {noEntries ? (
+            <td colSpan={4} data-week-average-empty="" className={EMPTY_CELL}>
+              {t("reading.noEntries")}
+            </td>
+          ) : (
+            MACROS.flatMap((macro) => READINGS.map((which) => figureCell(macro, which)))
+          )}
+        </tr>
+        <tr aria-hidden="true">{MACROS.map(gaugeCell)}</tr>
+      </tfoot>
+    </>
   );
 }

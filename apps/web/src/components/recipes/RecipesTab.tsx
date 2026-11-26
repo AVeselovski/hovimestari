@@ -7,7 +7,17 @@ import { MEAL_ROW_ATTRIBUTE } from "@/components/log/SavedMealRow";
 import { SavedMealSheet, type EditSavedMeal } from "@/components/log/SavedMealSheet";
 import { sayIfFailed, useMealActions } from "@/components/log/useMealActions";
 import { PageContainer } from "@/components/ui/PageContainer";
-import { btnWide, segmentActive, segmentButton, segmentedTray, segmentInactive } from "@/components/ui/styles";
+import {
+  btnWide,
+  fieldWithButtonField,
+  fieldWithButtonRow,
+  segmentActive,
+  segmentButton,
+  segmentButtonFieldHeight,
+  segmentedTray,
+  segmentedTrayFieldHeight,
+  segmentInactive,
+} from "@/components/ui/styles";
 import { useToast } from "@/components/ui/Toast";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useFailureLine } from "@/hooks/useFailureLine";
@@ -29,17 +39,24 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useId, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { OwnFoodsSection } from "./OwnFoodsSection";
 import { RecipeEditorSheet } from "./RecipeEditorSheet";
+import { RecipeFilterButton } from "./RecipeFilterButton";
+import { RecipeFilterSheet } from "./RecipeFilterSheet";
 import { RecipeList, type ListArrival } from "./RecipeList";
+import { filterCount, NO_FILTER, type ListFilter } from "./recipeListFilter";
 import { SavedMealsSection } from "./SavedMealsSection";
 
 // ---------------------------------------------------------------------------
-// RecipesTab: where a person keeps their recipes, their saved meals and
-// their own foods. Three segments, Recipes, Meals and Foods, one list at a
-// time, the segment in the address (`?show=recipes|meals|foods`, written
-// with `replace`, so Back and a reload keep it). Under the segments, in the
-// same place whatever the segment: its one action (New recipe, New saved
-// meal or Add a food), then its search field, which filters its list on the
-// device. Each segment keeps its own search while the page is open.
+// RecipesTab: the Library, where a person keeps their recipes, their saved
+// meals and their own foods. Three segments, Recipes, Meals and Foods, one
+// list at a time, the segment in the address (`?show=recipes|meals|foods`,
+// written with `replace`, so Back and a reload keep it). The segments, the
+// segment's one action (New recipe, New meal or New food) and its search
+// field are one height, 48px, and sit in the same place whatever the
+// segment. The search filters its list on the device, and each segment keeps
+// its own search while the page is open. On Recipes the search row ends in
+// Filter (`RecipeFilterButton`), which opens the filter sheet: the order of
+// the list and bounds on a serving's figures, held here and given to the
+// list. On Meals and Foods the search field takes the whole row.
 //
 // - Back from a recipe opened by a row, the tab opens on the list as that
 //   row left it: its search here, and the chips, the archived list, the
@@ -81,7 +98,7 @@ export function RecipesTab(): ReactElement {
   const t = useTranslations("recipes");
   const tSegments = useTranslations("recipes.segments");
   const tSearch = useTranslations("recipes.search");
-  const tBrowse = useTranslations("log.browse");
+  const tLists = useTranslations("lists");
   const tFoods = useTranslations("foods.sheet");
   const tLog = useTranslations("log");
   const errors = useErrorCopy();
@@ -107,6 +124,12 @@ export function RecipesTab(): ReactElement {
   const [arrival, setArrival] = useState<ListArrival | null>(() =>
     typeof window === "undefined" ? null : { place: readListPlace(), focus: takeFocusAfterDelete() },
   );
+  // The recipes' order and bounds, set in the filter sheet. They last as long as the recipes segment shows.
+  const [filter, setFilter] = useState<ListFilter>({
+    sort: arrival?.place?.sort ?? "name",
+    bounds: arrival?.place?.bounds ?? {},
+  });
+  const filterSheet = useSheetTarget();
   const [atTop] = useState(arrival === null || (arrival.place === null && arrival.focus === null));
   useLayoutEffect(() => {
     if (atTop) scrollPageToTop();
@@ -115,6 +138,7 @@ export function RecipesTab(): ReactElement {
     setSeen(named);
     setSegment(named);
     setArrival(null);
+    setFilter(NO_FILTER);
   }
   const [queries, setQueries] = useState<Record<Segment, string>>({
     recipes: arrival?.place?.query ?? "",
@@ -132,8 +156,12 @@ export function RecipesTab(): ReactElement {
   const roving = useRovingChoice(SEGMENTS, segment, choose);
 
   function choose(next: Segment): void {
+    // The chosen segment pressed again changes nothing: its list stays mounted, so dropping the filter here would
+    // leave the chips and lose the order and the bounds.
+    if (next === segment) return;
     setSegment(next);
     setArrival(null);
+    setFilter(NO_FILTER);
     router.replace(next === "recipes" ? pathname : `${pathname}?show=${next}`, { scroll: false });
   }
   // A meal to edit, or null for a new one. A food to edit, or null for a new one.
@@ -229,13 +257,13 @@ export function RecipesTab(): ReactElement {
   }
 
   return (
-    <PageContainer clearToast>
+    <PageContainer clearToast="full">
       <div ref={pageRef} className="space-y-4">
         <div
           role="tablist"
           aria-label={tSegments("label")}
           data-recipes-segments=""
-          className={`${segmentedTray} grid-cols-3`}
+          className={`${segmentedTray} ${segmentedTrayFieldHeight} grid-cols-3`}
         >
           {SEGMENTS.map((key) => (
             <button
@@ -247,7 +275,7 @@ export function RecipesTab(): ReactElement {
               aria-controls={`${searchId}-panel`}
               onClick={() => choose(key)}
               {...roving.optionProps(key)}
-              className={`${segmentButton} min-h-12 ${segment === key ? segmentActive : segmentInactive}`}
+              className={`${segmentButton} ${segmentButtonFieldHeight} ${segment === key ? segmentActive : segmentInactive}`}
             >
               {tSegments(key)}
             </button>
@@ -271,20 +299,40 @@ export function RecipesTab(): ReactElement {
             }}
             className={btnWide}
           >
-            {segment === "recipes" ? t("newRecipe") : segment === "meals" ? tBrowse("newMeal") : t("addFood")}
+            {{ recipes: tLists("newRecipe"), meals: tLists("newMeal"), foods: tLists("newFood") }[segment]}
           </button>
-          <SearchField
-            key={segment}
-            id={searchId}
-            inputRef={searchRef}
-            value={query}
-            onChange={setQuery}
-            autoFocus={false}
-            label={tSearch(segment)}
-          />
+          <div data-recipes-search-row="" className={fieldWithButtonRow}>
+            <div className={fieldWithButtonField}>
+              <SearchField
+                key={segment}
+                id={searchId}
+                inputRef={searchRef}
+                value={query}
+                onChange={setQuery}
+                autoFocus={false}
+                label={tSearch(segment)}
+              />
+            </div>
+            {segment === "recipes" && (
+              <RecipeFilterButton
+                inForce={filterCount(filter)}
+                onOpen={(opener) => {
+                  opened();
+                  filterSheet.open(opener);
+                }}
+              />
+            )}
+          </div>
           <div className="pt-2">
             {segment === "recipes" ? (
-              <RecipeList query={query} onClearQuery={clearQuery} newRecipe={actionRef} arrival={arrival} />
+              <RecipeList
+                query={query}
+                onClearQuery={clearQuery}
+                newRecipe={actionRef}
+                arrival={arrival}
+                filter={filter}
+                onFilter={setFilter}
+              />
             ) : segment === "meals" ? (
               <SavedMealsSection
                 onOpenMeal={(meal, opener) => {
@@ -312,6 +360,16 @@ export function RecipesTab(): ReactElement {
           </div>
         </div>
       </div>
+      {filterSheet.shown && (
+        <RecipeFilterSheet
+          key={`filter-${filterSheet.shown.key}`}
+          open={filterSheet.isOpen}
+          returnFocusTo={filterSheet.shown.opener}
+          onClose={filterSheet.close}
+          filter={filter}
+          onApply={setFilter}
+        />
+      )}
       {recipeEditor.shown && (
         <RecipeEditorSheet
           key={`recipe-${recipeEditor.shown.key}`}

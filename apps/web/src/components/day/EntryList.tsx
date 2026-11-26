@@ -25,19 +25,31 @@ import { EntryRow } from "./EntryRow";
 // "Copy" sits last in the same group, on any day with entries, future days
 // included. It opens the copy sheet. Mark all eaten leaving the row moves
 // nothing in it, since the group sits at the row's end.
+//
+// An empty day says "Nothing logged yet." today, "Nothing logged." before
+// today and "Nothing planned yet." ahead. While the app does not know today
+// the line keeps its room and says nothing, so the words come in place.
 // ---------------------------------------------------------------------------
 
 export interface EntryListProps {
   /** The entries, or null while the day loads: the list area stays empty. */
   entries: readonly Entry[] | null;
-  future: boolean;
+  /**
+   * Where the day sits against today, or null while the app does not know today. A day before today
+   * says nothing was logged, with no "yet". A day ahead holds only planned entries.
+   */
+  when: DayWhen | null;
   actions: EntryActions;
   onOpen: (entry: Entry, opener: HTMLElement) => void;
   /** Copy was pressed: open the copy sheet on this day's entries. */
   onCopy: (opener: HTMLElement) => void;
 }
 
-export function EntryList({ entries, future, actions, onOpen, onCopy }: EntryListProps): ReactElement {
+/** Where a day sits against today. */
+export type DayWhen = "past" | "today" | "future";
+
+export function EntryList({ entries, when, actions, onOpen, onCopy }: EntryListProps): ReactElement {
+  const future = when === "future";
   const t = useTranslations("day.list");
   const listRef = useRef<HTMLUListElement>(null);
   const planned = entries?.filter((e) => e.status === "planned") ?? [];
@@ -94,7 +106,11 @@ export function EntryList({ entries, future, actions, onOpen, onCopy }: EntryLis
         </div>
       </div>
       {entries !== null && entries.length === 0 && (
-        <p className="py-4 text-base text-ink-muted">{future ? t("emptyPlanned") : t("emptyLogged")}</p>
+        <p data-entries-empty="" className="min-h-14 py-4 text-center text-base text-ink-muted">
+          {when === "past" && t("emptyPast")}
+          {when === "today" && t("emptyLogged")}
+          {when === "future" && t("emptyPlanned")}
+        </p>
       )}
       {entries !== null && entries.length > 0 && (
         <ul ref={listRef} className="border-t border-rule">

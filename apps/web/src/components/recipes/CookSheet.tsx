@@ -418,7 +418,6 @@ export function CookSheet(props: CookSheetProps): ReactElement {
               headingId={`${id}-figures-title`}
               perServing={figures?.perServing ?? null}
               whole={figures?.whole ?? null}
-              wholeLabel={t("wholeBatch")}
               inSheet
               note={
                 errors.figures !== undefined ? (

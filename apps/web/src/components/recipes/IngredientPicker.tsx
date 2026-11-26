@@ -114,6 +114,7 @@ export function IngredientPicker({
 }: IngredientPickerProps): ReactElement {
   const t = useTranslations("recipes.picker");
   const tFoods = useTranslations("foods.sheet");
+  const tLists = useTranslations("lists");
   const errorCopy = useErrorCopy();
   const client = useQueryClient();
   const isMobile = useIsMobile();
@@ -334,7 +335,7 @@ export function IngredientPicker({
                   />
                   <FoodList
                     list="picker-own"
-                    title={tFoods("ownFoods")}
+                    title={tLists("myFoods")}
                     empty={tFoods("ownFoodsEmpty")}
                     foods={own.data?.foods}
                     onOpen={(f) => pick(f)}
@@ -344,7 +345,7 @@ export function IngredientPicker({
                     onClick={(e) => finder.ownSheet.open(e.currentTarget, { start: { name: "" } })}
                     className={btnText}
                   >
-                    {tFoods("addOwn")}
+                    {tLists("newFood")}
                   </button>
                 </div>
               ),

@@ -30,7 +30,7 @@ import type { ResultsLead } from "./useFoodFinder";
 // The log sheet's own content on its search view, which `useFoodFinder`
 // shows around the food results (`FoodSheet` passes them in its slots):
 //
-// - `Browse`, with fewer than two characters typed: "New saved meal" and
+// - `Browse`, with fewer than two characters typed: "New meal" and
 //   "Add an estimate", the recent items, the favourites, the recipes (five
 //   at most, and a button for the rest), the saved meals, the user's own
 //   foods and a button to add one. A recent
@@ -71,6 +71,7 @@ export interface BrowseProps {
 export function Browse({ onOpen, onAddOwn, logging, meals, recipes }: BrowseProps): ReactElement {
   const t = useTranslations("foods.sheet");
   const tBrowse = useTranslations("log.browse");
+  const tLists = useTranslations("lists");
   const labels = useAmountLabels();
   const favourites = useQuery(favouriteFoodsQuery());
   const own = useQuery(ownFoodsQuery());
@@ -124,14 +125,14 @@ export function Browse({ onOpen, onAddOwn, logging, meals, recipes }: BrowseProp
         {!unavailable && (
           <FoodList
             list="own"
-            title={t("ownFoods")}
+            title={tLists("myFoods")}
             empty={t("ownFoodsEmpty")}
             foods={own.data?.foods}
             onOpen={onOpen}
           />
         )}
         <button type="button" onClick={(e) => onAddOwn("", e.currentTarget)} className={`${btnSecondary} w-full`}>
-          {t("addOwn")}
+          {tLists("newFood")}
         </button>
       </ListsGuard>
     </div>
@@ -199,6 +200,7 @@ export function LeadResults({
 }): ReactElement {
   const t = useTranslations("log.results");
   const tBrowse = useTranslations("log.browse");
+  const tLists = useTranslations("lists");
   const said = [
     recipes.length > 0 ? t("recipeCount", { count: recipes.length }) : "",
     found.length > 0 ? t("mealCount", { count: found.length }) : "",
@@ -215,8 +217,8 @@ export function LeadResults({
         </section>
       )}
       {found.length > 0 ? (
-        <section aria-label={tBrowse("savedMeals")} data-list="meal-results">
-          <h3 className={`${sectionTitle} mb-1`}>{tBrowse("savedMeals")}</h3>
+        <section aria-label={tLists("myMeals")} data-list="meal-results">
+          <h3 className={`${sectionTitle} mb-1`}>{tLists("myMeals")}</h3>
           <MealRows meals={found} logging={logging} />
         </section>
       ) : (

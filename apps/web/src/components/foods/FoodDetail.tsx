@@ -25,7 +25,7 @@ import { Per100gFigures } from "./Per100gFigures";
 // food's name on one line, and the favourite star. The body scrolls under it and holds the food's name, the other
 // language's name, where the figures come from, the figures per 100 g, the
 // portions, for the user's own food Edit and Delete, and for an Open Food
-// Facts food, which nobody edits, Copy to your foods. The name scrolls
+// Facts food, which nobody edits, Copy to my foods. The name scrolls
 // with the body, so a long one never squeezes the body under a fixed header.
 // Edit shows once the detail has loaded, since the form opens on what was
 // saved. Until the detail has loaded it shows the row it was opened from, so

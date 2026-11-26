@@ -49,7 +49,7 @@ import { useSheetNavigation } from "./useSheetNavigation";
 // food and back is navigation, not a form:
 //
 // - Search: the food search (`useFoodFinder`), its field pinned in the
-//   header, its scanner and own-food sheets stacked. Under it "New saved meal"
+//   header, its scanner and own-food sheets stacked. Under it "New meal"
 //   and "Add an estimate", the recent items, the favourites, the recipes, the
 //   saved meals and the user's own foods, or the results of what is typed,
 //   recipes first, then saved meals. A recent item, a recipe, a saved meal,
