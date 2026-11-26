@@ -37,7 +37,7 @@ jest.mock("@/lib/api/foods", () => ({
 }));
 
 const QUERY = "jauheliha 10 nauta";
-const NEAR_TITLE = "All but one of your words";
+const NEAR_TITLE = "Other matches";
 const mixed = fineliFood("Jauheliha, sika-nauta, rasvaa 10 %");
 const fried = fineliFood("Jauheliha, sika-nauta, rasvaa 10 %, paistettu");
 const beef9 = fineliFood("Jauheliha, naudanpaisti, rasvaa 9 %");
@@ -110,27 +110,27 @@ describe("the search results, by which of the two lists has rows", () => {
     expect(precedes(list, nearSection()!)).toBe(true);
     expect(precedes(nearSection()!, addButton(QUERY)!)).toBe(true);
     expect(within(body()).queryByText(/No food/)).toBeNull();
-    expect(spoken()).toBe("2 foods found. 3 foods have all but one of your words.");
+    expect(spoken()).toBe("2 foods found. 3 other matches.");
   });
 
   it("says that no food has every word, over the near foods and the offer to add", async () => {
     answer("banaani 120 kuivattu", [], [beef9]);
     renderSheet();
     await search("banaani 120 kuivattu");
-    const line = within(body()).getByText("No food has all of “banaani 120 kuivattu”.");
+    const line = within(body()).getByText("No exact match for “banaani 120 kuivattu”.");
     expect(within(body()).queryByText(/No food matches/)).toBeNull();
     expect(body().querySelector('[data-list="results"]')).toBeNull();
     expect(nearNames()).toEqual([beef9.name]);
     expect(precedes(line, nearSection()!)).toBe(true);
     expect(precedes(nearSection()!, addButton("banaani 120 kuivattu")!)).toBe(true);
-    expect(spoken()).toBe("No foods found. 1 food has all but one of your words.");
+    expect(spoken()).toBe("No foods found. 1 other match.");
   });
 
   it("says that no food matches, with the offer to add, when neither list has a row", async () => {
     renderSheet();
     await search("kaurajuoma mansikka");
     expect(within(body()).getByText("No food matches “kaurajuoma mansikka”.")).toBeInTheDocument();
-    expect(within(body()).queryByText(/No food has all of/)).toBeNull();
+    expect(within(body()).queryByText(/No exact match for/)).toBeNull();
     expect(nearSection()).toBeNull();
     expect(addButton("kaurajuoma mansikka")).not.toBeNull();
     expect(spoken()).toBe("No foods found.");
@@ -198,12 +198,12 @@ describe("the foods above the near list, between states", () => {
     await settle();
     await waitFor(() => expect(searchFoods).toHaveBeenLastCalledWith("banaani 120 g", expect.anything()));
     // The answer for the new text is out: the list on screen is still the old text's, and says so.
-    expect(within(body()).getByText("No food has all of “banaani 120”.")).toBeInTheDocument();
+    expect(within(body()).getByText("No exact match for “banaani 120”.")).toBeInTheDocument();
     expect(addButton("banaani 120")).not.toBeNull();
     expect(nearSection()!.querySelector("ul")).toHaveAttribute("aria-busy", "true");
 
     await act(async () => next.resolve({ foods: [], near: [beef9, beef7] }));
-    expect(await within(body()).findByText("No food has all of “banaani 120 g”.")).toBeInTheDocument();
+    expect(await within(body()).findByText("No exact match for “banaani 120 g”.")).toBeInTheDocument();
     expect(addButton("banaani 120 g")).not.toBeNull();
     expect(addButton("banaani 120")).toBeNull();
   });
@@ -275,7 +275,7 @@ describe("an answer held from before the field emptied", () => {
     expect(nearSection()).toBeNull();
 
     await act(async () => next.resolve({ foods: [], near: [beef9, beef7] }));
-    expect(await within(body()).findByText("No food has all of “ba”.")).toBeInTheDocument();
+    expect(await within(body()).findByText("No exact match for “ba”.")).toBeInTheDocument();
     expect(nearNames()).toEqual([beef9.name, beef7.name]);
   });
 });

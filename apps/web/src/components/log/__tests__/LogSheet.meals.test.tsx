@@ -274,9 +274,9 @@ describe("The log sheet's results", () => {
     renderDay();
     await openLogSheet();
     await search("salmon");
-    const near = await within(sheet()).findByRole("region", { name: "All but one of your words" });
+    const near = await within(sheet()).findByRole("region", { name: "Other matches" });
     const foods = region("Foods");
-    expect(within(foods).getByText("No food has all of “salmon”.")).toBeInTheDocument();
+    expect(within(foods).getByText("No exact match for “salmon”.")).toBeInTheDocument();
     expect(foods).not.toContainElement(near);
     expect(within(near).getAllByRole("listitem")).toHaveLength(1);
     const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
@@ -284,7 +284,7 @@ describe("The log sheet's results", () => {
       within(body)
         .getAllByRole("heading")
         .map((h) => h.textContent),
-    ).toEqual(["Saved meals", "Foods", "All but one of your words"]);
+    ).toEqual(["Saved meals", "Foods", "Other matches"]);
     // The offer to add the text comes after the near foods, outside both sections.
     const add = within(sheet()).getByRole("button", { name: "Add “salmon” as your own food" });
     expect(foods).not.toContainElement(add);

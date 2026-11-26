@@ -82,13 +82,13 @@ describe("IngredientPicker", () => {
     renderPicker();
     fireEvent.change(search(), { target: { value: "feta 20 kananmuna" } });
     await settle();
-    const near = await within(picker()).findByRole("region", { name: "All but one of your words" });
+    const near = await within(picker()).findByRole("region", { name: "Other matches" });
     expect(within(near).getByRole("button", { name: /^Kananmuna/ })).toBeInTheDocument();
     expect(
       within(picker())
         .getAllByRole("heading")
         .map((h) => h.textContent),
-    ).toEqual(["All but one of your words"]);
+    ).toEqual(["Other matches"]);
     expect(
       within(picker()).getByRole("button", { name: "Add “feta 20 kananmuna” as your own food" }),
     ).toBeInTheDocument();
