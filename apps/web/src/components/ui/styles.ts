@@ -97,7 +97,7 @@ export const actionPair = "grid grid-cols-2 gap-2";
 export const actionPairButton = `${btnSecondary} h-auto! min-h-12 px-3 py-2 text-center`;
 
 /** A secondary action across the full width whose label names typed text, such as "Add “rahka” as your own food". A long label wraps. */
-export const btnWide = `${btnSecondary} h-auto! min-h-12 w-full py-2.5 text-center break-words`;
+export const btnWide = `${btnSecondary} h-auto! min-h-12 w-full py-2.5 text-center wrap-anywhere`;
 
 /**
  * A destructive action, such as Delete account. The accent, as every
@@ -572,11 +572,14 @@ const sheetBodyScroll = "min-h-0 flex-1 touch-auto overflow-y-auto overscroll-co
 /**
  * The sheet's scrolling body, padded for what sits around it. Above a footer
  * it keeps one step above the footer's rule, and the footer clears the home
- * indicator. Alone, its own bottom padding clears the home indicator.
+ * indicator or the software keyboard. Alone, its own bottom padding does,
+ * with the footer's `--sheet-footer-pad`, so the end of a list can be
+ * scrolled above the keyboard in a sheet that shows no footer. With no
+ * keyboard open that is one step over the home indicator.
  */
 export function sheetBodyClass({ header, footer }: { header: boolean; footer: boolean }): string {
   const top = header ? "pt-4" : "pt-4 md:pt-6";
-  const bottom = footer ? "pb-4" : "pb-[calc(1rem+var(--safe-bottom))] md:pb-6";
+  const bottom = footer ? "pb-4" : "pb-(--sheet-footer-pad) md:pb-6";
   return `${sheetBodyScroll} ${top} ${bottom}`;
 }
 

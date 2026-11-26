@@ -890,6 +890,9 @@
       "failed": "Search did not work.",
       "tryAgain": "Try again",
       "resultCount": "{count, plural, =0 {No foods found.} one {# food found.} other {# foods found.}}",
+      "nearTitle": "All but one of your words",
+      "noneWithAll": "No food has all of “{query}”.",
+      "nearCount": "{count, plural, one {# food has} other {# foods have}} all but one of your words.",
       "gone": "This food is no longer available."
     },
     "barcode": {

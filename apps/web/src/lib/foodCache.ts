@@ -1,4 +1,12 @@
-import type { FavouriteFoodList, FoodDetail, FoodList, FoodSummary, Portion, RecentList } from "@hovimestari/types";
+import type {
+  FavouriteFoodList,
+  FoodDetail,
+  FoodList,
+  FoodSearchResult,
+  FoodSummary,
+  Portion,
+  RecentList,
+} from "@hovimestari/types";
 import type { QueryClient } from "@tanstack/react-query";
 import { foodSearchKey, queryKeys } from "./queryKeys";
 
@@ -17,19 +25,36 @@ export function summaryOf(food: FoodDetail): FoodSummary {
   return { id, source, name, otherName, per100g, isFavourite, isOwn, retired };
 }
 
+/** `rows` with each row edited, in place. `null` drops the row. The same array when no row changed. */
+function mapList<R extends FoodSummary>(rows: R[], edit: (row: R) => R | null): R[] {
+  const next: R[] = [];
+  let changed = false;
+  for (const row of rows) {
+    const edited = edit(row);
+    if (edited !== row) changed = true;
+    if (edited !== null) next.push(edited);
+  }
+  return changed ? next : rows;
+}
+
 function mapRows<L extends { foods: FoodSummary[] }>(
   list: L | undefined,
   edit: (row: L["foods"][number]) => L["foods"][number] | null,
 ): L | undefined {
   if (!list) return list;
-  const foods: L["foods"] = [];
-  let changed = false;
-  for (const row of list.foods) {
-    const next = edit(row);
-    if (next !== row) changed = true;
-    if (next !== null) foods.push(next);
-  }
-  return changed ? { ...list, foods } : list;
+  const foods = mapList(list.foods, edit);
+  return foods === list.foods ? list : { ...list, foods };
+}
+
+/** A search's answer with the rows of both its lists edited, in place. `null` drops the row. */
+function mapSearchRows(
+  result: FoodSearchResult | undefined,
+  edit: (row: FoodSummary) => FoodSummary | null,
+): FoodSearchResult | undefined {
+  if (!result) return result;
+  const foods = mapList(result.foods, edit);
+  const near = mapList(result.near, edit);
+  return foods === result.foods && near === result.near ? result : { ...result, foods, near };
 }
 
 /** The recent items with each food item's food edited, in place. `null` drops the item. */
@@ -53,12 +78,12 @@ function mapRecentFoods(
 }
 
 /**
- * Edits the row of food `id` in every cached search, the own foods, the
- * favourites and the recent items. `null` drops it.
+ * Edits the row of food `id` in every cached search, in both of its lists,
+ * the own foods, the favourites and the recent items. `null` drops it.
  */
 export function editRows(client: QueryClient, id: string, edit: <R extends FoodSummary>(row: R) => R | null): void {
   const at = <R extends FoodSummary>(row: R): R | null => (row.id === id ? edit(row) : row);
-  client.setQueriesData<FoodList>({ queryKey: queryKeys.foodSearches() }, (l) => mapRows(l, at));
+  client.setQueriesData<FoodSearchResult>({ queryKey: queryKeys.foodSearches() }, (l) => mapSearchRows(l, at));
   client.setQueryData<FoodList>(queryKeys.foodOwn(), (l) => mapRows(l, at));
   client.setQueryData<FavouriteFoodList>(queryKeys.foodFavourites(), (l) => mapRows(l, at));
   client.setQueryData<RecentList>(queryKeys.recents(), (l) => mapRecentFoods(l, at));
@@ -72,17 +97,23 @@ export function putSavedFood(client: QueryClient, food: FoodDetail): void {
 }
 
 /**
- * A new own food in the searches that can only answer it: a search that
- * found nothing, for exactly the food's name. Every word of it is in the
- * name, and nothing else changed, so the server would answer this one food.
- * Returns the keys it wrote.
+ * A new or renamed own food in the one search that must now answer it: the
+ * search for exactly the food's name, when it is cached with no food that
+ * held every word. Every word of it is in the name, so the food goes among
+ * its foods, and leaves its near list if a rename found it there, since a
+ * food is never in both. The other near foods stay under it, and the read
+ * that follows settles the list. Returns the keys it wrote.
  */
 export function putNewFoodInSearches(client: QueryClient, food: FoodDetail): Set<string> {
   const written = new Set<string>();
   const key = queryKeys.foodSearch(foodSearchKey(food.name));
-  const held = client.getQueryData<FoodList>(key);
+  const held = client.getQueryData<FoodSearchResult>(key);
   if (held && held.foods.length === 0) {
-    client.setQueryData<FoodList>(key, { foods: [summaryOf(food)] });
+    client.setQueryData<FoodSearchResult>(key, {
+      ...held,
+      foods: [summaryOf(food)],
+      near: held.near.filter((row) => row.id !== food.id),
+    });
     written.add(JSON.stringify(key));
   }
   return written;
@@ -161,8 +192,8 @@ export function putFavourite(
 ): void {
   const id = food.id;
   client.setQueryData<FoodDetail>(queryKeys.foodDetail(id), (d) => (d ? { ...d, isFavourite: on } : d));
-  client.setQueriesData<FoodList>({ queryKey: queryKeys.foodSearches() }, (l) =>
-    mapRows(l, (row) => (row.id === id && row.isFavourite !== on ? { ...row, isFavourite: on } : row)),
+  client.setQueriesData<FoodSearchResult>({ queryKey: queryKeys.foodSearches() }, (l) =>
+    mapSearchRows(l, (row) => (row.id === id && row.isFavourite !== on ? { ...row, isFavourite: on } : row)),
   );
   client.setQueryData<FoodList>(queryKeys.foodOwn(), (l) =>
     mapRows(l, (row) => (row.id === id && row.isFavourite !== on ? { ...row, isFavourite: on } : row)),
