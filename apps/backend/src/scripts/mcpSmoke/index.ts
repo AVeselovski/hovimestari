@@ -234,6 +234,14 @@ async function main(): Promise<void> {
       await call("search_foods", { q: "smoke rahka" }),
       await rest("GET", "/foods/search?q=smoke%20rahka"),
     );
+    // Two words with one no food holds: the food stands in near, on both sides.
+    const near = await call("search_foods", { q: "smoke rahka qzqz" });
+    same("search_foods near = GET /foods/search", near, await rest("GET", "/foods/search?q=smoke%20rahka%20qzqz"));
+    same(
+      "search_foods near holds the food with all words but one",
+      [near.foods, near.near.map((f: Json) => f.id)],
+      [[], [food.id]],
+    );
     same("get_food", await call("get_food", { foodId: food.id }), await rest("GET", `/foods/${food.id}`));
     same("list_favourite_foods", await call("list_favourite_foods"), await rest("GET", "/foods/favourites"));
     same("list_own_foods", await call("list_own_foods"), await rest("GET", "/foods/own"));

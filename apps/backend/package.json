@@ -16,6 +16,7 @@
     "db:studio": "NODE_OPTIONS='--require tsx/cjs' drizzle-kit studio",
     "fineli:import": "tsx src/scripts/fineliImport/index.ts",
     "fineli:recipe-counts": "tsx src/scripts/fineliImport/buildRecipeCounts.ts",
+    "search:sample": "tsx src/services/__tests__/support/buildSearchSample.ts",
     "mcp:smoke": "tsx src/scripts/mcpSmoke/index.ts"
   },
   "dependencies": {

@@ -135,13 +135,33 @@ export const FoodDetailSchema = FoodSummarySchema.extend({
 
 export const FoodListSchema = z.object({ foods: z.array(FoodSummarySchema) });
 
+/** `GET /foods/search`. `near` holds foods with all words but one, and is empty unless few foods have them all. */
+export const FoodSearchResultSchema = z.object({
+  foods: z.array(FoodSummarySchema),
+  near: z.array(FoodSummarySchema),
+});
+
 /** A favourite food with the amount the user last ate of it. */
 export const FavouriteFoodSchema = FoodSummarySchema.extend({ lastAmount: LastAmountSchema.nullable() });
 export const FavouriteFoodListSchema = z.object({ foods: z.array(FavouriteFoodSchema) });
 
+/**
+ * A control character search text may not hold: NUL, which Postgres refuses,
+ * and the other C0 and C1 controls. White space is text here, so a tab or a
+ * line break between words passes, and so does every format character: search
+ * drops what is not a letter or a digit. Narrower than the rule for a
+ * connection's name in `connections.ts`, which is stored and shown.
+ */
+const SEARCH_CONTROL = /(?!\s)\p{Cc}/u;
+
 /** The query of `GET /foods/search`. A bad one answers invalid_request: no screen can send it. */
 export const FoodSearchQuerySchema = z.object({
-  q: z.string().trim().min(1).max(100),
+  q: z
+    .string()
+    .trim()
+    .min(1)
+    .max(100)
+    .refine((text) => !SEARCH_CONTROL.test(text)),
   limit: z.coerce.number().int().min(1).max(MAX_SEARCH_LIMIT).default(30),
 });
 
@@ -204,6 +224,7 @@ export type FoodDetail = z.infer<typeof FoodDetailSchema>;
 export type FavouriteFood = z.infer<typeof FavouriteFoodSchema>;
 export type FavouriteFoodList = z.infer<typeof FavouriteFoodListSchema>;
 export type FoodList = z.infer<typeof FoodListSchema>;
+export type FoodSearchResult = z.infer<typeof FoodSearchResultSchema>;
 export type FoodSearchQuery = z.infer<typeof FoodSearchQuerySchema>;
 export type FoodListQuery = z.infer<typeof FoodListQuerySchema>;
 export type OwnFoodBody = z.infer<typeof OwnFoodBodySchema>;
