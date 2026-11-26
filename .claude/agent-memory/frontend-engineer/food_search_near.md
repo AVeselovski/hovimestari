@@ -1,6 +1,6 @@
 ---
 name: Food search near list
-description: Gotchas from the "All but one of your words" list in the food finder's results: hand-written searchFoods mocks, state kept in a child that unmounts, proving across-state position in a browser, reading rects before scrolling.
+description: Gotchas from the "Other matches" list (foods with all words but one) in the food finder's results: hand-written searchFoods mocks, state kept in a child that unmounts, proving across-state position in a browser, reading rects before scrolling.
 type: project
 ---
 

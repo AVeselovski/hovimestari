@@ -181,4 +181,4 @@ On Fly, open the database with `flyctl postgres connect -a hovimestari-db --data
 
 ## Before production
 
-- The importer's tests run on release 18 (2015). Release 20 of Basic package 2 has been imported on a local machine. Before the first import of a release on Fly, do the dry run there and compare its report with the local one. A large difference is worth understanding before the real run. Release 18's report reads 4,058 foods read, 8 left out and 27 named "(arc)".
+- The importer's tests run on release 18 (2015). Release 20 of Basic package 2 has been imported on a local machine. Before the first import of a release on Fly, do the dry run there and compare its report with the local one. A large difference is worth understanding before the real run. Release 18's report reads 4,058 foods read, 8 left out and 27 named "(arc)". Release 20's local report reads 4,238 foods read, 6 left out, 76 named "(arc)" and none renamed. Its folder holds `contribfood.csv`, so its recipe counts come from the release: 11,138 rows read, 1,919 left out as water or salt, and 2,644 foods with a count.
