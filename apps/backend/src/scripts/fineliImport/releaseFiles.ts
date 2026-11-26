@@ -74,14 +74,13 @@ export function readColumns(
 ): { rows: Row[]; encoding: Encoding } {
   const { text, encoding } = decode(readFileSync(full), file);
   let index: Record<string, number> | null = null;
-  /** The wanted columns of `record`, trimmed, or a ReleaseError naming the line. */
-  const rowOf = (record: string[], line: number): Row => {
+  /**
+   * The wanted columns of `record`, trimmed. Every column is there: the
+   * parser refuses a record that is shorter or longer than the header row.
+   */
+  const rowOf = (record: string[]): Row => {
     const row: Row = {};
-    for (const column of columns) {
-      const value = record[(index as Record<string, number>)[column]];
-      if (value === undefined) throw new ReleaseError(`${file} row ${line} has no ${column} value.`);
-      row[column] = value.trim();
-    }
+    for (const column of columns) row[column] = record[(index as Record<string, number>)[column]].trim();
     return row;
   };
   const rows: Row[] = [];
@@ -92,7 +91,7 @@ export function readColumns(
       relax_quotes: true,
       bom: true,
       // Each record becomes a row here and the parser keeps none, so only the kept rows stay in memory.
-      on_record: (record, { lines }) => {
+      on_record: (record) => {
         if (!index) {
           const header = record.map((h) => h.trim().toUpperCase());
           if (header.length === 1)
@@ -110,7 +109,7 @@ export function readColumns(
           }
           return null;
         }
-        const row = rowOf(record, lines);
+        const row = rowOf(record);
         if (keep(row)) rows.push(row);
         return null;
       },

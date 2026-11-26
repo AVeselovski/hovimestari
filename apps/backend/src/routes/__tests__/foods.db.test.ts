@@ -125,7 +125,7 @@ await describeWithDb("foods", (suite) => {
     });
 
     it("breaks a search tie in Finnish alphabetical order", async () => {
-      // One tier, one standing, one kind, one part and one length each: only the name differs.
+      // One group, one standing, one position, one part and one length each: only the name differs.
       const a = await user();
       for (const name of ["äkana", "Ckana", "åkana", "bkana"]) await createFood(a, { name });
       expect(names(await api().get("/api/v1/foods/search").query({ q: "kana" }).set(a.auth))).toEqual([
@@ -253,7 +253,7 @@ await describeWithDb("foods", (suite) => {
       }
 
       const search = await api().get("/api/v1/foods/search").query({ q: "salainen" }).set(b.auth);
-      expect(search.body).toEqual({ foods: [] });
+      expect(search.body).toEqual({ foods: [], near: [] });
       const own = await api().get("/api/v1/foods/search").query({ q: "salainen" }).set(a.auth);
       expect(own.body.foods.map((f: { id: string }) => f.id)).toEqual([food.id]);
       expect((await api().get("/api/v1/foods/own").set(b.auth)).body).toEqual({ foods: [] });

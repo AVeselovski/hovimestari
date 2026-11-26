@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 import * as schema from "../../db/schema/index.js";
 import { runCli } from "./cli.js";
+// The committed recipe counts. A newer release's table is swapped in here: build its module with
+// fineli:recipe-counts, import it in place of this one, and pass it as `recipeCounts` below.
 import { RECIPE_COUNTS_R18 } from "./recipeCountsR18.js";
 
 // The Fineli import command:

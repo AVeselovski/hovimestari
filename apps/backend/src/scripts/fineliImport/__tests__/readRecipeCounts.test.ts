@@ -32,6 +32,7 @@ afterAll(() => {
 /** Counts for the egg, for a dish, and for an id no fixture release has. */
 const SMALL_TABLE: RecipeCountsTable = {
   release: "18.0",
+  mostUsed: [[858, "Kananmuna, kuoreton"]],
   rows: [
     [858, 7, null],
     [31924, 0, 3],
@@ -65,7 +66,7 @@ describe("a folder with a recipe file", () => {
   const release = readRelease(A);
 
   it("counts the recipes that use each food", () => {
-    expect(release.recipeCounts?.source).toBe("release");
+    expect(release.recipeCounts?.from).toBe("release");
     expect(counts(release, 606)).toEqual({ uses: 5, foods: null });
     expect(counts(release, 858)).toEqual({ uses: 4, foods: null });
     expect(counts(release, 153)).toEqual({ uses: 3, foods: null });
@@ -79,7 +80,8 @@ describe("a folder with a recipe file", () => {
   it("says how many rows it read, how many foods have a count and how many ids the release lacks", () => {
     expect(release.recipeCounts).toEqual({
       // No row is left out as water or salt: this folder's food.csv lists neither (fixtures/README.md).
-      source: "release",
+      from: "release",
+      namesThatDiffer: [],
       rowsRead: 40,
       rowsNotFood: 0,
       encoding: "utf-8",
@@ -90,7 +92,7 @@ describe("a folder with a recipe file", () => {
 
   it("ignores the counts it was handed", () => {
     const withFallback = readRelease(A, SMALL_TABLE);
-    expect(withFallback.recipeCounts?.source).toBe("release");
+    expect(withFallback.recipeCounts?.from).toBe("release");
     expect(counts(withFallback, 858)).toEqual({ uses: 4, foods: null });
     expect(counts(withFallback, 31924)).toEqual({ uses: 0, foods: null });
     expect(withFallback.foods).toEqual(release.foods);
@@ -138,6 +140,32 @@ describe("a folder with a recipe file", () => {
     expect(() => readRelease(dir)).toThrow(
       "contribfood.csv has no CONFDID column. Its columns are: FOODID, INGREDIENT,",
     );
+  });
+
+  it("stops on a food.csv id that is not a number as food.csv's own fault, with no advice about the recipe file", () => {
+    const dir = copyOfA((d) =>
+      appendFileSync(path.join(d, "food.csv"), "abc;Outo;FOOD;RAW;100;MILK;MILKTOT;MILK;MILKTOT\r\n"),
+    );
+    let message = "";
+    try {
+      readRelease(dir, SMALL_TABLE);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ReleaseError);
+      message = (err as Error).message;
+    }
+    expect(message).toMatch(/^food\.csv row \d+ has FOODID "abc", which is not a number\.$/);
+  });
+
+  it("stops on a recipe row shorter than the header, which the CSV reader refuses before a column is read", () => {
+    const dir = copyOfA((d) => appendFileSync(path.join(d, "contribfood.csv"), "953;200\r\n"));
+    let stop: unknown;
+    try {
+      readRelease(dir);
+    } catch (err) {
+      stop = err;
+    }
+    expect(stop).toBeInstanceOf(ReleaseError);
+    expect((stop as Error).message).toMatch(/^contribfood\.csv could not be read: Invalid Record Length/);
   });
 
   it("stops on an id that is not a number, naming the row", () => {
@@ -223,10 +251,11 @@ describe("a folder without a recipe file", () => {
     expect(counts(release, 31924)).toEqual({ uses: 0, foods: 3 });
     expect(counts(release, 606)).toEqual({ uses: 0, foods: null });
     expect(release.recipeCounts).toEqual({
-      source: "committed",
+      from: "committed",
       release: "18.0",
       foodsWithCount: 2,
       idsNotInRelease: 1,
+      namesThatDiffer: [],
     });
   });
 
@@ -234,10 +263,47 @@ describe("a folder without a recipe file", () => {
     expect(recipeBlock(readRelease(NO_RECIPE_FILE, SMALL_TABLE), { ...NO_CHANGES, recipeCountsChanged: 2 })).toEqual([
       "Recipe counts: committed counts of release 18.0. The folder has no contribfood.csv and is release 18.0",
       "Foods with a count: 2 of 18 read. Counts for ids not in this release: 1",
+      "The most used foods of release 18.0 have the same names in this release.",
       "Most used:",
       "  Kananmuna, kuoreton 7",
       "Stored counts changed: 2",
     ]);
+  });
+
+  describe("the most used foods' names, the check that an id still names the same food", () => {
+    const table = (mostUsed: RecipeCountsTable["mostUsed"]): RecipeCountsTable => ({ ...SMALL_TABLE, mostUsed });
+
+    it("takes a name that differs in case or spacing only as the same name", () => {
+      const release = readRelease(NO_RECIPE_FILE, table([[858, "KANANMUNA,  kuoreton "]]));
+      expect(release.recipeCounts?.namesThatDiffer).toEqual([]);
+    });
+
+    it("warns, and does not stop, when an id has another name here or is not in the release", () => {
+      const release = readRelease(
+        NO_RECIPE_FILE,
+        table([
+          [858, "Kaurahiutale"],
+          [606, "Maito, rasvaton, d-vitamiinia 1 ug"],
+          [424242, "Ruokasuola, jodioitu"],
+        ]),
+      );
+      expect(release.recipeCounts?.namesThatDiffer).toEqual([
+        { fineliId: 858, committed: "Kaurahiutale", here: "Kananmuna, kuoreton" },
+        { fineliId: 424242, committed: "Ruokasuola, jodioitu", here: null },
+      ]);
+      expect(recipeBlock(release).slice(2, 5)).toEqual([
+        "Warning: 2 of the most used foods of release 18.0 are named differently in this release. " +
+          "An id that names another food here has the wrong counts. Check each:",
+        '  858: "Kaurahiutale" in release 18.0, "Kananmuna, kuoreton" here',
+        '  424242: "Ruokasuola, jodioitu" in release 18.0, not in this release',
+      ]);
+      expect(release.foods.find((f) => f.fineliId === 858)?.recipeUses).toBe(7);
+    });
+
+    it("says nothing about names for a folder that has its own recipe file", () => {
+      expect(readRelease(A, table([[858, "Kaurahiutale"]])).recipeCounts?.namesThatDiffer).toEqual([]);
+      expect(recipeBlock(readRelease(A, table([[858, "Kaurahiutale"]]))).join("\n")).not.toMatch(/most used foods of/);
+    });
   });
 
   it("calls a folder without a release number an unnamed release", () => {

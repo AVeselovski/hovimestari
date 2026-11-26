@@ -1,20 +1,42 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { countRecipes, type RecipeCount } from "./recipeCounts.js";
-import { readIngredientClasses, readRecipeRows } from "./recipeFile.js";
+import { countRecipes, mostUsedIds, type NamedFood, type RecipeCount } from "./recipeCounts.js";
+import { readFinnishNames, readIngredientClasses, readRecipeRows } from "./recipeFile.js";
 
 // Writes the committed recipe counts of one Fineli release:
-//   pnpm --filter @hovimestari/backend fineli:recipe-counts <contribfood.csv> <food.csv> <release> <source>
+//   pnpm --filter @hovimestari/backend fineli:recipe-counts <contribfood.csv> <food.csv> <foodname_FI.csv> <release> <source>
 // <release> is the number the release gives itself, such as 18.0. It counts with the function the import uses on a folder's own recipe file,
-// so the module holds what an import of that release would store. The two
-// input files are Fineli's and are not committed. <source> is a line for the
+// so the module holds what an import of that release would store. It also
+// writes the Finnish names of the ten most used foods, which the import
+// compares with another release's names for the same ids. The three input
+// files are Fineli's and are not committed. <source> is a line for the
 // module's header saying where they came from.
 
 /** Foods per line of the module, which keeps it near 40 KB. */
 const PER_LINE = 8;
 
-/** The module's text for `counts` of release `release`. `source` says where the input files came from. */
-export function moduleText(counts: ReadonlyMap<number, RecipeCount>, release: string, source: string): string {
+/** The most used foods of `counts` with the names `nameOf` gives them. A food without a name stops the build. */
+export function namedMostUsed(
+  counts: ReadonlyMap<number, RecipeCount>,
+  nameOf: ReadonlyMap<number, string>,
+): NamedFood[] {
+  return mostUsedIds(counts).map((id) => {
+    const name = nameOf.get(id);
+    if (!name) throw new Error(`Food ${id} is among the most used and has no Finnish name in the names file.`);
+    return [id, name];
+  });
+}
+
+/**
+ * The module's text for `counts` of release `release`. `mostUsed` names its
+ * most used foods, and `source` says where the input files came from.
+ */
+export function moduleText(
+  counts: ReadonlyMap<number, RecipeCount>,
+  release: string,
+  source: string,
+  mostUsed: ReadonlyArray<NamedFood>,
+): string {
   const major = /^(\d+)(\.\d+)?$/.exec(release)?.[1];
   if (!major) throw new Error(`The release must be a number such as 18.0, not "${release}".`);
   if (/[\r\n]/.test(source)) throw new Error("The source must be one line: it is written into a comment.");
@@ -29,6 +51,8 @@ export function moduleText(counts: ReadonlyMap<number, RecipeCount>, release: st
     `// The recipe counts of Fineli release ${release}, for an import whose release folder has no`,
     `// contribfood.csv. One row per food that a recipe uses or that has a recipe:`,
     `// [Fineli id, recipes that use it, its recipe's rows besides water and salt, or null without a recipe].`,
+    `// mostUsed names the foods most recipes use, by their Finnish names in this release. The import`,
+    `// compares them with the names another release gives the same ids.`,
     `//`,
     `// Derived from Fineli, the Finnish food composition database of the Finnish Institute for`,
     `// Health and Welfare (THL), release ${release}, used under the Creative Commons Attribution 4.0`,
@@ -40,6 +64,9 @@ export function moduleText(counts: ReadonlyMap<number, RecipeCount>, release: st
     `// prettier-ignore`,
     `export const RECIPE_COUNTS_R${major}: RecipeCountsTable = {`,
     `  release: ${JSON.stringify(release)},`,
+    `  mostUsed: [`,
+    ...mostUsed.map(([id, name]) => `    [${id}, ${JSON.stringify(name)}],`),
+    `  ],`,
     `  rows: [`,
     ...lines,
     `  ],`,
@@ -49,25 +76,31 @@ export function moduleText(counts: ReadonlyMap<number, RecipeCount>, release: st
 }
 
 /**
- * Reads the two files and writes the module beside this script, named for
+ * Reads the three files and writes the module beside this script, named for
  * the release's whole number. Answers the module's path.
  */
-export function buildRecipeCounts(recipeFile: string, foodFile: string, release: string, source: string): string {
+export function buildRecipeCounts(
+  recipeFile: string,
+  foodFile: string,
+  namesFile: string,
+  release: string,
+  source: string,
+): string {
   const { counts } = countRecipes(readRecipeRows(recipeFile).rows, readIngredientClasses(foodFile));
-  const text = moduleText(counts, release, source);
+  const text = moduleText(counts, release, source, namedMostUsed(counts, readFinnishNames(namesFile)));
   const out = fileURLToPath(new URL(`./recipeCountsR${Number.parseInt(release, 10)}.ts`, import.meta.url));
   writeFileSync(out, text, "utf8");
   return out;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [recipeFile, foodFile, release, source] = process.argv.slice(2).filter((arg) => arg !== "--");
-  if (!recipeFile || !foodFile || !release || !source) {
-    console.error("Usage: fineli:recipe-counts <contribfood.csv> <food.csv> <release> <source>");
+  const [recipeFile, foodFile, namesFile, release, source] = process.argv.slice(2).filter((arg) => arg !== "--");
+  if (!recipeFile || !foodFile || !namesFile || !release || !source) {
+    console.error("Usage: fineli:recipe-counts <contribfood.csv> <food.csv> <foodname_FI.csv> <release> <source>");
     process.exit(2);
   }
   try {
-    console.log(`Wrote ${buildRecipeCounts(recipeFile, foodFile, release, source)}`);
+    console.log(`Wrote ${buildRecipeCounts(recipeFile, foodFile, namesFile, release, source)}`);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);

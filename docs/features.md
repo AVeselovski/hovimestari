@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one ranked search over both names and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. An own food a recipe or a batch uses is hidden when its owner deletes it, and the recipe keeps it. A barcode typed in the log sheet's search, or read there by the camera on the device, is looked up among a user's own foods, then at Open Food Facts. A product found there is kept for every later lookup, and one not found is added from its label.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one search that finds a food by any part of either name, and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and on the Recipes tab. Among foods that match as strongly, the search lists a basic food before a dish and, among basic foods, the one more of Fineli's recipes use first. For meats and a few staples a Finnish base form also finds its genitive, and the genitive its base form. An own food a recipe or a batch uses is hidden when its owner deletes it, and the recipe keeps it. A barcode typed in the log sheet's search, or read there by the camera on the device, is looked up among a user's own foods, then at Open Food Facts. A product found there is kept for every later lookup, and one not found is added from its label.
 
 ## Days and logging
 

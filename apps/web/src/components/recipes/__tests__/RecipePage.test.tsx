@@ -357,7 +357,7 @@ describe("The recipe page", () => {
   it("keeps the ids a save answers: a line removed and added again stays the same line through the next edit", async () => {
     const fetaLine = shak.lines[2];
     const feta = fineliFood("Feta", { id: fetaLine.food!.id, per100g: fetaLine.food!.per100g });
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [feta] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [feta], near: [] });
     jest.mocked(getFood).mockResolvedValue(detailOf(feta));
     jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
     jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });

@@ -78,7 +78,7 @@ beforeEach(() => {
   jest.mocked(getFavouriteFoods).mockResolvedValue(favouritesOf(world));
   jest.mocked(getOwnFoods).mockResolvedValue(ownFoods());
   jest.mocked(getFood).mockReturnValue(new Promise(() => {}));
-  jest.mocked(searchFoods).mockResolvedValue({ foods: [] });
+  jest.mocked(searchFoods).mockResolvedValue({ foods: [], near: [] });
   // The day's own history entry, with nothing on it.
   window.history.pushState(null, "", "/");
   takeOpenedInApp();
@@ -203,7 +203,7 @@ describe("A recipe's '+' in the log sheet", () => {
 describe("Recipes in the log sheet's results", () => {
   it("puts the recipes that match first, above the saved meals, found on the device by name or tag", async () => {
     holdRecipe(world.server, { ...world.lentils, id: "00000000-0000-4000-8000-0000000000b3", name: "Shake pancakes" });
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark], near: [] });
     renderDay();
     await openLogSheet();
     const reads = jest.mocked(getRecipes).mock.calls.length;
@@ -249,7 +249,7 @@ describe("Recipes in the log sheet's results", () => {
   });
 
   it("titles the foods found when only a recipe matches above them", async () => {
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark], near: [] });
     renderDay();
     await openLogSheet();
     fireEvent.change(search(), { target: { value: "lentil" } });

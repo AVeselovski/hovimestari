@@ -1,5 +1,6 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
+import { controlSheetAnimations } from "@/__tests__/sheet";
 import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { fineliFood, ownFood } from "@/components/foods/__tests__/support";
 import { recipeOf } from "@/components/recipes/__tests__/recipeFixtures";
@@ -324,26 +325,34 @@ describe("An open list in the log sheet never reorders under the finger", () => 
 
   it("on a phone, follows a read that lands while the sheet slides in, then holds once it is at rest", async () => {
     const restorePhone = stubPhone();
+    // The sheet's entry ends when the test says so. The guard arms no sooner
+    // than that, however long the reads below take on this machine: the arm
+    // delay alone, on the real clock, never arms it.
+    const animations = controlSheetAnimations();
     try {
       const client = appClient();
       renderDay(client);
       const opened = await openLogSheet();
+      const guard = (): Element | null => opened.querySelector("[data-press-guard]");
       // Not at rest yet: presses wait, so the list may still take what is read.
-      expect(opened.querySelector("[data-press-guard]")).toHaveAttribute("data-press-guard", "waiting");
+      expect(guard()).toHaveAttribute("data-press-guard", "waiting");
       everyListChanges();
       await act(() => client.refetchQueries());
       await settle(client);
-      expect(opened.querySelector("[data-press-guard]")).toHaveAttribute("data-press-guard", "waiting");
+      expect(guard()).toHaveAttribute("data-press-guard", "waiting");
       expect(rows()).toEqual(FRESH);
-      await waitFor(() =>
-        expect(opened.querySelector("[data-press-guard]")).toHaveAttribute("data-press-guard", "armed"),
-      );
+      // The entry ends (Base UI may ask for the animations more than once): at rest, armed.
+      await waitFor(() => {
+        animations.finish();
+        expect(guard()).toHaveAttribute("data-press-guard", "armed");
+      });
       const atRest = rows();
       world.server.recents = [...world.server.recents].reverse();
       await act(() => client.refetchQueries());
       await settle(client);
       expect(rows()).toEqual(atRest);
     } finally {
+      animations.restore();
       restorePhone();
     }
   });
@@ -519,22 +528,32 @@ describe("The first read of the log sheet's lists", () => {
     }
     // A finger goes down on what is under it while the lists wait.
     fireEvent.pointerDown(within(sheet()).getByRole("button", { name: "Archived meals" }));
-    await act(async () => {
-      recents.resolve(world.server.recentList());
-      meals.resolve(world.server.mealList(false));
-    });
-    // The render that shows the rows, before the frame that paints them: waitFor checks on every DOM change.
-    await waitFor(() => expect(guard()).toHaveAttribute("data-lists-guard", "settling"));
-    // It comes up on the row now there: that press started before the row was.
-    fireEvent.click(plus("Log Oats again, 80 g"));
-    await act(() => new Promise((r) => setTimeout(r, 50)));
-    expect(addEntry).not.toHaveBeenCalled();
-    await waitFor(() => expect(guard()).toHaveAttribute("data-lists-guard", "armed"));
-    // A press on the row in place logs that row's own item.
-    fireEvent.pointerDown(plus("Log Oats again, 80 g"));
-    fireEvent.click(plus("Log Oats again, 80 g"));
-    await waitFor(() => expect(addEntry).toHaveBeenCalledTimes(1));
-    expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "food", foodId: world.oats.id });
+    // The delay after the rows on a clock the test moves, so the rows stay settling until it says.
+    jest.useFakeTimers();
+    try {
+      await act(async () => {
+        recents.resolve(world.server.recentList());
+        meals.resolve(world.server.mealList(false));
+        // TanStack's notify, the render, and the frame that paints the rows.
+        await jest.advanceTimersByTimeAsync(20);
+      });
+      expect(guard()).toHaveAttribute("data-lists-guard", "settling");
+      // It comes up on the row now there: that press started before the row was.
+      fireEvent.click(plus("Log Oats again, 80 g"));
+      await act(() => jest.advanceTimersByTimeAsync(50));
+      expect(addEntry).not.toHaveBeenCalled();
+      await act(() => jest.advanceTimersByTimeAsync(ARM_DELAY_MS));
+      expect(guard()).toHaveAttribute("data-lists-guard", "armed");
+      expect(addEntry).not.toHaveBeenCalled();
+      // A press on the row in place logs that row's own item.
+      fireEvent.pointerDown(plus("Log Oats again, 80 g"));
+      fireEvent.click(plus("Log Oats again, 80 g"));
+      await act(() => jest.advanceTimersByTimeAsync(50));
+      expect(addEntry).toHaveBeenCalledTimes(1);
+      expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "food", foodId: world.oats.id });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("after a wait, ignores a whole press until ARM_DELAY_MS after the rows are painted, then logs the row under it", async () => {

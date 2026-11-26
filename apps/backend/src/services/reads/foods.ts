@@ -3,6 +3,7 @@ import {
   type FavouriteFoodList,
   type FoodDetail,
   type FoodList,
+  type FoodSearchResult,
   type Portion,
 } from "@hovimestari/types";
 import { and, asc, desc, eq, sql } from "drizzle-orm";
@@ -11,19 +12,36 @@ import { appError } from "../../lib/errors.js";
 import { isUuid } from "../../lib/isUuid.js";
 import { byName, displayName, portionOf, summaryColumns, summaryOf } from "../foodRows.js";
 import { portionVisibleTo, visibleFood, visibleTo } from "../foodScope.js";
-import { searchQuery, searchWords } from "../foodSearch.js";
+import { NEAR_BELOW, nearQuery, searchQuery, searchWords } from "../foodSearch.js";
 import type { ReadContext } from "./context.js";
 import { lastAmountsOf } from "./log.js";
 
 /**
- * Foods whose names hold every word of `q`, ranked by the search rule. A
- * query with no word of two characters or more answers no foods.
+ * Foods whose names hold every word of `q`, ranked by the search rule, at
+ * most `limit`. When `q` has two words or more and fewer foods than
+ * `min(limit, NEAR_BELOW)` hold them all, `near` lists the foods that hold all
+ * words but one. A query with no word of two characters or more answers
+ * neither.
  */
-export async function searchFoods(ctx: ReadContext, { q, limit }: { q: string; limit: number }): Promise<FoodList> {
+export async function searchFoods(
+  ctx: ReadContext,
+  { q, limit }: { q: string; limit: number },
+): Promise<FoodSearchResult> {
   const words = await searchWords(ctx.db, q);
-  if (words.length === 0) return { foods: [] };
+  if (words.length === 0) return { foods: [], near: [] };
   const rows = await searchQuery(ctx.db, ctx.userId, words, limit);
-  return { foods: rows.map(summaryOf) };
+  const few = words.length >= 2 && rows.length < Math.min(limit, NEAR_BELOW);
+  const near = few ? await nearQuery(ctx.db, ctx.userId, words) : [];
+  return { foods: rows.map(summaryOf), near: notAmong(rows, near).map(summaryOf) };
+}
+
+/**
+ * `near` without the foods `found` holds. The two lists are read by two
+ * statements, so an own food renamed between them could be in both.
+ */
+export function notAmong<T extends { id: string }>(found: ReadonlyArray<{ id: string }>, near: T[]): T[] {
+  const ids = new Set(found.map((f) => f.id));
+  return near.filter((f) => !ids.has(f.id));
 }
 
 /**

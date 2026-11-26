@@ -17,7 +17,7 @@ One row is not THL's: `858;PORTTBL;55,00`, a unit the catalogue does not keep.
 
 `contribfood.csv` holds every row of twelve recipes, copied byte for byte: 29, 953, 6011, 7513, 29306, 30161, 31749, 32823, 34491, 34684, 34886 and 34995. Only 29 is a food of this release, and the import leaves it out. The other eleven count as recipes that use the foods here: skimmed milk (606) in five, sugar (1), the egg (858) and the banana (11049) in four each, oats (153) in three, the quark (622) in two, and ice cream (663) and the turkey (752) in one each. Most of their other ingredients, water (922) and salt (30) among them, are foods this release does not list. So no row here is left out of a recipe's foods as water or salt.
 
-The recipe rows come from `contribfood.csv` of Basic package 2, release 18, as mirrored at `raw.githubusercontent.com/theel0ja/fineli-data/master/basic-package-2/`. The committed counts in `recipeCountsR18.ts`, two folders up, were built from that file and the same package's `food.csv`. Neither input file is in the repository.
+The recipe rows come from `contribfood.csv` of Basic package 2, release 18, as mirrored at `raw.githubusercontent.com/theel0ja/fineli-data/master/basic-package-2/`. The committed counts in `recipeCountsR18.ts`, two folders up, were built from that file, the same package's `food.csv` and the release's `foodname_FI.csv`. No input file is in the repository.
 
 ## release-b
 

@@ -63,7 +63,7 @@ beforeEach(() => {
   jest.mocked(getFavouriteFoods).mockResolvedValue(favouritesOf(world));
   jest.mocked(getOwnFoods).mockResolvedValue(ownFoods());
   jest.mocked(getFood).mockReturnValue(new Promise(() => {}));
-  jest.mocked(searchFoods).mockResolvedValue({ foods: [] });
+  jest.mocked(searchFoods).mockResolvedValue({ foods: [], near: [] });
   // The day's own history entry, with nothing on it.
   window.history.pushState(null, "", "/");
   takeOpenedInApp();

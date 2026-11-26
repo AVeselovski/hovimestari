@@ -106,7 +106,7 @@ beforeEach(() => {
   jest.mocked(getFavouriteFoods).mockResolvedValue(favouritesOf(world));
   jest.mocked(getOwnFoods).mockResolvedValue(ownFoods());
   jest.mocked(getFood).mockReturnValue(new Promise(() => {}));
-  jest.mocked(searchFoods).mockResolvedValue({ foods: [] });
+  jest.mocked(searchFoods).mockResolvedValue({ foods: [], near: [] });
 });
 
 const dialog = (name: string | RegExp = "Log food") => screen.getByRole("dialog", { name });
@@ -248,7 +248,7 @@ describe("Browsing the log sheet", () => {
 
 describe("The log sheet's results", () => {
   it("puts the saved meals that match first, before the foods", async () => {
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark], near: [] });
     renderDay();
     await openLogSheet();
     await search("salmon");
@@ -269,8 +269,30 @@ describe("The log sheet's results", () => {
     expect(foods).toContainElement(sheet().querySelector<HTMLElement>("[data-list=results]"));
   });
 
+  it("keeps the line that no food has every word under Foods, and the near foods in a section of their own after it", async () => {
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [], near: [world.quark] });
+    renderDay();
+    await openLogSheet();
+    await search("salmon");
+    const near = await within(sheet()).findByRole("region", { name: "Other matches" });
+    const foods = region("Foods");
+    expect(within(foods).getByText("No exact match for “salmon”.")).toBeInTheDocument();
+    expect(foods).not.toContainElement(near);
+    expect(within(near).getAllByRole("listitem")).toHaveLength(1);
+    const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
+    expect(
+      within(body)
+        .getAllByRole("heading")
+        .map((h) => h.textContent),
+    ).toEqual(["Saved meals", "Foods", "Other matches"]);
+    // The offer to add the text comes after the near foods, outside both sections.
+    const add = within(sheet()).getByRole("button", { name: "Add “salmon” as your own food" });
+    expect(foods).not.toContainElement(add);
+    expect(near.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("gives the foods no heading of their own when no saved meal matches", async () => {
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark], near: [] });
     renderDay();
     await openLogSheet();
     await search("quark");

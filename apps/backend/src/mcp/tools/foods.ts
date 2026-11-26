@@ -21,7 +21,7 @@ const { limit: recentsLimit } = RecentsQuerySchema.shape;
 export const searchFoodsTool = defineTool({
   name: "search_foods",
   description:
-    "Foods whose Finnish or English name holds every word of q, ranked: favourites, then the person's own foods, first within a match. Each with its source and its figures per 100 g.",
+    "Foods whose Finnish or English name holds every word of q. Among foods that match as strongly, basic foods come before dishes. Within each of the two, the person's favourites, own foods and scanned products come first, and then, among basic foods, one that more of Fineli's recipes use. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. near lists up to 8 foods that hold all words but one, when q has two words or more and few foods hold them all: fewer than 8, or fewer than limit when limit is under 8. Each with its source and its figures per 100 g.",
   inputSchema: z.strictObject({
     q: q.describe("The words to find, 1 to 100 characters."),
     limit: searchLimit.describe("At most this many foods, 1 to 50."),

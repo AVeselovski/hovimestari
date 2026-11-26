@@ -116,6 +116,7 @@ beforeEach(() => {
   jest.mocked(useAuth).mockReturnValue(fakeAuth("authenticated"));
   jest.mocked(searchFoods).mockImplementation(async (q) => ({
     foods: summaries.filter((f) => f.name.toLowerCase().includes(q.toLowerCase())),
+    near: [],
   }));
   jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
   jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });

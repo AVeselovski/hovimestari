@@ -5,17 +5,31 @@ import type { RecipeCountsTable } from "./recipeCounts.js";
 // The recipe counts of Fineli release 18.0, for an import whose release folder has no
 // contribfood.csv. One row per food that a recipe uses or that has a recipe:
 // [Fineli id, recipes that use it, its recipe's rows besides water and salt, or null without a recipe].
+// mostUsed names the foods most recipes use, by their Finnish names in this release. The import
+// compares them with the names another release gives the same ids.
 //
 // Derived from Fineli, the Finnish food composition database of the Finnish Institute for
 // Health and Welfare (THL), release 18.0, used under the Creative Commons Attribution 4.0
 // licence (https://creativecommons.org/licenses/by/4.0/). Source: https://fineli.fi/.
 // THL does not produce or endorse Hovimestari.
 //
-// Built from: contribfood.csv and food.csv of Basic package 2, release 18.0, as mirrored at raw.githubusercontent.com/theel0ja/fineli-data/master/basic-package-2/ (food.csv converted to UTF-8). 10,797 recipe rows, 1,968 recipes.
+// Built from: contribfood.csv and food.csv of Basic package 2, release 18.0, as mirrored at raw.githubusercontent.com/theel0ja/fineli-data/master/basic-package-2/ (food.csv converted to UTF-8), and foodname_FI.csv of the same release. 10,797 recipe rows, 1,968 recipes.
 
 // prettier-ignore
 export const RECIPE_COUNTS_R18: RecipeCountsTable = {
   release: "18.0",
+  mostUsed: [
+    [30, "Ruokasuola, jodioitu"],
+    [922, "Vesi, vesijohtovesi"],
+    [5900, "Ruoanvalmistusrasva, keskiarvo"],
+    [110, "Jauho, vehnäjauho, puolikarkea"],
+    [335, "Sipuli, keltasipuli"],
+    [858, "Kananmuna, kuoreton"],
+    [1, "Sokeri"],
+    [684, "Maito, kevytmaito, d-vitamiinia 1 ug"],
+    [541, "Ruokaöljy keskiarvo, 87 % rypsi- 8 % auringonkukka- ja 5% oliiviöljy"],
+    [26, "Hiiva, tuore"],
+  ],
   rows: [
     [1, 337, null], [2, 9, null], [3, 54, null], [4, 25, null], [6, 1, null], [10, 2, null], [20, 29, null], [21, 5, null],
     [25, 12, null], [26, 149, null], [27, 26, null], [28, 21, null], [29, 53, 1], [30, 1081, null], [31, 28, null], [32, 8, null],

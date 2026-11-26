@@ -125,7 +125,7 @@ describe("The log sheet's food view", () => {
   });
 
   it("fills a search result's amount from its detail when that answers, while nothing is typed", async () => {
-    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark] });
+    jest.mocked(searchFoods).mockResolvedValue({ foods: [world.quark], near: [] });
     let answer!: (value: ReturnType<typeof detailOf>) => void;
     jest.mocked(getFood).mockImplementationOnce(() => new Promise((r) => (answer = r)));
     renderDay();

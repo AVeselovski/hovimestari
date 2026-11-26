@@ -34,6 +34,14 @@ export function sentenceCase(name: string, locale: NameLocale): string {
   return first + name.slice(first.length).toLocaleLowerCase(locale);
 }
 
+/** The first FOODNAME per FOODID of a name file's rows, in sentence case when Fineli wrote it in capitals. */
+export function firstNames(rows: ReadonlyArray<Record<string, string>>, locale: NameLocale): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const row of rows)
+    if (row.FOODNAME && !map.has(row.FOODID)) map.set(row.FOODID, sentenceCase(row.FOODNAME, locale));
+  return map;
+}
+
 /** The two names differ, but only in case. */
 export function differsInCaseOnly(a: string, b: string, locale: NameLocale): boolean {
   return a !== b && a.toLocaleLowerCase(locale) === b.toLocaleLowerCase(locale);

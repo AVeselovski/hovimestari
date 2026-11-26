@@ -34,7 +34,7 @@ An estimate is an entry with a name and four typed figures, for a meal nobody ca
 
 ## 5. Foods
 *(Sources: foods.md)*
-Every food has energy, protein, carbohydrates and fat per 100 g, and a source: fineli (the Finnish food composition database), open_food_facts, or user (the person's own, typed from a label). Shared foods are read-only. search_foods matches every word in the Finnish or English name, in a fixed ranking: favourites, then the person's own foods, rank first within a match. Portions turn a count into grams, such as one medium egg. A barcode lookup tries the person's own foods first, then Open Food Facts, which it can call about 30 times an hour for this person, a budget shared with the person's own scans in the app. When a product has values missing, the values on its label become one of the person's own foods.
+Every food has energy, protein, carbohydrates and fat per 100 g, and a source: fineli (the Finnish food composition database), open_food_facts, or user (the person's own, typed from a label). Shared foods are read-only. search_foods matches every word in the Finnish or English name, in a fixed order of the catalogue. Among foods that match as strongly, basic foods come before dishes. Within each of the two, the person's favourites, own foods and scanned products come first, and then, among basic foods, one that more of Fineli's recipes use. The order says where a food stands in the catalogue and nothing about what to eat. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. When a search of two words or more finds few foods, near lists foods that hold all words but one. Portions turn a count into grams, such as one medium egg. A barcode lookup tries the person's own foods first, then Open Food Facts, which it can call about 30 times an hour for this person, a budget shared with the person's own scans in the app. When a product has values missing, the values on its label become one of the person's own foods.
 
 ## 6. Logging and recent items
 *(Sources: quick-logging.md)*
@@ -96,9 +96,9 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "576bb04c2b044cda6ab66feb23d5a315ee40fa1122490b6223bc7be7d08d6b77",
+  "connected-ai.md": "bf94e9682e880cd97b1c01d9e038b658f3805ea56aab9f9958ecf87e181d94ff",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
-  "foods.md": "ba76c5d80c6f9c52e1ae84152d20dcdbc3e375f1bbf2042169ae402a5965bf47",
+  "foods.md": "611996280f13442c2ee508de8230ca3bf7a58ba53e217f446e1f24448d525d0b",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "df02d88b1fd7f3178c21fdfd40d5549c04cbfb81d5dc91c8b97e2fdfc43b8e5a",
   "recipes.md": "c18f55e3f28ed6915142d3db9cfe9a19840c4c36d3f18019984d28b66c539d01",

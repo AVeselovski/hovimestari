@@ -7,14 +7,19 @@ import {
   type FavouriteFoodList,
   type FoodDetail,
   type FoodList,
+  type FoodSearchResult,
   type OwnFoodBody,
   type Portion,
   type PortionBody,
 } from "@hovimestari/types";
 
-/** `GET /foods/search`: the foods whose names hold every word of `q`, ranked by the server. */
-export async function searchFoods(q: string, req?: RequestOptions): Promise<FoodList> {
-  const res = await api.get<FoodList>("/foods/search", { params: { q }, signal: req?.signal });
+/**
+ * `GET /foods/search`: the foods whose names hold every word of `q`, ranked
+ * by the server, and in `near` the foods that hold all words but one, which
+ * the server lists only when few foods hold them all.
+ */
+export async function searchFoods(q: string, req?: RequestOptions): Promise<FoodSearchResult> {
+  const res = await api.get<FoodSearchResult>("/foods/search", { params: { q }, signal: req?.signal });
   return res.data;
 }
 

@@ -24,6 +24,7 @@ const DISH = 31924;
 /** Counts for the egg, for the dish, and for an id no fixture release has. */
 const SMALL_TABLE: RecipeCountsTable = {
   release: "18.0",
+  mostUsed: [[EGG, "Kananmuna, kuoreton"]],
   rows: [
     [EGG, 7, null],
     [DISH, 0, 3],
@@ -249,27 +250,31 @@ await describeWithDb("fineliImportRecipes", (suite) => {
       expect(error).toEqual([
         "Fineli import stopped. The database lacks a table or a column the import reads, so its migrations have not all been run. " +
           "Nothing was written. Run the migrations, then the import again. " +
-          "On your own machine: pnpm --filter @hovimestari/backend db:migrate",
+          'On your own machine: pnpm --filter @hovimestari/backend db:migrate. Postgres said: column "fineli_recipe_foods" does not exist',
       ]);
       expect(await stored()).toEqual(before);
     });
   });
 
   describe("what the food routes answer", () => {
-    it("is the same before and after the counts land, with no count in any answer", async () => {
+    it("holds no count in any answer, and search lists the same foods in the order the counts give", async () => {
       await mod.runImport(suite.db, args(NO_RECIPE_FILE), T1);
       const user = await signUp(suite.client);
       const read = async () => {
         const search = await request(suite.app).get("/api/v1/foods/search").query({ q: "maito" }).set(user.auth);
-        const id = search.body.foods[0].id as string;
-        const detail = await request(suite.app).get(`/api/v1/foods/${id}`).set(user.auth);
-        return { search: search.body, detail: detail.body };
+        const foods = search.body.foods as { id: string; name: string }[];
+        const detail = await request(suite.app).get(`/api/v1/foods/${foods[0].id}`).set(user.auth);
+        return { foods, near: search.body.near, detail: detail.body };
       };
+      const byId = (foods: { id: string }[]) => [...foods].sort((x, y) => x.id.localeCompare(y.id));
       const before = await read();
       await mod.runImport(suite.db, args(A), T1);
       const after = await read();
-      expect(after).toEqual(before);
-      expect(JSON.stringify(after)).not.toMatch(/recipe/i);
+      expect(byId(after.foods)).toEqual(byId(before.foods));
+      // Without counts the shorter name leads. With them, the milk five recipes use.
+      expect(before.foods[0].name).toBe("Maito, kutunmaito, vuohenmaito");
+      expect(after.foods[0].name).toBe("Maito, rasvaton, d-vitamiinia 1 ug");
+      expect(JSON.stringify([before, after])).not.toMatch(/recipe/i);
     });
   });
 });

@@ -6,7 +6,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSheetTarget, type SheetTarget } from "@/hooks/useSheetTarget";
 import { barcodeOf } from "@/lib/barcode";
 import { foodSearchQuery } from "@/lib/queryOptions";
-import type { FoodDetail, FoodList, FoodSummary, LastAmount } from "@hovimestari/types";
+import type { FoodDetail, FoodSearchResult, FoodSummary, LastAmount } from "@hovimestari/types";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
@@ -30,8 +30,10 @@ import { useBarcodeMode } from "./useBarcodeMode";
 //   food results, after the host's `lead` when it has one. The results keep
 //   to the host's browse lists until typing has settled on two characters or
 //   more and the first answer is in, and keep the last answer on screen while
-//   the next loads, so the list is never blank in between. A query no food
-//   matches offers to add it as the user's own food.
+//   the next loads, so the list is never blank in between. When few foods
+//   hold every word of a text of two words or more, the foods that hold all
+//   but one follow under a heading of their own, and then the offer to add
+//   the text as the user's own food, which a text no food matches shows too.
 // - `stacked`: the scanner sheet and the own-food sheet, for the sheet's
 //   `stacked` slot, so each is a nested sheet and the host recedes behind it.
 //
@@ -208,6 +210,7 @@ export function useFoodFinder({
 }
 
 interface FinderResultsProps {
+  /** What the field holds, trimmed, and `settled`, the same once typing has paused. */
   query: string;
   settled: string;
   notice: string | null;
@@ -235,10 +238,18 @@ function FinderResults({
     query.length >= MIN_QUERY_LENGTH &&
     settled.length >= MIN_QUERY_LENGTH;
   const search = useQuery({ ...foodSearchQuery(settled), enabled: searching });
-  // The first answer for a search is on its way: the lists stay until it lands.
-  const firstLoad = search.data === undefined && search.fetchStatus === "fetching";
+  // The text the lists on screen answer, kept here, where the query lives,
+  // since the results below unmount whenever the field empties. It is the
+  // settled text once its own answer is in, stays while the next answer
+  // loads, and is null while no search runs. An answer held from before the
+  // field emptied is no answer to the text typed after, so that text is a
+  // first load again and the host's lists stay until its answer lands.
+  const [held, setHeld] = useState<string | null>(null);
+  const answered = !searching ? null : search.data !== undefined && !search.isPlaceholderData ? settled : held;
+  if (answered !== held) setHeld(answered);
   const tResults = useTranslations("log.results");
-  const showsResults = searching && !firstLoad;
+  // Without an answer the results still show what stops one: no connection, or a failure.
+  const showsResults = searching && (answered !== null || search.fetchStatus !== "fetching");
   const rootRef = useRef<HTMLDivElement>(null);
   // On a mount too, where it changes nothing: Back from a view mounts this
   // again, and `useSheetNavigation`'s layout effect, the parent's, runs after
@@ -264,11 +275,12 @@ function FinderResults({
           {led?.node}
           {/* Under what leads, the foods have a heading of their own, so the two read as two. */}
           <Results
-            settled={settled}
+            answered={answered}
             search={search}
             onOpen={onOpen}
             onAddOwn={onAddOwn}
-            title={led?.foodsTitled ? tResults("foods") : undefined}
+            foodsName={tResults("foods")}
+            titled={led?.foodsTitled ?? false}
           />
         </>
       )}
@@ -277,27 +289,40 @@ function FinderResults({
 }
 
 function Results({
-  settled,
+  answered,
   search,
   onOpen,
   onAddOwn,
-  title,
-}: Pick<FinderResultsProps, "settled" | "onOpen" | "onAddOwn"> & {
-  search: UseQueryResult<FoodList>;
-  /** A heading over the foods, when something shows above them. */
-  title?: string;
+  foodsName,
+  titled,
+}: Pick<FinderResultsProps, "onOpen" | "onAddOwn"> & {
+  /** The text the lists on screen answer, or null while none does. Every line and button here names this text. */
+  answered: string | null;
+  search: UseQueryResult<FoodSearchResult>;
+  /** The name of the foods that hold every word: "Foods". */
+  foodsName: string;
+  /** Something shows above the foods, so they take that name as a heading. */
+  titled: boolean;
 }): ReactElement {
   const t = useTranslations("foods.sheet");
-  const waiting = search.isPlaceholderData || search.data === undefined;
-  const offline = search.fetchStatus === "paused" && waiting;
-  const failed = search.isError && search.data === undefined;
-  const settledFoods = search.isPlaceholderData ? undefined : search.data?.foods;
+  // The last answer stays while the next loads, marked busy. Data held for no answered text is not shown.
+  const shown = answered === null ? undefined : search.data;
+  const busy = search.isPlaceholderData || undefined;
+  const offline = search.fetchStatus === "paused" && (search.isPlaceholderData || search.data === undefined);
+  const failed = search.isError && shown === undefined;
+  // The two lists, when nothing stands in their place. Each state below is decided from them alone.
+  const lists = offline || failed ? undefined : shown;
+  const text = answered ?? "";
 
-  let body: ReactElement | null = null;
+  // The foods that hold every word, or the line that says none does. With
+  // the `near` list under it or without, it is the same element at the same
+  // place, so nothing above the new heading moves.
+  let main: ReactElement | null = null;
+  let nearBlock: ReactElement | null = null;
   if (offline) {
-    body = <p className="py-3 text-base text-ink">{t("offline")}</p>;
+    main = <p className="py-3 text-base text-ink">{t("offline")}</p>;
   } else if (failed) {
-    body = (
+    main = (
       <div className="flex flex-col items-start gap-3 py-3">
         <p className="text-base text-ink">{t("failed")}</p>
         <button type="button" onClick={() => void search.refetch()} className={btnSecondary}>
@@ -305,39 +330,77 @@ function Results({
         </button>
       </div>
     );
-  } else if (settledFoods && settledFoods.length === 0) {
-    body = (
-      <div className="flex flex-col items-start gap-4 py-3">
-        <p className="text-base break-words text-ink">{t("noResults", { query: settled })}</p>
-        {/* A long query wraps rather than running out of the button. */}
-        <button type="button" onClick={(e) => onAddOwn(settled, e.currentTarget)} className={btnWide}>
-          {t("addQuery", { query: settled })}
-        </button>
+  } else if (lists && lists.foods.length === 0 && lists.near.length === 0) {
+    main = (
+      <div className="flex flex-col items-start gap-4 py-3" aria-busy={busy}>
+        <p className="text-base wrap-anywhere text-ink">{t("noResults", { query: text })}</p>
+        <AddQueryButton query={text} onAddOwn={onAddOwn} />
       </div>
     );
-  } else if (search.data && search.data.foods.length > 0) {
-    body = (
-      <ul data-list="results" aria-busy={search.isPlaceholderData || undefined}>
-        {search.data.foods.map((food) => (
-          <FoodRow key={food.id} food={food} onOpen={onOpen} />
-        ))}
-      </ul>
-    );
+  } else if (lists) {
+    main =
+      lists.foods.length > 0 ? (
+        <ul data-list="results" aria-label={titled ? undefined : foodsName} aria-busy={busy}>
+          {lists.foods.map((food) => (
+            <FoodRow key={food.id} food={food} onOpen={onOpen} />
+          ))}
+        </ul>
+      ) : (
+        <p className="py-3 text-base wrap-anywhere text-ink">{t("noneWithAll", { query: text })}</p>
+      );
+    if (lists.near.length > 0) {
+      nearBlock = (
+        <>
+          {/* The foods that hold all words but one, a list of its own, so Back finds a row of it. */}
+          <section aria-label={t("nearTitle")} data-list="results-near" className="mt-6">
+            <h3 className={`${sectionTitle} mb-1`}>{t("nearTitle")}</h3>
+            <ul aria-busy={busy}>
+              {lists.near.map((food) => (
+                <FoodRow key={food.id} food={food} onOpen={onOpen} />
+              ))}
+            </ul>
+          </section>
+          <div className="mt-4">
+            <AddQueryButton query={text} onAddOwn={onAddOwn} />
+          </div>
+        </>
+      );
+    }
   }
+  // Said once the answer is the typed text's own, not while the last one is held.
+  const said = search.isPlaceholderData ? undefined : lists;
 
   return (
     <>
       <p aria-live="polite" className="sr-only">
-        {settledFoods ? t("resultCount", { count: settledFoods.length }) : ""}
+        {said
+          ? [
+              t("resultCount", { count: said.foods.length }),
+              said.near.length > 0 ? t("nearCount", { count: said.near.length }) : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
+          : ""}
       </p>
-      {title !== undefined && body !== null ? (
-        <section aria-label={title} data-list="food-results">
-          <h3 className={`${sectionTitle} mb-1`}>{title}</h3>
-          {body}
+      {titled && main !== null ? (
+        <section aria-label={foodsName} data-list="food-results">
+          <h3 className={`${sectionTitle} mb-1`}>{foodsName}</h3>
+          {main}
         </section>
       ) : (
-        body
+        main
       )}
+      {nearBlock}
     </>
+  );
+}
+
+/** Opens the own-food sheet with the typed text as the name. A long text wraps rather than running out of the button. */
+function AddQueryButton({ query, onAddOwn }: { query: string } & Pick<FinderResultsProps, "onAddOwn">): ReactElement {
+  const t = useTranslations("foods.sheet");
+  return (
+    <button type="button" onClick={(e) => onAddOwn(query, e.currentTarget)} className={btnWide}>
+      {t("addQuery", { query })}
+    </button>
   );
 }

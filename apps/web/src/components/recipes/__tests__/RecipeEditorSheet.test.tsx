@@ -56,6 +56,7 @@ let server: FakeRecipes;
 beforeEach(() => {
   jest.mocked(searchFoods).mockImplementation(async (q) => ({
     foods: [egg, tomato].filter((f) => f.name.toLowerCase().includes(q.toLowerCase().split(" ")[0])),
+    near: [],
   }));
   jest.mocked(getFavouriteFoods).mockResolvedValue({ foods: [] });
   jest.mocked(getOwnFoods).mockResolvedValue({ foods: [] });
