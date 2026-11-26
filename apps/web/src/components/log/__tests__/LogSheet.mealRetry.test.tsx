@@ -18,7 +18,7 @@ import type { SavedMeal } from "@hovimestari/types";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { favouritesOf, logWorld, openLogSheet, ownFoods, statusLine } from "./logHarness";
 
-// A new saved meal pressed again after a send that could not confirm, with
+// A new meal pressed again after a send that could not confirm, with
 // the form changed in between (components/log/mealSends.ts). The real Day
 // tab against the fake server of components/day/__tests__/harness.tsx, which
 // answers a repeated id with what it saved the first time, as
@@ -123,12 +123,12 @@ const mealCalls = (archived: boolean) => jest.mocked(getSavedMeals).mock.calls.f
 
 const timeout = (): Error => Object.assign(new Error("timeout"), { isAxiosError: true, code: "ECONNABORTED" });
 
-/** Opens New saved meal from the log sheet and fills it: Bowl, 700 kcal, 45, 70 and 25 g. */
+/** Opens New meal from the log sheet and fills it: Bowl, 700 kcal, 45, 70 and 25 g. */
 async function newMeal(): Promise<HTMLElement> {
   renderDay();
   await openLogSheet();
-  fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-  const stacked = await screen.findByRole("dialog", { name: "New saved meal" });
+  fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+  const stacked = await screen.findByRole("dialog", { name: "New meal" });
   for (const [label, value] of [
     ["Name", "Bowl"],
     ["Calories", "700"],
@@ -141,9 +141,9 @@ async function newMeal(): Promise<HTMLElement> {
   return stacked;
 }
 
-const press = (name: string) => fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name }));
+const press = (name: string) => fireEvent.click(within(dialog("New meal")).getByRole("button", { name }));
 const notConfirmed = () =>
-  within(dialog("New saved meal")).findByText("Could not confirm. Check your connection and try again.");
+  within(dialog("New meal")).findByText("Could not confirm. Check your connection and try again.");
 const bowls = () => [...world.server.meals.values()].filter((m) => m.name.startsWith("Bowl"));
 const bowlEntries = () => world.server.entries.filter((e) => e.kind === "saved_meal");
 
@@ -163,7 +163,7 @@ function saveAndLogLandsUnanswered(): void {
   });
 }
 
-describe("A new saved meal pressed again after a send that could not confirm", () => {
+describe("A new meal pressed again after a send that could not confirm", () => {
   it("Save meal, then Calories changed, then Save meal: the one meal holds the new value", async () => {
     createLandsUnanswered();
     await newMeal();
@@ -171,7 +171,7 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     await notConfirmed();
     fireEvent.change(field("Calories"), { target: { value: "750" } });
     press("Save meal");
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     expect(updateSavedMeal).toHaveBeenCalledTimes(1);
     expect(bowls()).toHaveLength(1);
     expect(bowls()[0].figures.energyKcal).toBe(750);
@@ -238,7 +238,7 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     await newMeal();
     press("Save and log");
     await notConfirmed();
-    fireEvent.click(within(dialog("New saved meal")).getByRole("radio", { name: "Planned" }));
+    fireEvent.click(within(dialog("New meal")).getByRole("radio", { name: "Planned" }));
     press("Save and add to plan");
     await screen.findByText("Saved Bowl and added it to the plan.");
     expect(updateSavedMeal).not.toHaveBeenCalled();
@@ -251,7 +251,7 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     press("Save and log");
     await notConfirmed();
     const first = jest.mocked(saveAndLog).mock.calls[0][0];
-    fireEvent.click(within(dialog("New saved meal")).getByRole("radio", { name: "Planned" }));
+    fireEvent.click(within(dialog("New meal")).getByRole("radio", { name: "Planned" }));
     press("Save and add to plan");
     await screen.findByText("Saved Bowl and added it to the plan.");
     expect(removeEntry).toHaveBeenCalledWith(first.entry.id);
@@ -270,7 +270,7 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     press("Save and log");
     await notConfirmed();
     const first = jest.mocked(saveAndLog).mock.calls[0][0];
-    fireEvent.click(within(dialog("New saved meal")).getByRole("radio", { name: "Planned" }));
+    fireEvent.click(within(dialog("New meal")).getByRole("radio", { name: "Planned" }));
     press("Save and add to plan");
     await screen.findByText("Saved Bowl and added it to the plan.");
     // The first request reaches the server only now, after the second.
@@ -286,7 +286,7 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     await notConfirmed();
     press("Save meal");
     await waitFor(() => expect(removeEntry).toHaveBeenCalled());
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     expect(bowls()).toHaveLength(1);
     expect(bowlEntries()).toEqual([]);
     expect(statusLine()).toHaveTextContent("Saved Bowl.");
@@ -330,8 +330,8 @@ describe("A new saved meal pressed again after a send that could not confirm", (
     press("Save meal");
     await notConfirmed();
     await waitFor(() => expect(mealCalls(false)).toBeGreaterThan(reads));
-    fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(rowsOf("Saved meals").some((t) => t.startsWith("Bowl"))).toBe(true));
+    fireEvent.click(within(dialog("New meal")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(rowsOf("My meals").some((t) => t.startsWith("Bowl"))).toBe(true));
   });
 });
 
@@ -342,8 +342,8 @@ describe("The log sheet's one status line", () => {
     await openLogSheet();
     fireEvent.click(within(region("Recent")).getByRole("button", { name: /^Log Quark again/ }));
     await waitFor(() => expect(statusLine()).toHaveTextContent("Could not confirm. Try again."));
-    fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+    await screen.findByRole("dialog", { name: "New meal" });
     for (const [label, value] of [
       ["Name", "Bowl"],
       ["Calories", "700"],

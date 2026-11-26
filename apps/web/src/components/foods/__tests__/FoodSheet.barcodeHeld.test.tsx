@@ -212,7 +212,7 @@ describe("FoodSheet's barcode block, focus when its button leaves", () => {
     type(CODE);
     fireEvent.click(lookUpButton()!);
     fireEvent.click(await within(block()!).findByRole("button", { name: "Add it from the label" }));
-    const sheet = await waitFor(() => openSheet("Add a food")!);
+    const sheet = await waitFor(() => openSheet("New food")!);
     const focused = target(sheet);
     focused.focus();
     expect(document.activeElement).toBe(focused);

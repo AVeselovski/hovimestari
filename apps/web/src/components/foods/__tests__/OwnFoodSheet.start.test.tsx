@@ -18,7 +18,7 @@ beforeEach(() => {
     .mockResolvedValue(detailOf(ownFood("Saved")));
 });
 
-const dialog = () => screen.getByRole("dialog", { name: /add a food/i });
+const dialog = () => screen.getByRole("dialog", { name: /new food/i });
 const input = (label: string) => within(dialog()).getByLabelText(label) as HTMLInputElement;
 const type = (label: string, value: string) => fireEvent.change(input(label), { target: { value } });
 const save = () => fireEvent.click(within(dialog()).getByRole("button", { name: "Save food" }));

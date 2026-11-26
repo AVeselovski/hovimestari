@@ -142,15 +142,15 @@ describe("The meal view", () => {
     world.server.entries.push(planned);
     renderDay();
     await openLogSheet();
-    const before = rowsOf("Saved meals");
-    await openMeal("Saved meals", "Salmon soup");
+    const before = rowsOf("My meals");
+    await openMeal("My meals", "Salmon soup");
     const reads = jest.mocked(getDay).mock.calls.length;
     holdListReads();
     fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
-    await screen.findByRole("dialog", { name: "Edit saved meal" });
+    await screen.findByRole("dialog", { name: "Edit meal" });
     fireEvent.change(field("Calories"), { target: { value: "750" } });
-    fireEvent.click(within(dialog("Edit saved meal")).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit saved meal" })).toBeNull());
+    fireEvent.click(within(dialog("Edit meal")).getByRole("button", { name: "Save meal" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit meal" })).toBeNull());
     expect(updateSavedMeal).toHaveBeenCalledWith(
       soup.id,
       expect.objectContaining({ figures: expect.objectContaining({ energyKcal: 750 }) }),
@@ -158,9 +158,9 @@ describe("The meal view", () => {
     expect(statusLine()).toHaveTextContent("Saved Salmon soup.");
     await waitFor(() => expect(jest.mocked(getDay).mock.calls.length).toBeGreaterThan(reads));
     fireEvent.click(within(sheet()).getByRole("button", { name: "Back" }));
-    await within(sheet()).findByRole("region", { name: "Saved meals" });
+    await within(sheet()).findByRole("region", { name: "My meals" });
     // The lists' reads are still out: what shows is the edit's own answer, put in place.
-    const after = rowsOf("Saved meals");
+    const after = rowsOf("My meals");
     expect(after.map((t) => t.slice(0, 12))).toEqual(before.map((t) => t.slice(0, 12)));
     expect(after[1]).toContain("750 kcal");
   });
@@ -172,10 +172,10 @@ describe("The meal view", () => {
     await openMeal("Recent", "Shake");
     holdListReads();
     fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
-    await screen.findByRole("dialog", { name: "Edit saved meal" });
+    await screen.findByRole("dialog", { name: "Edit meal" });
     fireEvent.change(field("Name"), { target: { value: "Night shake" } });
-    fireEvent.click(within(dialog("Edit saved meal")).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit saved meal" })).toBeNull());
+    fireEvent.click(within(dialog("Edit meal")).getByRole("button", { name: "Save meal" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Edit meal" })).toBeNull());
     fireEvent.click(within(sheet()).getByRole("button", { name: "Back" }));
     await within(sheet()).findByRole("region", { name: "Recent" });
     const after = rowsOf("Recent");
@@ -187,20 +187,20 @@ describe("The meal view", () => {
   it("archives a meal in place: the button turns into Restore meal, and it leaves the saved meals before they are read again", async () => {
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     holdListReads();
     fireEvent.click(within(sheet()).getByRole("button", { name: "Archive meal" }));
     await within(sheet()).findByRole("button", { name: "Restore meal" });
     expect(setSavedMealArchived).toHaveBeenCalledWith(bowl.id, true);
     fireEvent.click(within(sheet()).getByRole("button", { name: "Back" }));
-    await within(sheet()).findByRole("region", { name: "Saved meals" });
-    expect(rowsOf("Saved meals").map((t) => t.slice(0, 11))).toEqual(["Salmon soup", "ShakeHome60"]);
+    await within(sheet()).findByRole("region", { name: "My meals" });
+    expect(rowsOf("My meals").map((t) => t.slice(0, 11))).toEqual(["Salmon soup", "ShakeHome60"]);
   });
 
   it("keeps focus on the archive button, now Restore meal, and the body where it was scrolled, through Archive and Restore", async () => {
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
     const archive = within(sheet()).getByRole("button", { name: "Archive meal" });
     archive.focus();
@@ -219,7 +219,7 @@ describe("The meal view", () => {
     const answer = deferred<void>();
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     jest.mocked(setSavedMealArchived).mockReturnValue(answer.promise);
     const archive = within(sheet()).getByRole("button", { name: "Archive meal" });
     act(() => {
@@ -234,7 +234,7 @@ describe("The meal view", () => {
   it("deletes a meal after asking, and lands on browsing with focus in the search field", async () => {
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     fireEvent.click(within(sheet()).getByRole("button", { name: "Delete meal" }));
     const confirm = await screen.findByRole("dialog", { name: "Delete Chicken bowl?" });
     expect(confirm).toHaveTextContent("Days it was logged on keep their figures.");
@@ -242,15 +242,15 @@ describe("The meal view", () => {
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(deleteSavedMeal).toHaveBeenCalledWith(bowl.id));
     await waitFor(() => expect(searchField()).toHaveFocus());
-    expect(rowsOf("Saved meals").join()).not.toContain("Chicken bowl");
+    expect(rowsOf("My meals").join()).not.toContain("Chicken bowl");
   });
 
   it("deletes from the edit sheet on the meal view: one DELETE, the edit sheet closed, browsing with focus in the search field", async () => {
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
-    const edit = await screen.findByRole("dialog", { name: "Edit saved meal" });
+    const edit = await screen.findByRole("dialog", { name: "Edit meal" });
     fireEvent.click(within(edit).getByRole("button", { name: "Delete" }));
     const confirm = await screen.findByRole("dialog", { name: "Delete Chicken bowl?" });
     // Stacked on the edit sheet, not on the log sheet: a confirmation over a stacked sheet is raised again.
@@ -258,11 +258,11 @@ describe("The meal view", () => {
     await confirmArmed();
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
     // Read from the DOM: a role query misses the edit sheet while the confirmation hides it.
-    await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+    await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
     await waitFor(() => expect(searchField()).toHaveFocus());
     expect(deleteSavedMeal).toHaveBeenCalledTimes(1);
     expect(deleteSavedMeal).toHaveBeenCalledWith(bowl.id);
-    expect(rowsOf("Saved meals").join()).not.toContain("Chicken bowl");
+    expect(rowsOf("My meals").join()).not.toContain("Chicken bowl");
   });
 
   it("takes a meal already deleted on another device as deleted, from the meal view and from the edit sheet", async () => {
@@ -272,10 +272,10 @@ describe("The meal view", () => {
       [bowl, false],
       [soup, true],
     ] as const) {
-      await openMeal("Saved meals", meal.name);
+      await openMeal("My meals", meal.name);
       if (fromSheet) {
         fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
-        const edit = await screen.findByRole("dialog", { name: "Edit saved meal" });
+        const edit = await screen.findByRole("dialog", { name: "Edit meal" });
         fireEvent.click(within(edit).getByRole("button", { name: "Delete" }));
       } else {
         fireEvent.click(within(sheet()).getByRole("button", { name: "Delete meal" }));
@@ -285,23 +285,23 @@ describe("The meal view", () => {
       await confirmArmed();
       fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
       await waitFor(() => expect(openSheet(`Delete ${meal.name}?`)).toBeNull());
-      await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+      await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
       await waitFor(() => expect(searchField()).toHaveFocus());
-      expect(rowsOf("Saved meals").join()).not.toContain(meal.name);
+      expect(rowsOf("My meals").join()).not.toContain(meal.name);
     }
   });
 
   it("goes back to browsing with its notice when an edit finds the meal gone", async () => {
     renderDay();
     await openLogSheet();
-    await openMeal("Saved meals", "Chicken bowl");
+    await openMeal("My meals", "Chicken bowl");
     world.server.meals.delete(bowl.id);
     fireEvent.click(within(sheet()).getByRole("button", { name: "Edit meal" }));
-    await screen.findByRole("dialog", { name: "Edit saved meal" });
+    await screen.findByRole("dialog", { name: "Edit meal" });
     fireEvent.change(field("Calories"), { target: { value: "750" } });
-    fireEvent.click(within(dialog("Edit saved meal")).getByRole("button", { name: "Save meal" }));
+    fireEvent.click(within(dialog("Edit meal")).getByRole("button", { name: "Save meal" }));
     expect(await within(sheet()).findByText("This saved meal is no longer available.")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Edit saved meal" })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: "Edit meal" })).toBeNull();
     await waitFor(() => expect(searchField()).toHaveFocus());
   });
 });
@@ -311,12 +311,12 @@ describe("The archived meals", () => {
     renderDay();
     await openLogSheet();
     expect(mealCalls(true)).toBe(0);
-    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Archived meals" }));
+    fireEvent.click(within(region("My meals")).getByRole("button", { name: "Archived meals" }));
     expect(await within(sheet()).findByText("Meals you archive appear here.")).toBeInTheDocument();
     expect(mealCalls(true)).toBe(1);
     fireEvent.click(within(sheet()).getByRole("button", { name: "Back" }));
     await waitFor(() =>
-      expect(within(region("Saved meals")).getByRole("button", { name: "Archived meals" })).toHaveFocus(),
+      expect(within(region("My meals")).getByRole("button", { name: "Archived meals" })).toHaveFocus(),
     );
   });
 
@@ -326,7 +326,7 @@ describe("The archived meals", () => {
     for (const meal of [old, older]) world.server.meals.set(meal.id, meal);
     renderDay();
     await openLogSheet();
-    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Archived meals" }));
+    fireEvent.click(within(region("My meals")).getByRole("button", { name: "Archived meals" }));
     const list = () => sheet().querySelector<HTMLElement>("[data-list=archived]")!;
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(2));
     fireEvent.click(within(list()).getByRole("button", { name: "Restore Old curry" }));
@@ -334,7 +334,7 @@ describe("The archived meals", () => {
     expect(within(list()).getByRole("listitem")).toHaveTextContent("Older pasta");
     expect(setSavedMealArchived).toHaveBeenCalledWith(old.id, false);
     fireEvent.click(within(sheet()).getByRole("button", { name: "Back" }));
-    await waitFor(() => expect(rowsOf("Saved meals").join()).toContain("Old curry"));
+    await waitFor(() => expect(rowsOf("My meals").join()).toContain("Old curry"));
   });
 
   it("opens an archived meal, which can still be logged", async () => {
@@ -342,7 +342,7 @@ describe("The archived meals", () => {
     world.server.meals.set(old.id, old);
     renderDay();
     await openLogSheet();
-    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Archived meals" }));
+    fireEvent.click(within(region("My meals")).getByRole("button", { name: "Archived meals" }));
     const list = () => sheet().querySelector<HTMLElement>("[data-list=archived]")!;
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(1));
     fireEvent.click(within(list()).getByRole("button", { name: /^Old curry/ }));

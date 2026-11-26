@@ -205,7 +205,7 @@ describe("FoodSheet, favourite marks", () => {
     addOwn(mine);
     const calls = heldMarks();
     renderSheet();
-    await screen.findByRole("region", { name: "Your foods" });
+    await screen.findByRole("region", { name: "My foods" });
     type("oma rahka");
     await settle();
     await openDetail("Oma rahka");
@@ -225,7 +225,7 @@ describe("FoodSheet, favourite marks", () => {
     // The search was marked stale by the rollback, so showing it reads it again.
     await waitFor(() => expect(searchFoods).toHaveBeenCalledTimes(2));
     type("");
-    const own = await screen.findByRole("region", { name: "Your foods" });
+    const own = await screen.findByRole("region", { name: "My foods" });
     expect(within(within(own).getByRole("button", { name: /^Oma rahka/ })).getByText("Favourite")).toBeInTheDocument();
     const favourites = screen.getByRole("region", { name: "Favourites" });
     expect(within(favourites).getByText("Oma rahka")).toBeInTheDocument();

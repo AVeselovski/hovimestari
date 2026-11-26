@@ -1,4 +1,5 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
+import { clockFrom } from "@/__tests__/helpers/clock";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDay } from "@/lib/api/days";
 import { patchEntry, removeEntry, restoreEntry, setEntriesStatus } from "@/lib/api/entries";
@@ -6,6 +7,7 @@ import { getFood } from "@/lib/api/foods";
 import { getTargets } from "@/lib/api/targets";
 import { afterFoodNameLanguageChange, afterTargetsChange } from "@/lib/invalidation";
 import { formatDayShort } from "@/lib/localDate";
+import { dayQuery, targetsQuery } from "@/lib/queryOptions";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import fs from "node:fs";
 import path from "node:path";
@@ -340,6 +342,55 @@ describe("DayTab, the entry sheet", () => {
     expect(await within(sheet).findByText("Enter a value.")).toBeInTheDocument();
     expect(patchEntry).not.toHaveBeenCalled();
     expect(within(sheet).getByLabelText("Calories")).toHaveValue("900");
+  });
+});
+
+describe("DayTab, an empty day", () => {
+  beforeEach(() => clockFrom(`${TODAY}T12:00:00Z`));
+  afterEach(() => jest.restoreAllMocks());
+
+  it.each([
+    ["before today", "2026-11-15", "Nothing logged."],
+    ["today", TODAY, "Nothing logged yet."],
+    ["ahead", "2026-11-17", "Nothing planned yet."],
+  ])("says what an empty day %s holds", async (_when, date, line) => {
+    serve(new FakeDays([]));
+    searchParams = new URLSearchParams({ date });
+    renderDay();
+    expect(await screen.findByText(line)).toBeInTheDocument();
+    for (const other of ["Nothing logged.", "Nothing logged yet.", "Nothing planned yet."].filter((o) => o !== line)) {
+      expect(screen.queryByText(other)).toBeNull();
+    }
+  });
+
+  it("says nothing in an empty day's line while the app does not know today, then what the day holds, in the same line", async () => {
+    const server = new FakeDays([]);
+    serve(server);
+    // The day before today is in the cache. No answer the app holds names today yet.
+    const client = seededClient();
+    client.removeQueries();
+    client.setQueryData(dayQuery("2026-11-15").queryKey, await server.day("2026-11-15"));
+    searchParams = new URLSearchParams({ date: "2026-11-15" });
+    const said: string[] = [];
+    const watch = new MutationObserver(() => {
+      const line = document.querySelector("[data-entries-empty]");
+      if (line) said.push(line.textContent ?? "");
+    });
+    watch.observe(document.body, { subtree: true, childList: true, characterData: true });
+    renderDay(client);
+    const empty = await waitFor(() => {
+      const line = document.querySelector<HTMLElement>("[data-entries-empty]");
+      expect(line).not.toBeNull();
+      return line!;
+    });
+    expect(empty).toHaveTextContent(/^$/);
+    // The targets read answers, and its answer names today.
+    await act(async () => void (await client.fetchQuery(targetsQuery())));
+    await waitFor(() => expect(empty).toHaveTextContent(/^Nothing logged\.$/));
+    watch.disconnect();
+    // The words come into the line that kept their room, and no other day's words came first.
+    expect(document.querySelector("[data-entries-empty]")).toBe(empty);
+    expect(said.filter((line) => line !== "" && line !== "Nothing logged.")).toEqual([]);
   });
 });
 

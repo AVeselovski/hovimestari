@@ -209,7 +209,7 @@ describe("What a '+' is called", () => {
     world.server.meals.set(never.id, never);
     renderDay();
     await openLogSheet();
-    const called = within(list("Saved meals"))
+    const called = within(list("My meals"))
       .getAllByRole("button", { name: /^Log / })
       .map((b) => b.getAttribute("aria-label"));
     expect(called).toEqual(["Log Shake again, 1 meal", "Log Wrap, 1 meal"]);

@@ -94,7 +94,7 @@ describe("FoodSheet in barcode mode", () => {
     await settle();
     expect(searchFoods).not.toHaveBeenCalled();
     expect(block()).not.toBeNull();
-    for (const name of ["New saved meal", "Add an estimate", "Add your own food", `Save “${CODE}” as a meal`]) {
+    for (const name of ["New meal", "Add an estimate", "New food", `Save “${CODE}” as a meal`]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
     expect(body().querySelector("[data-list]")).toBeNull();

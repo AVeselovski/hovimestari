@@ -178,8 +178,8 @@ describe("An add that could not confirm", () => {
     }));
     renderDay();
     const sheet = await openLogSheet();
-    fireEvent.click(within(sheet).getByRole("button", { name: "New saved meal" }));
-    const stacked = await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "New meal" }));
+    const stacked = await screen.findByRole("dialog", { name: "New meal" });
     for (const [label, value] of [
       ["Name", "Bowl"],
       ["Calories", "700"],
@@ -198,11 +198,11 @@ describe("An add that could not confirm", () => {
     await act(() => new Promise((r) => setTimeout(r, 100)));
     expect(jest.mocked(getSavedMeals).mock.calls.length).toBe(mealReads);
     fireEvent.click(within(stacked).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     fireEvent.keyDown(sheet, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Log food" })).toBeNull());
     await waitFor(() => expect(jest.mocked(getSavedMeals).mock.calls.length).toBeGreaterThan(mealReads));
     const reopened = await openLogSheet();
-    expect(within(within(reopened).getByRole("region", { name: "Saved meals" })).getByText("Bowl")).toBeInTheDocument();
+    expect(within(within(reopened).getByRole("region", { name: "My meals" })).getByText("Bowl")).toBeInTheDocument();
   });
 });

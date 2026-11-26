@@ -11,7 +11,7 @@ import { detailOf, fakeLogActions, offFood, ownFood, SHEET_DATE } from "./suppor
 
 // The log sheet's barcode lookup, from a press to the food: a found food's
 // view and the held row Back shows, the own-food form from the label and the
-// turn to found after its save, Copy to your foods, a log, and the searches
+// turn to found after its save, Copy to my foods, a log, and the searches
 // a newly visible product makes stale. The fake server answers what it holds
 // when it answers and remembers what it was sent (./barcodeServer.ts).
 
@@ -59,7 +59,7 @@ const block = () => body().querySelector<HTMLElement>("[data-barcode-result]");
 const press = (name: string) => fireEvent.click(within(block()!).getByRole("button", { name }));
 const foodHeading = () => within(dialog()).queryByRole("heading", { level: 2, name: milk.name });
 const heldRow = () => block()?.querySelector<HTMLElement>('[data-list="barcode"] [data-food-row]') ?? null;
-const ownSheet = () => openSheet("Add a food");
+const ownSheet = () => openSheet("New food");
 const input = (sheet: HTMLElement, label: string) => within(sheet).getByLabelText(label) as HTMLInputElement;
 const saveFood = (sheet: HTMLElement) => fireEvent.click(within(sheet).getByRole("button", { name: "Save food" }));
 
@@ -141,9 +141,9 @@ describe("FoodSheet, a barcode found", () => {
     );
   });
 
-  it("Copy to your foods opens the form filled in, and saves a 3.125 g value untouched", async () => {
+  it("Copy to my foods opens the form filled in, and saves a 3.125 g value untouched", async () => {
     await lookUpFound();
-    fireEvent.click(await within(dialog()).findByRole("button", { name: "Copy to your foods" }));
+    fireEvent.click(await within(dialog()).findByRole("button", { name: "Copy to my foods" }));
     const sheet = await waitFor(() => ownSheet()!);
     expect(input(sheet, "Name").value).toBe(milk.name);
     expect(input(sheet, "Barcode (optional)").value).toBe(CODE);
@@ -158,7 +158,7 @@ describe("FoodSheet, a barcode found", () => {
       }),
     );
     // The copy is the user's own, and from now on wins the lookup of that barcode.
-    expect(await within(dialog()).findByText("Your own food")).toBeInTheDocument();
+    expect(await within(dialog()).findByText("My food")).toBeInTheDocument();
   });
 
   it("opens no food view for an answer that lands while the sheet closes", async () => {

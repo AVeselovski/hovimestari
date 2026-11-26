@@ -13,7 +13,7 @@ import {
   takeOpenedInApp,
 } from "../recipeNav";
 
-// What a navigation between the Recipes tab, the Day tab and a recipe's page
+// What a navigation between the Library, the Day tab and a recipe's page
 // keeps, and that a place belongs to the history entry it was kept on: an
 // entry reached any other way holds none.
 
@@ -132,7 +132,7 @@ describe("the place a page keeps for the way back from a recipe", () => {
   });
 });
 
-describe("the way between the Recipes tab and a recipe's page", () => {
+describe("the way between the Library and a recipe's page", () => {
   it("says once that a recipe was opened from inside the app", () => {
     expect(takeOpenedInApp()).toBe(false);
     markOpenedInApp();

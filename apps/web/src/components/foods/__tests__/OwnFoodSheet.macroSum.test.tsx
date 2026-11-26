@@ -29,7 +29,7 @@ beforeEach(() => {
   jest.mocked(updateFood).mockReset().mockResolvedValue(answered);
 });
 
-const dialog = () => screen.getByRole("dialog", { name: /a food|edit food/i });
+const dialog = () => screen.getByRole("dialog", { name: /new food|edit food/i });
 const input = (label: string) => within(dialog()).getByLabelText(label) as HTMLInputElement;
 const type = (label: string, value: string) => fireEvent.change(input(label), { target: { value } });
 const lineOf = (label: string) => document.getElementById(`${input(label).id}-line`)!;

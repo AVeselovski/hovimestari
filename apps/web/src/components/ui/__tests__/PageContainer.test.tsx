@@ -24,17 +24,16 @@ describe("PageContainer", () => {
     expect(classes(content).filter((c) => c.startsWith("md:max-w"))).toEqual([]);
   });
 
-  it("keeps the gutter clear of the side insets, and puts the caller's classes on the content", () => {
+  it("pads the page by the gutter variables, which keep clear of the side insets, and puts the caller's classes on the content", () => {
     const { content, outer } = column("space-y-6");
-    expect(outer.className).toContain("var(--safe-left)");
-    expect(outer.className).toContain("var(--safe-right)");
+    expect(classes(outer)).toEqual(expect.arrayContaining(["pl-(--page-pad-left)", "pr-(--page-pad-right)"]));
     expect(content).toHaveClass("space-y-6");
     expect(outer).not.toHaveClass("space-y-6");
   });
 
   it("widens from lg only when asked, and keeps a toast's room at the end only when asked", () => {
     render(
-      <PageContainer wide clearToast untitled>
+      <PageContainer wide clearToast="full" untitled>
         <p>Wide</p>
       </PageContainer>,
     );
@@ -45,5 +44,15 @@ describe("PageContainer", () => {
     // The untitled page starts flush: its own sticky header keeps the room above it.
     expect(classes(shared.parentElement!)).toContain("pt-0");
     expect(classes(shared.parentElement!).filter((c) => /^(md:)?pt-/.test(c))).toEqual(["pt-0"]);
+  });
+
+  it("keeps half a toast's room at the end of a page that asks for half", () => {
+    render(
+      <PageContainer clearToast="half">
+        <p>Half</p>
+      </PageContainer>,
+    );
+    const outer = screen.getByText("Half").parentElement!.parentElement!.parentElement!;
+    expect(classes(outer).filter((c) => /^(md:)?pb-/.test(c))).toEqual(["pb-toast-clearance-half"]);
   });
 });

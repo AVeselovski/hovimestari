@@ -12,7 +12,7 @@ import type { ReactElement } from "react";
 import { RecipesTab } from "../RecipesTab";
 
 // ---------------------------------------------------------------------------
-// The Recipes tab's suites run the real page against `FakeDays`, which
+// The Library's suites run the real page against `FakeDays`, which
 // answers the saved meal routes as the server does, and a small store of own
 // foods that answers the food routes. A suite mocks the API modules itself,
 // because `jest.mock` applies to the file that calls it.

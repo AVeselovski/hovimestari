@@ -443,7 +443,7 @@ describe("EntryList while the app asks for today", () => {
       foodEntry("Quark", 250, { status: "planned" }),
     ];
     const actions = heldActions();
-    render(<EntryList entries={entries} future={false} actions={actions} onOpen={jest.fn()} onCopy={jest.fn()} />);
+    render(<EntryList entries={entries} when="today" actions={actions} onOpen={jest.fn()} onCopy={jest.fn()} />);
     const markAll = screen.getByRole("button", { name: "Mark all eaten" });
     expect(markAll).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(markAll);

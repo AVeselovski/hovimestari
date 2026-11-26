@@ -302,6 +302,11 @@ describe("RecipeEditorSheet", () => {
     const card = editor().querySelector("[data-recipe-figures]")!;
     expect(card.className.split(/\s+/)).toEqual(expect.arrayContaining(["px-2.5", "py-4", "md:p-6"]));
     expect(card.className.split(/\s+/)).not.toContain("p-4");
+    // Its headings are the recipe page's: one serving, then the total.
+    expect([...card.querySelectorAll('thead th[scope="col"]')].map((th) => th.textContent)).toEqual([
+      "Per serving",
+      "Total",
+    ]);
     // More servings is the one edit that makes a serving smaller: the refusal goes with it.
     type("Serves", "4");
     expect(
@@ -344,7 +349,7 @@ describe("RecipeEditorSheet", () => {
     const b = recipeOf("Zucchini soup", 1, [{ name: "Water" }], { tags: ["dinner", "Quick"] });
     renderEditor({}, client([a, b]));
     const group = within(editor()).getByRole("group", { name: "Your other tags" });
-    // One chip, in the spelling of the first recipe by name, as the Recipes tab shows it.
+    // One chip, in the spelling of the first recipe by name, as the Library shows it.
     expect(
       within(group)
         .getAllByRole("button")

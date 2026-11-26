@@ -5,6 +5,7 @@ import { recordToasts, seededClient, toasts } from "@/components/day/__tests__/h
 import { TODAY } from "@/components/day/__tests__/support";
 import { refusal } from "@/components/foods/__tests__/support";
 import { timeout } from "@/components/log/__tests__/logHarness";
+import { segmentButtonFieldHeight, segmentedTrayFieldHeight } from "@/components/ui/styles";
 import { ToastProvider, ToastRegion } from "@/components/ui/Toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { TodayContext } from "@/hooks/useToday";
@@ -42,7 +43,7 @@ import {
   topSheet,
 } from "./recipesHarness";
 
-// The Recipes tab on its own: its states, the saved meals (new, edit,
+// The Library on its own: its states, the saved meals (new, edit,
 // archive, restore, delete) and the own foods (edit, delete), against the
 // fake server of components/day/__tests__/harness.tsx and the food store of
 // recipesHarness.tsx.
@@ -174,10 +175,10 @@ function recordFocus(): { focused: Element[]; stop: () => void } {
 async function openMeal(name: string): Promise<HTMLElement> {
   await waitFor(() => expect(mealRow(name) ?? archivedRow(name)).not.toBeNull());
   fireEvent.click((mealRow(name) ?? archivedRow(name))!);
-  return screen.findByRole("dialog", { name: "Edit saved meal" });
+  return screen.findByRole("dialog", { name: "Edit meal" });
 }
 
-describe("The Recipes tab's states", () => {
+describe("The Library's states", () => {
   it("shows a new user what goes in each segment, with its own action, and nothing else on the page", async () => {
     serveFoods([]);
     serveMeals([]);
@@ -188,10 +189,10 @@ describe("The Recipes tab's states", () => {
     expect(screen.getByRole("tab", { name: "Recipes" })).toHaveAttribute("aria-selected", "true");
     show("Meals");
     expect(await screen.findByText("Meals you save appear here.")).toBeInTheDocument();
-    expect(panel().textContent).toBe("New saved mealSearch mealsSaved mealsMeals you save appear here.Archived meals");
+    expect(panel().textContent).toBe("New mealSearch my mealsMy mealsMeals you save appear here.Archived meals");
     show("Foods");
     expect(await screen.findByText("Foods you add appear here.")).toBeInTheDocument();
-    expect(panel().textContent).toBe("Add a foodSearch your foodsYour foodsFoods you add appear here.");
+    expect(panel().textContent).toBe("New foodSearch my foodsMy foodsFoods you add appear here.");
   });
 
   it("opens on the segment the address names", async () => {
@@ -199,7 +200,7 @@ describe("The Recipes tab's states", () => {
     renderRecipes();
     expect(screen.getByRole("tab", { name: "Foods" })).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Protein shake")).toBeInTheDocument();
-    expect(action()).toHaveTextContent("Add a food");
+    expect(action()).toHaveTextContent("New food");
   });
 
   it("says each list shows once the server can be reached, when it cannot be read", async () => {
@@ -218,7 +219,7 @@ describe("The Recipes tab's states", () => {
     serveFoods(["Rye bread", "Protein shake"], { isFavourite: true });
     renderRecipes();
     show("Meals");
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Chicken bowl", "Salmon soup"]));
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toEqual(["Chicken bowl", "Salmon soup"]));
     expect(mealRow("Chicken bowl")).toHaveTextContent("Chicken bowlWolt640 kcal · 42.0 g protein per meal");
     expect(mealRow("Chicken bowl")).toHaveAttribute("aria-description", "Opens it to edit.");
     server.meals.set(soup.id, { ...soup, archived: true });
@@ -226,10 +227,39 @@ describe("The Recipes tab's states", () => {
     await waitFor(() => expect(archivedRow("Salmon soup")).not.toBeNull());
     expect(archivedRow("Salmon soup")).toHaveAttribute("aria-description", "Opens it to edit.");
     show("Foods");
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake", "Rye bread"]));
-    expect(section("Your foods")).not.toHaveTextContent("Yours");
-    expect(within(section("Your foods")).getAllByText("Favourite")).toHaveLength(2);
+    await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toEqual(["Protein shake", "Rye bread"]));
+    expect(section("My foods")).not.toHaveTextContent("Yours");
+    expect(within(section("My foods")).getAllByText("Favourite")).toHaveLength(2);
     expect(foodRow("Rye bread")).toHaveAttribute("aria-description", "Opens it to edit.");
+  });
+
+  it("names each segment's action New recipe, New meal and New food, and the sheet it opens by the same words", async () => {
+    serveFoods([]);
+    serveMeals([]);
+    renderRecipes();
+    await screen.findByText("Recipes you save appear here.");
+    for (const [segment, words] of [
+      ["Recipes", "New recipe"],
+      ["Meals", "New meal"],
+      ["Foods", "New food"],
+    ] as const) {
+      show(segment);
+      expect(action()).toHaveTextContent(new RegExp(`^${words}$`));
+      fireEvent.click(action());
+      const sheet = await screen.findByRole("dialog", { name: words });
+      fireEvent.click(within(sheet).getByRole("button", { name: "Cancel" }));
+      await waitFor(() => expect(openSheet(words)).toBeNull());
+    }
+  });
+
+  it("draws the segments as tall as the action and the search field under them, each pressed over the tray's whole height", () => {
+    renderRecipes();
+    const has = (el: Element, recipe: string) => recipe.split(" ").every((token) => el.classList.contains(token));
+    const tray = document.querySelector("[data-recipes-segments]")!;
+    expect(has(tray, segmentedTrayFieldHeight)).toBe(true);
+    for (const tab of screen.getAllByRole("tab")) expect(has(tab, segmentButtonFieldHeight)).toBe(true);
+    expect(action().classList.contains("min-h-12")).toBe(true);
+    expect(screen.getByLabelText("Search my recipes").classList.contains("h-12")).toBe(true);
   });
 
   it("keeps the segments, the action and the search field the same elements across segments and lists of any length", async () => {
@@ -245,7 +275,7 @@ describe("The Recipes tab's states", () => {
     expect(action()).toBe(first);
     server = serveMeals(Array.from({ length: 40 }, (_, i) => savedMeal(`Meal ${String(i).padStart(2, "0")}`, null)));
     await act(() => client.invalidateQueries());
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(40));
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toHaveLength(40));
     fireEvent.click(button("Archived meals"));
     await screen.findByText("Meals you archive appear here.");
     show("Foods");
@@ -258,23 +288,23 @@ describe("The Recipes tab's states", () => {
     serveFoods(["Rye bread", "Protein shake", "Rye crisp"]);
     renderRecipes();
     show("Meals");
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
-    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "wolt chick" } });
-    expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Chicken bowl"]);
-    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "pizza" } });
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toHaveLength(2));
+    fireEvent.change(screen.getByLabelText("Search my meals"), { target: { value: "wolt chick" } });
+    expect(rowNames("My meals", "recipes-meals")).toEqual(["Chicken bowl"]);
+    fireEvent.change(screen.getByLabelText("Search my meals"), { target: { value: "pizza" } });
     expect(screen.getByText("No meal matches.")).toBeInTheDocument();
     fireEvent.click(button("Clear search"));
-    expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2);
+    expect(rowNames("My meals", "recipes-meals")).toHaveLength(2);
     show("Foods");
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toHaveLength(3));
+    await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toHaveLength(3));
     // Each segment keeps its own search.
-    expect((screen.getByLabelText("Search your foods") as HTMLInputElement).value).toBe("");
-    fireEvent.change(screen.getByLabelText("Search your foods"), { target: { value: "rye" } });
-    expect(rowNames("Your foods", "recipes-foods")).toEqual(["Rye bread", "Rye crisp"]);
+    expect((screen.getByLabelText("Search my foods") as HTMLInputElement).value).toBe("");
+    fireEvent.change(screen.getByLabelText("Search my foods"), { target: { value: "rye" } });
+    expect(rowNames("My foods", "recipes-foods")).toEqual(["Rye bread", "Rye crisp"]);
   });
 });
 
-describe("Recipes on the Recipes tab", () => {
+describe("Recipes in the Library", () => {
   const recipeNames = () =>
     [...document.querySelectorAll('[data-list="recipes"] [data-recipe-row]')].map(
       (row) => row.querySelector(".line-clamp-2")!.textContent,
@@ -324,9 +354,9 @@ describe("Recipes on the Recipes tab", () => {
         .getAllByRole("button")
         .map((b) => b.textContent),
     ).toEqual(["Favourites", "Breakfast", "Brunch", "dinner", "Weekend"]);
-    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "shak" } });
+    fireEvent.change(screen.getByLabelText("Search my recipes"), { target: { value: "shak" } });
     expect(recipeNames()).toEqual(["Shakshuka"]);
-    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Search my recipes"), { target: { value: "" } });
     fireEvent.click(within(chips).getByRole("button", { name: "dinner" }));
     expect(recipeNames()).toEqual(["Zucchini soup", "Äitin lihapullat"]);
     fireEvent.click(within(chips).getByRole("button", { name: "Favourites" }));
@@ -393,17 +423,17 @@ describe("Recipes on the Recipes tab", () => {
     hold();
     renderRecipes();
     await waitFor(() => expect(recipeNames()).toHaveLength(4));
-    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "zzz" } });
+    fireEvent.change(screen.getByLabelText("Search my recipes"), { target: { value: "zzz" } });
     const clear = button("Clear search and filters");
     clear.focus();
     fireEvent.click(clear);
     expect(clear).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Search recipes")).toHaveFocus();
+    expect(screen.getByLabelText("Search my recipes")).toHaveFocus();
     show("Meals");
     await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
-    fireEvent.change(screen.getByLabelText("Search meals"), { target: { value: "zzz" } });
+    fireEvent.change(screen.getByLabelText("Search my meals"), { target: { value: "zzz" } });
     fireEvent.click(button("Clear search"));
-    expect(screen.getByLabelText("Search meals")).toHaveFocus();
+    expect(screen.getByLabelText("Search my meals")).toHaveFocus();
   });
 
   describe("back from a recipe's page", () => {
@@ -411,7 +441,7 @@ describe("Recipes on the Recipes tab", () => {
     const rowOf = (name: string) => document.querySelector<HTMLElement>(`[data-recipe-row="${idOf(name)}"]`)!;
     const chip = (name: string) =>
       within(screen.getByRole("group", { name: "Show only" })).getByRole("button", { name });
-    const search = () => screen.getByLabelText("Search recipes") as HTMLInputElement;
+    const search = () => screen.getByLabelText("Search my recipes") as HTMLInputElement;
     const archivedToggle = () => screen.getByRole("button", { name: "Archived recipes" });
     const start = window.location.pathname + window.location.search;
     let main: HTMLElement;
@@ -634,16 +664,16 @@ describe("Recipes on the Recipes tab", () => {
   });
 });
 
-describe("Saved meals on the Recipes tab", () => {
+describe("Saved meals in the Library", () => {
   beforeEach(() => {
     mockSearch.params = new URLSearchParams("show=meals");
   });
 
   it("saves a new meal without logging it: no Eaten or planned, Save meal sends POST /saved-meals only", async () => {
     renderRecipes();
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
-    fireEvent.click(button("New saved meal"));
-    const sheet = await screen.findByRole("dialog", { name: "New saved meal" });
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toHaveLength(2));
+    fireEvent.click(button("New meal"));
+    const sheet = await screen.findByRole("dialog", { name: "New meal" });
     expect(within(sheet).queryByRole("radiogroup", { name: "Eaten or planned" })).toBeNull();
     expect(within(sheet).queryByRole("button", { name: /Save and/ })).toBeNull();
     fireEvent.change(field("Name"), { target: { value: "Bean stew" } });
@@ -652,18 +682,18 @@ describe("Saved meals on the Recipes tab", () => {
     fireEvent.change(field("Carbohydrates"), { target: { value: "50" } });
     fireEvent.change(field("Fat"), { target: { value: "10" } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(openSheet("New saved meal")).toBeNull());
+    await waitFor(() => expect(openSheet("New meal")).toBeNull());
     expect(createSavedMeal).toHaveBeenCalledTimes(1);
     expect(saveAndLog).not.toHaveBeenCalled();
     expect(addEntry).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Bean stew", "Chicken bowl", "Salmon soup"]),
+      expect(rowNames("My meals", "recipes-meals")).toEqual(["Bean stew", "Chicken bowl", "Salmon soup"]),
     );
   });
 
   it("archives from the edit sheet in place: one button turns into Restore meal with focus kept, and no toast", async () => {
     renderRecipes();
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toHaveLength(2));
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toHaveLength(2));
     fireEvent.click(button("Archived meals"));
     await screen.findByText("Meals you archive appear here.");
     const sheet = await openMeal("Chicken bowl");
@@ -677,7 +707,7 @@ describe("Saved meals on the Recipes tab", () => {
     // The row moved under the sheet, which stays open.
     await waitFor(() => expect(archivedRow("Chicken bowl")).not.toBeNull());
     expect(mealRow("Chicken bowl")).toBeNull();
-    expect(screen.getByRole("dialog", { name: "Edit saved meal" })).toBe(sheet);
+    expect(screen.getByRole("dialog", { name: "Edit meal" })).toBe(sheet);
     fireEvent.click(archive);
     await waitFor(() => expect(archive).toHaveTextContent("Archive meal"));
     expect(archive).toHaveFocus();
@@ -735,7 +765,7 @@ describe("Saved meals on the Recipes tab", () => {
     expect(deleteSavedMeal).not.toHaveBeenCalled();
     await act(async () => held.release());
     await within(sheet).findByRole("button", { name: "Restore meal" });
-    expect(openSheet("Edit saved meal")).toBe(sheet);
+    expect(openSheet("Edit meal")).toBe(sheet);
     expect(toasts()).toHaveLength(0);
   });
 
@@ -749,11 +779,11 @@ describe("Saved meals on the Recipes tab", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Save meal" }));
     await act(async () => {});
     expect(updateSavedMeal).not.toHaveBeenCalled();
-    expect(openSheet("Edit saved meal")).toBe(sheet);
+    expect(openSheet("Edit meal")).toBe(sheet);
     await act(async () => held.release());
     await within(sheet).findByRole("button", { name: "Restore meal" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+    await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
     expect(updateSavedMeal).toHaveBeenCalledTimes(1);
   });
 
@@ -798,9 +828,9 @@ describe("Saved meals on the Recipes tab", () => {
     expect(confirm.className.split(" ")).toContain("bg-surface-raised");
     await confirmArmed();
     const next = mealRow("Salmon soup")!;
-    expect(openSheet("Edit saved meal")).not.toBeNull();
+    expect(openSheet("Edit meal")).not.toBeNull();
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
+    await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
     await waitFor(() => expect(mealRow("Chicken bowl")).toBeNull());
     expect(deleteSavedMeal).toHaveBeenCalledTimes(1);
     expect(deleteSavedMeal).toHaveBeenCalledWith(bowl.id);
@@ -809,7 +839,7 @@ describe("Saved meals on the Recipes tab", () => {
     expect(focus.focused.filter((el) => el === document.body)).toEqual([]);
   }
 
-  it("puts focus on New saved meal after deleting the last meal, and takes a meal already gone as deleted", async () => {
+  it("puts focus on New meal after deleting the last meal, and takes a meal already gone as deleted", async () => {
     const alone = serveMeals([bowl]);
     renderRecipes();
     const sheet = await openMeal("Chicken bowl");
@@ -819,8 +849,8 @@ describe("Saved meals on the Recipes tab", () => {
     // Deleted on another device meanwhile: the server answers 404 saved_meal_not_found.
     alone.meals.delete(bowl.id);
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
-    await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
-    await waitFor(() => expect(button("New saved meal")).toHaveFocus());
+    await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
+    await waitFor(() => expect(button("New meal")).toHaveFocus());
     await screen.findByText("Meals you save appear here.");
   });
 
@@ -830,18 +860,18 @@ describe("Saved meals on the Recipes tab", () => {
     for (const meal of [old, older]) server.meals.set(meal.id, meal);
     renderRecipes();
     fireEvent.click(button("Archived meals"));
-    await waitFor(() => expect(within(section("Saved meals")).getByRole("button", { name: "Restore Old curry" })));
-    fireEvent.click(within(section("Saved meals")).getByRole("button", { name: "Restore Old curry" }));
-    await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toContain("Old curry"));
-    expect(rowNames("Saved meals", "archived")).toEqual(["Older pasta"]);
+    await waitFor(() => expect(within(section("My meals")).getByRole("button", { name: "Restore Old curry" })));
+    fireEvent.click(within(section("My meals")).getByRole("button", { name: "Restore Old curry" }));
+    await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toContain("Old curry"));
+    expect(rowNames("My meals", "archived")).toEqual(["Older pasta"]);
     jest.mocked(setSavedMealArchived).mockRejectedValueOnce(timeout());
-    fireEvent.click(within(section("Saved meals")).getByRole("button", { name: "Restore Older pasta" }));
+    fireEvent.click(within(section("My meals")).getByRole("button", { name: "Restore Older pasta" }));
     await waitFor(() => expect(toasts().map((t) => t.textContent)).toContain("Could not confirm. Try again."));
-    expect(rowNames("Saved meals", "archived")).toEqual(["Older pasta"]);
+    expect(rowNames("My meals", "archived")).toEqual(["Older pasta"]);
   });
 });
 
-describe("Own foods on the Recipes tab", () => {
+describe("Own foods in the Library", () => {
   beforeEach(() => {
     mockSearch.params = new URLSearchParams("show=foods");
   });
@@ -855,11 +885,11 @@ describe("Own foods on the Recipes tab", () => {
     fireEvent.change(field("Name"), { target: { value: "Barley bread" } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Save food" }));
     await waitFor(() => expect(openSheet("Edit food")).toBeNull());
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Barley bread", "Protein shake"]));
+    await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toEqual(["Barley bread", "Protein shake"]));
     await waitFor(() => expect(foodRow("Barley bread")).toHaveFocus());
   });
 
-  it("deletes from the edit sheet and puts focus on the next row, then on Add a food when none is left, never on the page", async () => {
+  it("deletes from the edit sheet and puts focus on the next row, then on New food when none is left, never on the page", async () => {
     renderRecipes();
     await waitFor(() => expect(foodRow("Protein shake")).not.toBeNull());
     const focus = recordFocus();
@@ -903,8 +933,8 @@ describe("Own foods on the Recipes tab", () => {
     [...document.querySelectorAll('[role="dialog"][data-open]')].map((d) => d.querySelector("h2")?.textContent);
 
   it.each([
-    ["a meal's row", "Edit saved meal", () => mealRow("Chicken bowl")!],
-    ["New saved meal", "New saved meal", () => button("New saved meal")],
+    ["a meal's row", "Edit meal", () => mealRow("Chicken bowl")!],
+    ["New meal", "New meal", () => button("New meal")],
   ])(
     "opens one sheet, the last one asked for, when %s is pressed while a food's detail is read",
     async (_name, title, other) => {
@@ -1015,11 +1045,11 @@ describe("Own foods on the Recipes tab", () => {
     show("Meals");
     await waitFor(() => expect(mealRow("Chicken bowl")).not.toBeNull());
     fireEvent.click(mealRow("Chicken bowl")!);
-    await waitFor(() => expect(openSheet("Edit saved meal")).not.toBeNull());
+    await waitFor(() => expect(openSheet("Edit meal")).not.toBeNull());
     await act(async () => read.release());
     show("Foods");
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake"]));
-    expect(openSheet("Edit saved meal")).not.toBeNull();
+    await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toEqual(["Protein shake"]));
+    expect(openSheet("Edit meal")).not.toBeNull();
     expect(toasts().map((t) => t.textContent)).not.toContain("This food is no longer available.");
   });
 
@@ -1031,7 +1061,7 @@ describe("Own foods on the Recipes tab", () => {
     foodStore.delete(id);
     fireEvent.click(document.querySelector(`[data-food-row="${id}"]`)!);
     await waitFor(() => expect(toasts().map((t) => t.textContent)).toContain("This food is no longer available."));
-    await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Protein shake"]));
+    await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toEqual(["Protein shake"]));
     jest.mocked(getFood).mockRejectedValueOnce(refusal(500, "internal"));
     fireEvent.click(foodRow("Protein shake")!);
     await waitFor(() => expect(shown.shown).toHaveLength(2));

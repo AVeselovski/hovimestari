@@ -173,6 +173,26 @@ describe("WeekSheet, the average row", () => {
     expect(foot().querySelectorAll("button, a, [tabindex]")).toHaveLength(0);
   });
 
+  it("stands apart from Sunday: a gap, the rule, a gap, in a body of its own before the average", async () => {
+    serveRange(workedWeek());
+    renderWeek();
+    await loaded();
+    const rule = document.querySelector<HTMLElement>("tbody[data-week-average-rule]")!;
+    expect(rule).toHaveAttribute("aria-hidden", "true");
+    // Sunday, then the rule's body, then the average.
+    expect(rule.previousElementSibling).toHaveAttribute("data-week-row", "2026-11-22");
+    expect(rule.nextElementSibling).toBe(foot());
+    const [above, under] = [...rule.querySelectorAll(":scope > tr")];
+    expect(rule.querySelectorAll(":scope > tr")).toHaveLength(2);
+    expect(tokens(above!)).not.toContain("border-t");
+    expect(tokens(under!)).toEqual(expect.arrayContaining(["border-t", "border-rule"]));
+    for (const row of [above!, under!]) {
+      expect(tokens(row.querySelector("td"))).toEqual(expect.arrayContaining(["h-3", "md:h-4", "p-0"]));
+    }
+    // The rule is the gap's, so the average's own rows keep a day's box.
+    expect(tokens(foot().querySelector(":scope > tr"))).not.toContain("border-t");
+  });
+
   it('says "No entries" across the row in a week with no entries, with no gauge and no counted line', async () => {
     const server = workedWeek();
     serveRange(server);

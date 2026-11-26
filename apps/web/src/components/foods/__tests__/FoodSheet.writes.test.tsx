@@ -68,7 +68,7 @@ describe("FoodSheet, right after the user's own write, with the reads that follo
     type("Mummon pulla");
     expect(await screen.findByText("No food matches “Mummon pulla”.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add “Mummon pulla” as your own food" }));
-    const sheet = await screen.findByRole("dialog", { name: "Add a food" });
+    const sheet = await screen.findByRole("dialog", { name: "New food" });
     for (const [label, value] of [
       ["Energy", "350"],
       ["Protein", "8"],
@@ -206,7 +206,7 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
     expect(field()).toHaveValue("oma rahka");
     // The search for "oma rahka" is read afresh: the lists show until it lands.
     expect(screen.getByRole("heading", { name: "Favourites" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Your foods" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "My foods" })).toBeInTheDocument();
     expect(screen.queryByText(/foods? found/)).toBeNull();
   });
 
@@ -221,7 +221,7 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
     expect(screen.queryByRole("button", { name: /as your own food/ })).toBeNull();
   });
 
-  it("a new food shows in Your foods at once, in its place by name, also when the query was not its name", async () => {
+  it("a new food shows in My foods at once, in its place by name, also when the query was not its name", async () => {
     addOwn(detailOf(ownFood("Oma rahka")));
     addOwn(detailOf(ownFood("Äidin pulla")));
     const saved = detailOf(ownFood("Mummon pulla"));
@@ -230,11 +230,11 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
       return saved;
     });
     renderSheet();
-    const own = await screen.findByRole("region", { name: "Your foods" });
+    const own = await screen.findByRole("region", { name: "My foods" });
     await waitFor(() => expect(within(own).getAllByRole("button")).toHaveLength(2));
     await listsInPlace();
-    fireEvent.click(screen.getByRole("button", { name: "Add your own food" }));
-    const sheet = await screen.findByRole("dialog", { name: "Add a food" });
+    fireEvent.click(screen.getByRole("button", { name: "New food" }));
+    const sheet = await screen.findByRole("dialog", { name: "New food" });
     for (const [label, value] of [
       ["Name", "Mummon pulla"],
       ["Energy", "350"],
@@ -248,7 +248,7 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Save food" }));
     await screen.findByRole("button", { name: "Back" });
     back();
-    const names = within(screen.getByRole("region", { name: "Your foods" }))
+    const names = within(screen.getByRole("region", { name: "My foods" }))
       .getAllByRole("button")
       .map((b) => b.querySelector("span span")!.textContent);
     // Finnish order: ä after z.

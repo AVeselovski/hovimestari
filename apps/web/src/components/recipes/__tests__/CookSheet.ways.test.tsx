@@ -537,12 +537,13 @@ describe("Log as made from the recipe's page", () => {
     expect(within(first).getByLabelText("Servings", { selector: "input" })).toHaveValue("1");
     expect(within(first).getByRole("radio", { name: "Eaten" })).toBeChecked();
 
+    const reads = jest.mocked(getRecipe).mock.calls.length;
     fireEvent.click(within(sheet).getByRole("button", { name: "Log as made" }));
     await waitFor(() => expect(dialogs()).toHaveLength(0));
     expect(cooks.created[0].add).toEqual([expect.objectContaining({ date: TODAY, status: "eaten", servings: 1 })]);
     await waitFor(() => expect(liveToast()).toHaveTextContent("Logged Shakshuka as made."));
     expect(button).toHaveFocus();
-    // The page reads the recipe again, so the day it is on shows.
-    await waitFor(() => expect(document.querySelector("[data-recipe-on-day]")!.textContent).toMatch(/^On a day /));
+    // The page reads the recipe again, so it holds the day it is now on.
+    await waitFor(() => expect(getRecipe).toHaveBeenCalledTimes(reads + 1));
   });
 });

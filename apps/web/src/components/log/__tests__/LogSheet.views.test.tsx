@@ -115,7 +115,7 @@ describe("The log sheet's food view", () => {
   it("opens a food never logged with an empty amount, and Log waits", async () => {
     renderDay();
     await openLogSheet();
-    await openRow("Your foods", "Rye bread");
+    await openRow("My foods", "Rye bread");
     expect(amount().value).toBe("");
     expect(within(dialog()).getByText("Enter an amount to see its figures.")).toBeInTheDocument();
     expect(logButton()).toHaveAttribute("aria-disabled", "true");

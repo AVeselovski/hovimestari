@@ -157,7 +157,7 @@ describe("the near foods, pressed", () => {
     await search(QUERY);
     await listsInPlace();
     fireEvent.click(addButton(QUERY)!);
-    const own = await screen.findByRole("dialog", { name: /a food/i });
+    const own = await screen.findByRole("dialog", { name: "New food" });
     expect((within(own).getByLabelText("Name") as HTMLInputElement).value).toBe(QUERY);
   });
 });

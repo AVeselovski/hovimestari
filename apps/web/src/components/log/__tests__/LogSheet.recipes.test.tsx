@@ -214,7 +214,7 @@ describe("Recipes in the log sheet's results", () => {
     );
     expect(sections).toEqual(["recipe-results", "meal-results", "food-results"]);
     expect(names("Recipes")).toEqual(["Shake pancakes", "Shakshuka"]);
-    expect(names("Saved meals")).toEqual(["Shake"]);
+    expect(names("My meals")).toEqual(["Shake"]);
     // A tag finds its recipes, case and accents folded, as the shared filter does.
     fireEvent.change(search(), { target: { value: "LUNCH" } });
     await waitFor(() => expect(names("Recipes")).toEqual(["Lentil soup", "Shake pancakes"]));
@@ -245,7 +245,7 @@ describe("Recipes in the log sheet's results", () => {
     fireEvent.change(search(), { target: { value: "lentil" } });
     await waitFor(() => expect(names("Recipes")).toEqual(["Lentil soup"]));
     expect(within(dialog()).getByRole("button", { name: "Save “lentil” as a meal" })).toBeInTheDocument();
-    expect(within(dialog()).queryByRole("region", { name: "Saved meals" })).toBeNull();
+    expect(within(dialog()).queryByRole("region", { name: "My meals" })).toBeNull();
   });
 
   it("titles the foods found when only a recipe matches above them", async () => {
@@ -255,7 +255,7 @@ describe("Recipes in the log sheet's results", () => {
     fireEvent.change(search(), { target: { value: "lentil" } });
     const foods = await within(dialog()).findByRole("region", { name: "Foods" });
     expect(names("Recipes")).toEqual(["Lentil soup"]);
-    expect(within(dialog()).queryByRole("region", { name: "Saved meals" })).toBeNull();
+    expect(within(dialog()).queryByRole("region", { name: "My meals" })).toBeNull();
     expect(within(foods).getByRole("heading", { name: "Foods" })).toBeInTheDocument();
   });
 });
