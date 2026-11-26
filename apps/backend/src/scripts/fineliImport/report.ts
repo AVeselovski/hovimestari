@@ -1,5 +1,6 @@
 import type { ImportResult } from "./applyRelease.js";
 import type { Release } from "./readRelease.js";
+import type { NameDifference } from "./recipeCounts.js";
 import { RECIPE_FILE } from "./recipeFile.js";
 
 /** The credit the licence asks for, printed with every report. */
@@ -7,14 +8,33 @@ export const FINELI_CREDIT =
   "Food composition data: Fineli, Finnish Institute for Health and Welfare (THL), CC BY 4.0. THL does not produce or endorse Hovimestari.";
 
 /** How many foods the "Most used" list names. */
-export const MOST_USED = 5;
+export const REPORTED_MOST_USED = 5;
+
+/**
+ * With committed counts, whether their release's most used foods keep their
+ * names in the folder's release. A warning, never a stop: the person decides.
+ */
+function nameLines(committedRelease: string, differences: NameDifference[]): string[] {
+  if (differences.length === 0)
+    return [`The most used foods of release ${committedRelease} have the same names in this release.`];
+  return [
+    `Warning: ${differences.length} of the most used foods of release ${committedRelease} are named differently in this release. ` +
+      "An id that names another food here has the wrong counts. Check each:",
+    ...differences.map(
+      (d) =>
+        `  ${d.fineliId}: "${d.committed}" in release ${committedRelease}, ` +
+        (d.here === null ? "not in this release" : `"${d.here}" here`),
+    ),
+  ];
+}
 
 /**
  * The recipe counts block: where the counts came from, how many recipe rows
  * were water or salt, how many foods have a count, and the foods most
  * recipes use, by the name this release gives them.
- * With committed counts that list is the check that an id still names the
- * same food in this release: a person reads five names.
+ * With committed counts the block also says whether their release's most
+ * used foods keep their names here, the check that an id still names the
+ * same food in this release.
  */
 function recipeLines(release: Release, result: ImportResult): string[] {
   const c = release.recipeCounts;
@@ -23,14 +43,15 @@ function recipeLines(release: Release, result: ImportResult): string[] {
   const mostUsed = release.foods
     .filter((f) => f.recipeUses > 0)
     .sort((a, b) => b.recipeUses - a.recipeUses || a.name.localeCompare(b.name, "fi"))
-    .slice(0, MOST_USED);
+    .slice(0, REPORTED_MOST_USED);
   return [
-    c.source === "release"
+    c.from === "release"
       ? `Recipe counts: from ${RECIPE_FILE} in the folder (${c.rowsRead} rows read)`
       : `Recipe counts: committed counts of release ${c.release}. The folder has no ${RECIPE_FILE} and is ${release.label ? `release ${release.label}` : "an unnamed release"}`,
     // Only a folder's own file is counted here, so only it can show a release that names water and salt differently.
-    ...(c.source === "release" ? [`Recipe rows left out as water or salt: ${c.rowsNotFood}`] : []),
+    ...(c.from === "release" ? [`Recipe rows left out as water or salt: ${c.rowsNotFood}`] : []),
     `Foods with a count: ${c.foodsWithCount} of ${read} read. Counts for ids not in this release: ${c.idsNotInRelease}`,
+    ...(c.from === "committed" ? nameLines(c.release, c.namesThatDiffer) : []),
     "Most used:",
     ...mostUsed.map((f) => `  ${f.name} ${f.recipeUses}`),
     `Stored counts changed: ${result.recipeCountsChanged}`,

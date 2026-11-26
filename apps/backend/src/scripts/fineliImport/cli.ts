@@ -87,12 +87,15 @@ const messageOf = (err: unknown) => (err instanceof Error ? err.message : String
 /** Postgres's codes for a table and a column that do not exist. */
 const MISSING_IN_SCHEMA = new Set(["42P01", "42703"]);
 
-/** Whether `err`, or the error it wraps, is Postgres saying a table or a column does not exist. */
-function schemaIsBehind(err: unknown): boolean {
+/**
+ * What Postgres said when `err`, or the error it wraps, is Postgres saying a
+ * table or a column does not exist, such as which one. Null for any other error.
+ */
+function schemaIsBehind(err: unknown): string | null {
   for (let e = err, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
-    if (MISSING_IN_SCHEMA.has((e as { code?: unknown }).code as string)) return true;
+    if (MISSING_IN_SCHEMA.has((e as { code?: unknown }).code as string)) return e.message;
   }
-  return false;
+  return null;
 }
 
 /**
@@ -121,14 +124,15 @@ export async function runCli(
   try {
     done = await importRelease(db, args, new Date(), defaults.recipeCounts);
   } catch (err) {
+    const missing = schemaIsBehind(err);
     if (err instanceof ReleaseError || err instanceof RetireGuardError || err instanceof RenameGuardError) {
       out.error(`Fineli import stopped. ${err.message}`);
-    } else if (schemaIsBehind(err)) {
+    } else if (missing !== null) {
       // The import's first query names every column it reads, so it fails before any write.
       out.error(
         "Fineli import stopped. The database lacks a table or a column the import reads, so its migrations have not all been run. " +
           "Nothing was written. Run the migrations, then the import again. " +
-          "On your own machine: pnpm --filter @hovimestari/backend db:migrate",
+          `On your own machine: pnpm --filter @hovimestari/backend db:migrate. Postgres said: ${missing}`,
       );
     } else {
       // The import runs in one transaction, so a failure rolls it back, except

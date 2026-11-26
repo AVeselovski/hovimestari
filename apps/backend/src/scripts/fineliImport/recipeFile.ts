@@ -1,3 +1,4 @@
+import { firstNames } from "./nameCase.js";
 import {
   countRecipes,
   countsOfTable,
@@ -50,10 +51,17 @@ export function readIngredientClasses(full: string): Map<number, string> {
   return new Map(rows.map((row, n) => [idOf(row.FOODID, "food.csv", "FOODID", n), row.IGCLASS]));
 }
 
+/** The Finnish name of each food, from the foodname_FI.csv at `full`, in sentence case as the import stores it. */
+export function readFinnishNames(full: string): Map<number, string> {
+  const { rows } = readColumns(full, "foodname_FI.csv", ["FOODID", "FOODNAME"]);
+  rows.forEach((row, n) => idOf(row.FOODID, "foodname_FI.csv", "FOODID", n));
+  return new Map([...firstNames(rows, "fi")].map(([id, name]) => [Number(id), name]));
+}
+
 /** Where a release's recipe counts came from, and what the report says about that source. */
 export type RecipeSource =
   | {
-      source: "release";
+      from: "release";
       /** Rows read from the folder's recipe file. */
       rowsRead: number;
       /** Of them, the rows left out of a recipe's foods as water or salt. 0 means IGCLASS marks neither here. */
@@ -61,7 +69,7 @@ export type RecipeSource =
       encoding: Encoding;
     }
   | {
-      source: "committed";
+      from: "committed";
       /** The release the handed counts were made from. */
       release: string;
     };
@@ -79,7 +87,7 @@ export function recipeCountsOf(
   const full = findFile(dir, RECIPE_FILE);
   if (!full) {
     if (!fallback) return { counts: new Map(), source: null };
-    return { counts: countsOfTable(fallback), source: { source: "committed", release: fallback.release } };
+    return { counts: countsOfTable(fallback), source: { from: "committed", release: fallback.release } };
   }
   const goOn = fallback
     ? `To import with the committed counts of release ${fallback.release} instead, move ${RECIPE_FILE} out of the folder.`
@@ -94,11 +102,11 @@ export function recipeCountsOf(
     }
   };
   const { rows, encoding } = reading(() => readRecipeRows(full));
-  // food.csv has been read once by now, so what can fail here is IGCLASS: the column, or a row's value.
+  // readRelease has read food.csv and checked every FOODID by now, so what can fail here is the IGCLASS column.
   const classes = reading(
     () => readIngredientClasses(findFile(dir, "food.csv") as string),
     `The recipes in ${RECIPE_FILE} need IGCLASS, which tells water and salt from foods. `,
   );
   const { counts, rowsNotFood } = countRecipes(rows, classes);
-  return { counts, source: { source: "release", rowsRead: rows.length, rowsNotFood, encoding } };
+  return { counts, source: { from: "release", rowsRead: rows.length, rowsNotFood, encoding } };
 }

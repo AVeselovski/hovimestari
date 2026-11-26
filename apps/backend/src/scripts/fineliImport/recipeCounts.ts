@@ -22,11 +22,32 @@ export interface RecipeCount {
 /** One food's counts as the committed module holds them. */
 export type RecipeCountRow = readonly [fineliId: number, recipeUses: number, recipeFoods: number | null];
 
+/** How many of its most used foods a committed table names. */
+export const MOST_USED_NAMED = 10;
+
+/** One of a table's most used foods, by the Finnish name its release gives it. */
+export type NamedFood = readonly [fineliId: number, name: string];
+
 /** Counts kept apart from a release folder, for an import whose folder has no recipe file. */
 export interface RecipeCountsTable {
   /** The Fineli release the counts were made from, as the report names it. */
   release: string;
+  /**
+   * The table's most used foods, most used first, by the Finnish name its
+   * release gives them. The table holds ids and counts only, so these names
+   * are what shows that an id still names the same food in another release.
+   */
+  mostUsed: ReadonlyArray<NamedFood>;
   rows: ReadonlyArray<RecipeCountRow>;
+}
+
+/** A most used food of a committed table whose name differs in the release at hand. */
+export interface NameDifference {
+  fineliId: number;
+  /** The name in the table's release. */
+  committed: string;
+  /** The name in the release at hand, or null when it does not list the id. */
+  here: string | null;
 }
 
 export interface RecipeCounts {
@@ -61,6 +82,34 @@ export function countRecipes(rows: Iterable<RecipeRow>, classOf: ReadonlyMap<num
     counts.set(id, { uses: usedBy.get(id)?.size ?? 0, foods: foodsOf.get(id) ?? null });
   }
   return { counts, rowsNotFood };
+}
+
+/** The ids of the `MOST_USED_NAMED` foods most recipes use, most used first, ties by id. */
+export function mostUsedIds(counts: ReadonlyMap<number, RecipeCount>): number[] {
+  return [...counts]
+    .filter(([, c]) => c.uses > 0)
+    .sort(([a, x], [b, y]) => y.uses - x.uses || a - b)
+    .slice(0, MOST_USED_NAMED)
+    .map(([id]) => id);
+}
+
+/** A name with case and runs of spaces set aside: one release writes names in capitals, another does not. */
+const plain = (name: string) => name.toLocaleLowerCase("fi").replace(/\s+/g, " ").trim();
+
+/**
+ * The most used foods of `table` that `nameHere` names differently, or does
+ * not know. Case and spacing do not count as a difference.
+ */
+export function namesThatDiffer(
+  table: RecipeCountsTable,
+  nameHere: (fineliId: number) => string | null,
+): NameDifference[] {
+  const differences: NameDifference[] = [];
+  for (const [fineliId, committed] of table.mostUsed) {
+    const here = nameHere(fineliId);
+    if (here === null || plain(here) !== plain(committed)) differences.push({ fineliId, committed, here });
+  }
+  return differences;
 }
 
 /** A table's rows as the map countRecipes answers. */

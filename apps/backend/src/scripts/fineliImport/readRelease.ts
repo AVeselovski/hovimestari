@@ -1,7 +1,7 @@
 import { FINELI_PORTION_UNITS, MAX_PORTION_GRAMS, type FineliPortionUnit } from "@hovimestari/types";
 import { existsSync, readFileSync } from "node:fs";
-import { sentenceCase, type NameLocale } from "./nameCase.js";
-import type { RecipeCountsTable } from "./recipeCounts.js";
+import { firstNames } from "./nameCase.js";
+import { namesThatDiffer, type NameDifference, type RecipeCountsTable } from "./recipeCounts.js";
 import { RECIPE_FILE, recipeCountsOf, type RecipeSource } from "./recipeFile.js";
 import { decode, findFile, readColumns, ReleaseError, type Encoding, type Row } from "./releaseFiles.js";
 
@@ -96,6 +96,12 @@ export type RecipeCountsSummary = RecipeSource & {
   foodsWithCount: number;
   /** Ids the counts name that food.csv does not list. */
   idsNotInRelease: number;
+  /**
+   * With committed counts: those of their release's most used foods that this
+   * folder's release names differently, or lacks. An id that names another
+   * food here would carry the wrong counts. Empty for a folder's own file.
+   */
+  namesThatDiffer: NameDifference[];
 };
 
 const KEPT_UNITS: ReadonlySet<string> = new Set(FINELI_PORTION_UNITS);
@@ -137,14 +143,6 @@ function byFood(rows: Row[]): Map<string, Row[]> {
     if (list) list.push(row);
     else map.set(row.FOODID, [row]);
   }
-  return map;
-}
-
-/** The first FOODNAME per FOODID, in sentence case when Fineli wrote it in capitals. */
-function names(rows: Row[], locale: NameLocale): Map<string, string> {
-  const map = new Map<string, string>();
-  for (const row of rows)
-    if (row.FOODNAME && !map.has(row.FOODID)) map.set(row.FOODID, sentenceCase(row.FOODNAME, locale));
   return map;
 }
 
@@ -199,12 +197,18 @@ export function readRelease(dir: string, fallback?: RecipeCountsTable): Release 
     tables[file] = rows;
     encodings[file] = encoding;
   }
-  const finnish = names(tables["foodname_FI.csv"], "fi");
-  const english = names(tables["foodname_EN.csv"], "en");
+  const finnish = firstNames(tables["foodname_FI.csv"], "fi");
+  const english = firstNames(tables["foodname_EN.csv"], "en");
   const values = byFood(tables["component_value.csv"]);
   const units = byFood(tables["foodaddunit.csv"]);
+  // Before the recipe file is read, which reads food.csv again: a bad id here is food.csv's fault, and its
+  // message must not end with the advice about the recipe file.
+  tables["food.csv"].forEach((row, n) => {
+    if (!/^\d+$/.test(row.FOODID))
+      throw new ReleaseError(`food.csv row ${n + 2} has FOODID "${row.FOODID}", which is not a number.`);
+  });
   const recipes = recipeCountsOf(dir, fallback);
-  if (recipes.source?.source === "release") encodings[RECIPE_FILE] = recipes.source.encoding;
+  if (recipes.source?.from === "release") encodings[RECIPE_FILE] = recipes.source.encoding;
 
   const foods: FineliFood[] = [];
   const skipped: SkippedFood[] = [];
@@ -212,9 +216,8 @@ export function readRelease(dir: string, fallback?: RecipeCountsTable): Release 
   const seen = new Set<string>();
   const countPortion = (reason: string) => (skippedPortions[reason] = (skippedPortions[reason] ?? 0) + 1);
 
-  tables["food.csv"].forEach((row, n) => {
+  tables["food.csv"].forEach((row) => {
     const id = row.FOODID;
-    if (!/^\d+$/.test(id)) throw new ReleaseError(`food.csv row ${n + 2} has FOODID "${id}", which is not a number.`);
     if (seen.has(id)) throw new ReleaseError(`food.csv lists FOODID ${id} twice.`);
     seen.add(id);
     const fineliId = Number(id);
@@ -271,6 +274,10 @@ export function readRelease(dir: string, fallback?: RecipeCountsTable): Release 
     ...recipes.source,
     foodsWithCount: [...recipes.counts.keys()].filter((id) => listed.has(id)).length,
     idsNotInRelease: [...recipes.counts.keys()].filter((id) => !listed.has(id)).length,
+    namesThatDiffer:
+      recipes.source.from === "committed" && fallback
+        ? namesThatDiffer(fallback, (id) => finnish.get(String(id)) ?? null)
+        : [],
   };
   return {
     label: releaseLabel(dir),
