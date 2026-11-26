@@ -1,0 +1,22 @@
+---
+name: Library feedback round
+description: What the owner's first phone test of the recipes round (2026-11-24) decided, and what its build cost a round trip: class recipes that lose to their base, a hit area under a border, text overflow direction, a stepper sized before measuring, app rules stamps
+type: project
+---
+
+- **Owner's words for the second tab (2026-11-24): Library, with "New recipe / New meal / New food", "Search my recipes / my meals / my foods", "My meals", "My foods".** On 2026-11-25 he decided the log sheet follows them. The rule: a label, button, heading or sheet title that names one of the person's lists, or starts or edits an item in one, says "My meals", "My foods", "New meal", "Edit meal", "New food". A sentence addressed to the person (toast, refusal, server-out-of-reach line, hint, Connected AI text, a screen reader's count) keeps "your" and "saved meal". What an assistant reads is untouched. He also said a phone's recipe row needs no "per serving".
+- **Owner read "On a day Sun, Nov 22" at the top of a recipe as the day it was created.** A date near a title reads as the thing's own date. It is now the page's last line, "Last on a day: ...".
+- **Owner wants compact controls and little empty room**: a 58 px tray, a 48 px Edit beside Back and 116 px under a page's last action were each "too tall" or "too much". He asked for one height across a column of controls.
+- **A recipe that adds `p-0.5` to one that has `p-1` loses.** Tailwind sorts by the scale, not by the order in the class list. The tray measured 52 px, not 48. Use `!` on the override (as `btnWide` does with `h-auto!`) or a variant, and measure.
+- **A hit area drawn with `::after` is placed from the padding box.** On a button with a 1 px border, `-inset-y-0.5` gave a 42 px target on a 40 px button. It needs the border added: `-inset-y-0.75` for 44.
+- **Text aligned right overflows to the right.** A heading wider than its fixed table column needs a flex box with `justify-end` and `whitespace-nowrap` inside the cell: a flex item that overflows at `flex-end` runs back to the left, over the empty corner cell.
+- **Size a row from the narrow phone first.** A stepper of 232 px beside a 66 px title wrapped at 360. Add up the widths against the card's inner width (screen less 66 on a page) at 320, 360 and 375 before building.
+- **A cold page (opened by address, read held) is a state to measure.** The recipe page's name row was 40 px without the star and 44 with it, so the card moved 4 px on a phone. Row summaries from the list hide it.
+- **A filter's state above the list that uses it**: the control sits beside the search field in the tab, so the order and bounds live in `RecipesTab` and reset where the list used to unmount (`choose`, and the address naming another segment). A test switches segment and comes back. Lifting it shipped a regression: pressing the chosen segment ran the reset while the list (and its chips) stayed mounted. A reset lifted out of an unmount must check that the unmount would really have happened (`if (next === segment) return`).
+- **`useToday().today` is null until an answer that names today is in the cache** (a targets read or a day read). A day already cached with no targets answer renders with today null, so anything derived from "before or after today" must have a third, unknown state (`EntryList`'s `when: … | null`). Reproduce in Jest with `client.removeQueries()`, then `setQueryData` the day, then `fetchQuery(targetsQuery())`.
+- **Another engineer's checkout may hold the ports a brief names** (`hovi-scan` held 3930 and 3935). Find listeners through `/proc/net/tcp` and the fds (no `ss` here), pick free ports, and rebuild the web app, since the API address is baked in at build time.
+- **Any edit to `docs/features/*.md`, even a link's words, fails `apps/backend/src/mcp/__tests__/appRules.test.ts`** until the doc's stamp in `APP_RULES_SOURCES` is set to the hash the test prints. Re-read the rules section first. A frontend-only change still needs the backend suite run.
+- **`messages/en.d.json.ts` is generated and git-ignored.** After a catalog edit `tsc` rejects new keys until it is rewritten: copy the catalog between its first `{` and last `}`, or run a build.
+
+**Why:** each cost a build cycle or was a decision the code does not show.
+**How to apply:** before sizing any control row, before overriding a base recipe's utility, and before touching a feature doc.

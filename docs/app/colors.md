@@ -119,11 +119,12 @@ The fonts are the three variable `woff2` files in `apps/web/src/app/fonts/`, loa
 ### Other tokens
 
 - Widths: `--container-page` (40rem) for every tab's content column from `md`, `--container-page-wide` (64rem) for the Day tab's two columns from `lg`, `--container-auth` (26rem) for the guest pages' column, `--spacing-rail` (14rem) for the side rail.
-- Heights: `--spacing-tab-bar` (3.5rem), the phone's tab bar cell, which the toast's place above it reads too. `--spacing-toast-clearance` (7.25rem), the room a page keeps at its end for the tallest toast: three lines of text, the toast's padding and the gap it hangs above the tab bar by.
+- Heights: `--spacing-tab-bar` (3.5rem), the phone's tab bar cell, which the toast's place above it reads too. `--spacing-toast-clearance` (7.25rem), the room a page keeps at its end for the tallest toast: three lines of text, the toast's padding and the gap it hangs above the tab bar by. `--spacing-toast-clearance-half` is half of it, the room under a recipe's page, where a tall toast may cover part of the last row while it shows.
 - The Day tab's header: `--day-header-top` (0.5rem on a phone, 2rem from `md`), the room above the date bar. `--day-header-gap` (1rem), between the date bar and the launcher. `--day-header-clear` (0.75rem), from the launcher to the header's bottom edge, its one-pixel line included. `--day-header-height`, the header's whole height. `--day-header-rest` (0.75rem), the room above the content at rest, which scrolls away under the header, so the content starts 1.5rem under the launcher at every width. `--day-content-top`, the two together: where the content starts at rest, which `under-day-header` gives the content as its scroll margin and where the summary stays from `lg`.
 - The toast: ink as its fill and the page colour as its text, the inverse of the page, so it reads apart from every surface under it.
 - Radii: `--radius-control` for fields and buttons, `--radius-card` for panels, `--radius-pill`.
 - Safe areas: `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`, the device's insets.
+- The page's side gutter: `--page-pad-left` and `--page-pad-right`, 1rem past the side insets on a phone and 2rem from `md`, where the left side takes no inset beside the rail. A page's chip row bleeds through them to the screen's edges.
 - Class recipes in `apps/web/src/components/ui/styles.ts` compose the tokens into buttons, fields, notices, panels and the focus ring, so a view never repeats a raw value. A field that runs over several lines, such as a recipe's method, is `textareaClass`: the field's border, surface and focus ring, at least 128 pixels tall, growing as the person drags it.
 
 ### Adding a token

@@ -42,9 +42,9 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | server fault, Something went wrong, Try again             | `app/shell.md#when-the-server-is-at-fault`                              | `### When the server is at fault`                |
 | the known-session flag, offline sign-in side              | `features/authentication.md#the-browser-session-through-the-web-server` | `### The browser session through the web server` |
 | the shell's layout, one scroll container                  | `app/shell.md#layout`                                                   | `### Layout`                                     |
-| Recipes tab, keeping recipes, foods and meals             | `app/recipes.md`                                                        | Doc                                              |
-| the Recipes tab's segments, its action and search         | `app/recipes.md#the-three-segments`                                     | `### The three segments`                         |
-| the archived meals on the Recipes tab                     | `app/recipes.md#meals`                                                  | `### Meals`                                      |
+| Library, the second tab, keeping recipes, foods and meals | `app/recipes.md`                                                        | Doc                                              |
+| the Library's segments, its action and search             | `app/recipes.md#the-three-segments`                                     | `### The three segments`                         |
+| the archived meals in the Library                         | `app/recipes.md#meals`                                                  | `### Meals`                                      |
 | the recipe editor                                         | `app/recipes.md#the-recipe-editor`                                      | `### The recipe editor`                          |
 | the ingredient picker, adding an ingredient               | `app/recipes.md#adding-an-ingredient`                                   | `### Adding an ingredient`                       |
 | a recipe's page                                           | `app/recipe.md`                                                         | Doc                                              |
@@ -54,7 +54,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | a batch's lines on screen, Leave out, Put back, the marks | `app/as-made-sheet.md#ingredients`                                      | `### Ingredients`                                |
 | From this batch, the other planned servings, a new row    | `app/as-made-sheet.md#from-this-batch`                                  | `### From this batch`                            |
 | the three ways into the as made sheet, useCookSheet       | `app/as-made-sheet.md#route-and-entry`                                  | `### Route and entry`                            |
-| the Recipes tab's filter sheet, Filter, its orders        | `app/recipes.md#the-filter-sheet`                                       | `### The filter sheet`                           |
+| the Library's filter sheet, Filter, its orders            | `app/recipes.md#the-filter-sheet`                                       | `### The filter sheet`                           |
 | the food search hook, useFoodFinder                       | `app/log-sheet.md#route-and-entry`                                      | `### Route and entry`                            |
 | design tokens, colours                                    | `app/colors.md#colour-tokens`                                           | `### Colour tokens`                              |
 | the accent, what it means                                 | `app/colors.md#what-the-accent-means`                                   | `### What the accent means`                      |
@@ -101,7 +101,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | meal view, edit meal, archive meal, delete meal           | `app/log-sheet.md#a-saved-meal`                                         | `### A saved meal`                               |
 | the log sheet's recipe view, Open recipe from it          | `app/log-sheet.md#a-recipe`                                             | `### A recipe`                                   |
 | archived meals view, restore                              | `app/log-sheet.md#archived-meals`                                       | `### Archived meals`                             |
-| saved meal sheet, save and log, save meal                 | `app/log-sheet.md#a-new-saved-meal`                                     | `### A new saved meal`                           |
+| saved meal sheet, save and log, save meal                 | `app/log-sheet.md#a-new-meal`                                           | `### A new meal`                                 |
 | estimate sheet, add an estimate                           | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |
 | closing sheet swallows presses, refused field into view   | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 | tall sheet, sheet with a fixed height                     | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |

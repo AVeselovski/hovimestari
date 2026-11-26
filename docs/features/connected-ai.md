@@ -73,7 +73,7 @@ For the entries on the person's days, as the Day tab and the log sheet change th
 - `remove_entries`: removes up to 100 entries. Each can be put back for ten minutes.
 - `restore_entry`: puts back an entry removed in the last ten minutes, exactly as it was.
 
-For [foods](foods.md#your-own-foods), as the log sheet and the Recipes tab change them:
+For [foods](foods.md#your-own-foods), as the log sheet and the Library change them:
 
 - `create_own_food`: adds one of the person's own foods with its values per 100 g from a label, and a barcode if it has one. The answer holds the new food's id, so it can be logged at once.
 - `update_own_food`: changes one of the person's own foods, given whole as the edit form saves it. A barcode left out is removed. Its planned entries from today on take the new values.

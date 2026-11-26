@@ -23,7 +23,7 @@ src/
 │   ├── (app)/                  The signed-in tabs, behind AuthGuard and inside the shell
 │   │   ├── layout.tsx          AuthGuard, then the per-user query cache and key reveal store, then the first-run gate, then AppShell
 │   │   ├── page.tsx            Day: renders DayTab inside Suspense, since it reads ?date=
-│   │   ├── recipes/            Recipes: renders RecipesTab inside Suspense, since it reads ?show=
+│   │   ├── recipes/            The Library: renders RecipesTab inside Suspense, since it reads ?show=
 │   │   │   └── [id]/           One recipe: renders RecipePage
 │   │   ├── groceries/          Groceries: "Nothing here yet."
 │   │   └── settings/           Settings: Targets, Food names, Appearance, Connected AI, Sign-in methods, Account and Food data, and their sheets
@@ -84,7 +84,7 @@ src/
 │   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
 │   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
 │   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours" unless left out, and a trailing control
-│   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures, portions and Copy to your foods
+│   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures, portions and Copy to my foods
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
 │   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the credit and an Open Food Facts product's own page
@@ -93,9 +93,9 @@ src/
 │   │   ├── useOwnFoodDelete.ts The one delete of an own food: asks first, takes a food already gone as deleted, drops it from the lists
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
 │   │   └── ownFoodForm.ts      The two forms' fields, a new food's start, their parsing and the shared schemas
-│   ├── log/                    Logging in the log sheet, and the saved meal parts the Recipes tab shares:
+│   ├── log/                    Logging in the log sheet, and the saved meal parts the Library shares:
 │   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
-│   │   ├── CreateActions.tsx   "New saved meal" and "Add an estimate", the first controls while browsing
+│   │   ├── CreateActions.tsx   "New meal" and "Add an estimate", the first controls while browsing
 │   │   ├── RecentList.tsx      The recent items, foods, meals and recipes, each with its last amount and "+"
 │   │   ├── RecipeRows.tsx      A recipe's row in the log sheet, the rows the search finds, and the Recipes list while browsing: five recipes and All 30 recipes
 │   │   ├── heldList.tsx        Open lists hold their order and rows while they can be pressed
@@ -138,17 +138,18 @@ src/
 │   ├── QueryProvider.tsx       The query client for one signed-in user
 │   ├── ConnectionRevealProvider.tsx  The one new connection key not yet confirmed copied, in React state only
 │   ├── ServiceWorkerRegistration.tsx  Registers sw.js in production builds
-│   ├── recipes/                The Recipes tab and a recipe's page:
-│   │   ├── RecipesTab.tsx      The page: the three segments, each one's action and search, and the editor, meal and own-food sheets
-│   │   ├── RecipeList.tsx      The recipes segment: Favourites and tag chips, Filter, the recipes in the order chosen, the archived recipes
+│   ├── recipes/                The Library and a recipe's page:
+│   │   ├── RecipesTab.tsx      The Library: the three segments, each one's action and search, Filter and its order and bounds, and the editor, meal and own-food sheets
+│   │   ├── RecipeFilterButton.tsx  Filter, the icon button after the recipes' search field, with the count in force on its corner
+│   │   ├── RecipeList.tsx      The recipes segment: Favourites and tag chips, the recipes in the order chosen, the archived recipes
 │   │   ├── RecipeFilterSheet.tsx  The filter sheet: Sort by and four bounds per serving, held as a draft that only Show recipes applies
-│   │   ├── recipeListFilter.ts The list's order and bounds, their one type and key list, the Filter chip's count, and the sheet's draft read into them
+│   │   ├── recipeListFilter.ts The list's order and bounds, their one type and key list, the count on Filter, and the sheet's draft read into them
 │   │   ├── RecipeRow.tsx       One recipe in the list, a link to its page, with the latest day under the order by it
 │   │   ├── RecipeFiguresLine.tsx  One serving's calories and protein on one line, for a recipe's row here and in the log sheet
 │   │   ├── SavedMealsSection.tsx  The saved meals, searched, and the archived meals opened in place
 │   │   ├── OwnFoodsSection.tsx The own foods, searched, each opening its edit sheet
-│   │   ├── RecipePage.tsx      One recipe: its figures with the servings stepper, its lines, method and notes, Log, Duplicate, Archive, Delete
-│   │   ├── RecipeFigures.tsx   The figures card: per serving and whole or scaled, with the stepper on the page
+│   │   ├── RecipePage.tsx      One recipe: its figures with the servings stepper, its lines, method and notes, Log, Duplicate, Archive, Delete, and the latest day it is on
+│   │   ├── RecipeFigures.tsx   The figures card: Per serving and Total, with the servings row and its stepper on the page
 │   │   ├── RecipeLogSheet.tsx  Servings of a recipe on a day, eaten or planned
 │   │   ├── CookSheet.tsx       The as made sheet: a batch with its own lines and servings, and the days its servings are on
 │   │   ├── CookIngredients.tsx The batch's lines, each with what the batch did with it
@@ -292,7 +293,7 @@ Rules that bind every change:
 
 ## UI copy
 
-Every string the app renders is an entry in `messages/en.json`, read with `useTranslations` from `next-intl`. A literal in JSX, an `aria-label`, a placeholder or a title is a lint error. Keys are typed, so a misspelled key fails `tsc`.
+Every string the app renders is an entry in `messages/en.json`, read with `useTranslations` from `next-intl`. A literal in JSX, an `aria-label`, a placeholder or a title is a lint error. Keys are typed, so a misspelled key fails `tsc`. The names of the person's lists and the buttons that start an item in one, such as "My meals" and "New food", are in the `lists` namespace, which the Library, the log sheet and the ingredient picker share.
 
 The lint rule has two blind spots, which review catches instead: a template literal rendered in JSX, such as ``{`Signed in as ${email}`}``, and a string held in a `const` and rendered through it. Neither passes review.
 
@@ -302,7 +303,7 @@ The catalog tests check that the catalog works: no empty entry, no code word suc
 
 ## Styling
 
-Style only through the tokens in `src/app/globals.css` and the recipes in `src/components/ui/styles.ts`. Tailwind's own palette is switched off, and a raw palette class is a lint error. [The colour reference](../../docs/app/colors.md) says what each token is for. Light and dark both have to look right. The four macro hues are drawn by `MacroDot` and `Gauge` only, and a test fails when any other file names one. The safe-area insets are read in `globals.css` only, as `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`.
+Style only through the tokens in `src/app/globals.css` and the recipes in `src/components/ui/styles.ts`. Tailwind's own palette is switched off, and a raw palette class is a lint error. [The colour reference](../../docs/app/colors.md) says what each token is for. Light and dark both have to look right. The four macro hues are drawn by `MacroDot` and `Gauge` only, and a test fails when any other file names one. The safe-area insets are read in `globals.css` only, as `--safe-top`, `--safe-right`, `--safe-bottom` and `--safe-left`. A page's side gutter is `--page-pad-left` and `--page-pad-right`, which `PageContainer` pads by and a page's chip row (`pageChipRow`) bleeds through.
 
 ## Sheets and dialogs
 
@@ -326,7 +327,7 @@ A confirmation is a `ConfirmDialog`. One in front of a write that takes a row of
 
 ## Toasts
 
-A short outcome on the page, such as "Removed Rahka." with Undo, is a toast from `src/components/ui/Toast.tsx`. `AppShell` mounts its one region, so a screen only calls `useToast().show({ message, action })`. The action's `onPress` receives `{ fromKeyboard }`, so it can move focus where its result shows after a keyboard press. Only one toast shows at a time, and it sits under every sheet: a sheet shows its own outcomes inside itself. A page whose last rows hold actions passes `clearToast` to `PageContainer`, so a toast never covers them. [The toast primitive](../../docs/app/shell.md#the-toast-primitive) states its rules.
+A short outcome on the page, such as "Removed Rahka." with Undo, is a toast from `src/components/ui/Toast.tsx`. `AppShell` mounts its one region, so a screen only calls `useToast().show({ message, action })`. The action's `onPress` receives `{ fromKeyboard }`, so it can move focus where its result shows after a keyboard press. Only one toast shows at a time, and it sits under every sheet: a sheet shows its own outcomes inside itself. A page whose last rows hold actions passes `clearToast="full"` to `PageContainer`, so a toast never covers them. A page whose last line is not an action, such as a recipe's page with its date line, passes `clearToast="half"`. [The toast primitive](../../docs/app/shell.md#the-toast-primitive) states its rules.
 
 ## Numbers and dates
 

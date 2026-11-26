@@ -2,7 +2,7 @@
 
 A recipe is a dish a person cooks again and again, written once with its servings, its ingredients and its method. The app computes its figures from the foods its ingredients point at, so a person never types a recipe's totals.
 
-Recipes are kept on [the Recipes tab](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. A batch is logged from [the as made sheet](../app/as-made-sheet.md), and by a connected assistant.
+Recipes are kept in [the Library](../app/recipes.md), where the editor makes them from foods, and read and put on days from [a recipe's page](../app/recipe.md). A connected assistant keeps them and puts them on days too. A batch that came out different from its recipe is logged as made, with its own ingredients and the servings it gave, and the recipe stays as written. A batch is logged from [the as made sheet](../app/as-made-sheet.md), and by a connected assistant.
 
 ## In detail
 
@@ -22,7 +22,7 @@ Either kind of line may carry the amount as the recipe writes it, such as "2 clo
 
 ### A recipe's figures
 
-A recipe's figures are computed from its counted lines and its servings every time it is read, from its foods as they are now. Two figures are shown. **Per serving** is one serving. **Whole recipe** is all of its servings, exactly what a day would show for all of them logged as one entry.
+A recipe's figures are computed from its counted lines and its servings every time it is read, from its foods as they are now. Two figures are shown. **Per serving** is one serving. **Total** is all of the servings shown, the whole recipe to start with. It is exactly what a day would show for all of them logged as one entry.
 
 The values of every counted line are added up exactly, divided by the servings and rounded once. A whole recipe is never the sum of its lines rounded one by one. In a shakshuka for 2 of 240 g of egg, 400 g of crushed tomatoes, 60 g of feta and 15 g of olive oil, one serving is 365 kcal and 21.8 g of protein, and the whole recipe 730 kcal and 43.6 g. Its lines rounded one by one would add up to 43.5 g.
 
@@ -92,7 +92,7 @@ A line already on a recipe keeps its food when the recipe is saved again, even w
 
 ### Finding recipes in code
 
-`filterRecipes` and `sortRecipes` in `packages/types/src/recipeFilter.ts` are the one filter and the one sort. `listRecipes` reads every active or archived recipe of the person, computes each one's figures and runs both. `fold` there lowers the case and takes the accents off, and the log sheet's meal filter uses it too. The web app reads a person's recipes whole and runs both on the device: the Recipes tab for its search, chips, bounds and orders, and the log sheet for the recipes its search finds. A sort by name uses `localeCompare` with Finnish rules.
+`filterRecipes` and `sortRecipes` in `packages/types/src/recipeFilter.ts` are the one filter and the one sort. `listRecipes` reads every active or archived recipe of the person, computes each one's figures and runs both. `fold` there lowers the case and takes the accents off, and the log sheet's meal filter uses it too. The web app reads a person's recipes whole and runs both on the device: the Library for its search, chips, bounds and orders, and the log sheet for the recipes its search finds. A sort by name uses `localeCompare` with Finnish rules.
 
 ### Saving a recipe
 
@@ -171,7 +171,7 @@ Requirements: FR-REC-01 to FR-REC-12, FR-REC-14, FR-DAY-02, FR-DAY-07, FR-AI-06,
 
 ## Where it appears
 
-- [The Recipes tab](../app/recipes.md): the recipes and the archived ones, found by words, favourites, tags and figures per serving, in any of the four orders, and the editor that makes and changes a recipe from foods.
+- [The Library](../app/recipes.md): the recipes and the archived ones, found by words, favourites, tags and figures per serving, in any of the four orders, and the editor that makes and changes a recipe from foods.
 - [A recipe's page](../app/recipe.md): the recipe, its figures at any number of servings, logging servings on a day, duplicating, archiving and deleting.
 - [The Day tab](../app/day.md): a recipe's entries, each with its servings, a batch's serving marked while the batch differs, and Open recipe and Log as made in an entry's sheet.
 - [The as made sheet](../app/as-made-sheet.md): a batch logged as made, with its own lines and servings, and the days its servings are on.
