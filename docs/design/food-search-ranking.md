@@ -38,7 +38,7 @@ Fineli release 18 holds no beef mince at 10 %. It has beef at 7 %, 9 % and 17 %,
 
 **What gets worse.**
 
-- **A dish under a one-word ingredient search moves down, and some leave the 30 rows.** "omena": Omenapiirakka from 14th to 35th. "muna": Munakas from 17th to 38th. "sipuli": Sipulikeitto from 14th to 39th. "makaroni": Makaronilaatikko from 25th to 31st. "kana": Kanakeitto from 25th to 109th. "tomaatti": Tomaattikeitto from 8th to 29th. Typing the dish's own name finds each at once.
+- **A dish under a one-word ingredient search moves down, and some leave the 30 rows.** "omena": Omenapiirakka from 14th to 35th. "muna": Munakas from 17th to 38th. "sipuli": Sipulikeitto from 14th to 39th. "makaroni": Makaronilaatikko from 25th to 31st. "kana": Kanakeitto from 25th to 109th. "tomaatti": the food named exactly "Tomaattikeitto" from 8th to 41st, and the first food that begins with that word is now a ready-made tomato and goat cheese soup, 29th. Typing the dish's own name finds each at once.
 - **A few food classes Fineli types as dishes lose their first row** to a basic food that mentions the word: "mysli" starts with a yoghurt with muesli, "keksi" with a rice cake, "smoothie" with twelve meal-replacement powders (the first smoothie is 13th), "salaatti" with pickles and lettuces (the first salad is 8th, was 3rd).
 - **English names lose more than Finnish ones.** "soup" starts with meal-replacement soup powders, and the pea soups move down: a canned pea soup is 9th, and the first row named "Peasoup", which was 1st, is 14th. "bread" starts with a flour mixture for bread rolls. The first "Rye bread" was 35th and is 38th.
 - "leipä" starts with one odd home-made flatbread, then today's order. "chicken" puts chicken strips first and plain "Chicken" 4th. "naudan jauheliha" puts pork and beef mince first and beef mince second.
@@ -228,17 +228,19 @@ The first round's evidence was weighted to ingredient words. These were added, f
 
 | Search   | Dish                                         | Today | Proposed |
 | -------- | -------------------------------------------- | ----- | -------- |
-| tomaatti | Tomaattikeitto                               | 8     | 29       |
+| tomaatti | The first food that begins "Tomaattikeitto"  | 8     | 29       |
+| tomaatti | Tomaattikeitto, the food named exactly so    | 8     | **41**   |
 | omena    | Omenapiirakka                                | 14    | **35**   |
 | muna     | Munakas                                      | 17    | **38**   |
 | sipuli   | Sipulikeitto                                 | 14    | **39**   |
 | makaroni | Makaronilaatikko                             | 25    | **31**   |
 | kana     | Kanakeitto                                   | 25    | **109**  |
-| peruna   | Perunasose                                   | 30    | **32**   |
+| peruna   | Perunasosejauhe, valmistamaton               | 30    | **32**   |
+| peruna   | Perunasose, täysmaito                        | 41    | **83**   |
 | broileri | Broileri, rintafilee, appelsiinikastikkeella | 10    | 18       |
 | riisi    | Riisipuuro                                   | 40    | 25       |
 
-Bold is outside the 30 rows. The dish's own name finds each first.
+Bold is outside the 30 rows. The dish's own name finds each first. The first food that begins "Tomaattikeitto" was the food named exactly so and is now "Tomaattikeitto, tomaatti-vuohenjuustokeitto, kokkikartano snellman, valmisateria", a ready meal. "Perunasosejauhe, valmistamaton" is a powder and a basic food, the first food that begins "Perunasose" under both rules. "Perunasose, täysmaito" is the first mash made with milk.
 
 **Why English loses more.** A Finnish compound keeps "leipäjuusto" out of the strong group for "leipä". English names put the class word as a separate later word ("Flour mixture, for bread rolls"), so any basic food that mentions "bread" or "soup" beats the dish named by it.
 
@@ -478,14 +480,14 @@ export type FoodSearchResult = z.infer<typeof FoodSearchResultSchema>;
 
 `near` is always present. It is empty when the query has one word, when `foods` holds `min(limit, 8)` rows or more, or when nothing matches all but one. `limit` bounds `foods` only. A food is never in both. `FoodListSchema` stays for the favourites and own lists.
 
-`search_foods` (MCP) answers the same object. Its description becomes: "Foods whose Finnish or English name holds every word of q, basic foods before dishes, and among basic foods one that more of Fineli's recipes use first. The person's favourites, own foods and scanned products come first among foods that match as strongly. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. near lists up to 8 foods that hold all words but one, when q has two words or more and few foods hold them all: fewer than 8, or fewer than limit when limit is under 8. Each with its source and its figures per 100 g."
+`search_foods` (MCP) answers the same object. Its description becomes: "Foods whose Finnish or English name holds every word of q. Among foods that match as strongly, basic foods come before dishes. Within each of the two, the person's favourites, own foods and scanned products come first, and then, among basic foods, one that more of Fineli's recipes use. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. near lists up to 8 foods that hold all words but one, when q has two words or more and few foods hold them all: fewer than 8, or fewer than limit when limit is under 8. Each with its source and its figures per 100 g."
 
 ## e) Data flow
 
 1. The person types "jauheliha 10 nauta". After 150 ms the web reads `GET /foods/search?q=jauheliha 10 nauta`.
 2. `searchWords` normalises in SQL and splits: `jauheliha`, `10`, `nauta`. `formsOf("nauta")` gives `naudan`, `compound` true.
 3. `searchQuery` runs. Two foods hold all three.
-4. Two is under `min(30, 8)` and there are three words, so `nearQuery` runs, with the two ids left out, and answers eight.
+4. Two is under `min(30, 8)` and there are three words, so `nearQuery` runs and answers eight. It keeps the foods that hold exactly two of the three words, so neither of the two is among them.
 5. The route sends `{ foods: [2], near: [8] }`. The assistant's tool sends the same.
 6. The web lists the two, then the heading "All but one of your words" over the eight, then the add block.
 
@@ -787,3 +789,21 @@ Artur decided 0.1 to 0.7 on 2026-11-25, each as recommended. The lines below tha
 - The typed base of a regular pair adds no form.
 - The stored figures are counts, and "one food" is decided in the query.
 - The scratch database `hovi_search_design` is dropped. The prototype is in the session scratchpad under `search-design/` (`rev_setup.sql`, `rev_evidence.sql`).
+
+## As built: slice B2 (2026-11-25)
+
+The branch is `feat/food-search-ranking`. The rule, the `near` list, the type, the route, the tool and the smoke check are built as sections 4 and d say. All 83 searches of the evidence were rerun through the real service on release 18, in both languages, and every first eight matches the evidence.
+
+- **The query uses two lateral subqueries**, as the SQL sample does: one holding a `t` per word, one holding `s`, `best` and `dish`. They are joined as raw SQL through Drizzle's `crossJoin`. No migration and no new index: the plan test shows `foods_search_all_trgm` for "rah" and for "nauta".
+- **`near` needs no list of ids to leave out.** A food that holds every word holds `n` of them, and `near` keeps the foods that hold exactly `n - 1`, so no food can be in both within one snapshot. The two statements share none, so `searchFoods` also drops from `near` any food its first list holds.
+- **The fixture has 826 rows**: each pinned search's first 40 under the rule, the first 40 of each `near` list, three searches with every count empty, and the witnesses. `fixtures/README.md` lists them, and `support/buildSearchSample.ts` builds the file from a database that holds release 18.
+- **One pin of section j does not hold on release 18 and was not written as worded.** "poro" was to put "Maksa, poron" after every food that begins "Poron". Under the rule, and in the prototype, the liver is a basic food where the word starts a later word (group 3). It comes after the three basic foods headed "Poron..." ("Poronliha", "Poronpaisti", "Poronliha, keitetty, suolaa") and before every many-food dish headed "Poron...", such as "Poronlihamureke", which is group 5. On the full release the liver is 5th and "Poronlihamureke" 13th. The test pins what the rule does: "Poronliha" first, the liver after the three basic foods and before "Poronlihamureke".
+- **"poron" finds no food headed exactly "Poro"**, because release 18 has none. The test pins "Maksa, poron" first and that "Poro-rieskarulla" is found.
+- **"rahka vl" now answers a `near` list**, because seven foods hold both words. That follows from the rule and was not in the design's table.
+- **A test of the first pull request pinned that search answers the same before and after the counts land.** It now pins that the same foods come back in the order the counts give, and that no count is in any answer.
+- **The web is untouched.** `FoodList` stays, and the web still types the search answer with it, so it compiles and ignores `near` until slice F1.
+
+### Carried from the first pull request
+
+- **A guard on release 18's ids landing on another release.** `recipeCountsR18.ts` now also holds the Finnish names of its ten most used foods, written by the build script from `foodname_FI.csv`. With the committed counts, `readRelease` compares them with the folder's names for the same ids, case and spacing aside, and the report prints one line saying they agree, or a "Warning:" line and one line per id that differs or is missing. It never stops the import. The section h assumption now has a check in code, for ten foods.
+- **The import's messages.** The stop for an unmigrated database ends with what Postgres said. A `FOODID` in `food.csv` that is not a number is caught before the recipe file is read, so its message no longer ends with advice about that file. The stop "has no CONFDID value" could not be reached, because the CSV reader refuses a record of another length than the header first, so it is gone from the code and the runbook. `RecipeSource.source` is now `from`.

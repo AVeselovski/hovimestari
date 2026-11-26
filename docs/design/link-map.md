@@ -125,6 +125,8 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | --------------------------------------------------------- | ---------------------------------------- | -------------------------- |
 | food catalogue, food source, retired food                 | `features/foods.md#the-food-catalogue`   | `### The food catalogue`   |
 | food search, search ranking                               | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
+| basic food, one-food dish, recipe uses                    | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
+| word forms in search, a search's second list (`near`)     | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
 | own food                                                  | `features/foods.md#your-own-foods`       | `### Your own foods`       |
 | portions, household measures                              | `features/foods.md#portions`             | `### Portions`             |
 | favourites                                                | `features/foods.md#favourites`           | `### Favourites`           |

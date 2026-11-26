@@ -32,7 +32,7 @@ days.ts        A day, its readings and summary, the day and range queries, summa
 entries.ts     Entry kinds and statuses, the limits, the add, patch, status, copy and remove bodies, and an entry
 errors.ts      ERROR_CODES, ErrorCode, ApiError with the line a recipe refusal names and a refusal's details, ErrorDetails, and isErrorCode
 figures.ts     Figures, positions, and the one figure computation: entryFigures, with a scale per 100 g, meal, serving or whole, totalOf, averageOf, positionOf, gramsForPortion, and the integer helpers scaled and divRound
-foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query, the own food and portion bodies, BarcodeSchema, macroSumWithinLimit and hasSearchableWord
+foods.ts       Food sources, Fineli portion units, food-name languages, the food, portion, list and last amount shapes, favourites, the search query and its answer of two lists (`FoodSearchResultSchema`), the own food and portion bodies, BarcodeSchema, macroSumWithinLimit and hasSearchableWord
 log.ts         A recent item, a food, a saved meal or a recipe with its last amount, and the recents query
 recipeFigures.ts  recipeBasis, one serving of a recipe from its counted lines, and scaleRecipe, its lines at another number of servings
 recipeFilter.ts   filterRecipes and sortRecipes, the one way recipes are found, and fold, which lowers the case and takes off accents
