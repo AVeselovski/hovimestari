@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { ARM_DELAY_MS, useHeldPresses, type PressCaptureProps, type PressProps } from "./usePressGuard";
 
-/** Longer than the gap between the two taps of a double tap. */
-export const ARM_DELAY_MS = 500;
+export { ARM_DELAY_MS };
 
 export interface ArmedAtRest {
   /** True once presses count. */
@@ -9,18 +9,12 @@ export interface ArmedAtRest {
   /** Pass to `BottomSheet`'s `onOpened`. */
   onOpened: () => void;
   /** Props for the action button: `action` runs only on a press that started armed. */
-  pressProps: (action: () => void) => {
-    onPointerDown: () => void;
-    onClick: () => void;
-    "data-armed": "" | undefined;
-  };
+  pressProps: (action: () => void) => PressProps & { "data-armed": "" | undefined };
   /**
    * Props for a container, so every control in it waits the same way: a
    * click that does not count is stopped before it reaches the control.
    */
-  guardProps: {
-    onPointerDownCapture: () => void;
-    onClickCapture: (e: { preventDefault: () => void; stopPropagation: () => void }) => void;
+  guardProps: PressCaptureProps & {
     /** Only while the guard is on: "waiting", then "armed". */
     "data-press-guard": "waiting" | "armed" | undefined;
   };
@@ -39,8 +33,9 @@ export interface ArmedAtRest {
  * started on an armed button. All three are needed: a touch on an entering
  * sheet ends its entry at once (Base UI starts a swipe), so `onOpened` can
  * fire under the second tap itself; and with reduced motion the sheet is at
- * rest after a 150ms fade, inside a double tap. A click with no press before
- * it (Enter, Space) counts once armed. Disarmed again on every open.
+ * rest after a 150ms fade, inside a double tap. A click with no press of its
+ * own (Enter, Space) counts once armed, also after a touch that ended in no
+ * click. The press rule is `useHeldPresses`'s. Disarmed again on every open.
  *
  * Callers pass `enabled` = `useIsMobile()`: at `md`+ a prompt is a popover
  * beside its trigger and a dialog fades in centred, neither under the finger,
@@ -65,34 +60,14 @@ export function useArmedAtRest(open: boolean, enabled = true): ArmedAtRest {
   }, [open]);
 
   const armed = !enabled || (entered && delayPassed);
-  // Whether the press that ends in the next click started on an armed button.
-  const pressStartedArmedRef = useRef<boolean | null>(null);
+  const presses = useHeldPresses(!armed);
 
   return {
     armed,
     onOpened: () => setEntered(true),
-    pressProps: (action) => ({
-      onPointerDown: () => {
-        pressStartedArmedRef.current = armed;
-      },
-      onClick: () => {
-        const startedArmed = pressStartedArmedRef.current;
-        pressStartedArmedRef.current = null;
-        if (armed && startedArmed !== false) action();
-      },
-      "data-armed": armed ? "" : undefined,
-    }),
+    pressProps: (action) => ({ ...presses.pressProps(action), "data-armed": armed ? "" : undefined }),
     guardProps: {
-      onPointerDownCapture: () => {
-        pressStartedArmedRef.current = armed;
-      },
-      onClickCapture: (e) => {
-        const startedArmed = pressStartedArmedRef.current;
-        pressStartedArmedRef.current = null;
-        if (armed && startedArmed !== false) return;
-        e.preventDefault();
-        e.stopPropagation();
-      },
+      ...presses.guardProps,
       "data-press-guard": !enabled ? undefined : armed ? "armed" : "waiting",
     },
   };

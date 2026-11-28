@@ -1,8 +1,10 @@
 "use client";
 
 import { btnSecondary, btnWide, noticeClass, sectionTitle } from "@/components/ui/styles";
+import { useCameraApi } from "@/hooks/useCameraApi";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { usePressGuard, type PressGuard } from "@/hooks/usePressGuard";
 import { useSheetTarget, type SheetTarget } from "@/hooks/useSheetTarget";
 import { barcodeOf } from "@/lib/barcode";
 import { foodSearchQuery } from "@/lib/queryOptions";
@@ -14,7 +16,7 @@ import { FoodRow } from "./FoodRow";
 import { OwnFoodSheet, type OwnFoodTarget } from "./OwnFoodSheet";
 import { useScanner } from "./scanner/useScanner";
 import { ScannerSheet } from "./ScannerSheet";
-import { SearchField } from "./SearchField";
+import { clearField, SearchField } from "./SearchField";
 import { useBarcodeMode } from "./useBarcodeMode";
 
 // ---------------------------------------------------------------------------
@@ -26,7 +28,11 @@ import { useBarcodeMode } from "./useBarcodeMode";
 //   header.
 // - `results(slots)`: the sheet's body on its search view. With fewer than
 //   two characters typed, the host's own `browse` lists. A barcode typed or
-//   scanned (8 to 14 digits), the barcode block (`useBarcodeMode`). Else the
+//   scanned (8 to 14 digits), the barcode block (`useBarcodeMode`), whose
+//   Search by name empties the field as its clear cross does and whose Scan
+//   again opens the scanner as its camera button does. What shows in the
+//   block's place after Search by name takes no press for `ARM_DELAY_MS`, so
+//   the second tap of a double tap opens no row that rendered under it. Else the
 //   food results, after the host's `lead` when it has one. The results keep
 //   to the host's browse lists until typing has settled on two characters or
 //   more and the first answer is in, and keep the last answer on screen while
@@ -134,12 +140,25 @@ export function useFoodFinder({
     contentRef,
   });
   const stackedOpen = scanner.sheet.isOpen || ownSheet.isOpen;
+  // The camera button and Scan again show by this one gate.
+  const scan = useCameraApi() ? scanner.open : undefined;
+  // Search by name was pressed where the lists now show: they wait out a double tap.
+  const gaveWay = usePressGuard();
 
   const barcode = useBarcodeMode({
     query,
     canOpenFood: open && canPick && !stackedOpen,
     showFood: onPick,
     onFromLabel: (start, opener) => ownSheet.open(opener, { start }),
+    // A phone's keyboard covers the answer. From md up there is none to put away.
+    blurField: () => {
+      if (isMobile) inputRef.current?.blur();
+    },
+    onSearchByName: () => {
+      gaveWay.hold();
+      clearField(typeText, inputRef);
+    },
+    onScan: scan,
   });
 
   const field = (
@@ -149,7 +168,7 @@ export function useFoodFinder({
       value={text}
       onChange={typeText}
       onEnter={barcode.onEnter}
-      onScan={scanner.open}
+      onScan={scan}
       autoFocus={!isMobile}
       label={label}
     />
@@ -192,6 +211,7 @@ export function useFoodFinder({
       <FinderResults
         query={query}
         settled={settled}
+        guard={gaveWay.guardProps}
         notice={notice}
         barcode={barcode.block}
         browse={browse}
@@ -213,6 +233,8 @@ interface FinderResultsProps {
   /** What the field holds, trimmed, and `settled`, the same once typing has paused. */
   query: string;
   settled: string;
+  /** Holds presses after the barcode block gave way under the finger. */
+  guard: PressGuard["guardProps"];
   notice: string | null;
   barcode: ReactElement | null;
   browse: ReactNode;
@@ -224,6 +246,7 @@ interface FinderResultsProps {
 function FinderResults({
   query,
   settled,
+  guard,
   notice,
   barcode,
   browse,
@@ -260,7 +283,7 @@ function FinderResults({
   }, [query, showsResults]);
   const led = showsResults && lead ? lead(query) : null;
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} {...guard}>
       {notice && (
         <p role="status" className={`${noticeClass} mb-4`}>
           {notice}

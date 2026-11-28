@@ -15,10 +15,8 @@ export function barcodeOf(text: string): string | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** True when two codes are one product: equal once both are padded to 14 digits. */
-export function sameBarcode(a: string, b: string): boolean {
-  return a.padStart(14, "0") === b.padStart(14, "0");
-}
+/** True when two codes are one product: equal once both are padded to 14 digits. The server's own rule. */
+export { sameBarcode } from "@hovimestari/types";
 
 /** The product's own page at Open Food Facts. */
 export function openFoodFactsUrl(code: string): `https://${string}` {

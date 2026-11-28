@@ -2,8 +2,9 @@
 
 import { GRAMS, gramsOf, parseAmount } from "@/components/entries/amount";
 import { usePortionChipLabel } from "@/components/entries/portionLabel";
-import { FoodDetailHeader } from "@/components/foods/FoodDetail";
+import { CopyToOwnFoods, FoodDetailHeader } from "@/components/foods/FoodDetail";
 import { FoodList } from "@/components/foods/FoodSearchView";
+import { copyStartOf } from "@/components/foods/ownFoodForm";
 import { useFoodFinder } from "@/components/foods/useFoodFinder";
 import { foodChipsOf } from "@/components/log/foodChips";
 import { releaseHeldLists } from "@/components/log/heldList";
@@ -11,6 +12,7 @@ import { useStatusMessage } from "@/components/log/StatusLine";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PromptSheetBody } from "@/components/ui/PromptSheetBody";
 import { btnPrimary, btnText, btnTextDanger, statusLineClass } from "@/components/ui/styles";
+import { useArmedAtRest } from "@/hooks/useArmedAtRest";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { formatCount } from "@/lib/entryFormat";
@@ -41,7 +43,11 @@ import { readWritten, writtenFieldsOf } from "./WrittenFields";
 //   in the header, and the form (`PickerAmountForm`). It opens on grams with
 //   the field empty, since a recipe's amount is not the last amount logged.
 //   Add in the footer, or for a line opened from the editor, Save with
-//   Remove ingredient beside it.
+//   Remove ingredient beside it. For a food from Open Food Facts, once its
+//   detail is in, Copy to my foods under the form opens the own-food form
+//   filled in from it, so a found product that is not the pack in hand
+//   becomes the person's own food with its barcode. Saved, it opens on its
+//   amount, as any own food saved here does.
 //
 // The dialog is named after what it shows: "Add ingredient" on the search,
 // "Change ingredient" on the search of a line being changed, and the food's
@@ -118,6 +124,8 @@ export function IngredientPicker({
   const errorCopy = useErrorCopy();
   const client = useQueryClient();
   const isMobile = useIsMobile();
+  // The picker slides up under the finger that pressed Add ingredient: its results wait until it is at rest.
+  const armed = useArmedAtRest(open, isMobile);
   const chipLabel = usePortionChipLabel();
   const amountOf = useLineAmount();
   const status = useStatusMessage();
@@ -318,55 +326,67 @@ export function IngredientPicker({
       panelClassName="md:max-w-lg"
       footer={footer}
       stacked={finder.stacked}
+      onOpened={armed.onOpened}
     >
       <PromptSheetBody focusSelf={isMobile && view.kind === "search"}>
         <div ref={contentRef}>
           {view.kind === "search" ? (
-            finder.results({
-              notice: null,
-              browse: (
-                <div className="space-y-6">
-                  <FoodList
-                    list="picker-favourites"
-                    title={tFoods("favourites")}
-                    empty={t("favouritesEmpty")}
-                    foods={favourites.data?.foods}
-                    onOpen={(f) => pick(f)}
-                  />
-                  <FoodList
-                    list="picker-own"
-                    title={tLists("myFoods")}
-                    empty={tFoods("ownFoodsEmpty")}
-                    foods={own.data?.foods}
-                    onOpen={(f) => pick(f)}
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => finder.ownSheet.open(e.currentTarget, { start: { name: "" } })}
-                    className={btnText}
-                  >
-                    {tLists("newFood")}
-                  </button>
-                </div>
-              ),
-            })
+            <div {...armed.guardProps}>
+              {finder.results({
+                notice: null,
+                browse: (
+                  <div className="space-y-6">
+                    <FoodList
+                      list="picker-favourites"
+                      title={tFoods("favourites")}
+                      empty={t("favouritesEmpty")}
+                      foods={favourites.data?.foods}
+                      onOpen={(f) => pick(f)}
+                    />
+                    <FoodList
+                      list="picker-own"
+                      title={tLists("myFoods")}
+                      empty={tFoods("ownFoodsEmpty")}
+                      foods={own.data?.foods}
+                      onOpen={(f) => pick(f)}
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => finder.ownSheet.open(e.currentTarget, { start: { name: "" } })}
+                      className={btnText}
+                    >
+                      {tLists("newFood")}
+                    </button>
+                  </div>
+                ),
+              })}
+            </div>
           ) : (
-            <PickerAmountForm
-              id={id}
-              formId={formId}
-              fieldId={fieldId}
-              fields={fields}
-              errors={errors}
-              chips={chips}
-              unit={unit}
-              chip={chip}
-              preview={preview}
-              autoFocus={!isMobile || editing === null}
-              onFields={setFields}
-              onErrors={setErrors}
-              onChangeFood={changeFood}
-              onSubmit={submit}
-            />
+            <div className="flex flex-col gap-6">
+              <PickerAmountForm
+                id={id}
+                formId={formId}
+                fieldId={fieldId}
+                fields={fields}
+                errors={errors}
+                chips={chips}
+                unit={unit}
+                chip={chip}
+                preview={preview}
+                autoFocus={!isMobile || editing === null}
+                onFields={setFields}
+                onErrors={setErrors}
+                onChangeFood={changeFood}
+                onSubmit={submit}
+              />
+              {food && (
+                <CopyToOwnFoods
+                  source={food.source}
+                  detail={detail.data}
+                  onCopy={(loaded, opener) => finder.ownSheet.open(opener, { start: copyStartOf(loaded) })}
+                />
+              )}
+            </div>
           )}
         </div>
       </PromptSheetBody>

@@ -1,7 +1,9 @@
+import { barcodeOf, sameBarcode } from "@/lib/barcode";
 import { parseDecimalInput } from "@/lib/decimalInput";
 import { formatDecimalForField } from "@/lib/foodFormat";
 import {
-  OwnFoodBodySchema,
+  hasSearchableWord,
+  isWellFormedBarcode,
   OwnFoodUpdateBodySchema,
   PortionBodySchema,
   type ErrorCode,
@@ -63,12 +65,13 @@ export type Parsed<B, E> = { ok: true; body: B } | { ok: false; errors: E };
 
 /**
  * What the form opened on: the form as it opened, the figures its values
- * stand for, and whether its name is a saved food's (an edit) or a start's.
+ * stand for, and whether it is a saved food (an edit) or a start, whose name
+ * and barcode are new.
  */
 export interface OwnFoodBaseline {
   values: OwnFoodValues;
   per100g: Partial<FoodDetail["per100g"]>;
-  nameSaved: boolean;
+  saved: boolean;
 }
 
 /**
@@ -86,15 +89,24 @@ export function startOf(start: OwnFoodStart = {}): OwnFoodBaseline {
     values[field] = formatDecimalForField(value);
     per100g[VALUES[field].key] = value;
   }
-  return { values, per100g, nameSaved: false };
+  return { values, per100g, saved: false };
 }
 
 /** An edit's baseline: the food as saved, built as a start is, with its name kept as saved. */
 export function savedBaselineOf(food: FoodDetail): OwnFoodBaseline {
   return {
     ...startOf({ name: food.name, barcode: food.barcode ?? undefined, per100g: food.per100g }),
-    nameSaved: true,
+    saved: true,
   };
+}
+
+/**
+ * The start Copy to my foods opens the form with: the food's name, its
+ * figures and its barcode, marked as come from Open Food Facts, so the form
+ * asks to check each value against the label.
+ */
+export function copyStartOf(food: FoodDetail): OwnFoodStart {
+  return { name: food.name, barcode: food.barcode ?? undefined, per100g: food.per100g, fromProduct: true };
 }
 
 /**
@@ -106,9 +118,12 @@ export function savedBaselineOf(food: FoodDetail): OwnFoodBaseline {
  * save must not fail on a value the person never touched. The figure then
  * takes the same ranges and sum as a typed one.
  *
- * A saved name left as it was is not checked for search, as the server
+ * A saved name left as it was is not checked for search, and a saved
+ * barcode left as it was is not checked for its last digit, as the server
  * checks only a changed one, so an edit of the values never fails on the
- * name it has. A start's name is a new name and is always checked.
+ * name or the barcode it has. A barcode counts as left when it is the same
+ * code padded to 14 digits, the server's rule. A start's name and barcode
+ * are new and are always checked.
  */
 export function parseOwnFood(values: OwnFoodValues, baseline?: OwnFoodBaseline): Parsed<OwnFoodBody, OwnFoodErrors> {
   const errors: OwnFoodErrors = {};
@@ -127,10 +142,12 @@ export function parseOwnFood(values: OwnFoodValues, baseline?: OwnFoodBaseline):
     else per100g[key] = parsed.value;
   }
   const barcode = values.barcode.trim();
-  const keptName = baseline?.nameSaved === true && values.name.trim() === baseline.values.name.trim();
-  const schema = keptName ? OwnFoodUpdateBodySchema : OwnFoodBodySchema;
-  const result = schema.safeParse({ name: values.name, per100g, barcode: barcode === "" ? null : barcode });
-  if (result.success && Object.keys(errors).length === 0) return { ok: true, body: result.data };
+  // Any name and any 8 to 14 digits parse, as for an edit on the server.
+  const result = OwnFoodUpdateBodySchema.safeParse({
+    name: values.name,
+    per100g,
+    barcode: barcode === "" ? null : barcode,
+  });
   for (const issue of result.success ? [] : result.error.issues) {
     const [first, second] = issue.path.map(String);
     const field =
@@ -138,6 +155,16 @@ export function parseOwnFood(values: OwnFoodValues, baseline?: OwnFoodBaseline):
     // A field that did not parse keeps the code that says why.
     if (field && OWN_FOOD_FIELDS.includes(field)) errors[field] ??= issue.message as ErrorCode;
   }
+  // What is new then takes the check a new food's takes, each on its own, so
+  // a rename never fails on a barcode the food already holds, nor a new
+  // barcode on the name it has.
+  const saved = baseline?.saved === true ? baseline.values : null;
+  const name = values.name.trim();
+  if (saved?.name.trim() !== name && !hasSearchableWord(name)) errors.name ??= "food_name_not_searchable";
+  const code = barcodeOf(barcode);
+  const barcodeChanged = saved === null || !sameBarcode(code, barcodeOf(saved.barcode));
+  if (code !== null && barcodeChanged && !isWellFormedBarcode(code)) errors.barcode ??= "barcode_wrong_digits";
+  if (result.success && Object.keys(errors).length === 0) return { ok: true, body: result.data };
   return { ok: false, errors };
 }
 
@@ -178,6 +205,7 @@ export function ownFoodFieldOf(code: ErrorCode | undefined): OwnFoodField | null
       return "name";
     case "barcode_invalid":
     case "barcode_taken":
+    case "barcode_wrong_digits":
       return "barcode";
     case "food_macro_sum_too_high":
       return "fat";
