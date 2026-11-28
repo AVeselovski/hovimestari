@@ -219,7 +219,7 @@ src/
 │   ├── useFormDirty.ts         Whether a form holds unsaved input
 │   ├── useConfirmedDelete.tsx  A confirmation in front of a write that takes a row off the page, and the write
 │   ├── useArmedAtRest.ts       A sheet's action, or a container of its controls, takes a press only once the sheet is at rest on a phone
-│   ├── usePressGuard.ts        The one rule for presses that wait, and a guard that holds them for half a second on request
+│   ├── usePressGuard.ts        The one rule for presses that wait, and a guard that holds them for half a second on request or from its mount
 │   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
 │   ├── useSheetFocusReturn.ts  Where a sheet puts focus back the moment it closes

@@ -77,6 +77,8 @@ Its first line says "Adding to Shakshuka", with the recipe's name. Under it the 
 
 A line opened from the editor opens the picker on its amount, its first line "Changing an ingredient of Shakshuka", with **Save** and **Remove ingredient**.
 
+The amount appears under the finger that tapped the row, a food in the search or a line in the editor, so the second tap of a double tap lands in it. For half a second after, its body and footer take no press, as [the log sheet's food view](log-sheet.md#a-food) waits: a chip keeps its unit, and **Add**, **Save**, **Remove ingredient** and **Copy to my foods** do nothing. A tap on the amount field focuses it at once. **Back** takes a press at once. A food you saved as your own opens its amount with no wait.
+
 Assistive technology hears the sheet by what it shows: "Add ingredient" on the search, "Change ingredient" on the search of a line being changed, and the food's name on its amount.
 
 ### A line not counted

@@ -125,6 +125,8 @@ The star marks the food as a [favourite](../features/foods.md#favourites) at onc
 
 **Delete food** asks first: "Delete Mummon pulla?" with "This removes the food and its portions." and **Delete**. Afterwards the sheet shows the lists, with focus in the search field. A food already deleted on another device counts as deleted.
 
+The view appears under the finger that tapped the row, so the second tap of a double tap lands in it. For half a second after a row or a barcode lookup opens it, its body and footer take no press, by [the press latch](shell.md#the-sheet-primitives). **Log**, **Eaten or planned**, a chip, **About the data** and **Copy to my foods** do nothing then, and a quick tap on **Log** needs a second press. The amount field is the one exception: a tap on it focuses it and raises the keyboard at once, so a row, then the amount, then typing costs nothing. A press that starts in the half second does not count when it ends later. Enter or a screen reader's activation counts as soon as the half second is over. **Back** and the star take a press at once, because no row sits under the header. Nothing on screen shows the wait. A food that opens as a copy you saved does not wait, because the closing own-food sheet takes the second tap.
+
 ### A saved meal
 
 Tapping a saved meal opens it. The top row holds **Back** and the meal's name. The log block asks for **Meals**, filled in with the last count, else 1, and shows the figures for that many meals and **Eaten or planned**. Under it come the meal's name, "From Wolt" when it has a source, and **Per meal** with its four figures. **Log** in the footer logs it as a food's does. An archived meal can be logged too.
@@ -137,6 +139,8 @@ Under the figures:
 
 A meal that is gone, deleted on another device, sends the sheet back to the search with "This saved meal is no longer available.", also when a log, an edit or an archive finds it gone.
 
+For half a second after its row opens it, the view takes no press but in **Meals**, as [a food's view](#a-food) does.
+
 ### A recipe
 
 Tapping a recipe opens it. The top row holds **Back** and the recipe's name. The log block asks for **Servings**, filled in with [the last servings](../features/recipes.md#a-recipe-on-a-day), else 1, and shows "For this amount" with the figures for that many servings and **Eaten or planned**. **Log** in the footer logs it as a food's does. It logs the recipe as written.
@@ -147,9 +151,11 @@ Under the log block come the recipe's name, **Per serving** with its four figure
 
 A recipe that is gone, deleted on another device, sends the sheet back to the search with "This recipe is no longer available." when a log or a **+** finds it gone. Its row leaves every list.
 
+For half a second after its row opens it, the view takes no press but in **Servings**, as [a food's view](#a-food) does.
+
 ### Archived meals
 
-**Archived meals** opens the list of archived meals, with **Back** and "Archived meals" in the top row. The list is read when it opens. Each row opens its meal and carries **Restore** at its end, which takes it off this list and back to the saved meals. "Meals you archive appear here." when there is none.
+**Archived meals** opens the list of archived meals, with **Back** and "Archived meals" in the top row. The list is read when it opens. Each row opens its meal and carries **Restore** at its end, which takes it off this list and back to the saved meals. "Meals you archive appear here." when there is none. For half a second after **Archived meals** opens it, the list takes no press, as [a food's view](#a-food) does.
 
 ### A new meal
 
