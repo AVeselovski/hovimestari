@@ -1,0 +1,9 @@
+# Barcode after a miss, web slice (2026-11-28)
+
+- **`usePressGuard().hold()` stops every click in its container, `detail` 0 included,** for the whole half second. A jsdom test that types a code and presses Look up, or clicks a row, right after Search by name or Forget the barcode does nothing. Wait for `[data-press-guard="waiting"]` to leave (real timers), or start fake timers before the press that holds and advance them. Switching to fake timers after the hold started leaves the real timer running and nothing advances.
+- **An `inline-flex` button (`btnText`, `btnShape`) drops the space between rich-text children.** "Use barcode <digits>{code}</digits>" rendered "Use barcode6408…" in Chromium while jsdom's textContent had the space. Wrap a rich label in one `<span>`. Only a browser shows it.
+- **A focus-in-press test must focus the button first.** After Search by name, focus is already in the field, so "Forget puts focus in the field" passed with the focus call deleted until the test did `press.focus()` before the click.
+- **A double tap on a button that opens a stacked form sheet needs no extra hold.** Measured at 320 to 1280: the second tap lands on the entering form (a field, its label or line) and presses nothing, because Base UI's entry handling keeps focus on the popup. `hold()` guards only the finder's results, so it cannot help there anyway.
+- **An always-mounted empty `role="status"` region** is how the carried line is announced once. It sits before the barcode block in the DOM, so a structural "nothing before the block" test had to admit an empty region.
+- **`mv dir existing-dir` nests the dir.** Moving a fresh `.next-bamw` onto an existing `.next-build` put it inside, and the server served the old build. Check the served chunks for a new string before measuring.
+- **Point the backend's `OFF_BASE_URL` at a dead port** (`http://127.0.0.1:9`) to pass a lookup through to the server while proving no call leaves for Open Food Facts.

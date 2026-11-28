@@ -24,3 +24,5 @@ Before handing a design to review, check these, each of which cost a review roun
 **Why:** the orchestrator accepted every one of these as a finding and asked for the fix in the body, so they are the review's standing bar.
 
 **How to apply:** run this list over a design before returning it.
+
+**Added 2026-11-26 (barcode after a miss review):** three majors, all text. A status line's verb must not be a button's label that ends that status ("add" vs the picker's **Add**). A recommendation against an option must list what the chosen option costs the owner in use (fresh food: no last amount, recents, star, one name, old recipes keep the old food), not only what the rejected one costs to build. A proposed requirement wording must match the built scope exactly ("any food" when only shared foods qualify, a path the wording omits). Also: check what a shared reset helper is called by before hanging a lifetime rule on it (deletes ran `reset`).

@@ -20,3 +20,4 @@
 - [Recipes design](project_recipes_design.md): per-serving basis, cooks only as made, copy detaches, images in Postgres
 - [Scan misses](project_scan_misses.md): Lidl RCN-8 looked up and shared, wrong_digits is an answer not a 400, buttons at a miss
 - [Food search ranking](project_food_search_ranking.md): contribfood.csv is the commonness signal, 19-pair inflection list, Snowball and trigram measured and rejected
+- [Barcode after a miss](project_barcode_after_miss.md): own food copy carries the barcode, no tie table; carried lifetime; Artur ranked 3 cases
