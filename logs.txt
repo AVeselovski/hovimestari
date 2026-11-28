@@ -907,3 +907,6 @@
 [documentation-specialist STARTED] (2026-11-28T16:50:27Z) the barcode after a miss branch's docs against the standard.
 [documentation-specialist DONE] (2026-11-28T16:56:05Z) docs at e64407b: the copy and the carried barcode have their own headings in the foods doc, the link map and the page docs point at them; foods.md re-stamped.
 [frontend-engineer STARTED] (2026-11-28T17:45:18Z) a view a result row opens holds presses for half a second, except the amount field (the owner chose this on 2026-11-28).
+[frontend-engineer DONE] (2026-11-28T18:47:26Z) the view hold: a view a row opens takes no press for half a second, through the existing latch; a text field still takes focus; 0 entries written in 111 double taps; gate green (web 2605). (338k tokens)
+[ui-validator STARTED] (2026-11-28T18:47:26Z) the view hold after a row, in motion in a real browser.
+[reviewer STARTED] (2026-11-28T18:47:26Z) the view hold after a row.
