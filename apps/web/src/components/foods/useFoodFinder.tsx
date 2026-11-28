@@ -6,13 +6,15 @@ import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { usePressGuard, type PressGuard } from "@/hooks/usePressGuard";
 import { useSheetTarget, type SheetTarget } from "@/hooks/useSheetTarget";
-import { barcodeOf } from "@/lib/barcode";
+import { barcodeOf, sameBarcode } from "@/lib/barcode";
 import { foodSearchQuery } from "@/lib/queryOptions";
 import type { FoodDetail, FoodSearchResult, FoodSummary, LastAmount } from "@hovimestari/types";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
+import { CarriedLine } from "./CarriedLine";
 import { FoodRow } from "./FoodRow";
+import type { OwnFoodStart } from "./ownFoodForm";
 import { OwnFoodSheet, type OwnFoodTarget } from "./OwnFoodSheet";
 import { useScanner } from "./scanner/useScanner";
 import { ScannerSheet } from "./ScannerSheet";
@@ -42,6 +44,16 @@ import { useBarcodeMode } from "./useBarcodeMode";
 //   the text as the user's own food, which a text no food matches shows too.
 // - `stacked`: the scanner sheet and the own-food sheet, for the sheet's
 //   `stacked` slot, so each is a nested sheet and the host recedes behind it.
+//
+// After a scan that found nothing, Search by name carries the barcode the
+// block's label button would keep (`carried`). While carried, a line at the
+// top of the results says so with Forget the barcode (`CarriedLine`), every
+// new own food the finder's form opens starts with it, an edit offers it by
+// a button, and Copy to my foods names it (`copy`). Only choosing a food
+// ends the carry: an own food saved with it, a barcode in the field, Forget,
+// and the host's `endCarry` (the picker's Add). A log closes the host, and
+// the host is keyed per open, so the carry goes with it. `reset`, which a
+// delete runs, and the clear cross leave it.
 //
 // It renders nothing about logging. A food tapped, or found by barcode, goes
 // to the host's `onPick`, which decides what a picked food opens. The log
@@ -83,6 +95,12 @@ export interface FoodFinderOptions {
   label?: string;
 }
 
+/** Copy to my foods: the barcode it takes, and what opens the form on a start built from a food. */
+export interface CopyToOwn {
+  carried: string | null;
+  open: (start: OwnFoodStart, opener: HTMLElement) => void;
+}
+
 /** What a host shows above the food results, and whether the foods then take their own heading. */
 export type ResultsLead = (query: string) => { node: ReactNode; foodsTitled: boolean };
 
@@ -99,8 +117,12 @@ export interface FoodFinder {
   stackedOpen: boolean;
   /** The own-food sheet, which the host's food view also opens to edit or copy a food. */
   ownSheet: SheetTarget<OwnFoodTarget>;
-  /** Empties the field. A held barcode answer shows only while the field names its code, so it no longer shows. */
+  /** Empties the field. A held barcode answer shows only while the field names its code, so it no longer shows. The carried barcode stays. */
   reset: () => void;
+  /** A food was chosen without the carried barcode: the carry ends. */
+  endCarry: () => void;
+  /** For the one Copy to my foods button (`CopyToOwnButton`), in both hosts: the barcode carried from a miss, or null, and what opens the form. */
+  copy: CopyToOwn;
   /** Drops a found barcode answer for a food that is gone. */
   forget: (foodId: string) => void;
 }
@@ -124,10 +146,14 @@ export function useFoodFinder({
   const query = text.trim();
   const settled = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const ownSheet = useSheetTarget<OwnFoodTarget>();
+  // The barcode from a miss, carried to the food the person saves as their own.
+  const [carried, setCarried] = useState<string | null>(null);
 
   /** The search field's text changed, typed or read by the scanner. */
   function typeText(next: string): void {
     setText(next);
+    // A new barcode has a block of its own, whose buttons carry it again on a miss.
+    if (barcodeOf(next.trim()) !== null) setCarried(null);
     onType?.();
     barcode.textChanged(next);
   }
@@ -142,7 +168,7 @@ export function useFoodFinder({
   const stackedOpen = scanner.sheet.isOpen || ownSheet.isOpen;
   // The camera button and Scan again show by this one gate.
   const scan = useCameraApi() ? scanner.open : undefined;
-  // Search by name was pressed where the lists now show: they wait out a double tap.
+  // Search by name or Forget the barcode was pressed where the lists now show: they wait out a double tap.
   const gaveWay = usePressGuard();
 
   const barcode = useBarcodeMode({
@@ -154,8 +180,9 @@ export function useFoodFinder({
     blurField: () => {
       if (isMobile) inputRef.current?.blur();
     },
-    onSearchByName: () => {
+    onSearchByName: (keep) => {
       gaveWay.hold();
+      setCarried(keep);
       clearField(typeText, inputRef);
     },
     onScan: scan,
@@ -194,7 +221,10 @@ export function useFoodFinder({
           returnFocusTo={ownSheet.shown.opener}
           onClose={ownSheet.close}
           {...ownSheet.shown.value}
+          carried={carried ?? undefined}
           onSavedFood={(saved: FoodDetail) => {
+            // Used: the barcode is on the food now.
+            if (carried !== null && sameBarcode(saved.barcode, carried)) setCarried(null);
             // Saved with the held code: the block holds it as found, and Back focuses its row.
             onSavedOwnFood(saved, barcode.savedOwnFood(saved));
           }}
@@ -212,6 +242,16 @@ export function useFoodFinder({
         query={query}
         settled={settled}
         guard={gaveWay.guardProps}
+        carried={
+          <CarriedLine
+            code={carried}
+            onForget={() => {
+              gaveWay.hold();
+              setCarried(null);
+              inputRef.current?.focus({ preventScroll: true });
+            }}
+          />
+        }
         notice={notice}
         barcode={barcode.block}
         browse={browse}
@@ -226,6 +266,8 @@ export function useFoodFinder({
     ownSheet,
     reset: () => setText(""),
     forget: barcode.forget,
+    endCarry: () => setCarried(null),
+    copy: { carried, open: (start, opener) => ownSheet.open(opener, { start }) },
   };
 }
 
@@ -235,6 +277,8 @@ interface FinderResultsProps {
   settled: string;
   /** Holds presses after the barcode block gave way under the finger. */
   guard: PressGuard["guardProps"];
+  /** The carried barcode's line, first in the body. */
+  carried: ReactElement;
   notice: string | null;
   barcode: ReactElement | null;
   browse: ReactNode;
@@ -247,6 +291,7 @@ function FinderResults({
   query,
   settled,
   guard,
+  carried,
   notice,
   barcode,
   browse,
@@ -284,6 +329,7 @@ function FinderResults({
   const led = showsResults && lead ? lead(query) : null;
   return (
     <div ref={rootRef} {...guard}>
+      {carried}
       {notice && (
         <p role="status" className={`${noticeClass} mb-4`}>
           {notice}

@@ -34,7 +34,7 @@ These come from `docs/overview.md` and `docs/requirements.md`. They are here bec
 - **No advice.** Nothing the app shows or returns says what a user's targets or intake should be. No default targets, no calculators, no judgement words on a day. The app reports figures against the user's own numbers. A connected assistant may set targets for its user. That is the user's own assistant acting, and the app adds no view of its own.
 - **No inference.** The app calls no language model and stores no model provider key. AI reaches the app only through a user's connection key, over MCP.
 - **No chat in the app.**
-- **Figures come from foods.** A recipe's figures are computed from ingredients that point at foods. A day's figures are computed from its entries. The only typed-in totals are a saved meal's, an estimate's and a user's own food's label values. An estimate is always shown as one.
+- **Figures come from foods.** A recipe's figures are computed from ingredients that point at foods. A day's figures are computed from its entries. The only typed-in figures are a saved meal's and an estimate's totals and a user's own food's values per 100 g. An estimate is always shown as one.
 - **The assistant gets what the screen gets.** A connected assistant's tools call the same read and write services the REST routes call. A tool selects and renames fields and computes nothing.
 - **A feature ships with its assistant tools.** A change that adds something a user can do on screen adds the matching MCP tool in the same change, unless the requirements keep it out of an assistant's reach.
 - **Planned is not eaten.** Every entry is planned or eaten, and every total exists in both readings. Never show one figure where the two differ.

@@ -26,6 +26,8 @@ export const MAX_FOOD_NAME_LENGTH = 120;
 export const MAX_PORTION_NAME_LENGTH = 60;
 /** The heaviest portion, in grams. */
 export const MAX_PORTION_GRAMS = 5000;
+/** The most portions a new own food comes with, such as a copy of a Fineli food. */
+export const MAX_NEW_FOOD_PORTIONS = 30;
 /** The most results a search answers. */
 export const MAX_SEARCH_LIMIT = 50;
 /** How many foods a favourites or own-foods list answers by default, and at most. */
@@ -199,10 +201,23 @@ export const OwnFoodUpdateBodySchema = z.object({
   barcode: BarcodeSchema.nullable().default(null),
 });
 
+export const PortionBodySchema = z.object({
+  name: z
+    .string({ error: "portion_name_required" })
+    .trim()
+    .min(1, { error: "portion_name_required" })
+    .max(MAX_PORTION_NAME_LENGTH, { error: "portion_name_too_long" }),
+  grams: z
+    .number({ error: "portion_grams_invalid" })
+    .refine((v) => v > 0 && v <= MAX_PORTION_GRAMS && hasAtMostDecimals(v, 1), { error: "portion_grams_invalid" }),
+});
+
 /**
  * The body of `POST /foods`: a new name must hold a word search can find,
  * and a barcode must have digits a barcode can have. An edit checks the
- * barcode in the service, and only when it changes.
+ * barcode in the service, and only when it changes. `portions` is for a
+ * create only: the portions a new food comes with, such as a copy's, saved
+ * with the food in one transaction. The edit body has none, and strips one.
  */
 export const OwnFoodBodySchema = OwnFoodUpdateBodySchema.extend({
   name: OwnFoodNameSchema.refine(hasSearchableWord, { error: "food_name_not_searchable" }),
@@ -214,17 +229,8 @@ export const OwnFoodBodySchema = OwnFoodUpdateBodySchema.extend({
   })
     .nullable()
     .default(null),
-});
-
-export const PortionBodySchema = z.object({
-  name: z
-    .string({ error: "portion_name_required" })
-    .trim()
-    .min(1, { error: "portion_name_required" })
-    .max(MAX_PORTION_NAME_LENGTH, { error: "portion_name_too_long" }),
-  grams: z
-    .number({ error: "portion_grams_invalid" })
-    .refine((v) => v > 0 && v <= MAX_PORTION_GRAMS && hasAtMostDecimals(v, 1), { error: "portion_grams_invalid" }),
+  // Optional, not defaulted, so the parsed body's type does not require it.
+  portions: z.array(PortionBodySchema).max(MAX_NEW_FOOD_PORTIONS, { error: "portions_too_many" }).optional(),
 });
 
 export type FoodSource = (typeof FOOD_SOURCES)[number];
@@ -242,4 +248,6 @@ export type FoodSearchResult = z.infer<typeof FoodSearchResultSchema>;
 export type FoodSearchQuery = z.infer<typeof FoodSearchQuerySchema>;
 export type FoodListQuery = z.infer<typeof FoodListQuerySchema>;
 export type OwnFoodBody = z.infer<typeof OwnFoodBodySchema>;
+/** The body of `PUT /foods/:id`. `portions` is for a create only, so this type refuses a body that has them. */
+export type OwnFoodUpdateBody = z.infer<typeof OwnFoodUpdateBodySchema> & { portions?: never };
 export type PortionBody = z.infer<typeof PortionBodySchema>;

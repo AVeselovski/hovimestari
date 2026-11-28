@@ -109,6 +109,15 @@ export function foodDetailQuery(id: string) {
   });
 }
 
+/**
+ * A food's detail could not be read and is not there: the read failed, or
+ * waits offline. A view shows what needs the detail as unavailable, not as
+ * loading.
+ */
+export function detailUnavailable(detail: { data?: unknown; isError: boolean; fetchStatus: string }): boolean {
+  return detail.data === undefined && (detail.isError || detail.fetchStatus === "paused");
+}
+
 /** The user's favourites, newest first. */
 export function favouriteFoodsQuery() {
   return queryOptions({

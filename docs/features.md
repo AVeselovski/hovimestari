@@ -14,7 +14,7 @@ Feature docs and page docs are two different axes. A feature doc says what a fea
 
 ## Foods
 
-- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one search that finds a food by any part of either name, and a repeatable Fineli import, searched and logged in the log sheet, with own foods kept there and in the Library. A barcode typed or scanned in the food search of the log sheet or of a recipe's ingredient picker is looked up among the user's own foods, then at Open Food Facts, and a product found there is kept for every later lookup, while one not found is added from its label or found by name.
+- **[Foods](features/foods.md)**: the food catalogue of shared foods, such as Fineli's, and each user's own foods, with portions, favourites, names in Finnish or English, one search that finds a food by any part of either name, and a repeatable Fineli import, searched and logged in the log sheet, with own foods, typed from a label or copied from any Fineli or Open Food Facts food, kept there and in the Library. A barcode typed or scanned in the food search of the log sheet or of a recipe's ingredient picker is looked up among the user's own foods, then at Open Food Facts, and a product found there is kept for every later lookup, while one not found is added from its label, or found by name and saved as the user's own with the barcode.
 
 ## Days and logging
 

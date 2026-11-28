@@ -3,14 +3,15 @@ import { guardArmed, openSheet } from "@/__tests__/sheet";
 import { answerWith, installLookups, keepProduct, lookups } from "@/components/foods/__tests__/barcodeServer";
 import { addOwn, installServer, server } from "@/components/foods/__tests__/foodSheetServer";
 import { installCamera, type FakeCamera } from "@/components/foods/__tests__/scannerFakes";
-import { detailOf, fineliFood, offFood, ownFood } from "@/components/foods/__tests__/support";
+import { detailOf, offFood, ownFood } from "@/components/foods/__tests__/support";
 import { createFood } from "@/lib/api/foods";
 import type { FoodDetail } from "@hovimestari/types";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IngredientPicker } from "../IngredientPicker";
 
 // The ingredient picker and the barcode: Copy to my foods on an Open Food
-// Facts food's amount, and the barcode block's ways on from a miss, which the
+// Facts food's amount (a Fineli food's, and the carried barcode, are in
+// ./IngredientPicker.carried.test.tsx), and the barcode block's ways on from a miss, which the
 // picker shares with the log sheet through the food finder. The fake server
 // answers what it holds (components/foods/__tests__/barcodeServer.ts).
 
@@ -108,10 +109,8 @@ describe("IngredientPicker, Copy to my foods", () => {
     expect(screen.getByRole("textbox", { name: "Amount" })).toBeInTheDocument();
   });
 
-  it.each([
-    ["a Fineli food", detailOf(fineliFood("Oliiviöljy"))],
-    ["an own food", detailOf(ownFood("Oma öljy"), { barcode: CODE })],
-  ])("does not show on %s", async (_what, food) => {
+  it("does not show on an own food", async () => {
+    const food = detailOf(ownFood("Oma öljy"), { barcode: CODE });
     addOwn(food);
     renderPicker();
     fireEvent.change(search(), { target: { value: food.name.slice(0, 5).toLowerCase() } });

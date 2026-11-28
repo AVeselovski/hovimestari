@@ -6,7 +6,7 @@ import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { fineliFood, ownFood } from "@/components/foods/__tests__/support";
 import { recipeOf } from "@/components/recipes/__tests__/recipeFixtures";
 import { useAuth } from "@/contexts/AuthContext";
-import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
+import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getDay } from "@/lib/api/days";
 import { addEntry, removeEntry } from "@/lib/api/entries";
 import { getFavouriteFoods, getFood, getOwnFoods } from "@/lib/api/foods";

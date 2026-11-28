@@ -28,7 +28,13 @@ import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { afterFoodGone, afterRecipeGone, afterSavedMealGone } from "@/lib/invalidation";
-import { foodDetailQuery, prefetchLogLists, recipesQuery, savedMealsQuery } from "@/lib/queryOptions";
+import {
+  detailUnavailable,
+  foodDetailQuery,
+  prefetchLogLists,
+  recipesQuery,
+  savedMealsQuery,
+} from "@/lib/queryOptions";
 import { keepDayPlace, markOpenedInApp } from "@/lib/recipeNav";
 import type { EntryStatus, FoodSummary, LastAmount, RecipeSummary, SavedMeal } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,7 +44,7 @@ import { ADD_PORTION_ATTRIBUTE, FoodDetailBody, FoodDetailHeader } from "./FoodD
 import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
 import { Browse, leadResults, type MealBrowsing } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
-import { copyStartOf } from "./ownFoodForm";
+import { logTargetOf, typedLastOf, viewKey, type View } from "./foodSheetView";
 import { useFavourite } from "./useFavourite";
 import { useFoodFinder } from "./useFoodFinder";
 import { useOwnFoodDelete } from "./useOwnFoodDelete";
@@ -99,20 +105,6 @@ export interface FoodSheetProps {
   actions: Pick<EntryActions, "add" | "saveAndLog" | "withdrawAdd" | "logCook" | "holding">;
 }
 
-type View =
-  | { kind: "search" }
-  | { kind: "food"; food: FoodSummary; last: LastAmount | null | undefined }
-  | { kind: "meal"; meal: SavedMeal; lastCount: number | null }
-  | { kind: "recipe"; recipe: RecipeSummary; lastServings: number | null }
-  | { kind: "archived" };
-
-/** The key of a view's log form, which starts again when another food, meal or recipe opens. */
-function viewKey(view: View): string {
-  if (view.kind === "food") return `food-${view.food.id}`;
-  if (view.kind === "meal") return `meal-${view.meal.id}`;
-  return view.kind === "recipe" ? `recipe-${view.recipe.id}` : "search";
-}
-
 export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodSheetProps): ReactElement {
   const t = useTranslations("foods.sheet");
   const tLog = useTranslations("log");
@@ -165,7 +157,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     onPick: showFood,
     onSavedOwnFood: (saved, row) => {
       if (view.kind === "food" && view.food.id === saved.id) return;
-      showFood(saved, row, undefined);
+      // A copy saved from a food's view opens with the grams typed there. The form is read at the save, not now.
+      showFood(saved, row, view.kind === "food" ? typedLastOf(form) : undefined);
     },
     onOwnFoodDeleted: (id) => afterDelete(id),
     onFoodGone: foodGone,
@@ -272,14 +265,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
 
   const again = useLogAgain({ date, statusAt, actions, onLogged, onGone, sayFailure });
 
-  const logTarget: LogTarget | null =
-    view.kind === "food"
-      ? { kind: "food", food: detail.data ?? view.food, last: view.last, detail: detail.data }
-      : view.kind === "meal"
-        ? { kind: "meal", meal: view.meal, lastCount: view.lastCount }
-        : view.kind === "recipe"
-          ? { kind: "recipe", recipe: view.recipe, lastServings: view.lastServings }
-          : null;
+  const logTarget = logTargetOf(view, detail.data);
   const form = useLogForm({
     key: viewKey(view),
     target: logTarget,
@@ -423,13 +409,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
               <FoodDetailBody
                 summary={view.food}
                 detail={detail.data}
-                unavailable={detail.data === undefined && (detail.isError || detail.fetchStatus === "paused")}
+                unavailable={detailUnavailable(detail)}
                 favouriteError={favourite.error && !favouriteGone ? errors.forError(favourite.error) : null}
                 onLeave={onClose}
                 onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
                 onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
                 onEdit={(loaded, opener) => finder.ownSheet.open(opener, { food: loaded })}
-                onCopy={(loaded, opener) => finder.ownSheet.open(opener, { start: copyStartOf(loaded) })}
+                copy={finder.copy}
                 onDelete={(opener) => remove.open(food, opener)}
               />
             </div>

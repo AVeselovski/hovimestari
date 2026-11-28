@@ -874,3 +874,35 @@
 [documentation-specialist DONE] (2026-11-28T13:31:33Z) docs true to the code at 86a30da: the Lidl code's longer forms, the picker's lookup, the label way when Open Food Facts is silent, the catalog lines cut to two sentences; foods.md re-stamped.
 [reviewer DONE] (2026-11-28T13:48:27Z) second fix batch: the branch can go to its pull request; three minors on tests and comments.
 [frontend-engineer DONE] (2026-11-28T13:48:27Z) the review's last items at 6293ae6: the lists rule's other half and the picker's entry delay pinned, comments true, one guardArmed helper; web 2546.
+[architect STARTED] (2026-11-26T23:03:50Z) design for a barcode after a miss: an own food tied to the scanned barcode, a Fineli food copied and adjusted into an own food with that barcode, and a barcode tied to a food as it is.
+[architect DONE] (2026-11-26T23:15:21Z) design at e0f58a7, docs/design/barcode-after-miss.md: the barcode from a miss is carried through the name search and lands on an own food, added or copied from any shared food with its values and portions; no new table, no migration, no direct tie. Two requirement wordings proposed for the owner.
+[reviewer STARTED] (2026-11-26T23:15:21Z) review of the barcode after a miss design before it is built.
+[reviewer DONE] (2026-11-26T23:22:29Z) review of the barcode after a miss design: approve after changes, all to its text. The line on the search must not say add, the case against a direct tie must name what a copy costs the owner, and both requirement wordings miss what is built.
+[architect STARTED] (2026-11-26T23:22:29Z) amending the barcode after a miss design after its review.
+[architect DONE] (2026-11-26T23:27:27Z) barcode after a miss design amended at a93006e: every finding answered in a table at its end, none disputed. The carried line names no button that ends the carry, the case against a direct tie names what a copy costs, both requirement wordings follow what is built. Waiting on the owner: the wordings, the direct tie, a copy that reads as his own food.
+[backend-engineer STARTED] (2026-11-28T12:26:19Z) barcode after a miss, slice B: an own food created with portions, the update body's type and the unit codes in the app rules.
+[backend-engineer DONE] (2026-11-28T12:42:31Z) slice B at c1e02ff: an own food is created with up to 30 portions in one transaction, the edit path takes no portions, the app rules name the Fineli unit codes; gate green (types 364, backend 1651, web 2538, smoke 79).
+[validator STARTED] (2026-11-28T12:42:31Z) barcode after a miss, slice B at c1e02ff.
+[reviewer STARTED] (2026-11-28T12:42:31Z) barcode after a miss, slice B at c1e02ff.
+[reviewer DONE] (2026-11-28T12:48:13Z) slice B: pass with fixes, no blocker and no major. The edit path's type should refuse a typed create body, and the unit codes test should pin the whole list in order.
+[validator DONE] (2026-11-28T12:51:53Z) slice B: pass with fixes, no blocker and no major. Every refusal saves nothing, the copy pair holds, the tool answers what the REST read answers; gate re-run green at c1e02ff.
+[backend-engineer STARTED] (2026-11-28T12:51:53Z) slice B fix batch after its validation and review.
+[backend-engineer DONE] (2026-11-28T13:46:54Z) slice B fix batch at 3f852c3: the edit body's type refuses portions, one own portion row, the unit codes pinned in order, which refusal wins pinned; gate green (types 367, backend 1651, web 2538, smoke 79).
+[frontend-engineer STARTED] (2026-11-28T13:50:18Z) barcode after a miss, slice W: the carried barcode, Copy to my foods on every Fineli and Open Food Facts food, the form with portions and Use barcode.
+[frontend-engineer DONE] (2026-11-28T14:30:56Z) slice W at 1b5d005: the carried barcode and its line, Copy to my foods on every Fineli and Open Food Facts food, the form with portions, Use barcode; gate green (types 367, backend 1651, web 2583). (451k tokens)
+[validator STARTED] (2026-11-28T14:30:56Z) barcode after a miss, slice W at 1b5d005.
+[ui-validator STARTED] (2026-11-28T14:30:56Z) barcode after a miss, slice W at 1b5d005.
+[reviewer STARTED] (2026-11-28T14:30:56Z) barcode after a miss, slice W at 1b5d005.
+[reviewer DONE] (2026-11-28T14:40:14Z) slice W: pass with fixes, no blocker. FoodSheet at 494 lines needs a lift, the digits renderer is written three times, one dead branch in a test.
+[validator DONE] (2026-11-28T14:58:55Z) slice W: pass, no blocker and no major. The owner's path holds in both hosts, every carry rule matches the design, nothing leaks; the copy button sits three drags below the fold with no cue, and a log before it drops the barcode.
+[ui-validator DONE] (2026-11-28T15:18:21Z) slice W: pass with fixes. The field, header and sheet hold through every frame; one major on placement: in the log sheet the copy button is out of sight on the owner's own path, and moving the one button under the source line puts it in view at 390 by 844.
+[frontend-engineer STARTED] (2026-11-28T15:18:21Z) slice W fix batch: the copy button under the source line, the form's portions by name, one digits renderer, FoodSheet's view helpers lifted out.
+[frontend-engineer DONE] (2026-11-28T16:09:23Z) slice W fix batch at 9199919: the copy button under the source line and in view at 390 by 844, the form's portions by name, one digits renderer, FoodSheet at 472 lines; gate green (web 2586). (319k tokens)
+[validator STARTED] (2026-11-28T16:09:23Z) narrow re-check of the slice W fix batch at 9199919.
+[ui-validator STARTED] (2026-11-28T16:09:23Z) narrow re-check of the slice W fix batch at 9199919.
+[ui-validator DONE] (2026-11-28T16:35:43Z) slice W fix batch: pass with fixes. The copy button is in view at 390 by 844 and nothing jumps on phones; an older defect measured: a double tap on a result row presses what the food view draws under the finger, and can log a food.
+[validator DONE] (2026-11-28T16:41:46Z) slice W fix batch: pass with fixes, no blocker and no major. The path holds in both hosts; a copy button whose food's detail fails to load stays dimmed with no word.
+[frontend-engineer STARTED] (2026-11-28T16:41:46Z) the re-check's last items: the copy button when a food's detail fails, one hint line on a copy, the double tap item for the owner.
+[frontend-engineer DONE] (2026-11-28T16:50:27Z) the re-check's last items at a9124e4: no copy button when a food's detail cannot be read, one hint line on a copy, the double tap filed for the owner; web 2593.
+[documentation-specialist STARTED] (2026-11-28T16:50:27Z) the barcode after a miss branch's docs against the standard.
+[documentation-specialist DONE] (2026-11-28T16:56:05Z) docs at e64407b: the copy and the carried barcode have their own headings in the foods doc, the link map and the page docs point at them; foods.md re-stamped.

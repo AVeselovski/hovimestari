@@ -16,17 +16,21 @@ import { formatGrams } from "@/lib/foodFormat";
 import type { FoodDetail as FoodDetailData, FoodSummary, Portion } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
 import type { ReactElement, Ref } from "react";
+import { CopyToOwnButton } from "./CopyToOwnButton";
 import { FavouriteButton } from "./FavouriteButton";
 import { FoodSourceLine } from "./FoodSourceLine";
 import { Per100gFigures } from "./Per100gFigures";
+import type { CopyToOwn } from "./useFoodFinder";
 
 // ---------------------------------------------------------------------------
 // The log sheet's food view, under its log block. The header holds Back, the
-// food's name on one line, and the favourite star. The body scrolls under it and holds the food's name, the other
-// language's name, where the figures come from, the figures per 100 g, the
-// portions, for the user's own food Edit and Delete, and for an Open Food
-// Facts food, which nobody edits, Copy to my foods. The name scrolls
-// with the body, so a long one never squeezes the body under a fixed header.
+// food's name on one line, and the favourite star. The body scrolls under it
+// and holds the food's name, the other language's name, where the figures
+// come from, then for a Fineli or Open Food Facts food, which nobody edits,
+// Copy to my foods (`CopyToOwnButton`), so it is in view as the food opens.
+// Then the figures per 100 g, the portions, and for the user's own food Edit
+// and Delete. The name scrolls with the body, so a long one never squeezes
+// the body under a fixed header.
 // Edit shows once the detail has loaded, since the form opens on what was
 // saved. Until the detail has loaded it shows the row it was opened from, so
 // the name and figures are there at once.
@@ -118,8 +122,8 @@ export interface FoodDetailBodyProps {
   /** Opens the edit form on the loaded detail. Edit food shows only once the detail is there. */
   onEdit: (detail: FoodDetailData, opener: HTMLElement) => void;
   onDelete: (opener: HTMLElement) => void;
-  /** Opens the own-food form filled in from this Open Food Facts food, so the person can correct it. */
-  onCopy: (detail: FoodDetailData, opener: HTMLElement) => void;
+  /** Copy to my foods, for a Fineli or Open Food Facts food: the finder's. */
+  copy: CopyToOwn;
 }
 
 export function FoodDetailBody({
@@ -132,7 +136,7 @@ export function FoodDetailBody({
   onEditPortion,
   onEdit,
   onDelete,
-  onCopy,
+  copy,
 }: FoodDetailBodyProps): ReactElement {
   const t = useTranslations("foods.detail");
   const portionLabel = usePortionLabel();
@@ -159,6 +163,7 @@ export function FoodDetailBody({
         <FoodSourceLine source={food.source} barcode={detail?.barcode} onLeave={onLeave} />
       </div>
       {food.retired && <p className={noticeClass}>{t("retired")}</p>}
+      <CopyToOwnButton source={food.source} detail={detail} unavailable={unavailable} copy={copy} />
       <section aria-labelledby="food-per-100g">
         <h3 id="food-per-100g" className={`${sectionTitle} mb-2`}>
           {t("per100g")}
@@ -201,7 +206,6 @@ export function FoodDetailBody({
           </>
         )}
       </section>
-      <CopyToOwnFoods source={food.source} detail={detail} onCopy={onCopy} />
       {food.isOwn && (
         <div className="flex flex-col items-start gap-2 border-t border-rule pt-4">
           {detail !== undefined && (
@@ -215,30 +219,6 @@ export function FoodDetailBody({
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-export interface CopyToOwnFoodsProps {
-  source: FoodSummary["source"];
-  /** The food's detail. The button waits for it, since the form opens on its values and barcode. */
-  detail: FoodDetailData | undefined;
-  onCopy: (detail: FoodDetailData, opener: HTMLElement) => void;
-}
-
-/**
- * Copy to my foods, under a rule: for a food from Open Food Facts, which
- * nobody edits, once its detail is in. The log sheet's food view and the
- * ingredient picker's amount view both show it, by this one rule.
- */
-export function CopyToOwnFoods({ source, detail, onCopy }: CopyToOwnFoodsProps): ReactElement | null {
-  const t = useTranslations("foods.detail");
-  if (source !== "open_food_facts" || detail === undefined) return null;
-  return (
-    <div className="border-t border-rule pt-4">
-      <button type="button" onClick={(e) => onCopy(detail, e.currentTarget)} className={`${btnSecondary} w-full`}>
-        {t("copyToOwn")}
-      </button>
     </div>
   );
 }

@@ -194,8 +194,12 @@ describe("FoodSheet in barcode mode", () => {
         expect(first.firstElementChild).toBe(heading);
         expect(heading).toHaveTextContent(`Barcode ${CODE}`);
         expect(first.className.split(" ")).toContain("min-h-68.5");
-        // Nothing comes before the block in the body's view.
-        expect(body().querySelector("[data-barcode-result]")?.previousElementSibling ?? null).toBeNull();
+        // Nothing comes before the block in the body's view but the carried line's region, empty.
+        const before = body().querySelector("[data-barcode-result]")?.previousElementSibling ?? null;
+        expect(before).not.toBeNull();
+        expect(before!.querySelector('[role="status"]')).not.toBeNull();
+        expect(before!.textContent).toBe("");
+        expect(before!.previousElementSibling).toBeNull();
         seen.push(first.getAttribute("data-barcode-result")!);
       };
       record();

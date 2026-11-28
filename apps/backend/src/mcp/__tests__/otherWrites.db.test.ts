@@ -143,6 +143,64 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
         expect(await records()).toHaveLength(rows);
       });
 
+      it("adds a copy with its portions in one call, records the food without them, and a retry answers them too", async () => {
+        const requestKey = newRequestKey();
+        const args = {
+          requestKey,
+          name: "Oliiviöljy Filos",
+          per100g: { energyKcal: 884, proteinG: 0, carbsG: 0, fatG: 91.6 },
+          barcode: "6416710030222",
+          portions: [
+            { name: "Tablespoon", grams: 13.5 },
+            { name: "Teaspoon", grams: 4.5 },
+          ],
+        };
+        const rows = (await records()).length;
+        const data = await written(client, "create_own_food", args);
+        expect(data).toMatchObject({ outcome: "created", note: RECORDED });
+        expect(data.food).toEqual(await restFood(data.food.id));
+        expect(data.food.portions).toEqual(
+          args.portions.map((p) => ({ id: expect.any(String), unit: null, name: p.name, grams: p.grams, isOwn: true })),
+        );
+        expect(await records()).toHaveLength(rows + 1);
+        expect(await lastRecord()).toEqual({
+          action: "food.created",
+          entityIds: [data.food.id],
+          requestKey,
+          connectionId: w.connectionId,
+          connectionName: CONNECTION_NAME,
+          summary: {
+            entity: "food",
+            name: "Oliiviöljy Filos",
+            changes: [
+              { field: "per100g", from: null, to: args.per100g },
+              { field: "barcode", from: null, to: "6416710030222" },
+            ],
+          },
+        });
+
+        const foods = await foodCount();
+        const again = await written(client, "create_own_food", args);
+        expect(again).toMatchObject({ outcome: "replayed", note: REPLAYED });
+        expect(again.food).toEqual(data.food);
+        expect(await foodCount()).toBe(foods);
+        expect(await records()).toHaveLength(rows + 1);
+      });
+
+      it("refuses 31 portions with portions_too_many, and adds nothing", async () => {
+        const foods = await foodCount();
+        const rows = (await records()).length;
+        const refused = await call(client, "create_own_food", {
+          requestKey: newRequestKey(),
+          name: "Too many",
+          per100g: LABEL,
+          portions: Array.from({ length: 31 }, (_, i) => ({ name: `Portion ${i + 1}`, grams: i + 1 })),
+        });
+        expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("portions_too_many") });
+        expect(await foodCount()).toBe(foods);
+        expect(await records()).toHaveLength(rows);
+      });
+
       it("records nothing for a refused create, and leaves its key free for the corrected call", async () => {
         await createFood("Taken barcode", "6411300000005");
         const requestKey = newRequestKey();

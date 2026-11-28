@@ -3,7 +3,7 @@ import { sameBarcode } from "@/lib/barcode";
 import type { BarcodeLookup, FoodDetail } from "@hovimestari/types";
 import { act } from "@testing-library/react";
 import { server } from "./foodSheetServer";
-import { detailOf, ownFood, refusal } from "./support";
+import { detailOf, ownFood, ownPortion, refusal } from "./support";
 
 // The barcode lookup behind the log sheet, on top of ./foodSheetServer.tsx.
 // It answers from what it holds when it answers, never from what it held when
@@ -99,7 +99,11 @@ export function installLookups(): void {
         (f) => f.isOwn && body.barcode !== null && f.barcode !== null && sameBarcode(f.barcode, body.barcode),
       );
       if (taken) throw refusal(409, "barcode_taken");
-      const food = detailOf(ownFood(body.name, { per100g: body.per100g }), { barcode: body.barcode });
+      // The portions it came with, as the server answers them: the person's own, listed by name.
+      const portions = (body.portions ?? [])
+        .map((p) => ownPortion(p.name, p.grams))
+        .sort((x, y) => (x.name ?? "").localeCompare(y.name ?? ""));
+      const food = detailOf(ownFood(body.name, { per100g: body.per100g }), { barcode: body.barcode, portions });
       server.foods[food.id] = food;
       return food;
     });

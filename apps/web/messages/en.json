@@ -527,6 +527,7 @@
     "portion_name_required": "Give the portion a name.",
     "portion_name_too_long": "Use at most 60 characters.",
     "portion_grams_invalid": "Enter 0.1 to 5000 g, one decimal at most.",
+    "portions_too_many": "A food can come with at most 30 portions.",
     "entry_not_found": "This entry is no longer there.",
     "entry_kind_mismatch": "This change does not fit this kind of entry.",
     "entry_eaten_in_future": "Future days hold planned entries.",
@@ -898,7 +899,9 @@
       "nearTitle": "Other matches",
       "noneWithAll": "No exact match for “{query}”.",
       "nearCount": "{count, plural, one {# other match} other {# other matches}}.",
-      "gone": "This food is no longer available."
+      "gone": "This food is no longer available.",
+      "carried": "Barcode <digits>{code}</digits> goes on the food you save as your own.",
+      "forgetCarried": "Forget the barcode"
     },
     "barcode": {
       "heading": "Barcode <digits>{code}</digits>",
@@ -957,7 +960,9 @@
       "delete": "Delete food",
       "deleteTitle": "Delete {name}?",
       "deleteBody": "This removes the food and its portions.",
-      "copyToOwn": "Copy to my foods"
+      "copyToOwn": "Copy to my foods",
+      "copyToOwnWithBarcode": "Copy to my foods with the barcode",
+      "ownBarcode": "Barcode <digits>{code}</digits>"
     },
     "portionUnits": {
       "KPL_S": "Small piece",
@@ -978,6 +983,7 @@
       "per100g": "Per 100 g",
       "hint": "Copy the values from the label.",
       "checkProduct": "Check each value against the label. Some came from Open Food Facts.",
+      "checkFineli": "These values are Fineli's. Change any that differ from the label.",
       "energy": "Energy",
       "protein": "Protein",
       "carbs": "Carbohydrates",
@@ -985,6 +991,8 @@
       "kcal": "kcal",
       "grams": "g",
       "barcode": "Barcode (optional)",
+      "useCarried": "Use barcode <digits>{code}</digits>",
+      "portionsHint": "They come with the food. Change them once it is saved.",
       "save": "Save food",
       "saving": "Saving…",
       "delete": "Delete"

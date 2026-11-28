@@ -1,4 +1,4 @@
-import { BarcodeLookupSchema, FOOD_SOURCES } from "@hovimestari/types";
+import { BarcodeLookupSchema, FINELI_PORTION_UNITS, FOOD_SOURCES } from "@hovimestari/types";
 import { describe, expect, it } from "@jest/globals";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -166,6 +166,16 @@ describe("APP_RULES", () => {
     expect(APP_RULES).toContain("A copy of an entry from a cook plans its recipe again");
     expect(WRITE_RULES).toContain("Log a batch that came out different with log_cook, never by editing the recipe.");
     expect(WRITE_RULES).toContain("Give each line from the recipe its fromLineId from get_recipe");
+  });
+
+  it("names every Fineli portion unit in the foods section, so an assistant can name a copied portion", () => {
+    const foods = APP_RULES.slice(APP_RULES.indexOf("## 5. Foods"), APP_RULES.indexOf("## 6."));
+    const units = foods.match(/A Fineli portion has a unit code: ([^.]*)\./)?.[1] ?? "";
+    // Every unit, none stale, in the order a food's detail lists them. Their
+    // English labels live only in the web catalog (foods.portionUnits).
+    expect(units.split(", ").map((named) => named.split(" ")[0])).toEqual([...FINELI_PORTION_UNITS]);
+    expect(foods).toContain("A food copied into the person's own is a new own food");
+    expect(WRITE_RULES).toContain("So does a copy of a food, with the person's changes.");
   });
 
   it("gives a read key the estimate rule too", () => {

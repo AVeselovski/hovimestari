@@ -36,7 +36,7 @@ describe("OwnFoodSheet opened on a start", () => {
         name: "Eila laktoositon, Valio",
         barcode: "6408430000258",
         per100g: { energyKcal: 39, proteinG: 3.3, carbsG: null, fatG: 1.5 },
-        fromProduct: true,
+        from: "open_food_facts",
       },
     });
     expect(input("Name").value).toBe("Eila laktoositon, Valio");

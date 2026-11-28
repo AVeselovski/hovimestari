@@ -4,6 +4,7 @@ import {
   PortionBodySchema,
   type FoodDetail,
   type OwnFoodBody,
+  type OwnFoodUpdateBody,
   type Portion,
   type PortionBody,
 } from "@hovimestari/types";
@@ -60,6 +61,10 @@ async function lockedOwnFood(tx: Tx, ctx: WriteContext, id: string): Promise<Foo
 /** The values a food summary compares. */
 const valuesOf = (food: FoodDetail) => ({ name: food.name, per100g: food.per100g, barcode: food.barcode });
 
+/**
+ * The record names the food it made, with its values and barcode. The
+ * portions it came with are in the answer and not in the record.
+ */
 export async function recordedCreateOwnFood(ctx: WriteContext, via: AssistantActor, args: OwnFoodBody) {
   const body = OwnFoodBodySchema.parse(args);
   return recordedWrite(ctx, via, {
@@ -84,7 +89,12 @@ export async function recordedCreateOwnFood(ctx: WriteContext, via: AssistantAct
   });
 }
 
-export async function recordedUpdateOwnFood(ctx: WriteContext, via: AssistantActor, foodId: string, args: OwnFoodBody) {
+export async function recordedUpdateOwnFood(
+  ctx: WriteContext,
+  via: AssistantActor,
+  foodId: string,
+  args: OwnFoodUpdateBody,
+) {
   const body = OwnFoodUpdateBodySchema.parse(args);
   return recordedWrite(ctx, via, {
     userLock: "key share",

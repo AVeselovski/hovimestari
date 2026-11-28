@@ -123,23 +123,25 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 
 ## Foods
 
-| Concept                                                   | Home                                     | Heading                    |
-| --------------------------------------------------------- | ---------------------------------------- | -------------------------- |
-| food catalogue, food source, retired food                 | `features/foods.md#the-food-catalogue`   | `### The food catalogue`   |
-| food search, search ranking                               | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
-| basic food, one-food dish, recipe uses                    | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
-| word forms in search, a search's second list (`near`)     | `features/foods.md#searching-for-a-food` | `### Searching for a food` |
-| own food                                                  | `features/foods.md#your-own-foods`       | `### Your own foods`       |
-| portions, household measures                              | `features/foods.md#portions`             | `### Portions`             |
-| favourites                                                | `features/foods.md#favourites`           | `### Favourites`           |
-| scanning a barcode, a read, the camera stops, the decoder | `features/foods.md#scanning-a-barcode`   | `### Scanning a barcode`   |
-| food-name language                                        | `features/foods.md#food-name-language`   | `### Food-name language`   |
-| Fineli, its credit and licence                            | `features/foods.md#fineli`               | `### Fineli`               |
-| Fineli import, Fineli release                             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
-| barcode lookup, Open Food Facts product                   | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
-| digits no barcode has, a shop's own number, Lidl codes    | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
-| Open Food Facts, its credit and licence                   | `features/foods.md#open-food-facts`      | `### Open Food Facts`      |
-| food visibility, food scope                               | `features/foods.md#visibility`           | `### Visibility`           |
+| Concept                                                   | Home                                              | Heading                             |
+| --------------------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
+| food catalogue, food source, retired food                 | `features/foods.md#the-food-catalogue`            | `### The food catalogue`            |
+| food search, search ranking                               | `features/foods.md#searching-for-a-food`          | `### Searching for a food`          |
+| basic food, one-food dish, recipe uses                    | `features/foods.md#searching-for-a-food`          | `### Searching for a food`          |
+| word forms in search, a search's second list (`near`)     | `features/foods.md#searching-for-a-food`          | `### Searching for a food`          |
+| own food                                                  | `features/foods.md#your-own-foods`                | `### Your own foods`                |
+| portions, household measures, a new food's portions       | `features/foods.md#portions`                      | `### Portions`                      |
+| favourites                                                | `features/foods.md#favourites`                    | `### Favourites`                    |
+| scanning a barcode, a read, the camera stops, the decoder | `features/foods.md#scanning-a-barcode`            | `### Scanning a barcode`            |
+| food-name language                                        | `features/foods.md#food-name-language`            | `### Food-name language`            |
+| Fineli, its credit and licence                            | `features/foods.md#fineli`                        | `### Fineli`                        |
+| Fineli import, Fineli release                             | `features/foods.md#the-fineli-import`             | `### The Fineli import`             |
+| barcode lookup, Open Food Facts product                   | `features/foods.md#looking-up-a-barcode`          | `### Looking up a barcode`          |
+| digits no barcode has, a shop's own number, Lidl codes    | `features/foods.md#looking-up-a-barcode`          | `### Looking up a barcode`          |
+| copying a food into your own, Copy to my foods            | `features/foods.md#copying-a-food-into-your-own`  | `### Copying a food into your own`  |
+| carried barcode, Forget the barcode, Use barcode          | `features/foods.md#a-barcode-carried-from-a-miss` | `### A barcode carried from a miss` |
+| Open Food Facts, its credit and licence                   | `features/foods.md#open-food-facts`               | `### Open Food Facts`               |
+| food visibility, food scope                               | `features/foods.md#visibility`                    | `### Visibility`                    |
 
 ## Days and logging
 

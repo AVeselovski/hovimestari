@@ -71,6 +71,7 @@ src/
 │   ├── foods/                  Foods on the web, and the log sheet that holds them:
 │   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's, a meal's and a recipe's view, the archived meals, Log, and the sheets stacked on it
 │   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
+│   │   ├── foodSheetView.ts    The sheet's views as data, what each one logs, and the grams a food's view hands on to a copy saved from it
 │   │   ├── FoodSheetStack.tsx  The scanner, the own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
 │   │   ├── SearchField.tsx     The search field pinned in the sheet's header, labelled "Search foods, meals and recipes", with the camera button or the clear cross at its end, and clearField(), which Search by name shares
 │   │   ├── ScannerSheet.tsx    The camera scanner: the live view with its band, Torch and Try again, a line for each state and Type the number
@@ -78,18 +79,21 @@ src/
 │   │   │   ├── useCameraStream.ts  The camera and its decode loop over the band's part of each frame (`visibleBand`), with a session number so every way out stops every track
 │   │   │   ├── decoder.ts      The one file that imports zxing-wasm: loads the reader with the app's own wasm, reads the retail formats
 │   │   │   └── useScanner.ts   The food search's side: opens the scanner, types a read into the field, looks it up and places focus
-│   │   ├── useFoodFinder.tsx   The food search as a hook: the field, the results or the host's browse or the barcode block, and the scanner and own-food sheets, for a host's header, body and stacked slots
+│   │   ├── useFoodFinder.tsx   The food search as a hook: the field, the results or the host's browse or the barcode block, the barcode carried from a miss, and the scanner and own-food sheets, for a host's header, body and stacked slots
+│   │   ├── CarriedLine.tsx     The line at the top of the search while a barcode from a miss is carried, in a status region, with Forget the barcode
+│   │   ├── digits.tsx          monoDigits(), which sets a barcode in mono wherever a catalog line names one
 │   │   ├── FoodSearchView.tsx  The log sheet's browse lists, the recipes and saved meals that lead its results, and FoodList, one titled list of foods
 │   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
 │   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, the lookup's answer or failure, and the ways on from a miss
 │   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
 │   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours" unless left out, and a trailing control
 │   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures, portions and Copy to my foods
+│   │   ├── CopyToOwnButton.tsx Copy to my foods, the one button both hosts show on a Fineli or Open Food Facts food, labelled by whether a barcode is carried
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
-│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, one row, with the link to the credit and the words Open Food Facts linked to the product's page
+│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, one row, with the link to the credit, the words Open Food Facts linked to the product's page, and an own food's barcode
 │   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
-│   │   ├── OwnFoodSheet.tsx    Add an own food, empty or filled from a start, or edit one with its delete
+│   │   ├── OwnFoodSheet.tsx    Add an own food, empty or filled from a start with its portions, or edit one with its delete, offering a carried barcode
 │   │   ├── useOwnFoodDelete.ts The one delete of an own food: asks first, takes a food already gone as deleted, drops it from the lists
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
 │   │   └── ownFoodForm.ts      The two forms' fields, a new food's start and a copy's, their parsing and the shared schemas
@@ -162,7 +166,7 @@ src/
 │   │   ├── recipeDraft.ts      The editor's draft: its lines, the figures as typed and what a save sends
 │   │   ├── ProseField.tsx      A labelled text area with its line: the editor's Method and Notes
 │   │   ├── IngredientRows.tsx  A recipe's lines, shown or pressed to change, a refused line's message under it, a batch's mark and a left-out line
-│   │   ├── IngredientPicker.tsx  The picker stacked on the editor or the as made sheet: the food search, then a food's amount, with Copy to my foods for an Open Food Facts food
+│   │   ├── IngredientPicker.tsx  The picker stacked on the editor or the as made sheet: the food search, then a food's amount, with Copy to my foods for a Fineli or Open Food Facts food
 │   │   ├── PickerAmountForm.tsx  The picker's amount view: the amount, its figures, As written and Note
 │   │   ├── NotCountedSheet.tsx A line not counted, such as salt
 │   │   ├── WrittenFields.tsx   A line's amount as the recipe writes it: a number and a unit

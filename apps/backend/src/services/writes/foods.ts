@@ -3,6 +3,7 @@ import {
   sameBarcode,
   type FoodDetail,
   type OwnFoodBody,
+  type OwnFoodUpdateBody,
   type Portion,
   type PortionBody,
 } from "@hovimestari/types";
@@ -51,13 +52,22 @@ const ownFood = (ctx: WriteContext, id: string) =>
 /** The user's own portion `id`, as a WHERE. */
 const ownPortion = (ctx: WriteContext, id: string) => and(eq(foodPortions.id, id), eq(foodPortions.userId, ctx.userId));
 
-const columnsOf = (body: OwnFoodBody) => ({
+/** The food columns a create and an edit both write. */
+const columnsOf = (body: Omit<OwnFoodBody, "portions">) => ({
   name: body.name,
   energyKcal: body.per100g.energyKcal,
   proteinG: body.per100g.proteinG,
   carbsG: body.per100g.carbsG,
   fatG: body.per100g.fatG,
   barcode: body.barcode,
+});
+
+/** A row of the user's own portion `body` on food `foodId`, as every portion insert writes it. */
+const ownPortionRow = (ctx: WriteContext, foodId: string, { name, grams }: PortionBody) => ({
+  foodId,
+  userId: ctx.userId,
+  name,
+  grams,
 });
 
 /**
@@ -79,15 +89,26 @@ async function barcodeChecked<T>(write: () => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * Adds the user's own food, and the portions it comes with, such as a copy's,
+ * as the user's own portions, in one transaction: a portion the database
+ * refuses saves nothing. A copy is a new food: the food it was made from is
+ * never read or written here.
+ */
 export async function createOwnFood(ctx: WriteContext, body: OwnFoodBody): Promise<WriteOutcome<FoodDetail>> {
   await requireSearchable(ctx, body.name);
-  const [created] = await barcodeChecked(() =>
+  const created = await barcodeChecked(() =>
     ctx.db.transaction(async (tx) => {
       await lockUserForWrite(tx, ctx.userId);
-      return tx
+      const [food] = await tx
         .insert(foods)
         .values({ source: "user", userId: ctx.userId, ...columnsOf(body) })
         .returning({ id: foods.id });
+      const portions = body.portions ?? [];
+      if (portions.length > 0) {
+        await tx.insert(foodPortions).values(portions.map((portion) => ownPortionRow(ctx, food.id, portion)));
+      }
+      return food;
     }),
   );
   return { value: await getFood(ctx, created.id), outcome: "created" };
@@ -103,7 +124,7 @@ export async function createOwnFood(ctx: WriteContext, body: OwnFoodBody): Promi
 export async function updateOwnFood(
   ctx: WriteContext,
   id: string,
-  body: OwnFoodBody,
+  body: OwnFoodUpdateBody,
 ): Promise<WriteOutcome<FoodDetail>> {
   const food = await findOwnFood(ctx, id);
   // Only a changed name is checked for search, so an edit of a food's values
@@ -175,7 +196,7 @@ export async function addPortion(ctx: WriteContext, foodId: string, body: Portio
     await lockUserForWrite(tx, ctx.userId);
     return tx
       .insert(foodPortions)
-      .values({ foodId: food.id, userId: ctx.userId, name: body.name, grams: body.grams })
+      .values(ownPortionRow(ctx, food.id, body))
       .returning();
   });
   return { value: portionOf(row, ctx.userId), outcome: "created" };

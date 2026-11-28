@@ -2,7 +2,7 @@ import { stubPhone } from "@/__tests__/formSheet";
 import { tap } from "@/__tests__/helpers/tap";
 import { controlSheetAnimations } from "@/__tests__/sheet";
 import { detailOf, favouriteOf, fineliFood } from "@/components/foods/__tests__/support";
-import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
+import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IngredientPicker } from "../IngredientPicker";

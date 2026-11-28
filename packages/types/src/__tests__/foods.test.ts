@@ -88,6 +88,60 @@ describe("OwnFoodBodySchema", () => {
   });
 });
 
+describe("the portions a new own food comes with", () => {
+  const portion = (i: number) => ({ name: ` Portion ${i} `, grams: 10 + i });
+  const portions = (n: number) => Array.from({ length: n }, (_, i) => portion(i));
+
+  it("are optional on a create, and the parsed body then has none", () => {
+    expect(OwnFoodBodySchema.parse({ name: "Rahka", per100g })).not.toHaveProperty("portions");
+  });
+
+  it("are taken up to 30 on a create, each parsed as a portion is", () => {
+    const parsed = OwnFoodBodySchema.parse({ name: "Oliiviöljy", per100g, portions: portions(30) });
+    expect(parsed.portions).toHaveLength(30);
+    expect(parsed.portions?.[0]).toEqual({ name: "Portion 0", grams: 10 });
+  });
+
+  it("are refused as a whole past 30, with portions_too_many", () => {
+    expect(firstMessage(OwnFoodBodySchema.safeParse({ name: "Ab", per100g, portions: portions(31) }))).toBe(
+      "portions_too_many",
+    );
+  });
+
+  it.each([
+    [{ name: "", grams: 1 }, "portion_name_required"],
+    [{ name: "x".repeat(61), grams: 1 }, "portion_name_too_long"],
+    [{ name: "Tablespoon", grams: 0 }, "portion_grams_invalid"],
+  ])("refuse the whole body for a bad portion %j, with %p", (bad, code) => {
+    const result = OwnFoodBodySchema.safeParse({ name: "Ab", per100g, portions: [portion(1), bad] });
+    expect(firstMessage(result)).toBe(code);
+    expect(result.success ? [] : result.error.issues[0].path).toEqual(["portions", 1, expect.any(String)]);
+  });
+
+  // What a body with two faults answers today: the count over the content of
+  // the portions, and a field before the portions over both.
+  it("answer portions_too_many for 31 portions with one bad among them", () => {
+    const list = [...portions(30), { name: "", grams: 0 }];
+    expect(firstMessage(OwnFoodBodySchema.safeParse({ name: "Ab", per100g, portions: list }))).toBe(
+      "portions_too_many",
+    );
+  });
+
+  it("give way to a bad name, which answers its own code with 31 portions", () => {
+    expect(firstMessage(OwnFoodBodySchema.safeParse({ name: " ", per100g, portions: portions(31) }))).toBe(
+      "food_name_required",
+    );
+  });
+
+  it("are stripped from an edit", () => {
+    expect(OwnFoodUpdateBodySchema.parse({ name: "Ab", per100g, portions: portions(2) })).toEqual({
+      name: "Ab",
+      per100g,
+      barcode: null,
+    });
+  });
+});
+
 describe("OwnFoodUpdateBodySchema", () => {
   // The service checks a changed name for search, so an edit of a food's
   // values never fails on the name it already has.

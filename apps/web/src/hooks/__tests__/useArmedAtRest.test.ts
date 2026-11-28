@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { ARM_DELAY_MS, useArmedAtRest } from "../useArmedAtRest";
+import { useArmedAtRest } from "../useArmedAtRest";
+import { ARM_DELAY_MS } from "../usePressGuard";
 
 // The container guard: a click inside is stopped until the sheet is at rest
 // and the delay has passed, and a press that started before then never counts.

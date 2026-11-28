@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { ARM_DELAY_MS, useHeldPresses, type PressCaptureProps, type PressProps } from "./usePressGuard";
 
-export { ARM_DELAY_MS };
-
 export interface ArmedAtRest {
   /** True once presses count. */
   armed: boolean;

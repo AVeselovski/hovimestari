@@ -131,15 +131,41 @@ export async function insertFoodEntry(client: pg.Client, userId: string, foodId:
   return rows[0].id as string;
 }
 
-/** A Fineli food with one Fineli portion, owned by nobody. Answers its id. */
-export async function insertFineliFood(client: pg.Client, fineliId: number): Promise<string> {
+/** What a Fineli food from `insertFineliFood` holds, each part with a default. */
+export interface FineliFoodSeed {
+  name?: string;
+  nameEn?: string;
+  per100g?: { energyKcal: number; proteinG: number; carbsG: number; fatG: number };
+  unit?: string;
+  grams?: number;
+}
+
+/** A Fineli food with one Fineli portion, owned by nobody: a rahka with a medium portion by default. Answers its id. */
+export async function insertFineliFood(
+  client: pg.Client,
+  fineliId: number,
+  seed: FineliFoodSeed = {},
+): Promise<string> {
+  const v = seed.per100g ?? { energyKcal: 59.31, proteinG: 10.5, carbsG: 3.6, fatG: 0.2 };
   const { rows } = await client.query(
     `INSERT INTO foods (source, fineli_id, name, name_en, energy_kcal, protein_g, carbs_g, fat_g, fineli_type, fineli_process)
-     VALUES ('fineli', $1, $2, $3, 59.31, 10.5, 3.6, 0.2, 'FOOD', 'IND') RETURNING id`,
-    [fineliId, `Rahka ${fineliId}`, `Quark ${fineliId}`],
+     VALUES ('fineli', $1, $2, $3, $4, $5, $6, $7, 'FOOD', 'IND') RETURNING id`,
+    [
+      fineliId,
+      seed.name ?? `Rahka ${fineliId}`,
+      seed.nameEn ?? `Quark ${fineliId}`,
+      v.energyKcal,
+      v.proteinG,
+      v.carbsG,
+      v.fatG,
+    ],
   );
   const foodId = rows[0].id as string;
-  await client.query("INSERT INTO food_portions (food_id, fineli_unit, grams) VALUES ($1, 'PORTM', 200)", [foodId]);
+  await client.query("INSERT INTO food_portions (food_id, fineli_unit, grams) VALUES ($1, $2, $3)", [
+    foodId,
+    seed.unit ?? "PORTM",
+    seed.grams ?? 200,
+  ]);
   return foodId;
 }
 
