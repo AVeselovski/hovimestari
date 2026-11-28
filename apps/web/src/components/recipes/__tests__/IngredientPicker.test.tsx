@@ -1,5 +1,5 @@
 import { stubPhone } from "@/__tests__/formSheet";
-import { guardArmed } from "@/__tests__/sheet";
+import { guardArmed, viewHoldPassed } from "@/__tests__/sheet";
 import { detailOf, fineliFood, fineliPortion } from "@/components/foods/__tests__/support";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import type { FoodDetail } from "@hovimestari/types";
@@ -63,6 +63,7 @@ async function pick(query: string, name: RegExp): Promise<void> {
   fireEvent.change(search(), { target: { value: query } });
   await settle();
   fireEvent.click(await within(picker()).findByRole("button", { name }));
+  await viewHoldPassed(picker);
 }
 
 describe("IngredientPicker", () => {
@@ -236,12 +237,14 @@ describe("IngredientPicker", () => {
     expect(amount().value).toBe("60");
     expect(within(picker()).queryByRole("button", { name: "Add" })).toBeNull();
     fireEvent.change(amount(), { target: { value: "100" } });
+    // The line's press opened the amount: it waits out a double tap, as a reader's next press would.
+    await viewHoldPassed(picker);
     fireEvent.click(within(picker()).getByRole("button", { name: "Save" }));
     expect(h.onSave).toHaveBeenCalledWith({ ...line, grams: 100 });
     expect(h.onClose).toHaveBeenCalled();
   });
 
-  it("removes a line opened to change", () => {
+  it("removes a line opened to change", async () => {
     const line: CountedDraft = {
       kind: "counted",
       id: "00000000-0000-4000-8000-0000000000c2",
@@ -259,6 +262,7 @@ describe("IngredientPicker", () => {
       note: null,
     };
     const h = renderPicker({ editing: line });
+    await viewHoldPassed(picker);
     fireEvent.click(within(picker()).getByRole("button", { name: "Remove ingredient" }));
     expect(h.onRemove).toHaveBeenCalledWith(line.id);
     expect(h.onClose).toHaveBeenCalled();

@@ -105,16 +105,19 @@ export interface PressGuard {
 }
 
 /**
- * A press guard that holds for half a second when asked. For a press that
- * swaps the content under the finger, such as the barcode block's Search by
- * name, whose place the browse lists take: the second tap of a double tap
- * would open a row. Holding at every width is right here, unlike a sheet's
- * entry, because the content swaps at every width and a mouse's double
- * click lands its second click on the new content just the same.
+ * A press guard that holds for half a second when asked, and from its mount
+ * with `heldAtMount`. For a press that swaps the content under the finger:
+ * the barcode block's Search by name, whose place the browse lists take, or
+ * a row that opens a view in its place, a food's in the log sheet or an
+ * amount in the ingredient picker. The second tap of a double tap would
+ * press what took the row's place. Holding at every width is right here,
+ * unlike a sheet's entry, because the content swaps at every width and a
+ * mouse's double click lands its second click on the new content just the
+ * same.
  */
-export function usePressGuard(): PressGuard {
+export function usePressGuard(heldAtMount = false): PressGuard {
   // The hold in force, a new number for each, so a second hold starts the half second again.
-  const [holdId, setHoldId] = useState<number | null>(null);
+  const [holdId, setHoldId] = useState<number | null>(heldAtMount ? 0 : null);
   useEffect(() => {
     if (holdId === null) return;
     const timer = setTimeout(() => setHoldId(null), ARM_DELAY_MS);

@@ -2,6 +2,7 @@ import { fakeAuth } from "@/__tests__/helpers/auth";
 import { clockFrom } from "@/__tests__/helpers/clock";
 import { setTestLocale } from "@/__tests__/helpers/locale";
 import { deferred, queryWrapper } from "@/__tests__/helpers/queryClient";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import { FakeDays, liveToast, renderDay, rowOf, seededClient, serve } from "@/components/day/__tests__/harness";
 import { TODAY, foodEntry, recipeEntry } from "@/components/day/__tests__/support";
 import { openLogSheet } from "@/components/log/__tests__/logHarness";
@@ -394,6 +395,7 @@ describe("Log as made from the log sheet's recipe view", () => {
       within(within(logSheet).getByRole("region", { name: "Recipes" })).getByRole("button", { name: /^Shakshuka/ }),
     );
     await within(logSheet).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     const actions = logSheet.querySelector<HTMLElement>("[data-recipe-actions]")!;
     expect([...actions.children].map((c) => c.textContent)).toEqual(["Open recipe", "Log as made"]);
     fireEvent.change(within(logSheet).getByRole("textbox", { name: "Servings" }), { target: { value: "1.5" } });
@@ -424,6 +426,7 @@ describe("Log as made from the log sheet's recipe view", () => {
       within(within(logSheet).getByRole("region", { name: "Recipes" })).getByRole("button", { name: /^Shakshuka/ }),
     );
     await within(logSheet).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     const held = deferred<Recipe>();
     jest.mocked(getRecipe).mockReturnValueOnce(held.promise);
     const button = within(logSheet).getByRole("button", { name: "Log as made" });
@@ -444,6 +447,7 @@ describe("Log as made from the log sheet's recipe view", () => {
       within(within(logSheet).getByRole("region", { name: "Recipes" })).getByRole("button", { name: /^Shakshuka/ }),
     );
     await within(logSheet).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     fireEvent.change(within(logSheet).getByRole("textbox", { name: "Servings" }), { target: { value: "" } });
     const sheet = await pressLogAsMade(logSheet.querySelector<HTMLElement>("[data-recipe-actions]")!);
     const first = within(sheet).getByRole("group", { name: "New servings 1" });

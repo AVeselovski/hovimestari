@@ -1,5 +1,5 @@
 import { stubPhone } from "@/__tests__/formSheet";
-import { guardArmed, openSheet } from "@/__tests__/sheet";
+import { guardArmed, openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { answerWith, installLookups, keepProduct, lookups } from "@/components/foods/__tests__/barcodeServer";
 import { addOwn, installServer, server } from "@/components/foods/__tests__/foodSheetServer";
 import { installCamera, type FakeCamera } from "@/components/foods/__tests__/scannerFakes";
@@ -87,6 +87,7 @@ describe("IngredientPicker, Copy to my foods", () => {
     // Found, the amount opens at once.
     expect(await screen.findByRole("dialog", { name: oil.name })).toBeInTheDocument();
     const copy = await waitFor(() => copyButton()!);
+    await viewHoldPassed();
     fireEvent.click(copy);
     const sheet = await waitFor(() => openSheet("New food")!);
     const field = (label: string) => (within(sheet).getByLabelText(label) as HTMLInputElement).value;

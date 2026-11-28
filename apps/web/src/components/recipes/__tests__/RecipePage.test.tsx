@@ -1,6 +1,6 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { deferred, queryWrapper } from "@/__tests__/helpers/queryClient";
-import { confirmArmed } from "@/__tests__/sheet";
+import { confirmArmed, viewHoldPassed } from "@/__tests__/sheet";
 import { FakeDays, recordToasts, seededClient, serve } from "@/components/day/__tests__/harness";
 import { TODAY } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood } from "@/components/foods/__tests__/support";
@@ -411,13 +411,16 @@ describe("The recipe page", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     await screen.findByRole("dialog", { name: "Edit recipe" });
     fireEvent.click(within(editorOf()).getByRole("button", { name: /^Feta/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Remove ingredient" }));
+    const remove = await screen.findByRole("button", { name: "Remove ingredient" });
+    await viewHoldPassed();
+    fireEvent.click(remove);
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Feta" })).toBeNull());
     fireEvent.click(within(editorOf()).getByRole("button", { name: "Add ingredient" }));
     const picker = await screen.findByRole("dialog", { name: "Add ingredient" });
     fireEvent.change(within(picker).getByLabelText("Search foods"), { target: { value: "feta" } });
     await act(() => new Promise((r) => setTimeout(r, 400)));
     fireEvent.click(await within(picker).findByRole("button", { name: /^Feta/ }));
+    await viewHoldPassed();
     fireEvent.change(within(picker).getByRole("textbox", { name: "Amount" }), { target: { value: "60" } });
     fireEvent.click(within(picker).getByRole("button", { name: "Add" }));
     fireEvent.click(within(picker).getByRole("button", { name: "Done" }));
@@ -438,6 +441,7 @@ describe("The recipe page", () => {
     fireEvent.click(within(editorOf()).getByRole("button", { name: /^Feta/ }));
     const change = await screen.findByRole("dialog", { name: "Feta" });
     fireEvent.change(within(change).getByRole("textbox", { name: "Amount" }), { target: { value: "100" } });
+    await viewHoldPassed();
     fireEvent.click(within(change).getByRole("button", { name: "Save" }));
     await save(2);
     const sentSecond = recipes.updated[1].body.lines.find((l) => l.counted && l.foodId === feta.id)!;

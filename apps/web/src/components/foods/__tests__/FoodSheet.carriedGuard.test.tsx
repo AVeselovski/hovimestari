@@ -1,4 +1,5 @@
 import { tap } from "@/__tests__/helpers/tap";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import { DayLauncher } from "@/components/day/DayLauncher";
 import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getSavedMeals } from "@/lib/api/savedMeals";
@@ -105,6 +106,7 @@ describe("a log", () => {
     await listsInPlace();
     tap(row);
     await waitFor(() => expect(opened()).not.toBeNull());
+    await viewHoldPassed();
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Amount" }), { target: { value: "40" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: /^(Log|Add to plan)$/ }));
     await waitFor(() => expect(actions.add).toHaveBeenCalledTimes(1));

@@ -1,4 +1,5 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import { refused, renderDay, rowNames } from "@/components/day/__tests__/harness";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDay } from "@/lib/api/days";
@@ -103,6 +104,7 @@ async function openRecipe(listName: string, name: string): Promise<HTMLElement> 
   const row = within(list(listName)).getByRole("button", { name: new RegExp(`^${name}`) });
   fireEvent.click(row);
   await within(dialog()).findByRole("button", { name: "Back" });
+  await viewHoldPassed();
   return row;
 }
 
@@ -230,6 +232,7 @@ describe("Recipes in the log sheet's results", () => {
     await waitFor(() => expect(names("Recipes")).toEqual(["Lentil soup"]));
     fireEvent.click(within(list("Recipes")).getByRole("button", { name: /^Lentil soup/ }));
     await within(dialog()).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     expect(screen.getByRole("dialog", { name: "Lentil soup" })).toBeInTheDocument();
     fireEvent.click(within(dialog()).getByRole("button", { name: "Back" }));
     // Back to the results as they were, with focus on the row that opened the view.

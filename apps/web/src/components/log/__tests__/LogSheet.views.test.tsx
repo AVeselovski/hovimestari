@@ -1,7 +1,7 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { tap } from "@/__tests__/helpers/tap";
-import { controlSheetAnimations, swipeSheetDown } from "@/__tests__/sheet";
+import { controlSheetAnimations, swipeSheetDown, viewHoldPassed } from "@/__tests__/sheet";
 import { renderDay, rowNames } from "@/components/day/__tests__/harness";
 import { QUARK } from "@/components/day/__tests__/support";
 import { detailOf } from "@/components/foods/__tests__/support";
@@ -86,6 +86,7 @@ async function openRow(list: string, name: string): Promise<void> {
   const region = within(dialog()).getByRole("region", { name: list });
   fireEvent.click(within(region).getByRole("button", { name: new RegExp(`^${name}`) }));
   await within(dialog()).findByRole("button", { name: "Back" });
+  await viewHoldPassed();
 }
 
 describe("The log sheet's food view", () => {
@@ -137,6 +138,7 @@ describe("The log sheet's food view", () => {
       within(dialog().querySelector<HTMLElement>("[data-list=results]")!).getByRole("button", { name: /^Quark/ }),
     );
     await screen.findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     expect(amount().value).toBe("");
     await act(async () => answer(detailOf(world.quark, { lastAmount: { grams: 180, portion: null } })));
     // The query notifies on a timer, which a loaded machine may not have run yet.
@@ -263,6 +265,7 @@ describe("The log sheet's meal view", () => {
     const region = within(dialog()).getByRole("region", { name: "Recent" });
     fireEvent.click(within(region).getByRole("button", { name: /^Shake/ }));
     await within(dialog()).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     expect(amount().value).toBe("1");
     expect(within(dialog()).getByText("From Home")).toBeInTheDocument();
     fireEvent.change(amount(), { target: { value: "2,5" } });
@@ -280,6 +283,7 @@ describe("The log sheet's meal view", () => {
       within(within(dialog()).getByRole("region", { name: "Recent" })).getByRole("button", { name: /^Shake/ }),
     );
     await within(dialog()).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     // Deleted on another device while its view is open.
     world.server.meals.clear();
     fireEvent.click(logButton());

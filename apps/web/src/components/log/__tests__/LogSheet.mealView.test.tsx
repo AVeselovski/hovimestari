@@ -1,6 +1,6 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { deferred } from "@/__tests__/helpers/queryClient";
-import { confirmArmed, openSheet } from "@/__tests__/sheet";
+import { confirmArmed, openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { renderDay } from "@/components/day/__tests__/harness";
 import { mealEntry } from "@/components/day/__tests__/support";
 import { uuid } from "@/components/foods/__tests__/support";
@@ -131,6 +131,7 @@ function holdListReads(): void {
 async function openMeal(list: string, name: string): Promise<void> {
   fireEvent.click(within(region(list)).getByRole("button", { name: new RegExp(`^${name}`) }));
   await within(sheet()).findByRole("button", { name: "Back" });
+  await viewHoldPassed();
 }
 
 describe("The meal view", () => {
@@ -329,6 +330,7 @@ describe("The archived meals", () => {
     fireEvent.click(within(region("My meals")).getByRole("button", { name: "Archived meals" }));
     const list = () => sheet().querySelector<HTMLElement>("[data-list=archived]")!;
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(2));
+    await viewHoldPassed();
     fireEvent.click(within(list()).getByRole("button", { name: "Restore Old curry" }));
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(1));
     expect(within(list()).getByRole("listitem")).toHaveTextContent("Older pasta");
@@ -345,8 +347,10 @@ describe("The archived meals", () => {
     fireEvent.click(within(region("My meals")).getByRole("button", { name: "Archived meals" }));
     const list = () => sheet().querySelector<HTMLElement>("[data-list=archived]")!;
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(1));
+    await viewHoldPassed();
     fireEvent.click(within(list()).getByRole("button", { name: /^Old curry/ }));
     await within(sheet()).findByRole("button", { name: "Restore meal" });
+    await viewHoldPassed();
     fireEvent.click(within(sheet()).getByRole("button", { name: "Log" }));
     await screen.findByText("Logged Old curry, 1 meal.");
   });

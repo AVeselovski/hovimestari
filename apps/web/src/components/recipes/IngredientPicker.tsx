@@ -15,6 +15,7 @@ import { btnPrimary, btnText, btnTextDanger, statusLineClass } from "@/component
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { usePressGuard } from "@/hooks/usePressGuard";
 import { formatCount } from "@/lib/entryFormat";
 import { formatDecimalForField } from "@/lib/foodFormat";
 import { detailUnavailable, favouriteFoodsQuery, foodDetailQuery, ownFoodsQuery } from "@/lib/queryOptions";
@@ -61,6 +62,12 @@ import { readWritten, writtenFieldsOf } from "./WrittenFields";
 // ingredients are five searches and five amounts with no sheet opening or
 // closing. Back and Change food put focus in the search field too. A food
 // saved from the own-food sheet goes straight to its amount.
+//
+// The amount appears under the finger that pressed a row, in the search or
+// in the editor. Its body and footer take no press for the half second after
+// (`usePressGuard`), so the second tap of a double tap lands on nothing. The
+// amount field takes its tap as focus at the pointerdown, which the hold
+// leaves alone. No row sits under the header, so Back takes a press at once.
 // ---------------------------------------------------------------------------
 
 export interface IngredientPickerProps {
@@ -128,6 +135,8 @@ export function IngredientPicker({
   const isMobile = useIsMobile();
   // The picker slides up under the finger that pressed Add ingredient: its results wait until it is at rest.
   const armed = useArmedAtRest(open, isMobile);
+  // A row's press opened the amount, the editor's line on show or a food in the search: it waits out a double tap.
+  const opened = usePressGuard(editing !== null);
   const chipLabel = usePortionChipLabel();
   const amountOf = useLineAmount();
   const status = useStatusMessage();
@@ -165,8 +174,10 @@ export function IngredientPicker({
    * Opens a food's amount. After Change food the amount typed is kept, in
    * grams, since the new food has portions of its own. After an add the
    * fields are empty, so a new line starts on grams with the field empty.
+   * `held`: a press in the search picked it, so the amount waits out a double tap.
    */
-  function pick(picked: FoodSummary): void {
+  function pick(picked: FoodSummary, held = true): void {
+    if (held) opened.hold();
     status.clear();
     setErrors({});
     setFields((prev) =>
@@ -185,7 +196,8 @@ export function IngredientPicker({
     onPick: (picked) => pick(picked),
     onSavedOwnFood: (saved) => {
       releaseHeldLists(client);
-      pick(saved);
+      // Not held: the own-food sheet closing over the picker takes the second tap of a double tap on Save.
+      pick(saved, false);
     },
     onOwnFoodDeleted: () => finder.reset(),
     onFoodGone: () => setView({ kind: "search" }),
@@ -288,7 +300,7 @@ export function IngredientPicker({
         {t("done")}
       </button>
     ) : (
-      <>
+      <div className="contents" {...opened.guardProps}>
         {editing ? (
           <div className="flex flex-col items-center gap-1">
             <button
@@ -310,7 +322,7 @@ export function IngredientPicker({
             {t("add")}
           </button>
         )}
-      </>
+      </div>
     );
 
   const favourites = useQuery({ ...favouriteFoodsQuery(), enabled: view.kind === "search" });
@@ -365,7 +377,7 @@ export function IngredientPicker({
               })}
             </div>
           ) : (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6" {...opened.guardProps}>
               <PickerAmountForm
                 id={id}
                 formId={formId}

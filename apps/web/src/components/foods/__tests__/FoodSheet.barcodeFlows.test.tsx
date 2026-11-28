@@ -1,5 +1,5 @@
 import { createTestQueryClient, queryWrapper, registerTestQueryClient } from "@/__tests__/helpers/queryClient";
-import { holdSheetExits, openSheet } from "@/__tests__/sheet";
+import { holdSheetExits, openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { createFood, getFood, searchFoods, setFavourite } from "@/lib/api/foods";
 import { getSavedMeals } from "@/lib/api/savedMeals";
 import type { FoodDetail } from "@hovimestari/types";
@@ -69,6 +69,7 @@ async function lookUpFound(): Promise<void> {
   type(CODE);
   press("Look up");
   await waitFor(() => expect(foodHeading()).not.toBeNull());
+  await viewHoldPassed();
 }
 
 describe("FoodSheet, a barcode found", () => {
@@ -130,6 +131,7 @@ describe("FoodSheet, a barcode found", () => {
     type(CODE);
     press("Look up");
     await waitFor(() => expect(foodHeading()).not.toBeNull());
+    await viewHoldPassed();
     fireEvent.change(within(dialog()).getByRole("textbox", { name: "Amount" }), { target: { value: "250" } });
     fireEvent.click(within(dialog()).getByRole("button", { name: "Log" }));
     await waitFor(() =>

@@ -1,5 +1,5 @@
 import { tap } from "@/__tests__/helpers/tap";
-import { openSheet } from "@/__tests__/sheet";
+import { openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { installLookups, lookups } from "@/components/foods/__tests__/barcodeServer";
 import { addOwn, installServer, server } from "@/components/foods/__tests__/foodSheetServer";
 import { detailOf, fineliFood, fineliPortion, refusal } from "@/components/foods/__tests__/support";
@@ -82,6 +82,7 @@ async function openFood(text: string, name: string): Promise<void> {
   fireEvent.change(search(), { target: { value: text } });
   tap(await within(picker()).findByRole("button", { name: new RegExp(`^${name}`) }));
   await screen.findByRole("dialog", { name });
+  await viewHoldPassed(picker);
 }
 
 describe("IngredientPicker, a copy button whose food's detail cannot be read", () => {

@@ -1,5 +1,5 @@
 import { tap } from "@/__tests__/helpers/tap";
-import { openSheet } from "@/__tests__/sheet";
+import { openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { createFood, getFood } from "@/lib/api/foods";
 import { getSavedMeals } from "@/lib/api/savedMeals";
 import type { FoodDetail } from "@hovimestari/types";
@@ -96,6 +96,7 @@ async function openFood(text: string, name: string): Promise<void> {
   await listsInPlace();
   tap(row);
   await within(dialog()).findByRole("button", { name: "Back" });
+  await viewHoldPassed();
 }
 
 describe("the copy button's place in a food's view", () => {
@@ -372,7 +373,9 @@ describe("deletes keep the carry", () => {
     const row = await within(body()).findByRole("button", { name: /^Salaatti/ });
     await listsInPlace();
     tap(row);
-    fireEvent.click(await within(dialog()).findByRole("button", { name: "Delete meal" }));
+    const remove = await within(dialog()).findByRole("button", { name: "Delete meal" });
+    await viewHoldPassed();
+    fireEvent.click(remove);
     const confirm = await screen.findByRole("dialog", { name: "Delete Salaatti?" });
     await waitFor(() => expect(confirm.querySelector("[data-armed]")).not.toBeNull());
     fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));

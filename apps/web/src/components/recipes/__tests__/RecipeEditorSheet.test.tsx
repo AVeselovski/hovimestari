@@ -1,5 +1,6 @@
 import { describeFormSheetContract } from "@/__tests__/formSheet";
 import { deferred } from "@/__tests__/helpers/queryClient";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import { detailOf, fineliFood, fineliPortion } from "@/components/foods/__tests__/support";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { createRecipe, getRecipes, updateRecipe } from "@/lib/api/recipes";
@@ -103,6 +104,7 @@ async function addFromPicker(query: string, name: RegExp, amount: string, chip?:
   fireEvent.change(within(picker()).getByLabelText("Search foods"), { target: { value: query } });
   await settle();
   fireEvent.click(await within(picker()).findByRole("button", { name }));
+  await viewHoldPassed(picker);
   if (chip) fireEvent.click(await within(picker()).findByRole("radio", { name: chip }));
   fireEvent.change(within(picker()).getByRole("textbox", { name: "Amount" }), { target: { value: amount } });
   fireEvent.click(within(picker()).getByRole("button", { name: "Add" }));
@@ -428,7 +430,9 @@ describe("RecipeEditorSheet", () => {
     const removeFrom = async (name: RegExp, remove: string) => {
       const before = document.querySelectorAll("[data-ingredient-rows] li").length;
       fireEvent.click(row(name));
-      fireEvent.click(await screen.findByRole("button", { name: remove }));
+      const button = await screen.findByRole("button", { name: remove });
+      await viewHoldPassed();
+      fireEvent.click(button);
       await waitFor(() => expect(document.querySelectorAll("[data-ingredient-rows] li")).toHaveLength(before - 1));
       await waitFor(() => expect(document.querySelectorAll('[role="dialog"][data-open]')).toHaveLength(1));
     };

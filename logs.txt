@@ -906,3 +906,4 @@
 [frontend-engineer DONE] (2026-11-28T16:50:27Z) the re-check's last items at a9124e4: no copy button when a food's detail cannot be read, one hint line on a copy, the double tap filed for the owner; web 2593.
 [documentation-specialist STARTED] (2026-11-28T16:50:27Z) the barcode after a miss branch's docs against the standard.
 [documentation-specialist DONE] (2026-11-28T16:56:05Z) docs at e64407b: the copy and the carried barcode have their own headings in the foods doc, the link map and the page docs point at them; foods.md re-stamped.
+[frontend-engineer STARTED] (2026-11-28T17:45:18Z) a view a result row opens holds presses for half a second, except the amount field (the owner chose this on 2026-11-28).

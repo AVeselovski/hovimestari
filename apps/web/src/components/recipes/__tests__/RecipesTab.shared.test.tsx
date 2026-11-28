@@ -1,5 +1,5 @@
 import { fakeAuth } from "@/__tests__/helpers/auth";
-import { openSheet } from "@/__tests__/sheet";
+import { openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { openLogSheet } from "@/components/log/__tests__/logHarness";
 import { useAuth } from "@/contexts/AuthContext";
@@ -132,7 +132,9 @@ it("a food renamed in the log sheet shows renamed in the Library, from the one c
   const ryeRow = await within(own).findByRole("button", { name: /^Rye bread/ });
   expect(ryeRow).not.toHaveAttribute("aria-description");
   fireEvent.click(ryeRow);
-  fireEvent.click(await within(topSheet()).findByRole("button", { name: "Edit food" }));
+  const edit = await within(topSheet()).findByRole("button", { name: "Edit food" });
+  await viewHoldPassed();
+  fireEvent.click(edit);
   const sheet = await screen.findByRole("dialog", { name: "Edit food" });
   fireEvent.change(field("Name"), { target: { value: "Barley bread" } });
   holdListReads();

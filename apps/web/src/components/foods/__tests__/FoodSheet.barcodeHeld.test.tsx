@@ -1,4 +1,4 @@
-import { confirmArmed, openSheet } from "@/__tests__/sheet";
+import { confirmArmed, openSheet, viewHoldPassed } from "@/__tests__/sheet";
 import { lookupBarcode, setFavourite, updateFood } from "@/lib/api/foods";
 import { getSavedMeals } from "@/lib/api/savedMeals";
 import type { FoodDetail } from "@hovimestari/types";
@@ -61,6 +61,7 @@ async function findMine(): Promise<void> {
   type(CODE);
   fireEvent.click(lookUpButton()!);
   await waitFor(() => expect(foodView()).not.toBeNull());
+  await viewHoldPassed();
 }
 
 /** Sets what the browser says of its connection, as its `online` and `offline` events do. */

@@ -1,6 +1,6 @@
 import { TEST_USER } from "@/__tests__/helpers/auth";
 import { createTestQueryClient, deferred, registerTestQueryClient } from "@/__tests__/helpers/queryClient";
-import { confirmArmed } from "@/__tests__/sheet";
+import { confirmArmed, viewHoldPassed } from "@/__tests__/sheet";
 import { addPortion, createFood, deleteFood, getFood, searchFoods, setFavourite, updateFood } from "@/lib/api/foods";
 import { afterFoodNameLanguageChange } from "@/lib/invalidation";
 import type { FoodDetail } from "@hovimestari/types";
@@ -80,6 +80,7 @@ describe("FoodSheet, right after the user's own write, with the reads that follo
     server.holdReads = true;
     fireEvent.click(within(sheet).getByRole("button", { name: "Save food" }));
     await screen.findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     back();
     expect(field()).toHaveValue("Mummon pulla");
     expect(screen.queryByText("No food matches “Mummon pulla”.")).not.toBeInTheDocument();
@@ -247,6 +248,7 @@ describe("FoodSheet, a new name, with the reads that follow it held", () => {
     server.holdReads = true;
     fireEvent.click(within(sheet).getByRole("button", { name: "Save food" }));
     await screen.findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     back();
     const names = within(screen.getByRole("region", { name: "My foods" }))
       .getAllByRole("button")

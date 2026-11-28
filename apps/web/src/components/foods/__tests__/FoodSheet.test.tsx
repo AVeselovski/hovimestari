@@ -1,6 +1,6 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { deferred } from "@/__tests__/helpers/queryClient";
-import { confirmArmed } from "@/__tests__/sheet";
+import { confirmArmed, viewHoldPassed } from "@/__tests__/sheet";
 import {
   addPortion,
   createFood,
@@ -109,7 +109,9 @@ async function openDetail(name: string) {
   const row = await screen.findByRole("button", { name: new RegExp(`^${name}`) });
   await listsInPlace();
   fireEvent.click(row);
-  return screen.findByRole("button", { name: "Back" });
+  const back = await screen.findByRole("button", { name: "Back" });
+  await viewHoldPassed();
+  return back;
 }
 
 describe("FoodSheet, searching", () => {

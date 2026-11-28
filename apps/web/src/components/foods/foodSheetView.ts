@@ -7,6 +7,23 @@ import type { FoodDetail, FoodSummary, LastAmount, RecipeSummary, SavedMeal } fr
 // view on the sheet's navigation stack, the key its log form starts again
 // on, its log target, and the amount a food's view hands on to a copy saved
 // from it.
+//
+// - Food: Back, the name and the star in the header. The log block on top,
+//   then the food's detail, scrolling. Log in the pinned footer.
+// - Meal: Back and the meal's name. The log block with the number of meals,
+//   then the meal's figures and Edit, Archive or Restore, Delete. Log in the
+//   pinned footer.
+// - Recipe: Back and the recipe's name. The log block with the servings, then
+//   one serving's figures and Open recipe, which leaves the sheet for the
+//   recipe's page and keeps the day's place for the way back. Log in the
+//   pinned footer.
+// - Archived meals: Back and the title. The archived meals, each with Restore.
+//
+// A view a press in the lists opens appears under the finger. Its body and
+// footer take no press for the half second after (`usePressGuard`), so the
+// second tap of a double tap lands on nothing. The amount field takes its tap
+// as focus at the pointerdown, which the hold leaves alone. No row sits under
+// the header, so Back and the star take a press at once.
 // ---------------------------------------------------------------------------
 
 /** A view of the log sheet. */

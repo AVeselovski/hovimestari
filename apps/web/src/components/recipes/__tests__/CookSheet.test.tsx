@@ -3,6 +3,7 @@ import { fakeAuth } from "@/__tests__/helpers/auth";
 import { clockFrom } from "@/__tests__/helpers/clock";
 import { setTestLocale } from "@/__tests__/helpers/locale";
 import { createTestQueryClient, deferred, registerTestQueryClient } from "@/__tests__/helpers/queryClient";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import { FakeDays, serve } from "@/components/day/__tests__/fakeDays";
 import { TODAY, recipeEntry } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood } from "@/components/foods/__tests__/support";
@@ -204,6 +205,7 @@ const toastText = () => document.querySelector("[data-toast]")?.textContent ?? n
 async function changeAmount(name: RegExp, amount: string): Promise<void> {
   fireEvent.click(row(name));
   fireEvent.change(await within(picker()).findByRole("textbox", { name: "Amount" }), { target: { value: amount } });
+  await viewHoldPassed(picker);
   fireEvent.click(within(picker()).getByRole("button", { name: "Save" }));
   await act(async () => {});
 }
@@ -211,7 +213,9 @@ async function changeAmount(name: RegExp, amount: string): Promise<void> {
 /** Leaves a recipe's line out through the picker. */
 async function leaveOut(name: RegExp): Promise<void> {
   fireEvent.click(row(name));
-  fireEvent.click(await within(picker()).findByRole("button", { name: "Leave out" }));
+  const leave = await within(picker()).findByRole("button", { name: "Leave out" });
+  await viewHoldPassed(picker);
+  fireEvent.click(leave);
   await act(async () => {});
 }
 
@@ -221,6 +225,7 @@ async function addIngredient(query: string, name: RegExp, amount: string): Promi
   fireEvent.change(await within(picker()).findByLabelText("Search foods"), { target: { value: query } });
   await settle();
   fireEvent.click(await within(picker()).findByRole("button", { name }));
+  await viewHoldPassed(picker);
   fireEvent.change(within(picker()).getByRole("textbox", { name: "Amount" }), { target: { value: amount } });
   fireEvent.click(within(picker()).getByRole("button", { name: "Add" }));
   await act(async () => {});
@@ -554,7 +559,9 @@ describe("CookSheet", () => {
       await addIngredient("pinaatti", /^Pinaatti/, "80");
       fireEvent.click(row(/^Pinaatti/));
       expect(within(picker()).queryByRole("button", { name: "Leave out" })).toBeNull();
-      fireEvent.click(await within(picker()).findByRole("button", { name: "Remove ingredient" }));
+      const remove = await within(picker()).findByRole("button", { name: "Remove ingredient" });
+      await viewHoldPassed(picker);
+      fireEvent.click(remove);
       await act(async () => {});
       expect(rows()).toHaveLength(5);
       expect(sheet()).not.toHaveTextContent("Pinaatti");

@@ -1,7 +1,7 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
 import { tap, tapClick } from "@/__tests__/helpers/tap";
-import { controlSheetAnimations } from "@/__tests__/sheet";
+import { controlSheetAnimations, viewHoldPassed } from "@/__tests__/sheet";
 import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { fineliFood, ownFood } from "@/components/foods/__tests__/support";
 import { recipeOf } from "@/components/recipes/__tests__/recipeFixtures";
@@ -414,6 +414,7 @@ describe("A food or a saved meal found gone in the open log sheet", () => {
     // The food view names the sheet after the food.
     const view = await screen.findByRole("dialog", { name: "Banana" });
     await within(view).findByRole("button", { name: "Back" });
+    await viewHoldPassed();
     deleteFoodOnServer(world.banana);
     fireEvent.click(within(view).getByRole("button", { name: /^(Log|Add to plan)$/ }));
     await screen.findByRole("dialog", { name: "Log food" });

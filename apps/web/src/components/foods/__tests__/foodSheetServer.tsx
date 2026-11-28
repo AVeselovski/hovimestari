@@ -1,4 +1,5 @@
 import { queryWrapper } from "@/__tests__/helpers/queryClient";
+import { viewHoldPassed } from "@/__tests__/sheet";
 import {
   addPortion,
   createFood,
@@ -152,5 +153,7 @@ export async function openDetail(name: string) {
   const row = await screen.findByRole("button", { name: new RegExp(`^${name}`) });
   await listsInPlace();
   fireEvent.click(row);
-  return screen.findByRole("button", { name: "Back" });
+  const back = await screen.findByRole("button", { name: "Back" });
+  await viewHoldPassed();
+  return back;
 }

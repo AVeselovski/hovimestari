@@ -24,6 +24,7 @@ import { useArmedAtRest } from "@/hooks/useArmedAtRest";
 import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { foodNameLangs, useFoodNameLanguage } from "@/hooks/useFoodNameLanguage";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { usePressGuard } from "@/hooks/usePressGuard";
 import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
@@ -67,16 +68,8 @@ import { useSheetNavigation } from "./useSheetNavigation";
 //   and anything else offers the own-food form from the label. The camera
 //   button in the empty field opens the scanner (`useScanner`), whose read
 //   types the code and looks it up at once.
-// - Food: Back, the name and the star in the header. The log block on top,
-//   then the food's detail, scrolling. Log in the pinned footer.
-// - Meal: Back and the meal's name. The log block with the number of meals,
-//   then the meal's figures and Edit, Archive or Restore, Delete. Log in the
-//   pinned footer.
-// - Recipe: Back and the recipe's name. The log block with the servings, then
-//   one serving's figures and Open recipe, which leaves the sheet for the
-//   recipe's page and keeps the day's place for the way back. Log in the
-//   pinned footer.
-// - Archived meals: Back and the title. The archived meals, each with Restore.
+// - A food, a saved meal, a recipe and the archived meals: a view each,
+//   with Back in the header (`foodSheetView.ts`).
 //
 // The header's first line, in every view, names the day the sheet logs to,
 // or a "+" that failed (`StatusLine`). The sheet's height is fixed
@@ -114,6 +107,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
   const { today } = useToday();
   const nameLanguage = useFoodNameLanguage();
   const armed = useArmedAtRest(open, isMobile);
+  // A press in the lists opened the view on show: its body and footer wait out a double tap.
+  const opened = usePressGuard();
 
   const [notice, setNotice] = useState<string | null>(null);
   // The source chip chosen while browsing, which filters the meals in the results too.
@@ -158,7 +153,8 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     onSavedOwnFood: (saved, row) => {
       if (view.kind === "food" && view.food.id === saved.id) return;
       // A copy saved from a food's view opens with the grams typed there. The form is read at the save, not now.
-      showFood(saved, row, view.kind === "food" ? typedLastOf(form) : undefined);
+      // Not held: the own-food sheet closing over the view takes the second tap of a double tap on Save.
+      showFood(saved, row, view.kind === "food" ? typedLastOf(form) : undefined, false);
     },
     onOwnFoodDeleted: (id) => afterDelete(id),
     onFoodGone: foodGone,
@@ -198,9 +194,19 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     [date],
   );
 
-  /** Opens the food view. `row` is the row that opened it, or a selector for the row Back focuses. */
-  function showFood(food: FoodSummary, row: HTMLElement | string | null, last: LastAmount | null | undefined): void {
+  /**
+   * Opens the food view. `row` is the row that opened it, or a selector for
+   * the row Back focuses. `held`: a press in the lists opened it, a row's or
+   * Look up's, so it waits out the second tap of a double tap.
+   */
+  function showFood(
+    food: FoodSummary,
+    row: HTMLElement | string | null,
+    last: LastAmount | null | undefined,
+    held = true,
+  ): void {
     setNotice(null);
+    if (held) opened.hold();
     const next: View = { kind: "food", food, last };
     // A view over the search goes back to the search, never to another food.
     if (nav.depth > 1) nav.swap(next);
@@ -209,11 +215,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
 
   function showMeal(meal: SavedMeal, opener: HTMLElement, lastCount: number | null): void {
     setNotice(null);
+    opened.hold();
     nav.open({ kind: "meal", meal, lastCount }, rowSelectorOf(opener, MEAL_ROW_ATTRIBUTE));
   }
 
   function showRecipe(recipe: RecipeSummary, opener: HTMLElement, lastServings: number | null): void {
     setNotice(null);
+    opened.hold();
     nav.open({ kind: "recipe", recipe, lastServings }, rowSelectorOf(opener, LOG_RECIPE_ROW_ATTRIBUTE));
   }
 
@@ -313,11 +321,12 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     onEstimate: (name, opener) => estimateSheet.open(opener, name),
     onArchived: (opener) => {
       setNotice(null);
+      opened.hold();
       nav.open({ kind: "archived" }, rowSelectorOf(opener, ARCHIVED_ATTRIBUTE));
     },
   };
 
-  let viewHeader: ReactElement;
+  let viewHeader: ReactElement = finder.field;
   if (view.kind === "food" && food) {
     viewHeader = (
       <FoodDetailHeader
@@ -329,14 +338,10 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
         onToggleFavourite={() => favourite.toggle(food, !shownFavourite)}
       />
     );
-  } else if (view.kind === "meal") {
-    viewHeader = <FoodDetailHeader name={view.meal.name} backRef={backRef} onBack={nav.back} />;
-  } else if (view.kind === "recipe") {
-    viewHeader = <FoodDetailHeader name={view.recipe.name} backRef={backRef} onBack={nav.back} />;
-  } else if (view.kind === "archived") {
-    viewHeader = <FoodDetailHeader name={tLog("archived.title")} backRef={backRef} onBack={nav.back} />;
-  } else {
-    viewHeader = finder.field;
+  } else if (view.kind !== "search" && view.kind !== "food") {
+    const name =
+      view.kind === "meal" ? view.meal.name : view.kind === "recipe" ? view.recipe.name : tLog("archived.title");
+    viewHeader = <FoodDetailHeader name={name} backRef={backRef} onBack={nav.back} />;
   }
 
   return (
@@ -365,7 +370,13 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
         announceRef.current = null;
         announce?.();
       }}
-      footer={logTarget !== null ? <LogFooter form={form} held={actions.holding} /> : undefined}
+      footer={
+        logTarget !== null ? (
+          <div className="contents" {...opened.guardProps}>
+            <LogFooter form={form} held={actions.holding} />
+          </div>
+        ) : undefined
+      }
       stacked={
         <FoodSheetStack
           finder={finder.stacked}
@@ -403,56 +414,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
     >
       <PromptSheetBody focusSelf={isMobile}>
         <div ref={contentRef}>
-          {view.kind === "food" && food ? (
-            <div className="space-y-8">
-              <LogBlock form={form} autoFocus={false} />
-              <FoodDetailBody
-                summary={view.food}
-                detail={detail.data}
-                unavailable={detailUnavailable(detail)}
-                favouriteError={favourite.error && !favouriteGone ? errors.forError(favourite.error) : null}
-                onLeave={onClose}
-                onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
-                onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
-                onEdit={(loaded, opener) => finder.ownSheet.open(opener, { food: loaded })}
-                copy={finder.copy}
-                onDelete={(opener) => remove.open(food, opener)}
-              />
-            </div>
-          ) : view.kind === "meal" ? (
-            <MealView
-              meal={view.meal}
-              form={form}
-              busy={meals.busyId === view.meal.id}
-              held={actions.holding}
-              onEdit={(opener) => mealSheet.open(opener, { meal: view.meal, name: view.meal.name })}
-              onArchive={(archived) => archiveMeal(view.meal, archived, showMealAs)}
-              onDelete={(opener) => removeMeal.open(view.meal, opener)}
-            />
-          ) : view.kind === "recipe" ? (
-            <RecipeView
-              recipe={view.recipe}
-              form={form}
-              readingForBatch={cook.reading}
-              onLogAsMade={(opener) =>
-                // The batch starts with the servings and the state the log block holds.
-                cook.open(opener, { recipeId: view.recipe.id, day: date, start: batchStartOf(form) })
-              }
-              onLeave={() => {
-                // Back from the recipe's page shows this day where it was (lib/recipeNav.ts).
-                markOpenedInApp();
-                keepDayPlace(null);
-                onClose();
-              }}
-            />
-          ) : view.kind === "archived" ? (
-            <ArchivedMealsView
-              onOpenMeal={(meal, opener) => showMeal(meal, opener, meal.lastCount)}
-              onRestore={(meal) => archiveMeal(meal, false)}
-              busyId={meals.busyId}
-              held={actions.holding}
-            />
-          ) : (
+          {view.kind === "search" ? (
             <div {...armed.guardProps}>
               <HeldLists follow={listsFollow}>
                 {finder.results({
@@ -469,6 +431,61 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                   lead: leadResults({ recipes: activeRecipes, meals: activeMeals, logging, browsing: mealBrowsing }),
                 })}
               </HeldLists>
+            </div>
+          ) : (
+            <div {...opened.guardProps}>
+              {view.kind === "food" && food ? (
+                <div className="space-y-8">
+                  <LogBlock form={form} autoFocus={false} />
+                  <FoodDetailBody
+                    summary={view.food}
+                    detail={detail.data}
+                    unavailable={detailUnavailable(detail)}
+                    favouriteError={favourite.error && !favouriteGone ? errors.forError(favourite.error) : null}
+                    onLeave={onClose}
+                    onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
+                    onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
+                    onEdit={(loaded, opener) => finder.ownSheet.open(opener, { food: loaded })}
+                    copy={finder.copy}
+                    onDelete={(opener) => remove.open(food, opener)}
+                  />
+                </div>
+              ) : view.kind === "meal" ? (
+                <MealView
+                  meal={view.meal}
+                  form={form}
+                  busy={meals.busyId === view.meal.id}
+                  held={actions.holding}
+                  onEdit={(opener) => mealSheet.open(opener, { meal: view.meal, name: view.meal.name })}
+                  onArchive={(archived) => archiveMeal(view.meal, archived, showMealAs)}
+                  onDelete={(opener) => removeMeal.open(view.meal, opener)}
+                />
+              ) : view.kind === "recipe" ? (
+                <RecipeView
+                  recipe={view.recipe}
+                  form={form}
+                  readingForBatch={cook.reading}
+                  onLogAsMade={(opener) =>
+                    // The batch starts with the servings and the state the log block holds.
+                    cook.open(opener, { recipeId: view.recipe.id, day: date, start: batchStartOf(form) })
+                  }
+                  onLeave={() => {
+                    // Back from the recipe's page shows this day where it was (lib/recipeNav.ts).
+                    markOpenedInApp();
+                    keepDayPlace(null);
+                    onClose();
+                  }}
+                />
+              ) : (
+                view.kind === "archived" && (
+                  <ArchivedMealsView
+                    onOpenMeal={(meal, opener) => showMeal(meal, opener, meal.lastCount)}
+                    onRestore={(meal) => archiveMeal(meal, false)}
+                    busyId={meals.busyId}
+                    held={actions.holding}
+                  />
+                )
+              )}
             </div>
           )}
         </div>

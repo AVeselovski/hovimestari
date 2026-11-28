@@ -221,3 +221,20 @@ export async function guardArmed(root: () => Element): Promise<void> {
     { timeout: 2000 },
   );
 }
+
+/**
+ * Waits out the half second a view takes no press after a row's press
+ * opened it (`usePressGuard`): a log sheet's food, meal or recipe view, or
+ * the ingredient picker's amount. A test that presses in it right after
+ * opening is the second tap of a double tap, so a test that means a later
+ * press waits for this first, as a reader's press would come. Returns at once
+ * when nothing in `root` holds.
+ */
+export async function viewHoldPassed(root: () => Element = () => document.body): Promise<void> {
+  await waitFor(
+    () => {
+      if (root().querySelector('[data-press-guard="waiting"]')) throw new Error("The view still holds its presses");
+    },
+    { timeout: 2000 },
+  );
+}
