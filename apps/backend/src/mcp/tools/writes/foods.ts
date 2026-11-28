@@ -24,7 +24,9 @@ const Name = OwnFoodBodySchema.shape.name.describe("The food's name, as on its l
 const Per100g = OwnFoodBodySchema.shape.per100g.describe(
   "energyKcal, proteinG, carbsG and fatG per 100 g, as the label states them.",
 );
-const Barcode = OwnFoodBodySchema.shape.barcode.describe("The label's barcode, 8 to 14 digits. Spaces are dropped.");
+const Barcode = OwnFoodBodySchema.shape.barcode.describe(
+  "The label's barcode, 8, 12, 13 or 14 digits whose last digit checks out. Spaces are dropped.",
+);
 const PortionName = PortionBodySchema.shape.name.describe("The portion's name, such as slice or tub.");
 const PortionGrams = PortionBodySchema.shape.grams.describe("How many grams one portion weighs, as stated.");
 
@@ -50,7 +52,7 @@ export const updateOwnFoodTool = defineWriteTool({
     name: OwnFoodUpdateBodySchema.shape.name.describe("The food's name."),
     per100g: Per100g,
     barcode: OwnFoodUpdateBodySchema.shape.barcode.describe(
-      "The food's barcode, 8 to 14 digits, or null for none. Left out, the food has none.",
+      "The food's barcode, or null for none. Left out, the food has none. A new or changed barcode must be 8, 12, 13 or 14 digits whose last digit checks out.",
     ),
   }),
   destructive: true,

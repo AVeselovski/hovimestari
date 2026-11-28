@@ -28,6 +28,14 @@ import { useBarcodeLookup } from "./useBarcodeLookup";
 // that code and its format, so the held answer and the food view key on the
 // text alone, whatever put the code there. Look up, Enter and Try again send
 // the held format again. A number typed by hand drops it with the code.
+//
+// On a phone, Look up and Try again put the keyboard away first, as Enter in
+// the field does, so the answer shows in full: at 320 by 568 a keyboard left up covers
+// its first button, and a sheet's body has nothing to scroll it into view.
+//
+// The block's ways on from a miss come from the finder: Search by name
+// empties the field, and Scan again opens the scanner, whose read of the
+// same code looks it up again.
 // ---------------------------------------------------------------------------
 
 export interface BarcodeModeOptions {
@@ -39,6 +47,12 @@ export interface BarcodeModeOptions {
   showFood: (food: FoodSummary, row: HTMLElement | string, last: LastAmount | null | undefined) => void;
   /** Opens the own-food sheet on a start. */
   onFromLabel: (start: OwnFoodStart, opener: HTMLElement) => void;
+  /** Puts a phone's keyboard away: the search field gives up focus. */
+  blurField: () => void;
+  /** Empties the field and puts the caret in it. */
+  onSearchByName: () => void;
+  /** Opens the scanner. Absent where the browser cannot ask for a camera. */
+  onScan?: (opener: HTMLElement) => void;
 }
 
 export interface BarcodeMode {
@@ -62,7 +76,15 @@ export interface BarcodeMode {
 const barcodeRow = (food: FoodSummary): string =>
   `[data-list="${BARCODE_LIST}"] [${FOOD_ROW_ATTRIBUTE}="${CSS.escape(food.id)}"]`;
 
-export function useBarcodeMode({ query, canOpenFood, showFood, onFromLabel }: BarcodeModeOptions): BarcodeMode {
+export function useBarcodeMode({
+  query,
+  canOpenFood,
+  showFood,
+  onFromLabel,
+  blurField,
+  onSearchByName,
+  onScan,
+}: BarcodeModeOptions): BarcodeMode {
   const code = barcodeOf(query);
   const lookup = useBarcodeLookup({
     onFound: (found, foundCode) => {
@@ -83,9 +105,14 @@ export function useBarcodeMode({ query, canOpenFood, showFood, onFromLabel }: Ba
           code={code}
           state={held}
           offline={lookup.offline}
-          onLookUp={again(code)}
+          onLookUp={() => {
+            blurField();
+            again(code)();
+          }}
           onOpenFood={(food, opener) => showFood(food, opener, food.lastAmount)}
           onFromLabel={onFromLabel}
+          onSearchByName={onSearchByName}
+          onScan={onScan}
         />
       ),
     lookUp: lookup.lookUp,

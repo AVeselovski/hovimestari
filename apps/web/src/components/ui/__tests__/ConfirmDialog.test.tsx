@@ -1,3 +1,4 @@
+import { tap, tapClick } from "@/__tests__/helpers/tap";
 import {
   controlSheetAnimations,
   getSheetBackdrop,
@@ -274,11 +275,11 @@ describe("ConfirmDialog", () => {
       const confirm = screen.getByRole("button", { name: "Delete" });
       fireEvent.pointerDown(confirm);
       await finishEntry();
-      fireEvent.click(confirm);
+      // The tap's own click.
+      tapClick(confirm);
       expect(onConfirm).not.toHaveBeenCalled();
 
-      fireEvent.pointerDown(confirm);
-      fireEvent.click(confirm);
+      tap(confirm);
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
 

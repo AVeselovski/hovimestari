@@ -62,15 +62,16 @@ A tall sheet, "New recipe" or "Edit recipe", that makes or changes a recipe. Top
 
 ### Adding an ingredient
 
-**Add ingredient** opens the ingredient picker over the editor: one tall sheet that finds a food and takes its amount, so its top edge never moves.
+**Add ingredient** opens the ingredient picker over the editor: one tall sheet that finds a food and takes its amount, so its top edge never moves. On a phone its results take no press until it has finished sliding in and half a second has passed, by [the entry guard](shell.md#the-sheet-primitives) the log sheet uses, so the second tap of a double tap on **Add ingredient** opens no food. Enter or a screen reader's activation on a row counts as soon as it is at rest.
 
-Its first line says "Adding to Shakshuka", with the recipe's name. Under it the food search, the same search as the log sheet's: typed words, a barcode typed or scanned with the camera, and **New food**. With fewer than two letters it shows your favourite foods and your own foods. With no favourites it says "Foods you mark as favourites appear here.". A food pressed opens its amount:
+Its first line says "Adding to Shakshuka", with the recipe's name. Under it the food search, the same search as the log sheet's: typed words, a barcode typed or scanned with the camera, and **New food**. A barcode that finds nothing offers [the same ways on](log-sheet.md#a-typed-barcode) as in the log sheet: **Search by name**, the label, and **Scan again**. With fewer than two letters it shows your favourite foods and your own foods. With no favourites it says "Foods you mark as favourites appear here.". A food pressed opens its amount:
 
 - **Back** and the food's name, on two lines at most. **Change food** goes back to the search, and the amount typed is kept, in grams. Both put focus in the search field.
 - The amount, as the log sheet takes it: grams, or a count of one of the food's portions, chosen with the chips. It opens on grams with the field empty. "Weigh it as it goes into the pot." under it while the amount is in grams.
 - "For this amount" and the four figures.
 - **As written**: a number and a unit from the fixed list, such as 2 cloves, for the recipe's own words. Both or neither. A number with no unit says "Choose a unit, or clear the number." at the unit.
 - **Note**, such as chopped.
+- For a food from Open Food Facts, once its detail is in, **Copy to my foods** below a divider. It opens the own-food sheet filled in with the food's name, its four values and its barcode, as [the log sheet's food view](log-sheet.md#a-food) does, so a product that is not the pack in your hand becomes your own food. Saved, your copy opens on its amount. What it does to later lookups of that barcode is in [looking up a barcode](../features/foods.md#looking-up-a-barcode).
 
 **Add** puts the line in the editor, behind the picker, and the picker goes back to its empty search with focus in the field. Its first line says "Added 60 g of Fetajuusto." for a few seconds, the amount first, since a long name is cut at the sheet's width. Five ingredients are five searches and five amounts, with no sheet opening or closing. **Done** closes the picker.
 
@@ -125,6 +126,7 @@ The recipes are read once, active, then the archived ones when they open, and fi
 - A user with more than 200 own foods sees the first 200 by name.
 - The archived recipes are by name whatever the order chosen, and the chips and the bounds do not narrow them.
 - The filter sheet has been checked in Chromium only, with an emulated keyboard.
+- At 320 by 568 with a text keyboard open, the picker's **Done** rides above the keyboard and covers the barcode block's **Look up** completely. A tap there does nothing. Enter on the keyboard still looks the number up.
 
 ## Features on this page
 

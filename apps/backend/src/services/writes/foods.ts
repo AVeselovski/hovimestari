@@ -1,4 +1,11 @@
-import type { FoodDetail, OwnFoodBody, Portion, PortionBody } from "@hovimestari/types";
+import {
+  isWellFormedBarcode,
+  sameBarcode,
+  type FoodDetail,
+  type OwnFoodBody,
+  type Portion,
+  type PortionBody,
+} from "@hovimestari/types";
 import { and, eq, isNull } from "drizzle-orm";
 import { foodFavourites, foodPortions, foods } from "../../db/schema/index.js";
 import { appError } from "../../lib/errors.js";
@@ -106,6 +113,12 @@ export async function updateOwnFood(
   // the one check on an edit, for REST and for any later assistant tool that
   // calls this service.
   if (body.name !== food.name) await requireSearchable(ctx, body.name);
+  // The same for the barcode: only a new or changed one must have digits a
+  // barcode can have, so an edit of a food's values never fails on a barcode
+  // it already holds. 12, 13 and 14-digit forms of one code are one barcode.
+  const { barcode } = body;
+  const barcodeChanged = barcode !== null && !sameBarcode(barcode, food.barcode);
+  if (barcodeChanged && !isWellFormedBarcode(barcode)) throw appError("barcode_wrong_digits", 400);
   const next = columnsOf(body);
   const same = (Object.keys(next) as (keyof typeof next)[]).every((k) => food[k] === next[k]);
   if (!same) {

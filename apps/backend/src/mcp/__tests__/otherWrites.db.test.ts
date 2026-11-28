@@ -92,11 +92,11 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
           requestKey,
           name: "Skyr vanilja",
           per100g: LABEL,
-          barcode: "6 411 300 000 123",
+          barcode: "6 411 300 000 128",
         });
         expect(data).toMatchObject({ outcome: "created", note: RECORDED });
         expect(data.food).toEqual(await restFood(data.food.id));
-        expect(data.food).toMatchObject({ source: "user", isOwn: true, barcode: "6411300000123", per100g: LABEL });
+        expect(data.food).toMatchObject({ source: "user", isOwn: true, barcode: "6411300000128", per100g: LABEL });
         expect(await lastRecord()).toEqual({
           action: "food.created",
           entityIds: [data.food.id],
@@ -108,7 +108,7 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
             name: "Skyr vanilja",
             changes: [
               { field: "per100g", from: null, to: LABEL },
-              { field: "barcode", from: null, to: "6411300000123" },
+              { field: "barcode", from: null, to: "6411300000128" },
             ],
           },
         });
@@ -144,7 +144,7 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
       });
 
       it("records nothing for a refused create, and leaves its key free for the corrected call", async () => {
-        await createFood("Taken barcode", "64113000001");
+        await createFood("Taken barcode", "6411300000005");
         const requestKey = newRequestKey();
         const foods = await foodCount();
         const rows = (await records()).length;
@@ -152,7 +152,7 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
           requestKey,
           name: "Second",
           per100g: LABEL,
-          barcode: "64113000001",
+          barcode: "6411300000005",
         });
         expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("(barcode_taken)") });
         expect(await foodCount()).toBe(foods);
@@ -162,9 +162,68 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
       });
     });
 
+    describe("a barcode's digits", () => {
+      const insertWithBarcode = async (barcode: string) => {
+        // Saved before the check digit was checked, so inserted directly.
+        const { rows } = await suite.client.query(
+          `INSERT INTO foods (source, user_id, name, energy_kcal, protein_g, carbs_g, fat_g, barcode)
+           VALUES ('user', $1, 'Filos ladolia', 884, 0, 0, 100, $2) RETURNING id`,
+          [w.user.id, barcode],
+        );
+        return rows[0].id as string;
+      };
+
+      it("create_own_food refuses digits no barcode has, as POST /foods does", async () => {
+        const foods = await foodCount();
+        const refused = await call(client, "create_own_food", {
+          requestKey: newRequestKey(),
+          name: "Ladolia",
+          per100g: LABEL,
+          barcode: "6416710030209",
+        });
+        expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("barcode_wrong_digits") });
+        expect(await foodCount()).toBe(foods);
+      });
+
+      it("create_own_food names one fault for digits of a length no barcode has", async () => {
+        const refused = await call(client, "create_own_food", {
+          requestKey: newRequestKey(),
+          name: "Ladolia",
+          per100g: LABEL,
+          barcode: "12345",
+        });
+        expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("barcode_invalid") });
+        expect(refused.text).not.toContain("barcode_wrong_digits");
+      });
+
+      it("update_own_food keeps a bad barcode the food holds, and refuses a change to one", async () => {
+        const id = await insertWithBarcode("6416710030209");
+        const next = { energyKcal: 884, proteinG: 0.5, carbsG: 0, fatG: 99 };
+        const kept = await written(client, "update_own_food", {
+          requestKey: newRequestKey(),
+          foodId: id,
+          name: "Filos ladolia",
+          per100g: next,
+          barcode: "6416710030209",
+        });
+        expect(kept).toMatchObject({ outcome: "changed", food: { per100g: next, barcode: "6416710030209" } });
+
+        const other = await insertWithBarcode("6416710030208");
+        const refused = await call(client, "update_own_food", {
+          requestKey: newRequestKey(),
+          foodId: other,
+          name: "Filos ladolia",
+          per100g: LABEL,
+          barcode: "6416710030216",
+        });
+        expect(refused).toMatchObject({ isError: true, text: expect.stringContaining("(barcode_wrong_digits)") });
+        expect((await restFood(other)).barcode).toBe("6416710030208");
+      });
+    });
+
     describe("update_own_food", () => {
       it("changes an own food and records each field it changed, from what to what", async () => {
-        const food = await createFood("Raejuusto", "64113000002");
+        const food = await createFood("Raejuusto", "6411300000012");
         const requestKey = newRequestKey();
         const next = { ...LABEL, proteinG: 12.5 };
         const data = await written(client, "update_own_food", {
@@ -186,7 +245,7 @@ await describeWithDb("mcp food and saved-meal writes", (suite) => {
             changes: [
               { field: "name", from: "Raejuusto", to: "Raejuusto light" },
               { field: "per100g", from: LABEL, to: next },
-              { field: "barcode", from: "64113000002", to: null },
+              { field: "barcode", from: "6411300000012", to: null },
             ],
           },
         });

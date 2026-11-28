@@ -66,21 +66,21 @@ await describeWithDb("foods", (suite) => {
     it("refuses a second own food with one barcode, and lets another user use it", async () => {
       const a = await user();
       const b = await user();
-      await createFood(a, { barcode: "12345678" });
-      const twice = await api().post("/api/v1/foods").set(a.auth).send({ name: "Twin", per100g, barcode: "12345678" });
+      await createFood(a, { barcode: "12345670" });
+      const twice = await api().post("/api/v1/foods").set(a.auth).send({ name: "Twin", per100g, barcode: "12345670" });
       expect(twice.status).toBe(409);
       expect(twice.body.code).toBe("barcode_taken");
-      await createFood(b, { barcode: "12345678" });
+      await createFood(b, { barcode: "12345670" });
     });
 
     it("refuses a barcode taken by another own food on edit", async () => {
       const a = await user();
-      await createFood(a, { barcode: "87654321" });
+      await createFood(a, { barcode: "87654325" });
       const other = await createFood(a);
       const res = await api()
         .put(`/api/v1/foods/${other.id}`)
         .set(a.auth)
-        .send({ name: "Other", per100g, barcode: "87654321" });
+        .send({ name: "Other", per100g, barcode: "87654325" });
       expect(res.status).toBe(409);
       expect(res.body.code).toBe("barcode_taken");
     });
@@ -106,6 +106,66 @@ await describeWithDb("foods", (suite) => {
         [food.id],
       );
       expect(left.rows[0]).toEqual({ p: 0, f: 0 });
+    });
+  });
+
+  describe("a barcode's digits", () => {
+    const insertWithBarcode = async (owner: ApiUser, barcode: string) => {
+      // Saved before the check digit was checked, so inserted directly.
+      const { rows } = await suite.client.query(
+        `INSERT INTO foods (source, user_id, name, energy_kcal, protein_g, carbs_g, fat_g, barcode)
+         VALUES ('user', $1, 'Filos ladolia', 884, 0, 0, 100, $2) RETURNING id`,
+        [owner.id, barcode],
+      );
+      return rows[0].id as string;
+    };
+    const post = (owner: ApiUser, barcode: string) =>
+      api().post("/api/v1/foods").set(owner.auth).send({ name: "Ladolia", per100g, barcode });
+
+    it.each([
+      ["6416710030209", "barcode_wrong_digits", "a wrong check digit"],
+      ["1234567890", "barcode_wrong_digits", "10 digits"],
+      ["12345", "barcode_invalid", "too few digits"],
+    ])("refuses a new food with %s with %s, %s", async (barcode, code) => {
+      const res = await post(await user(), barcode);
+      expect([res.status, res.body.code]).toEqual([400, code]);
+    });
+
+    it("creates a food with Lidl's 8-digit milk code", async () => {
+      const res = await post(await user(), "20064020");
+      expect([res.status, res.body.barcode]).toEqual([201, "20064020"]);
+    });
+
+    it("saves an edit of a food that keeps the bad barcode it holds, by any form of it", async () => {
+      const a = await user();
+      const id = await insertWithBarcode(a, "6416710030209");
+      const values = { energyKcal: 884, proteinG: 0.5, carbsG: 0, fatG: 99 };
+      for (const barcode of ["6416710030209", "06416710030209"]) {
+        const res = await api()
+          .put(`/api/v1/foods/${id}`)
+          .set(a.auth)
+          .send({ name: "Filos ladolia", per100g: values, barcode });
+        expect(res.status).toBe(200);
+        expect(res.body.per100g).toEqual(values);
+      }
+    });
+
+    it("refuses an edit that changes the barcode to a bad one, and saves one that changes it to a good one", async () => {
+      const a = await user();
+      const id = await insertWithBarcode(a, "6416710030208");
+      const put = (barcode: string) =>
+        api().put(`/api/v1/foods/${id}`).set(a.auth).send({ name: "Filos ladolia", per100g, barcode });
+      const bad = await put("6416710030209");
+      expect([bad.status, bad.body.code]).toEqual([400, "barcode_wrong_digits"]);
+      const none = await insertWithBarcode(a, "6416710030222");
+      await api().put(`/api/v1/foods/${none}`).set(a.auth).send({ name: "Filos ladolia", per100g, barcode: null });
+      const fromNone = await api()
+        .put(`/api/v1/foods/${none}`)
+        .set(a.auth)
+        .send({ name: "Filos ladolia", per100g, barcode: "6416710030209" });
+      expect([fromNone.status, fromNone.body.code]).toEqual([400, "barcode_wrong_digits"]);
+      const good = await put("20064020");
+      expect([good.status, good.body.barcode]).toEqual([200, "20064020"]);
     });
   });
 

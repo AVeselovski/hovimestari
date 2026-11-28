@@ -1,4 +1,5 @@
 import { stubPhone } from "@/__tests__/formSheet";
+import { guardArmed } from "@/__tests__/sheet";
 import { detailOf, fineliFood, fineliPortion } from "@/components/foods/__tests__/support";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import type { FoodDetail } from "@hovimestari/types";
@@ -52,6 +53,7 @@ function renderPicker(props: Partial<IngredientPickerProps> = {}) {
 
 /** The picker, whatever it is named: "Add ingredient" on its search, the food's name on its amount. */
 const picker = () => screen.getAllByRole("dialog").at(-1)!;
+
 const search = () => within(picker()).getByLabelText("Search foods") as HTMLInputElement;
 const amount = () => within(picker()).getByRole("textbox", { name: "Amount" }) as HTMLInputElement;
 const status = () => picker().querySelector("[data-status-line]")!.textContent;
@@ -111,6 +113,7 @@ describe("IngredientPicker", () => {
     const restore = stubPhone();
     try {
       renderPicker();
+      await guardArmed(picker);
       await pick("feta", /^Fetajuusto/);
       const back = within(picker()).getByRole("button", { name: "Back" });
       back.focus();

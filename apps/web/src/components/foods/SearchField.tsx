@@ -3,28 +3,27 @@
 import { Icon } from "@/components/Icon";
 import { focusRing, inputClass } from "@/components/ui/styles";
 import { useTranslations } from "next-intl";
-import { useSyncExternalStore, type ReactElement, type RefObject } from "react";
-
-/** No event says the camera API came or went: it is there for the page's life or never. */
-const subscribeNever = (): (() => void) => () => {};
-
-/** The browser can ask for a camera. Only in a secure context, so never on plain http over the LAN. */
-function useCameraApi(): boolean {
-  return useSyncExternalStore(
-    subscribeNever,
-    () => typeof navigator.mediaDevices?.getUserMedia === "function",
-    () => false,
-  );
-}
+import type { ReactElement, RefObject } from "react";
 
 /** The button in the field's end slot: the cross and the camera share it, so the field never changes width. */
 const slotButton = `absolute top-0.5 right-0.5 inline-flex size-11 items-center justify-center rounded-control text-ink-muted hover:text-ink ${focusRing}`;
 
 /**
+ * Empties the field and puts the caret in it, in the press that asked. The
+ * field's clear cross and the barcode block's Search by name both call it, so
+ * the two never drift. The focus runs inside the press because iOS raises
+ * the keyboard only for a focus a tap makes (hooks/useNativeTapWhileKeyboardDown.ts).
+ */
+export function clearField(onChange: (value: string) => void, inputRef: RefObject<HTMLInputElement | null>): void {
+  onChange("");
+  inputRef.current?.focus();
+}
+
+/**
  * The search field, pinned in the sheet's header: a text field with the
  * search icon and, once something is typed, a 44px button that clears it.
  * Empty, the same slot holds a camera button that opens the scanner
- * (`onScan`), where the browser can ask for a camera.
+ * (`onScan`), which the host gives where the browser can ask for a camera.
  * Enter puts the keyboard away, so the results show in full, and runs
  * `onEnter` when the sheet gives one, such as the lookup of a typed barcode. It is the one
  * field in the app with a placeholder, which says what the field searches, never a value
@@ -49,7 +48,7 @@ export function SearchField({
   value: string;
   onChange: (value: string) => void;
   onEnter?: () => void;
-  /** Opens the scanner, with the camera button as its opener. No camera button without it. */
+  /** Opens the scanner, with the camera button as its opener. No camera button without it: the host gives it only where the browser has a camera API. */
   onScan?: (opener: HTMLElement) => void;
   autoFocus: boolean;
   /** The label and placeholder, when the field searches something other than foods and meals. */
@@ -57,7 +56,6 @@ export function SearchField({
 }): ReactElement {
   const t = useTranslations("foods.sheet");
   const tScan = useTranslations("foods.scan");
-  const cameraApi = useCameraApi();
   const name = label ?? t("searchLabel");
   return (
     <div role="search" className="relative pb-1">
@@ -93,17 +91,13 @@ export function SearchField({
           key="clear"
           type="button"
           aria-label={t("clear")}
-          onClick={() => {
-            onChange("");
-            inputRef.current?.focus();
-          }}
+          onClick={() => clearField(onChange, inputRef)}
           className={slotButton}
         >
           <Icon name="close" className="size-5" />
         </button>
       ) : (
-        onScan !== undefined &&
-        cameraApi && (
+        onScan !== undefined && (
           <button
             key="camera"
             type="button"

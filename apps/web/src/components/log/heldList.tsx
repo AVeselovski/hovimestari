@@ -1,6 +1,7 @@
 "use client";
 
 import { useArmedAtRest } from "@/hooks/useArmedAtRest";
+import { usePressLatch } from "@/hooks/usePressGuard";
 import { favouriteFoodsQuery, ownFoodsQuery, recentsQuery, recipesQuery, savedMealsQuery } from "@/lib/queryOptions";
 import { notifyManager, useQueries, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
@@ -8,7 +9,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
   useSyncExternalStore,
   type ReactElement,
@@ -147,25 +147,17 @@ export function useListsReady(): boolean {
  * wait (on "Archived meals", say) and once their rows are at rest. A press
  * that started in one of those and ends in the other, or that lands while
  * rows shown after a wait settle, is stopped before it reaches anything.
+ * The press rule is `usePressLatch`'s, so a touch that turned into a scroll
+ * holds nothing after it, and Enter counts at any time but while the rows settle.
  */
 export function ListsGuard({ className, children }: { className?: string; children: ReactNode }): ReactElement {
   const { phase } = useContext(Lists);
-  const startedIn = useRef<ListsPhase | null>(null);
+  const { guardProps } = usePressLatch(
+    phase,
+    (started) => phase !== "settling" && (started === null || started === phase),
+  );
   return (
-    <div
-      className={className}
-      data-lists-guard={phase}
-      onPointerDownCapture={() => {
-        startedIn.current = phase;
-      }}
-      onClickCapture={(e) => {
-        const started = startedIn.current;
-        startedIn.current = null;
-        if (phase !== "settling" && (started === null || started === phase)) return;
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    >
+    <div className={className} data-lists-guard={phase} {...guardProps}>
       {children}
     </div>
   );

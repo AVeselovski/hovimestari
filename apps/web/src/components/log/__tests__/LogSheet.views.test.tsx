@@ -1,5 +1,6 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
+import { tap } from "@/__tests__/helpers/tap";
 import { controlSheetAnimations, swipeSheetDown } from "@/__tests__/sheet";
 import { renderDay, rowNames } from "@/components/day/__tests__/harness";
 import { QUARK } from "@/components/day/__tests__/support";
@@ -303,15 +304,13 @@ describe("The log sheet on a phone", () => {
       await within(await screen.findByRole("dialog")).findByRole("region", { name: "Recent" });
       const guard = () => dialog().querySelector("[data-press-guard]");
       // Still sliding in: the second tap of a double tap lands here.
-      fireEvent.pointerDown(plus("Log Quark again, 250 g"));
-      fireEvent.click(plus("Log Quark again, 250 g"));
+      tap(plus("Log Quark again, 250 g"));
       await act(async () => {});
       expect(addEntry).not.toHaveBeenCalled();
       // The delay passes on the fake clock: still sliding in, so still waiting.
       act(() => jest.advanceTimersByTime(ARM_DELAY_MS));
       expect(guard()).toHaveAttribute("data-press-guard", "waiting");
-      fireEvent.pointerDown(plus("Log Quark again, 250 g"));
-      fireEvent.click(plus("Log Quark again, 250 g"));
+      tap(plus("Log Quark again, 250 g"));
       await act(async () => {});
       expect(addEntry).not.toHaveBeenCalled();
       // The entry ends (Base UI may ask for the animations more than once): at rest, armed.
@@ -319,8 +318,7 @@ describe("The log sheet on a phone", () => {
         animations.finish();
         expect(guard()).toHaveAttribute("data-press-guard", "armed");
       });
-      fireEvent.pointerDown(plus("Log Quark again, 250 g"));
-      fireEvent.click(plus("Log Quark again, 250 g"));
+      tap(plus("Log Quark again, 250 g"));
       await waitFor(() => expect(addEntry).toHaveBeenCalledTimes(1));
     } finally {
       animations.restore();

@@ -96,6 +96,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   food_macro_sum_too_high: "Protein, carbohydrates and fat add up to more than 100 g per 100 g.",
   barcode_invalid: "A barcode has 8 to 14 digits.",
   barcode_taken: "One of your foods already has this barcode.",
+  barcode_wrong_digits: "No barcode has these digits. Check them against the pack.",
   barcode_lookup_limit: "You have looked up many barcodes this hour. Try again later.",
   barcode_lookup_busy: "Too many lookups at once. Try again in a few seconds.",
   barcode_lookup_unavailable: "Open Food Facts did not answer.",

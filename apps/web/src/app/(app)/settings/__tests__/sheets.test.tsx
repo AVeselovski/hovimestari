@@ -1,4 +1,5 @@
 import { describeFormSheetContract, stubPhone } from "@/__tests__/formSheet";
+import { tap } from "@/__tests__/helpers/tap";
 import { DeleteAccountSheet } from "@/components/account/DeleteAccountSheet";
 import { useAuth } from "@/contexts/AuthContext";
 import { addPassword } from "@/lib/api/auth";
@@ -271,16 +272,14 @@ describe("DeleteAccountSheet", () => {
         renderOpen(true);
         type("Password", testPassword());
         const button = screen.getByRole("button", { name: "Delete account" });
-        fireEvent.pointerDown(button);
-        fireEvent.click(button);
+        tap(button);
         fireEvent.submit((button as HTMLButtonElement).form!);
         await act(() => new Promise((r) => setTimeout(r, 600)));
         expect(deleteAccount).not.toHaveBeenCalled();
 
         await act(async () => animations.finish());
         await waitFor(() => expect(button).toHaveAttribute("data-press-guard", "armed"));
-        fireEvent.pointerDown(button);
-        fireEvent.click(button);
+        tap(button);
         await waitFor(() => expect(deleteAccount).toHaveBeenCalledTimes(1));
       } finally {
         animations.restore();

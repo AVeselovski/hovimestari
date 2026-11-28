@@ -53,6 +53,7 @@ export const ERROR_CODES = [
   "food_macro_sum_too_high",
   "barcode_invalid",
   "barcode_taken",
+  "barcode_wrong_digits",
   "barcode_lookup_limit",
   "barcode_lookup_busy",
   "barcode_lookup_unavailable",

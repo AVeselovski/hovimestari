@@ -72,27 +72,27 @@ src/
 │   │   ├── FoodSheet.tsx       The log sheet: the status line, the search, a food's, a meal's and a recipe's view, the archived meals, Log, and the sheets stacked on it
 │   │   ├── useSheetNavigation.ts  The sheet's views as a stack, with each one's scroll and the row that opened the next
 │   │   ├── FoodSheetStack.tsx  The scanner, the own-food, portion, saved meal and estimate sheets and the delete confirmations, stacked on the log sheet
-│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, labelled "Search foods, meals and recipes", with the camera button or the clear cross at its end
+│   │   ├── SearchField.tsx     The search field pinned in the sheet's header, labelled "Search foods, meals and recipes", with the camera button or the clear cross at its end, and clearField(), which Search by name shares
 │   │   ├── ScannerSheet.tsx    The camera scanner: the live view with its band, Torch and Try again, a line for each state and Type the number
 │   │   ├── scanner/            The scanner's camera and decoder:
 │   │   │   ├── useCameraStream.ts  The camera and its decode loop over the band's part of each frame (`visibleBand`), with a session number so every way out stops every track
 │   │   │   ├── decoder.ts      The one file that imports zxing-wasm: loads the reader with the app's own wasm, reads the retail formats
-│   │   │   └── useScanner.ts   The log sheet's side: opens the scanner, types a read into the field, looks it up and places focus
+│   │   │   └── useScanner.ts   The food search's side: opens the scanner, types a read into the field, looks it up and places focus
 │   │   ├── useFoodFinder.tsx   The food search as a hook: the field, the results or the host's browse or the barcode block, and the scanner and own-food sheets, for a host's header, body and stacked slots
 │   │   ├── FoodSearchView.tsx  The log sheet's browse lists, the recipes and saved meals that lead its results, and FoodList, one titled list of foods
 │   │   ├── useBarcodeMode.tsx  The search in barcode mode: text of 8 to 14 digits puts the barcode block in place of the lists
-│   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, and the lookup's answer or failure
+│   │   ├── BarcodeResult.tsx   The barcode block: "Barcode {code}", Look up, the lookup's answer or failure, and the ways on from a miss
 │   │   ├── useBarcodeLookup.ts The lookup of the held code, sent on a press, with its answer kept true to the foods
 │   │   ├── FoodRow.tsx         One food in a list: names, energy and protein or a meta line, the star and "Yours" unless left out, and a trailing control
 │   │   ├── FoodDetail.tsx      A food's view: the header with Back, the name and the star, and the detail with figures, portions and Copy to my foods
 │   │   ├── Per100gFigures.tsx  The four figures per 100 g, through MacroFigures
 │   │   ├── FavouriteButton.tsx The star: a 44px toggle with aria-pressed
-│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, with the link to the credit and an Open Food Facts product's own page
+│   │   ├── FoodSourceLine.tsx  Where a food's figures come from, one row, with the link to the credit and the words Open Food Facts linked to the product's page
 │   │   ├── useFavourite.ts     Marking a favourite optimistically, and rolling back on a failure
 │   │   ├── OwnFoodSheet.tsx    Add an own food, empty or filled from a start, or edit one with its delete
 │   │   ├── useOwnFoodDelete.ts The one delete of an own food: asks first, takes a food already gone as deleted, drops it from the lists
 │   │   ├── PortionSheet.tsx    Add or edit an own portion, with its delete
-│   │   └── ownFoodForm.ts      The two forms' fields, a new food's start, their parsing and the shared schemas
+│   │   └── ownFoodForm.ts      The two forms' fields, a new food's start and a copy's, their parsing and the shared schemas
 │   ├── log/                    Logging in the log sheet, and the saved meal parts the Library shares:
 │   │   ├── StatusLine.tsx      The header's first line: the day the sheet logs to, or for a moment a failure or a note
 │   │   ├── CreateActions.tsx   "New meal" and "Add an estimate", the first controls while browsing
@@ -162,7 +162,7 @@ src/
 │   │   ├── recipeDraft.ts      The editor's draft: its lines, the figures as typed and what a save sends
 │   │   ├── ProseField.tsx      A labelled text area with its line: the editor's Method and Notes
 │   │   ├── IngredientRows.tsx  A recipe's lines, shown or pressed to change, a refused line's message under it, a batch's mark and a left-out line
-│   │   ├── IngredientPicker.tsx  The picker stacked on the editor or the as made sheet: the food search, then a food's amount
+│   │   ├── IngredientPicker.tsx  The picker stacked on the editor or the as made sheet: the food search, then a food's amount, with Copy to my foods for an Open Food Facts food
 │   │   ├── PickerAmountForm.tsx  The picker's amount view: the amount, its figures, As written and Note
 │   │   ├── NotCountedSheet.tsx A line not counted, such as salt
 │   │   ├── WrittenFields.tsx   A line's amount as the recipe writes it: a number and a unit
@@ -183,7 +183,7 @@ src/
 │   │   ├── targetForm.ts       parseTargetFields(): the fields through parseDecimalInput and the shared schema
 │   │   └── targetLines.ts      Which days a save or a removal changes, from the list of changes
 │   └── ui/                     Card, EmptyState, PageContainer, StableLabel, ThemeToggle, styles.ts, the fields and the overlays:
-│       ├── ExternalLink.tsx    A link to another site over https, in a new tab, that tells a screen reader so
+│       ├── ExternalLink.tsx    A link to another site over https, in a new tab, that tells a screen reader so, with a longer name when its words are short
 │       ├── NativeDateInput.tsx The platform's date field, uncontrolled so iOS's Reset can empty it
 │       ├── SelectField.tsx     The one select: a native select in a field's shape, with the app's chevron
 │       ├── Checkbox.tsx        The one checkbox: a real input drawn in the tokens, the accent when ticked, with a dash for some
@@ -207,13 +207,15 @@ src/
 │   ├── useAddActions.ts        The adds of useEntryActions: an entry, Save and log, a batch logged as made, their toasts and undo
 │   ├── useCopyActions.ts       Copying entries, composed into useEntryActions: the send, the removal of superseded ids, its toast and undo
 │   ├── useKnownOffline.ts      Whether the app knows it is offline: no network, or the server out of reach
+│   ├── useCameraApi.ts         Whether the browser can ask for a camera, so the camera button and Scan again show
 │   ├── useFailureLine.ts       The line for a failed write, in a form or on the log sheet's status line
 │   ├── useSubmitGuard.ts       A form's in-flight guard: a submit is refused while the last one's promise is pending
 │   ├── useSheetTarget.ts       A kept-mounted sheet's open state: a fresh key per open, the control that opened it and what it opens on
 │   ├── useRetainedValue.ts     The last non-null value, so an overlay slides out with its content
 │   ├── useFormDirty.ts         Whether a form holds unsaved input
 │   ├── useConfirmedDelete.tsx  A confirmation in front of a write that takes a row off the page, and the write
-│   ├── useArmedAtRest.ts       A sheet's action takes a press only once the sheet is at rest on a phone
+│   ├── useArmedAtRest.ts       A sheet's action, or a container of its controls, takes a press only once the sheet is at rest on a phone
+│   ├── usePressGuard.ts        The one rule for presses that wait, and a guard that holds them for half a second on request
 │   ├── useEntryPressGuard.ts   A press outside a sheet is refused until it has slid in
 │   ├── useMainScrollLock.ts    The counted lock on <main> while an overlay is open
 │   ├── useSheetFocusReturn.ts  Where a sheet puts focus back the moment it closes
@@ -228,7 +230,7 @@ src/
 │   ├── api.ts                  The axios client: bearer token, one shared renewal on a 401
 │   ├── api/                    The calls, one file per area: auth.ts, users.ts, targets.ts, settings.ts, foods.ts, days.ts, entries.ts, log.ts, savedMeals.ts, recipes.ts, cooks.ts, connections.ts
 │   ├── mcpConnection.ts        The assistant's server address and the Claude Code and Claude Desktop setup snippets, with mcp-remote pinned
-│   ├── barcode.ts              barcodeOf() reads a typed barcode with the shared schema, sameBarcode() and openFoodFactsUrl()
+│   ├── barcode.ts              barcodeOf() reads a typed barcode with the shared schema, sameBarcode() from the shared types, and openFoodFactsUrl()
 │   ├── newId.ts                A new version 4 UUID, built by hand where the browser has no randomUUID, as over plain http
 │   ├── shownDay.ts             The day the Day tab last showed by its address, where the Day link leads back to
 │   ├── pendingIds.ts           A one-press add's id, kept until its answer, a day that holds it, or a minute, and held while its failure shows
@@ -273,6 +275,7 @@ src/
 │   ├── helpers/locale.ts       Pins the locale tests format with to en-US, and setTestLocale for another
 │   ├── helpers/connectionsServer.ts  A fake /connections server behind the real API client, and testConnectionKey() for keys made at run time
 │   ├── helpers/reactTree.ts    Whether any component in a rendered tree still holds a string in its props or state
+│   ├── helpers/tap.ts          tap(), a tap as a browser sends it, and tapClick(), the click that ends one
 │   ├── sheet.ts                Drives sheets through Base UI's own code: swipes, presses outside, exits, focus
 │   └── formSheet.tsx           describeFormSheetContract, the checks every form sheet runs, and stubPhone
 ├── i18n/request.ts             Pins the catalog's locale to English
@@ -389,6 +392,7 @@ Tests live in `__tests__/` next to the source. Jest 29 through `next/jest`, with
 - `src/app/__tests__/safeAreas.test.ts` fails when a file other than `globals.css` reads the safe-area insets.
 - `components/day/__tests__/harness.tsx` renders the Day tab with its providers and reads its rows and toasts. It runs against `fakeDays.ts`, a fake of the entry and saved meal routes that keeps the server's rules that show on screen. It holds the recipes a test puts in its `recipes`, so a recipe entry can be added, and answers `GET /recipes` from its `recipeSummaries`. `components/log/__tests__/logHarness.tsx` builds the log sheet's worlds: `logWorld()`, and `recipeLogWorld()` with two recipes, one of them a recent item.
 - `components/recipes/__tests__/recipeServer.ts` is a fake of the recipe routes that keeps the rules a screen can see: a create applied once, an edit that keeps the id of an identical line, and a refused line named by its index. `recipeFixtures.ts` builds recipes whose figures come from `recipeBasis` and `entryFigures`, never typed by hand. `cookServer.ts` is a fake of `POST /cooks` over the fake days and recipe servers, which answers a second request under one id as a replay. It computes a batch's figures and what it changed with the shared functions too, so a suite's "the figures equal the server's" compares the sheet's reading of its lines with the request it sends. A browser walk against the real backend is what shows the two agree.
-- `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
+- A tap on a guarded surface is `tap(el)` from `src/__tests__/helpers/tap.ts`: a pointerdown, a pointerup and a click with `detail` 1. A bare `fireEvent.click` has `detail` 0, which the press guards read as Enter or a screen reader, so it walks the keyboard's path and not a tap's.
+- `src/__tests__/sheet.ts` drives sheets through Base UI's own code: `swipeSheetDown`, `pressOutsideSheet`, `holdSheetExits`, `controlSheetAnimations`, `confirmArmed`, `guardArmed`, `trackFocus`. `formSheet.tsx` has `describeFormSheetContract` and `stubPhone`.
 - The barcode decoder is tested on real barcodes: `components/foods/scanner/__tests__/decoder.test.ts` runs in Node, draws each image with `zxing-wasm/writer` at test time and passes the wasm's bytes as `wasmBinary`. `decoderRetry.test.ts` retries a failed load with the real library. Every other scanner suite stubs the camera, the video, the canvas, the picture's layout and the decoder with `components/foods/__tests__/scannerFakes.ts`, because jsdom has none of them.
 - Layout, motion and the service worker are checked in a real browser against a production build. Unit tests do not show them. The scanner runs in Chromium with `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream`, and `--use-file-for-fake-video-capture=<file>.y4m` plays a barcode to it. Make the `.y4m` from a barcode image with `ffmpeg -loop 1 -i code.png -t 5 -pix_fmt yuv420p code.y4m`, outside the repository.

@@ -179,6 +179,14 @@ User-facing UI strings are written for humans: plain words, short sentences. No 
 
 Every rendered string is an entry in the message catalog `apps/web/messages/en.json`, read through `next-intl`, and a hardcoded string in a component is a lint error (`apps/web/eslint.config.js`). Error messages from the API are shown by their `code`, through `errors.<code>` in the catalog, never as the server's own text. The copy rules are a matter for you and for review, not for the build: a wording preference should not fail CI. What tests check is that the catalog **works**: no empty entry, no key that no code can reach, no plural form that fails to render, because a malformed plural prints its raw key path on screen, and no error code without a line.
 
+## Reporting to Artur
+
+Artur gives a prompt and lets the work run. He rarely reads what is posted while it runs. He reads the last message, and asks for a status report when that message is thin.
+
+- **The message that ends a stretch of work, or asks for his input, is complete and stands alone.** It explains each thing in full: what it is, what was done, what he will see, and each open choice with its options and a recommendation. It never points at an earlier message, as in "the screenshots sent earlier" or "the two wordings above", because he has not read it. A wording, a question or a screenshot that matters is given again, in that message.
+- **Messages while the work runs are one short line** and hold no question and nothing he must not miss.
+- **He judges a screen by using the app.** Screenshots for his sign-off are few, attached to that same last message, each with a line saying what it shows, and the message says what to open and try in the app.
+
 ## Commit convention
 
 Use conventional commit prefixes with a capital first letter followed by a colon: `Feat:`, `Fix:`, `Docs:`, `Chore:`, `Refactor:`, `Test:`. Example: `Fix: resolve 401 retry loop in api interceptor`.

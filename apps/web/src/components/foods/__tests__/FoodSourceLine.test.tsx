@@ -1,6 +1,6 @@
 import { foodSourceRow } from "@/components/ui/styles";
 import type { FoodSource } from "@hovimestari/types";
-import { render, screen, within } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { FoodSourceLine } from "../FoodSourceLine";
 
 // ---------------------------------------------------------------------------
@@ -41,17 +41,37 @@ describe("FoodSourceLine", () => {
 
   it("links a Fineli food to the credit for the food data", () => {
     const r = row("fineli");
-    expect(within(r).getByText("From Fineli")).toBeInTheDocument();
+    expect(r).toHaveTextContent(/^From FineliAbout the data$/);
     expect(
       within(r)
         .getAllByRole("link")
         .map((a) => a.textContent),
-    ).toEqual(["About the food data"]);
+    ).toEqual(["About the data"]);
+    expect(within(r).getByRole("link", { name: "About the data" })).toHaveAttribute("href", "/settings#food-data");
   });
 
-  it("links an Open Food Facts food to its own page and to the credit", () => {
+  it("makes the words Open Food Facts the link to the product's page, in a new tab, once the barcode is known", () => {
     const r = row("open_food_facts", "6408430000258");
-    expect(within(r).getByText("From Open Food Facts")).toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(r).toHaveTextContent(/^From Open Food Facts.*About the data$/);
+    const page = within(r).getByRole("link", { name: "Open Food Facts, this product's page (opens in a new tab)" });
+    // The words on screen are the start of the name a screen reader says.
+    expect(page.firstChild!.textContent).toBe("Open Food Facts");
+    expect(page).toHaveAttribute("href", "https://world.openfoodfacts.org/product/6408430000258");
+    expect(page).toHaveAttribute("target", "_blank");
+    expect(
+      within(r)
+        .getAllByRole("link")
+        .map((a) => a.getAttribute("href")),
+    ).toEqual(["https://world.openfoodfacts.org/product/6408430000258", "/settings#food-data"]);
+  });
+
+  it("says From Open Food Facts as plain words until the barcode is known", () => {
+    const r = row("open_food_facts");
+    expect(r).toHaveTextContent(/^From Open Food FactsAbout the data$/);
+    expect(
+      within(r)
+        .getAllByRole("link")
+        .map((a) => a.textContent),
+    ).toEqual(["About the data"]);
   });
 });

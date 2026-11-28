@@ -201,13 +201,7 @@ export function FoodDetailBody({
           </>
         )}
       </section>
-      {food.source === "open_food_facts" && detail !== undefined && (
-        <div className="border-t border-rule pt-4">
-          <button type="button" onClick={(e) => onCopy(detail, e.currentTarget)} className={`${btnSecondary} w-full`}>
-            {t("copyToOwn")}
-          </button>
-        </div>
-      )}
+      <CopyToOwnFoods source={food.source} detail={detail} onCopy={onCopy} />
       {food.isOwn && (
         <div className="flex flex-col items-start gap-2 border-t border-rule pt-4">
           {detail !== undefined && (
@@ -221,6 +215,30 @@ export function FoodDetailBody({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+export interface CopyToOwnFoodsProps {
+  source: FoodSummary["source"];
+  /** The food's detail. The button waits for it, since the form opens on its values and barcode. */
+  detail: FoodDetailData | undefined;
+  onCopy: (detail: FoodDetailData, opener: HTMLElement) => void;
+}
+
+/**
+ * Copy to my foods, under a rule: for a food from Open Food Facts, which
+ * nobody edits, once its detail is in. The log sheet's food view and the
+ * ingredient picker's amount view both show it, by this one rule.
+ */
+export function CopyToOwnFoods({ source, detail, onCopy }: CopyToOwnFoodsProps): ReactElement | null {
+  const t = useTranslations("foods.detail");
+  if (source !== "open_food_facts" || detail === undefined) return null;
+  return (
+    <div className="border-t border-rule pt-4">
+      <button type="button" onClick={(e) => onCopy(detail, e.currentTarget)} className={`${btnSecondary} w-full`}>
+        {t("copyToOwn")}
+      </button>
     </div>
   );
 }

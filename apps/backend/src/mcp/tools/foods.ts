@@ -65,7 +65,7 @@ export const listRecentItemsTool = defineTool({
 export const lookUpBarcodeTool = defineTool({
   name: "look_up_barcode",
   description:
-    "Looks up a product barcode: the person's own foods first, then Open Food Facts. Answers found with the food, incomplete with the values the product has, not_found, or in_store for a shop's own code. Each call to Open Food Facts spends the person's own lookup budget, about 30 an hour, shared with their scans in the app. A product found on Open Food Facts is kept, and from then on the person finds it in their food search: newlyVisible is true when this lookup did that. It changes none of the person's data.",
+    "Looks up a product barcode: the person's own foods first, then Open Food Facts. Answers found with the food, incomplete with the values the product has, not_found, in_store for a shop's own code that can change with the weight or the price, or wrong_digits for digits no barcode has, which is never sent. Each call to Open Food Facts spends the person's own lookup budget, about 30 an hour, shared with their scans in the app. A product found on Open Food Facts is kept, and from then on the person finds it in their food search: newlyVisible is true when this lookup did that. It changes none of the person's data.",
   inputSchema: z.strictObject({ barcode: BarcodeSchema.describe("The barcode's 8 to 14 digits. Spaces are dropped.") }),
   annotations: { openWorldHint: true },
   async run(args, { service }) {

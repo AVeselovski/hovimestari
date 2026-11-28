@@ -21,7 +21,14 @@ function Harness(): ReactElement {
     set(next);
     mode.textChanged(next);
   };
-  mode = useBarcodeMode({ query: text, canOpenFood: false, showFood: jest.fn(), onFromLabel: jest.fn() });
+  mode = useBarcodeMode({
+    query: text,
+    canOpenFood: false,
+    showFood: jest.fn(),
+    onFromLabel: jest.fn(),
+    blurField: jest.fn(),
+    onSearchByName: jest.fn(),
+  });
   return <div>{mode.block}</div>;
 }
 

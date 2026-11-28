@@ -4,6 +4,7 @@ import { clockFrom } from "@/__tests__/helpers/clock";
 import { fakeConnectionsServer, type FakeConnectionsServer } from "@/__tests__/helpers/connectionsServer";
 import { createTestQueryClient, queryWrapper } from "@/__tests__/helpers/queryClient";
 import { reactTreeHolds } from "@/__tests__/helpers/reactTree";
+import { tap } from "@/__tests__/helpers/tap";
 import { confirmArmed, controlSheetAnimations, openSheet, pressOutsideSheet, swipeSheetDown } from "@/__tests__/sheet";
 import {
   ConnectionRevealProvider,
@@ -314,8 +315,7 @@ describe("on a phone", () => {
       const sheet = await makeKey();
       const done = within(sheet).getByRole("button", { name: "I have copied it" });
       // The second tap of a double tap on Create key lands here while the reveal slides in.
-      fireEvent.pointerDown(done);
-      fireEvent.click(done);
+      tap(done);
       await act(async () => {});
       expect(openSheet("Your key")).toBe(sheet);
       expect(storeNow?.key).toBe(server.issuedKeys[0]);
@@ -324,8 +324,7 @@ describe("on a phone", () => {
         animations.finish();
         expect(sheet.querySelector("[data-armed]")).not.toBeNull();
       });
-      fireEvent.pointerDown(done);
-      fireEvent.click(done);
+      tap(done);
       await waitFor(() => expect(storeNow).toBeNull());
     } finally {
       animations.restore();

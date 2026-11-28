@@ -1,5 +1,6 @@
 import { stubPhone } from "@/__tests__/formSheet";
 import { fakeAuth } from "@/__tests__/helpers/auth";
+import { tap, tapClick } from "@/__tests__/helpers/tap";
 import { controlSheetAnimations } from "@/__tests__/sheet";
 import { renderDay, seededClient } from "@/components/day/__tests__/harness";
 import { fineliFood, ownFood } from "@/components/foods/__tests__/support";
@@ -539,15 +540,14 @@ describe("The first read of the log sheet's lists", () => {
       });
       expect(guard()).toHaveAttribute("data-lists-guard", "settling");
       // It comes up on the row now there: that press started before the row was.
-      fireEvent.click(plus("Log Oats again, 80 g"));
+      tapClick(plus("Log Oats again, 80 g"));
       await act(() => jest.advanceTimersByTimeAsync(50));
       expect(addEntry).not.toHaveBeenCalled();
       await act(() => jest.advanceTimersByTimeAsync(ARM_DELAY_MS));
       expect(guard()).toHaveAttribute("data-lists-guard", "armed");
       expect(addEntry).not.toHaveBeenCalled();
       // A press on the row in place logs that row's own item.
-      fireEvent.pointerDown(plus("Log Oats again, 80 g"));
-      fireEvent.click(plus("Log Oats again, 80 g"));
+      tap(plus("Log Oats again, 80 g"));
       await act(() => jest.advanceTimersByTimeAsync(50));
       expect(addEntry).toHaveBeenCalledTimes(1);
       expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "food", foodId: world.oats.id });
@@ -573,8 +573,7 @@ describe("The first read of the log sheet's lists", () => {
       await act(() => jest.advanceTimersByTimeAsync(80));
       // A person who aimed before the rows came presses 100 ms after them: a press that starts and ends now.
       const press = (): void => {
-        fireEvent.pointerDown(plus("Log Oats again, 80 g"));
-        fireEvent.click(plus("Log Oats again, 80 g"));
+        tap(plus("Log Oats again, 80 g"));
       };
       press();
       await act(() => jest.advanceTimersByTimeAsync(50));
@@ -585,6 +584,72 @@ describe("The first read of the log sheet's lists", () => {
       await act(() => jest.advanceTimersByTimeAsync(50));
       expect(addEntry).toHaveBeenCalledTimes(1);
       expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "food", foodId: world.oats.id });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  /** Lets the waiting lists answer on the fake clock, then waits until their rows are at rest. */
+  async function answerAndSettle(recents: Held<Recents>, meals: Held<Meals>): Promise<void> {
+    await act(async () => {
+      recents.resolve(world.server.recentList());
+      meals.resolve(world.server.mealList(false));
+      // TanStack's notify, the render, and the frame that paints the rows.
+      await jest.advanceTimersByTimeAsync(20);
+    });
+    await act(() => jest.advanceTimersByTimeAsync(ARM_DELAY_MS + 50));
+    expect(guard()).toHaveAttribute("data-lists-guard", "armed");
+  }
+
+  it("a touch that turns into a scroll while the lists wait holds no later press: a screen reader's activation logs the row", async () => {
+    const { recents, meals } = slowRecentsAndMeals();
+    const client = appClient();
+    await openWithFastListsIn(client);
+    expect(guard()).toHaveAttribute("data-lists-guard", "waiting");
+    // A finger goes down on the lists, and the browser takes it for a scroll: no pointerup and no click follow.
+    const archived = within(sheet()).getByRole("button", { name: "Archived meals" });
+    fireEvent.pointerDown(archived);
+    fireEvent.pointerCancel(archived);
+    jest.useFakeTimers();
+    try {
+      await answerAndSettle(recents, meals);
+      // A screen reader's activation, which can count as one click and comes with no pointerdown.
+      tapClick(plus("Log Oats again, 80 g"));
+      await act(() => jest.advanceTimersByTimeAsync(50));
+      expect(addEntry).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("a press that never ended while the lists waited holds no Enter once the rows are at rest", async () => {
+    const { recents, meals } = slowRecentsAndMeals();
+    const client = appClient();
+    await openWithFastListsIn(client);
+    fireEvent.pointerDown(within(sheet()).getByRole("button", { name: "Archived meals" }));
+    jest.useFakeTimers();
+    try {
+      await answerAndSettle(recents, meals);
+      // Enter: a click with no pointer of its own (`detail` 0).
+      fireEvent.click(plus("Log Oats again, 80 g"));
+      await act(() => jest.advanceTimersByTimeAsync(50));
+      expect(addEntry).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("a press that started while the lists waited and ends once they are at rest logs nothing", async () => {
+    const { recents, meals } = slowRecentsAndMeals();
+    await openWithFastListsIn(appClient());
+    fireEvent.pointerDown(within(sheet()).getByRole("button", { name: "Archived meals" }));
+    jest.useFakeTimers();
+    try {
+      await answerAndSettle(recents, meals);
+      // The same press, still down, ends on the row now there.
+      expect(tapClick(plus("Log Oats again, 80 g")).defaultPrevented).toBe(true);
+      await act(() => jest.advanceTimersByTimeAsync(50));
+      expect(addEntry).not.toHaveBeenCalled();
     } finally {
       jest.useRealTimers();
     }
@@ -637,8 +702,7 @@ describe("The first read of the log sheet's lists", () => {
     });
     expect(guard()).toHaveAttribute("data-lists-guard", "armed");
     // No wait, so no delay: a press at once logs the row under it.
-    fireEvent.pointerDown(plus("Log Oats again, 80 g"));
-    fireEvent.click(plus("Log Oats again, 80 g"));
+    tap(plus("Log Oats again, 80 g"));
     await waitFor(() => expect(addEntry).toHaveBeenCalledTimes(1));
     expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "food", foodId: world.oats.id });
   });

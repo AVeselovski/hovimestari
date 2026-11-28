@@ -59,6 +59,28 @@ describe("OwnFoodBodySchema", () => {
     expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: "6408430000012" }).barcode).toBe("6408430000012");
   });
 
+  it.each([
+    ["6416710030209", "a wrong check digit"],
+    ["1234567890", "10 digits, a length no barcode has"],
+    ["20064021", "an 8-digit code with a wrong check digit"],
+  ])("refuses %s, %s, with barcode_wrong_digits on the barcode", (barcode) => {
+    const result = OwnFoodBodySchema.safeParse({ name: "Ab", per100g, barcode });
+    expect(result.success ? [] : result.error.issues.map((i) => [i.message, i.path])).toEqual([
+      ["barcode_wrong_digits", ["barcode"]],
+    ]);
+  });
+
+  it("checks the digits only once the length passed, so 12345 has one issue, barcode_invalid", () => {
+    const result = OwnFoodBodySchema.safeParse({ name: "Ab", per100g, barcode: "12345" });
+    expect(result.success ? [] : result.error.issues.map((i) => [i.message, i.path])).toEqual([
+      ["barcode_invalid", ["barcode"]],
+    ]);
+  });
+
+  it.each(["20064020", "04567006"])("accepts %s, a barcode whose last digit checks out", (barcode) => {
+    expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode }).barcode).toBe(barcode);
+  });
+
   it("stores a barcode typed with spaces without them, as a lookup reads it", () => {
     expect(OwnFoodBodySchema.parse({ name: "Ab", per100g, barcode: " 6 408430 000012 " }).barcode).toBe(
       "6408430000012",
@@ -80,6 +102,14 @@ describe("OwnFoodUpdateBodySchema", () => {
     [{ name: "Ab", per100g, barcode: "1234567" }, "barcode_invalid"],
   ])("refuses %j with %p, as a create does", (input, code) => {
     expect(firstMessage(OwnFoodUpdateBodySchema.safeParse(input))).toBe(code);
+  });
+
+  // The service checks a changed barcode's digits, so an edit of a food's
+  // values never fails on a barcode it already holds.
+  it("accepts a barcode whose check digit is wrong", () => {
+    expect(OwnFoodUpdateBodySchema.parse({ name: "Ab", per100g, barcode: "6416710030209" }).barcode).toBe(
+      "6416710030209",
+    );
   });
 });
 

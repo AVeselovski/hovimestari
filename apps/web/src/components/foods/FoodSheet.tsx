@@ -38,6 +38,7 @@ import { ADD_PORTION_ATTRIBUTE, FoodDetailBody, FoodDetailHeader } from "./FoodD
 import { FOOD_ROW_ATTRIBUTE, rowSelectorOf } from "./FoodRow";
 import { Browse, leadResults, type MealBrowsing } from "./FoodSearchView";
 import { FoodSheetStack, type MealSheetTarget, type PortionTarget } from "./FoodSheetStack";
+import { copyStartOf } from "./ownFoodForm";
 import { useFavourite } from "./useFavourite";
 import { useFoodFinder } from "./useFoodFinder";
 import { useOwnFoodDelete } from "./useOwnFoodDelete";
@@ -428,16 +429,7 @@ export function FoodSheet({ open, onClose, returnFocusTo, date, actions }: FoodS
                 onAddPortion={(opener) => portionSheet.open(opener, { foodId: food.id })}
                 onEditPortion={(portion, opener) => portionSheet.open(opener, { foodId: food.id, portion })}
                 onEdit={(loaded, opener) => finder.ownSheet.open(opener, { food: loaded })}
-                onCopy={(loaded, opener) =>
-                  finder.ownSheet.open(opener, {
-                    start: {
-                      name: loaded.name,
-                      barcode: loaded.barcode ?? undefined,
-                      per100g: loaded.per100g,
-                      fromProduct: true,
-                    },
-                  })
-                }
+                onCopy={(loaded, opener) => finder.ownSheet.open(opener, { start: copyStartOf(loaded) })}
                 onDelete={(opener) => remove.open(food, opener)}
               />
             </div>

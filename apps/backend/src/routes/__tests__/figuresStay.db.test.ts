@@ -74,7 +74,7 @@ await describeWithDb("figuresStay", (suite) => {
   describe("deleting an own food", () => {
     it("hides a used food: entries stay, search, favourites and the food answer nothing, the barcode is cleared", async () => {
       const user = await signUp(suite.client);
-      const food = await d.ownFood(user, per100(100), "Mustikkarahka", "6412345678901");
+      const food = await d.ownFood(user, per100(100), "Mustikkarahka", "6412345678907");
       await d
         .api()
         .put(d.v1(`/foods/${food}/favourite`))
@@ -104,7 +104,7 @@ await describeWithDb("figuresStay", (suite) => {
       expect((await editFood(user, food, 1)).status).toBe(404);
       expect((await deleteFood(user, food)).status).toBe(404);
       expect((await d.add(user, d.foodBody(food, { grams: 1 }))).body.code).toBe("food_not_found");
-      await d.ownFood(user, per100(1), "Uusi", "6412345678901");
+      await d.ownFood(user, per100(1), "Uusi", "6412345678907");
     });
 
     it("deletes an unused food outright", async () => {

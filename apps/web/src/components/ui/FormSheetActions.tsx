@@ -13,6 +13,7 @@ import {
   sheetActionsStart,
   sheetActionsStartButton,
 } from "@/components/ui/styles";
+import type { ArmedAtRest } from "@/hooks/useArmedAtRest";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 
@@ -73,10 +74,7 @@ export interface FormSheetActionsProps {
   /** The mode of the submit that runs: a footer action's, or null for the submit button's. */
   runningMode?: string | null;
   /** Extra props for the submit button, such as a guard that refuses a press until the sheet is at rest. */
-  submitGuard?: {
-    onPointerDownCapture: () => void;
-    onClickCapture: (e: { preventDefault: () => void; stopPropagation: () => void }) => void;
-  };
+  submitGuard?: ArmedAtRest["guardProps"];
 }
 
 /**
