@@ -1,0 +1,8 @@
+# View hold after a row opens a view (log sheet, ingredient picker)
+
+- **Why text fields need no exception.** The press latch (`usePressLatch`) only stops clicks. A text field takes focus at pointerdown/mousedown, before any click, so a field inside a held container focuses and types as usual. Measured in Chromium touch and mouse. Its `<label>` tap is held (the label's focus comes from the click). Unverified on iOS: filed in the iPhone check in TODO.md.
+- **The owner's decision (2026-11-28):** hold every press in the view's body and footer for ARM_DELAY_MS after a row opens it, except the amount field; a quick Log inside the half second is dropped and he accepts that.
+- **Held:** food, meal, recipe, archived meals views (row press and barcode lookup found); picker amount from a row and from the editor's line (`usePressGuard(heldAtMount)`). **Not held:** a copy saved from the own-food sheet (the closing sheet swallows the second tap), Back and the star (header never under a row: Back bottom 149 vs body top 153/157 at 390).
+- **Tests:** `viewHoldPassed(root)` in `src/__tests__/sheet.ts` waits out `[data-press-guard="waiting"]`. Adding the hold broke 82 existing tests that pressed in a view at once; each now waits. userEvent clicks that move focus out of a Base UI sheet throw (`relatedTarget?.hasAttribute`) under fake timers: use userEvent only on a field that keeps focus inside the sheet.
+- **Red runs without a worktree:** jest refuses test paths under /tmp (scratchpad worktree found 0 tests). Copy master's versions of the changed source files into the checkout, run, copy yours back.
+- **No `ss` in the container**; `ss ... || echo free` lies. Use `curl` or /proc.
