@@ -2,9 +2,9 @@
 
 import { GRAMS, gramsOf, parseAmount } from "@/components/entries/amount";
 import { usePortionChipLabel } from "@/components/entries/portionLabel";
-import { CopyToOwnFoods, FoodDetailHeader } from "@/components/foods/FoodDetail";
+import { CopyToOwnButton } from "@/components/foods/CopyToOwnButton";
+import { FoodDetailHeader } from "@/components/foods/FoodDetail";
 import { FoodList } from "@/components/foods/FoodSearchView";
-import { copyStartOf } from "@/components/foods/ownFoodForm";
 import { useFoodFinder } from "@/components/foods/useFoodFinder";
 import { foodChipsOf } from "@/components/log/foodChips";
 import { releaseHeldLists } from "@/components/log/heldList";
@@ -17,7 +17,7 @@ import { useErrorCopy } from "@/hooks/useErrorCopy";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { formatCount } from "@/lib/entryFormat";
 import { formatDecimalForField } from "@/lib/foodFormat";
-import { favouriteFoodsQuery, foodDetailQuery, ownFoodsQuery } from "@/lib/queryOptions";
+import { detailUnavailable, favouriteFoodsQuery, foodDetailQuery, ownFoodsQuery } from "@/lib/queryOptions";
 import { entryFigures, MAX_LINE_NOTE_LENGTH, type FoodSummary, type LastAmount } from "@hovimestari/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
@@ -43,11 +43,12 @@ import { readWritten, writtenFieldsOf } from "./WrittenFields";
 //   in the header, and the form (`PickerAmountForm`). It opens on grams with
 //   the field empty, since a recipe's amount is not the last amount logged.
 //   Add in the footer, or for a line opened from the editor, Save with
-//   Remove ingredient beside it. For a food from Open Food Facts, once its
-//   detail is in, Copy to my foods under the form opens the own-food form
-//   filled in from it, so a found product that is not the pack in hand
-//   becomes the person's own food with its barcode. Saved, it opens on its
-//   amount, as any own food saved here does.
+//   Remove ingredient beside it. For a food from Fineli or Open Food Facts,
+//   Copy to my foods under the form opens the
+//   own-food form filled in from it (`CopyToOwnButton`), so a close food can
+//   become the person's own with their changes, and with the barcode the
+//   search carries from a miss. Saved, it opens on its amount with the
+//   amount typed kept, as any own food saved here does.
 //
 // The dialog is named after what it shows: "Add ingredient" on the search,
 // "Change ingredient" on the search of a line being changed, and the food's
@@ -55,7 +56,8 @@ import { readWritten, writtenFieldsOf } from "./WrittenFields";
 // from assistive technology.
 //
 // After Add the line is already in the editor behind the picker, and the
-// picker returns to its search, empty, focus in the field, so five
+// picker returns to its search, empty, focus in the field, and a barcode
+// carried from a miss is dropped, since a food was chosen without it, so five
 // ingredients are five searches and five amounts with no sheet opening or
 // closing. Back and Change food put focus in the search field too. A food
 // saved from the own-food sheet goes straight to its amount.
@@ -252,6 +254,7 @@ export function IngredientPicker({
     setFields(EMPTY);
     setErrors({});
     finder.reset();
+    finder.endCarry();
     focusSearch.current = true;
     setView({ kind: "search" });
   }
@@ -380,10 +383,11 @@ export function IngredientPicker({
                 onSubmit={submit}
               />
               {food && (
-                <CopyToOwnFoods
+                <CopyToOwnButton
                   source={food.source}
                   detail={detail.data}
-                  onCopy={(loaded, opener) => finder.ownSheet.open(opener, { start: copyStartOf(loaded) })}
+                  unavailable={detailUnavailable(detail)}
+                  copy={finder.copy}
                 />
               )}
             </div>

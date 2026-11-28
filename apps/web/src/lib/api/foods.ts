@@ -9,6 +9,7 @@ import {
   type FoodList,
   type FoodSearchResult,
   type OwnFoodBody,
+  type OwnFoodUpdateBody,
   type Portion,
   type PortionBody,
 } from "@hovimestari/types";
@@ -55,14 +56,14 @@ export async function getFood(id: string, req?: RequestOptions): Promise<FoodDet
   return res.data;
 }
 
-/** `POST /foods`: adds the user's own food. */
+/** `POST /foods`: adds the user's own food, with the portions it comes with, if any. */
 export async function createFood(body: OwnFoodBody): Promise<FoodDetail> {
   const res = await api.post<FoodDetail>("/foods", body);
   return res.data;
 }
 
-/** `PUT /foods/:id`: changes the user's own food. */
-export async function updateFood(id: string, body: OwnFoodBody): Promise<FoodDetail> {
+/** `PUT /foods/:id`: changes the user's own food. An edit takes no portions. */
+export async function updateFood(id: string, body: OwnFoodUpdateBody): Promise<FoodDetail> {
   const res = await api.put<FoodDetail>(`/foods/${id}`, body);
   return res.data;
 }

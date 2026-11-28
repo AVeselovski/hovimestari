@@ -1,14 +1,17 @@
 import { barcodeOf, sameBarcode } from "@/lib/barcode";
 import { parseDecimalInput } from "@/lib/decimalInput";
+import { compareNames } from "@/lib/foodCache";
 import { formatDecimalForField } from "@/lib/foodFormat";
 import {
   hasSearchableWord,
   isWellFormedBarcode,
+  MAX_NEW_FOOD_PORTIONS,
   OwnFoodUpdateBodySchema,
   PortionBodySchema,
   type ErrorCode,
   type FoodDetail,
-  type OwnFoodBody,
+  type FoodSource,
+  type OwnFoodUpdateBody,
   type Portion,
   type PortionBody,
 } from "@hovimestari/types";
@@ -49,16 +52,22 @@ export function emptyOwnFood(name = ""): OwnFoodValues {
 type StartPer100g = Partial<Record<(typeof VALUES)[ValueField]["key"], number | null>>;
 
 /**
- * What a new own food's form starts from: a name typed in the search, or what
+ * What a new own food's form starts from: a name typed in the search, what
  * a barcode lookup or a kept product brought back (the barcode, the product's
- * name, any value that is a number). Every part is optional. `fromProduct`
- * says some of it came from Open Food Facts, so the form asks to check it.
+ * name, any value that is a number), or a Fineli or Open Food Facts food
+ * copied with its portions. Every part is optional. `from` says whose values
+ * the form opens with, so it asks to check them against the label.
+ * `copied` marks a copy of a whole food, whose values are all there, so the
+ * form says whose they are rather than asking to copy them from the label.
+ * `portions` are the ones the new food comes with, saved with it.
  */
 export interface OwnFoodStart {
   name?: string;
   barcode?: string;
   per100g?: StartPer100g;
-  fromProduct?: boolean;
+  from?: "open_food_facts" | "fineli";
+  copied?: true;
+  portions?: PortionBody[];
 }
 
 export type Parsed<B, E> = { ok: true; body: B } | { ok: false; errors: E };
@@ -100,13 +109,39 @@ export function savedBaselineOf(food: FoodDetail): OwnFoodBaseline {
   };
 }
 
+/** A food Copy to my foods takes: one from Fineli or Open Food Facts, which nobody edits. */
+export type CopyableFood = FoodDetail & { source: Exclude<FoodSource, "user"> };
+
+/** Whether Copy to my foods takes `food`: not the user's own, which is edited instead. */
+export function isCopyable(food: FoodDetail): food is CopyableFood {
+  return food.source !== "user";
+}
+
 /**
  * The start Copy to my foods opens the form with: the food's name, its
- * figures and its barcode, marked as come from Open Food Facts, so the form
- * asks to check each value against the label.
+ * figures, its barcode and its portions, marked by where they came from, so
+ * the form asks to check each value against the label. Each portion is named
+ * by `label`: a Fineli measure by the catalog's name for it, such as
+ * Tablespoon, an own portion by its own name. Only the portions the server
+ * takes are kept, at most `MAX_NEW_FOOD_PORTIONS`, Fineli's first, so a save
+ * never meets a portion refusal the person cannot see or fix. They are then
+ * listed by name, in the order the saved food lists its own portions, so the
+ * list does not reshuffle across Save.
  */
-export function copyStartOf(food: FoodDetail): OwnFoodStart {
-  return { name: food.name, barcode: food.barcode ?? undefined, per100g: food.per100g, fromProduct: true };
+export function copyStartOf(food: CopyableFood, label: (portion: Portion) => string): OwnFoodStart {
+  const portions: PortionBody[] = [];
+  for (const portion of food.portions) {
+    const parsed = PortionBodySchema.safeParse({ name: label(portion), grams: portion.grams });
+    if (parsed.success) portions.push(parsed.data);
+  }
+  return {
+    name: food.name,
+    barcode: food.barcode ?? undefined,
+    per100g: food.per100g,
+    from: food.source,
+    copied: true,
+    portions: portions.slice(0, MAX_NEW_FOOD_PORTIONS).sort((a, b) => compareNames(a.name, b.name)),
+  };
 }
 
 /**
@@ -125,7 +160,10 @@ export function copyStartOf(food: FoodDetail): OwnFoodStart {
  * code padded to 14 digits, the server's rule. A start's name and barcode
  * are new and are always checked.
  */
-export function parseOwnFood(values: OwnFoodValues, baseline?: OwnFoodBaseline): Parsed<OwnFoodBody, OwnFoodErrors> {
+export function parseOwnFood(
+  values: OwnFoodValues,
+  baseline?: OwnFoodBaseline,
+): Parsed<OwnFoodUpdateBody, OwnFoodErrors> {
   const errors: OwnFoodErrors = {};
   const per100g: Partial<Record<(typeof VALUES)[ValueField]["key"], number>> = {};
   for (const field of VALUE_FIELDS) {

@@ -34,8 +34,8 @@ import { useBarcodeLookup } from "./useBarcodeLookup";
 // its first button, and a sheet's body has nothing to scroll it into view.
 //
 // The block's ways on from a miss come from the finder: Search by name
-// empties the field, and Scan again opens the scanner, whose read of the
-// same code looks it up again.
+// empties the field and hands on the barcode the label button keeps, and
+// Scan again opens the scanner, whose read of the same code looks it up again.
 // ---------------------------------------------------------------------------
 
 export interface BarcodeModeOptions {
@@ -49,8 +49,8 @@ export interface BarcodeModeOptions {
   onFromLabel: (start: OwnFoodStart, opener: HTMLElement) => void;
   /** Puts a phone's keyboard away: the search field gives up focus. */
   blurField: () => void;
-  /** Empties the field and puts the caret in it. */
-  onSearchByName: () => void;
+  /** Empties the field and puts the caret in it. `keep` is the barcode to carry to the food saved as the person's own, or null. */
+  onSearchByName: (keep: string | null) => void;
   /** Opens the scanner. Absent where the browser cannot ask for a camera. */
   onScan?: (opener: HTMLElement) => void;
 }

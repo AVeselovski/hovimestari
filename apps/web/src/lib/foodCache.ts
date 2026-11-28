@@ -128,10 +128,14 @@ export function putNewFoodInSearches(client: QueryClient, food: FoodDetail): Set
  * releases.
  */
 const finnish = new Intl.Collator("fi");
+
+/** Two names in the server's Finnish order: under `fi-x-icu`, then by code point where the collation holds them equal. */
+export function compareNames(x: string, y: string): number {
+  return finnish.compare(x, y) || (x < y ? -1 : x > y ? 1 : 0);
+}
+
 function byName(a: { name: string | null; id: string }, b: { name: string | null; id: string }): number {
-  const x = a.name ?? "";
-  const y = b.name ?? "";
-  return finnish.compare(x, y) || (x < y ? -1 : x > y ? 1 : 0) || (a.id < b.id ? -1 : 1);
+  return compareNames(a.name ?? "", b.name ?? "") || (a.id < b.id ? -1 : 1);
 }
 
 /** `rows` with `row` put in, before the first row from `from` on that sorts after it, in the server's Finnish order. */

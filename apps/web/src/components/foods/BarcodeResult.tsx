@@ -10,6 +10,7 @@ import type { BarcodeLookup, FoodDetail } from "@hovimestari/types";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useRef, type ReactElement, type ReactNode } from "react";
+import { monoDigits } from "./digits";
 import { FoodRow } from "./FoodRow";
 import type { OwnFoodStart } from "./ownFoodForm";
 import type { BarcodeLookupState } from "./useBarcodeLookup";
@@ -26,6 +27,8 @@ import type { BarcodeLookupState } from "./useBarcodeLookup";
 //   food view when it could.
 // - Not found, a shop's own number, incomplete: a line that says so, Search
 //   by name, the own-food form to add it from the label, and Scan again.
+//   Search by name hands on the barcode the label button would keep, so the
+//   food search carries it to the food saved as the person's own.
 // - Digits no barcode has: a line that says so, Search by name and Scan
 //   again, and no way to the form.
 // - Failed: the error's line, with Try again where trying again can help.
@@ -58,8 +61,13 @@ export interface BarcodeResultProps {
   /** Opens the found food, as its detail, so its last amount comes with it. */
   onOpenFood: (food: FoodDetail, opener: HTMLElement) => void;
   onFromLabel: (start: OwnFoodStart, opener: HTMLElement) => void;
-  /** Empties the search field and puts the caret in it, in the press. */
-  onSearchByName: () => void;
+  /**
+   * Empties the search field and puts the caret in it, in the press. `keep`
+   * is the barcode the label button beside it keeps, or null where it keeps
+   * none (a shop's own number) or there is no label button (digits no
+   * barcode has).
+   */
+  onSearchByName: (keep: string | null) => void;
   /** Opens the scanner, with the pressed button as its opener. Absent where the browser cannot ask for a camera. */
   onScan?: (opener: HTMLElement) => void;
 }
@@ -141,7 +149,7 @@ export function BarcodeResult({
         </button>
       )}
       {byName && (
-        <button type="button" onClick={onSearchByName} className={btnWide}>
+        <button type="button" onClick={() => onSearchByName(label?.start.barcode ?? null)} className={btnWide}>
           {t("searchByName")}
         </button>
       )}
@@ -218,7 +226,7 @@ export function BarcodeResult({
       <h3 id={headingId} className={`${sectionTitle} mb-2`}>
         {t.rich("heading", {
           code,
-          digits: (chunks) => <span className="font-mono normal-case tracking-normal">{chunks}</span>,
+          digits: monoDigits,
         })}
       </h3>
       {/* Says each state as it arrives. Always in the page, so it is announced. */}
@@ -306,7 +314,7 @@ function labelOf(
           barcode: answer.barcode,
           name: answer.product.name ?? undefined,
           per100g: answer.product.per100g,
-          fromProduct: true,
+          from: "open_food_facts",
         },
         text: t("completeFromLabel"),
       };
