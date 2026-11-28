@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isWellFormedBarcode } from "./gtin.js";
 import { hasAtMostDecimals } from "./numbers.js";
 
 /** Where a food comes from. */
@@ -187,9 +188,10 @@ const OwnFoodNameSchema = z
   .max(MAX_FOOD_NAME_LENGTH, { error: "food_name_too_long" });
 
 /**
- * The body of `PUT /foods/:id`. The name is not checked for search here: the
- * service checks it only when it changes, so a food whose saved name search
- * cannot find can still have its values edited.
+ * The body of `PUT /foods/:id`. The name is not checked for search here, nor
+ * the barcode's check digit: the service checks each only when it changes,
+ * so a food whose saved name or barcode would be refused today can still
+ * have its values edited.
  */
 export const OwnFoodUpdateBodySchema = z.object({
   name: OwnFoodNameSchema,
@@ -197,9 +199,21 @@ export const OwnFoodUpdateBodySchema = z.object({
   barcode: BarcodeSchema.nullable().default(null),
 });
 
-/** The body of `POST /foods`: a new name must hold a word search can find. */
+/**
+ * The body of `POST /foods`: a new name must hold a word search can find,
+ * and a barcode must have digits a barcode can have. An edit checks the
+ * barcode in the service, and only when it changes.
+ */
 export const OwnFoodBodySchema = OwnFoodUpdateBodySchema.extend({
   name: OwnFoodNameSchema.refine(hasSearchableWord, { error: "food_name_not_searchable" }),
+  // The digits are checked only on a value the length check passed, so a
+  // barcode has one fault at a time.
+  barcode: BarcodeSchema.refine(isWellFormedBarcode, {
+    error: "barcode_wrong_digits",
+    when: (payload) => payload.issues.length === 0,
+  })
+    .nullable()
+    .default(null),
 });
 
 export const PortionBodySchema = z.object({

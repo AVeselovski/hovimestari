@@ -1,4 +1,4 @@
-import type { BarcodeFormat } from "@hovimestari/types";
+import { checkDigitOf, expandUpcE, hasValidCheckDigit, type BarcodeFormat } from "@hovimestari/types";
 
 // Which numbers are sent to Open Food Facts. Every rule here is read from the
 // GS1 General Specifications, Release 26.0 (ratified January 2026), fetched
@@ -17,44 +17,37 @@ import type { BarcodeFormat } from "@hovimestari/types";
 //   groupings of a trade item, cases and packs) and 2.1.10 (indicator 9 is
 //   reserved for variable measure trade items).
 //
-// The in-store rule is read on the 14-digit form. That is safe for the
-// overlap the 8-digit rule could have with a padded UPC-A: a UPC-A, or an
-// expanded UPC-E, that starts with five zeros pads to `0000000`, and Table 1-6
-// gives U.P.C. Prefix 000000 to restricted numbers and marks 0000001 to
-// 0000099 "unused to avoid collision with GTIN-8". So every 14-digit form that
-// starts `0000000` or `0000002` is a restricted number or an unused one, never
-// a GTIN of a product.
+// The in-store rule is read on the 14-digit form. A UPC-A, or an expanded
+// UPC-E, that starts `00000` pads to `0000000`, and one that starts `00002`
+// pads to `0000002`. Table 1-6 gives U.P.C. Prefix 000000 to restricted
+// numbers and marks 0000001 to 0000099 "unused to avoid collision with
+// GTIN-8". So a 14-digit form that starts `0000000` or `0000002` is never a
+// product's GTIN-12.
+//
+// An EAN-8 with RCN-8 Prefix 2 (2.1.11.1) is a company's own number for a
+// fixed item: eight digits leave no room for a weight or a price, which GS1
+// carries in 13-digit numbers. Lidl prints these on its own products, and
+// Open Food Facts holds most of them, so they are looked up like a GTIN-8.
+// Their 14-digit form starts `0000002`, and a code typed as 12, 13 or 14
+// digits with that form is the same code. The UPC-E readings that expand
+// into `0000002` stay the shop's own (`upcEReading`): that range is unused
+// for UPC-A, and sending it would let an unrelated number open a Lidl product.
+//
+// RCN-8 Prefix 0 stays the shop's own. Its 14-digit form, `0000000`, is the
+// same as a UPC-A's from U.P.C. Prefix 000000, a company's internal number,
+// and the rule reads only the 14-digit form, so the two cannot be told apart.
 
-/** A digit string with a right GS1 check digit as its last digit (section 7.9). */
-export function hasValidCheckDigit(digits: string): boolean {
-  return /^[0-9]{2,}$/.test(digits) && checkDigitOf(digits.slice(0, -1)) === digits.at(-1);
-}
-
-/** The GS1 check digit for `data`, the digits before it. */
-export function checkDigitOf(data: string): string {
-  let sum = 0;
-  for (let i = 0; i < data.length; i++) {
-    const weight = (data.length - i) % 2 === 1 ? 3 : 1;
-    sum += Number(data[i]) * weight;
-  }
-  return String((10 - (sum % 10)) % 10);
-}
+// The check digit and UPC-E helpers live in @hovimestari/types, so the phone
+// and the server read digits one way. They are re-exported here for the
+// lookup's own imports.
+export { checkDigitOf, expandUpcE, hasValidCheckDigit };
 
 /**
- * The GTIN-12 a UPC-E's eight digits stand for, by Table 5-7: the leading
- * digit, the six encoded digits X1 to X6, and the check digit. Null when the
- * check digit is wrong for the expansion.
+ * The 14-digit form of RCN-8 Prefix 2, and of a UPC-A from U.P.C. Prefix
+ * 00002. One rule in two halves: `isInStore` looks it up, as a Lidl EAN-8,
+ * and `upcEReading` keeps a UPC-E that expands into it the shop's own.
  */
-export function expandUpcE(code: string): string | null {
-  if (!/^[0-9]{8}$/.test(code)) return null;
-  const [n, x1, x2, x3, x4, x5, x6, c] = code;
-  let data: string;
-  if (x6 <= "2") data = `${n}${x1}${x2}${x6}0000${x3}${x4}${x5}`;
-  else if (x6 === "3") data = `${n}${x1}${x2}${x3}00000${x4}${x5}`;
-  else if (x6 === "4") data = `${n}${x1}${x2}${x3}${x4}00000${x5}`;
-  else data = `${n}${x1}${x2}${x3}${x4}${x5}0000${x6}`;
-  return checkDigitOf(data) === c ? `${data}${c}` : null;
-}
+const RCN8_PREFIX_2_FORM = "0000002";
 
 /**
  * The UPC-E that zero-suppresses the GTIN-12 inside `gtin14`, by the four
@@ -85,8 +78,10 @@ export function upcEOf(gtin14: string): string | null {
 export function isInStore(gtin14: string): boolean {
   // Indicator digit 9: a variable measure trade item (2.1.10), a weighed item.
   if (gtin14.startsWith("9")) return true;
-  // RCN-8 Prefix 0 or 2 (Table 1-5, 2.1.11.1), U.P.C. Prefix 000000 (Table 1-6).
-  if (gtin14.startsWith("0000000") || gtin14.startsWith("0000002")) return true;
+  // RCN-8 Prefix 0 (Table 1-5, 2.1.11.1), U.P.C. Prefix 000000 (Table 1-6).
+  // RCN-8 Prefix 2, `RCN8_PREFIX_2_FORM`, is looked up, as the header says,
+  // except through a UPC-E: see `upcEReading`.
+  if (gtin14.startsWith("0000000")) return true;
   // U.P.C. Company Prefixes 001000 to 007999, company internal numbering (2.1.11.3).
   const upcCompany = gtin14.slice(2, 8);
   if (gtin14.startsWith("00") && upcCompany >= "001000" && upcCompany <= "007999") return true;
@@ -107,11 +102,18 @@ const readingOf = (digits: string): Reading => {
   return { gtin, inStore: isInStore(gtin) };
 };
 
-/** The UPC-E reading of an 8-digit code, or null. `leading` lists the leading digits allowed. */
+/**
+ * The UPC-E reading of an 8-digit code, or null. `leading` lists the leading
+ * digits allowed. An expansion into `0000002`, U.P.C. Prefix 00002, is the
+ * shop's own: Table 1-6 leaves it unused, and its 14-digit form is an RCN-8's.
+ */
 function upcEReading(code: string, leading: string): Reading | null {
   if (!leading.includes(code[0])) return null;
   const gtin12 = expandUpcE(code);
-  return gtin12 === null ? null : readingOf(gtin12);
+  if (gtin12 === null) return null;
+  const reading = readingOf(gtin12);
+  // The other half of `isInStore`'s rule for `RCN8_PREFIX_2_FORM`, which it looks up.
+  return reading.gtin.startsWith(RCN8_PREFIX_2_FORM) ? { ...reading, inStore: true } : reading;
 }
 
 const ean8Reading = (code: string): Reading | null => (hasValidCheckDigit(code) ? readingOf(code) : null);

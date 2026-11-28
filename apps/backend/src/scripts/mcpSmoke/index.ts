@@ -66,7 +66,7 @@ const MAX_RESULT_CHARS = 60_000;
 const TIME_ZONE = "Europe/Helsinki";
 const LABEL = { energyKcal: 120, proteinG: 10, carbsG: 4.5, fatG: 7 };
 const MEAL = { energyKcal: 650, proteinG: 42, carbsG: 70, fatG: 20 };
-const BARCODE = "6411300000123";
+const BARCODE = "6411300000128";
 
 async function main(): Promise<void> {
   const server: Server = await new Promise((resolve) => {

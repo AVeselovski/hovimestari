@@ -9,6 +9,7 @@ export * from "./entries.js";
 export * from "./errors.js";
 export * from "./figures.js";
 export * from "./foods.js";
+export * from "./gtin.js";
 export * from "./log.js";
 export * from "./numbers.js";
 export * from "./recipeFigures.js";

@@ -46,8 +46,10 @@ export const BarcodeLookupSchema = z.discriminatedUnion("result", [
     product: z.object({ name: z.string().nullable(), per100g: ProductValuesSchema }),
   }),
   z.object({ result: z.literal("not_found"), barcode: z.string() }),
-  /** A shop's own number for a weighed or priced item. Never sent, never stored. */
+  /** A shop's or a company's own number, such as a weighed or priced item's. Never sent, never stored. */
   z.object({ result: z.literal("in_store"), barcode: z.string() }),
+  /** Digits no barcode has: a wrong check digit, or 9 to 11 digits. Never sent, never stored. */
+  z.object({ result: z.literal("wrong_digits"), barcode: z.string() }),
 ]);
 
 export type BarcodeFormat = (typeof BARCODE_FORMATS)[number];

@@ -34,7 +34,7 @@ An estimate is an entry with a name and four typed figures, for a meal nobody ca
 
 ## 5. Foods
 *(Sources: foods.md)*
-Every food has energy, protein, carbohydrates and fat per 100 g, and a source: fineli (the Finnish food composition database), open_food_facts, or user (the person's own, typed from a label). Shared foods are read-only. search_foods matches every word in the Finnish or English name, in a fixed order of the catalogue. Among foods that match as strongly, basic foods come before dishes. Within each of the two, the person's favourites, own foods and scanned products come first, and then, among basic foods, one that more of Fineli's recipes use. The order says where a food stands in the catalogue and nothing about what to eat. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. When a search of two words or more finds few foods, near lists foods that hold all words but one. Portions turn a count into grams, such as one medium egg. A barcode lookup tries the person's own foods first, then Open Food Facts, which it can call about 30 times an hour for this person, a budget shared with the person's own scans in the app. When a product has values missing, the values on its label become one of the person's own foods.
+Every food has energy, protein, carbohydrates and fat per 100 g, and a source: fineli (the Finnish food composition database), open_food_facts, or user (the person's own, typed from a label). Shared foods are read-only. search_foods matches every word in the Finnish or English name, in a fixed order of the catalogue. Among foods that match as strongly, basic foods come before dishes. Within each of the two, the person's favourites, own foods and scanned products come first, and then, among basic foods, one that more of Fineli's recipes use. The order says where a food stands in the catalogue and nothing about what to eat. For meats and a few staples, a Finnish base form also finds its genitive and the reverse, such as nauta and naudan. When a search of two words or more finds few foods, near lists foods that hold all words but one. Portions turn a count into grams, such as one medium egg. A barcode lookup tries the person's own foods first, then Open Food Facts, which it can call about 30 times an hour for this person, a budget shared with the person's own scans in the app. Digits no barcode has are answered wrong_digits and never sent, and are refused as a new barcode on an own food. When a product has values missing, the values on its label become one of the person's own foods.
 
 ## 6. Logging and recent items
 *(Sources: quick-logging.md)*
@@ -96,9 +96,9 @@ export function appRulesFor(canWrite: boolean): string {
 export const APP_RULES_SOURCES: Record<string, string> = {
   "appearance.md": "49858dea4f73e439dc2914143c5509bee4dd9438d1437430dc23c124b7c1ff9c",
   "authentication.md": "75323907e22bebdf5bd2db89063ce3f49358a0c38ba844afcb078d99eb25f1ff",
-  "connected-ai.md": "d78f15d16b7294c283efa23cf38eeeb484a7f811faa8780f6f32c6c02ccfee58",
+  "connected-ai.md": "dc38f0cc68776408e1780f2a8433dc38bfef8aa1b9590e71de3fcaad3c5370de",
   "days.md": "52fc5f3d954500bdc1056cf3ec23d8504c5fcf374bd8eebe5ff2b1ca93c7eb2d",
-  "foods.md": "1b16672ca6646fd405435f8a7618b4d27cfbede80c0c8f87078b325a36135381",
+  "foods.md": "92deb3876d365b40b8ad6507af7caf2d5d0aee7c7f4b5eb19cde3a955ac86479",
   "installable-app.md": "ee5d41128ecdb1b179b4f1e1dcc64fffa1db671fe74b0eca374753b0664eda12",
   "quick-logging.md": "df02d88b1fd7f3178c21fdfd40d5549c04cbfb81d5dc91c8b97e2fdfc43b8e5a",
   "recipes.md": "25ad5e84982cf1acd78e0408fc86c18d697571a0480abeb867c04bee11ba2705",

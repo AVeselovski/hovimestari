@@ -1,4 +1,10 @@
-import type { BarcodeLookup, BarcodeLookupBody, IncompleteReason, ProductValues } from "@hovimestari/types";
+import {
+  isWellFormedBarcode,
+  type BarcodeLookup,
+  type BarcodeLookupBody,
+  type IncompleteReason,
+  type ProductValues,
+} from "@hovimestari/types";
 import { and, desc, eq, isNotNull, or, sql, type SQL } from "drizzle-orm";
 import { foodLookups, foods } from "../../db/schema/index.js";
 import { env } from "../../lib/env.js";
@@ -281,8 +287,9 @@ async function lookUpReading(ctx: WriteContext, gtin: string, deps: LookupDeps):
 }
 
 /**
- * Looks up `body.barcode` for the user. Own foods first, always. A code with
- * a wrong check digit, or a shop's own number, is never sent. An 8-digit
+ * Looks up `body.barcode` for the user. Own foods first, always, under any
+ * digits. Then digits no barcode has, a wrong check digit or 9 to 11 digits,
+ * answer `wrong_digits`, and a shop's own number `in_store`. Neither is sent. An 8-digit
  * code that reads two ways tries its second reading only when the first is
  * not found. Throws 429 `barcode_lookup_limit` or `barcode_lookup_busy` when
  * a call is needed and a budget is empty, 503 `barcode_lookup_unavailable`
@@ -304,6 +311,7 @@ export async function lookupBarcode(
     return { value: { result: "found", food: await getFood(ctx, own), newlyVisible: false }, outcome: "unchanged" };
 
   const unchanged = (value: BarcodeLookup): WriteOutcome<BarcodeLookup> => ({ value, outcome: "unchanged" });
+  if (!isWellFormedBarcode(code)) return unchanged({ result: "wrong_digits", barcode: code });
   if (readings.length === 0) return unchanged({ result: "not_found", barcode: code });
   const sendable = readings.filter((r) => !r.inStore);
   if (sendable.length === 0) return unchanged({ result: "in_store", barcode: code });
