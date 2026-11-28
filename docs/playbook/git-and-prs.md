@@ -40,7 +40,7 @@ The `/squash` command (`.claude/commands/squash.md`) has the exact procedure. It
 
 ## The PR description
 
-The `pr-description` skill (`.claude/skills/pr-description/SKILL.md`) writes it: What, Why, Changes and a Test plan checklist. For a UI change, the body notes that screenshots were shared in chat for pre-merge review.
+The `pr-description` skill (`.claude/skills/pr-description/SKILL.md`) writes it: What, Why, Changes and a Test plan checklist.
 
 ## After opening the PR
 
@@ -49,7 +49,7 @@ The checklist lives in the `pr-description` skill. In short:
 1. **Trigger the review by comment once CI is green.** Post `@claude please review this PR.` The `@claude` workflow (`.github/workflows/claude.yml`) runs only on such comments. Do not trigger it again while a review is in flight. A PR is not review-complete until that review has run and its findings are fixed or answered.
 2. **Subscribe to the PR's activity**, so review comments and CI failures reach the session.
 3. **Drive the PR to green.** Fix CI failures and review findings on the same branch.
-4. **For a UI change, confirm the screenshots gate ran** before asking for a merge.
+4. **For a UI change, merge on green and report what to try.** Once CI is green and the review is answered, the PR merges. The report says what changed on screen and what to open and try in the app.
 
 Why by comment: the pipeline's `reviewer` agent already reviews every change before the PR opens. An automated review on every PR open would spend review on work that is already reviewed and on builds that are not yet green. Review by comment runs on demand, once CI is green.
 
@@ -57,16 +57,15 @@ Why by comment: the pipeline's `reviewer` agent already reviews every change bef
 
 A workflow file in `.github/workflows/` with every line commented out still produces a failed run on every push, because GitHub tries to parse it and finds no valid workflow. A disabled workflow lives in `.github/workflows-disabled/` instead, where GitHub never looks. Its README there says why. To turn one back on, move it into `.github/workflows/`.
 
-## The screenshots gate
+## A UI change merges on green
 
-When preview deployments cannot be used for validation, for example because they have no working backend or login, the owner's first real look at a UI change would otherwise be production, after merge. Small visual misses then turn into whole new PR rounds.
+A PR that changes anything user-visible merges once CI is green, the `@claude` review is answered and the pipeline's own checks have passed: the validator, the ui-validator in a real browser at real widths, and the reviewer. The owner then tests the merged change live, in the app, and sends feedback. That feedback starts a new branch.
 
-So every branch that changes anything user-visible sends curated screenshots to the owner in chat before merge. The `ui-preview` skill (`.claude/skills/ui-preview/SKILL.md`) has the steps:
+The message that reports the merge tells the owner what changed on screen and what to open and try. The `ui-preview` skill (`.claude/skills/ui-preview/SKILL.md`) has the steps:
 
-- Reuse the ui-validator's screenshots, or capture them in a real browser with realistic data.
-- Cover each changed surface at the widths that matter, and the important states.
-- Send the 3 to 6 that show the change, with a caption that says what to look at.
-- Note in the PR body that the screenshots were shared.
+- Name each changed surface in the words the app shows, and say what is new there.
+- Give the path to each change and what to try there, with the states worth trying.
+- Attach a few screenshots as an aid, each with a line saying what it shows. Reuse the ui-validator's, or capture them in a real browser with realistic data.
 - Keep every screenshot under 2000px on its long side, and never commit them.
 
-The gate checks taste and intent, which no automated check covers, so it runs even when every other gate passes. If the project does have usable previews, a preview link can replace the screenshots. The gate itself stays.
+Why: the owner judges a screen by using it. Taste and intent show in use, with real data and a real phone in hand.

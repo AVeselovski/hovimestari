@@ -52,7 +52,7 @@ At the orchestrator's call, the reviewer reviews the design doc before implement
 - **Measures across states**, not only within each one: whether something stays where it was when the state changes.
 - **Fixes small presentational issues itself:** copy, spacing, a token, an aria attribute. It lists every fix in its report, because the reviewer reviews the whole diff afterwards.
 - **Sends anything else back.** A finding that changes behaviour or structure goes to the frontend-engineer, and the engineer's fix runs through the validator again.
-- **Captures the screenshots** that the `ui-preview` skill sends to the owner.
+- **Captures the screenshots** for its report. A few of them may go with the report to the owner through the `ui-preview` skill.
 - **Hands off** to the reviewer.
 
 ### 5. reviewer
@@ -112,6 +112,6 @@ A change is done when all of these hold:
 - The branch is squashed into 1 to 5 logical commits and its tree is byte-identical to the original tip.
 - The PR is open with a description from the `pr-description` skill.
 - The `@claude` review has been triggered once CI is green, the session is subscribed to the PR's activity, and the PR is driven to green.
-- For a UI change, curated screenshots have been sent to the owner in chat before merge, and the PR body says so.
+- For a UI change, the PR is merged once CI is green and the review is answered, and the report to the owner says what changed on screen and what to open and try in the app.
 
 The details of branches, commits and PRs are in [git and PRs](git-and-prs.md). The reasoning behind most of these rules is in [the lessons learned](lessons-learned.md).

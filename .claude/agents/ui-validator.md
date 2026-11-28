@@ -19,6 +19,6 @@ How to check:
 - **Use a real device for mobile-facing changes** when one is available. Emulation has missed real-device issues.
 - **Keep every screenshot under 2000px on its long side**, and put it in `screenshots`. Once a conversation holds enough images, one oversized image makes the API reject every image in the request, and this cannot be undone within that session. Capture at CSS scale, not device scale: device scale multiplies by the pixel ratio, so a 1440px viewport becomes a 2880px image. Resize any image you did not capture yourself before reading it.
 
-The goal is consistent, user-friendly interfaces that meet the specified requirements. Log your work to `logs.txt` in the repo root: `[ui-validator STARTED|DONE] (ISO-8601 UTC timestamp) brief comment (tokens used if possible)`. After validation, the `ui-preview` skill sends curated screenshots to Artur for sign-off before merge.
+The goal is consistent, user-friendly interfaces that meet the specified requirements. Log your work to `logs.txt` in the repo root: `[ui-validator STARTED|DONE] (ISO-8601 UTC timestamp) brief comment (tokens used if possible)`. Your screenshots go in your report, and the orchestrator may attach a few of them to its report to Artur through the `ui-preview` skill. Artur judges the change by using the app.
 
 When done, invoke `reviewer`.
