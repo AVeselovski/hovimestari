@@ -1,6 +1,6 @@
 ---
 name: ui-preview
-description: Write the part of the report to the owner that says what changed on screen and what to open and try in the app, and choose a few screenshots to attach to it as an aid. Use when reporting a merged or ready change that touches anything user-visible, after ui-validator. Screenshots never gate a merge.
+description: Write the part of the report to the owner that says what changed on screen and what to open and try in the app, and choose a few screenshots to attach to it as an aid. Use when reporting a merged change that touches anything user-visible, after ui-validator. Screenshots never gate a merge.
 ---
 
 # UI preview: what changed on screen, and what to try
@@ -11,7 +11,7 @@ A UI change merges when its checks pass: CI is green, the `@claude` review is an
 `validator`, `ui-validator` and `reviewer` have passed. The owner judges the change by using the
 app, live, and sends feedback. That feedback starts a new branch.
 
-He reads the last message of a stretch of work. So the message that reports a merged or ready UI
+He reads the last message of a stretch of work. So the message that reports a merged UI
 change tells him what changed on screen and what to open and try. A few screenshots may go with
 it, as an aid to finding the change. They are never a gate.
 
