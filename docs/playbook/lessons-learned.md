@@ -102,9 +102,9 @@ Every rule in this kit was paid for. This page keeps the lessons behind the rule
 **Why:** once a conversation holds enough images, the API lowers its per-image limit to 2000 pixels and then rejects every image in the request because one oversized image sits in the history. It fails as a bare "media removed" and cannot be undone in that session. A screenshot at device scale multiplies the viewport by the pixel ratio, so a 1440px viewport becomes 2880px.
 **How to apply:** capture at CSS scale. Shrink any image you did not capture yourself before attaching it.
 
-**Send pre-merge screenshots when previews cannot be used.**
-**Why:** without them the owner's first look at a UI change is production, and small visual misses turn into whole new PR rounds.
-**How to apply:** follow the `ui-preview` skill on every branch with a user-visible change, even when every automated gate passes.
+**A UI change merges on green, and the owner judges it by using the app.**
+**Why:** the owner judges a screen by using it, not by looking at pictures of it. A screenshot review in chat got lost between progress messages. Testing live and giving feedback often is faster for him than reading screenshots.
+**How to apply:** merge a UI change once CI is green, the review is answered and the validator, ui-validator and reviewer have passed. Report what changed on screen and what to open and try, with a few screenshots as an aid, through the `ui-preview` skill. His feedback from use starts a new branch.
 
 ## Docs
 

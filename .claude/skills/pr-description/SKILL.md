@@ -38,6 +38,7 @@ Create a checklist of manual testing steps to verify the changes work as intende
 2. **Subscribe** to the PR's activity so review findings and CI failures reach the session.
    Some Claude Code harnesses provide a `subscribe_pr_activity` tool for this. Skip this step
    when the tool is absent. Either way, drive the PR to green.
-3. **UI changes only:** confirm the `ui-preview` skill ran. Pre-merge screenshots must
-   have been sent to the owner in chat, and the PR body must note it. If not, do it
-   before asking for or expecting a merge.
+3. **UI changes only:** once CI is green and the `@claude` review is answered, merge the
+   PR. Then report the merge with the `ui-preview` skill: say what changed on screen and
+   what to open and try in the app. A few screenshots may go with that report as an aid.
+   The owner judges the change by using it, and his feedback starts a new branch.

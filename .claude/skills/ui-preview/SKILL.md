@@ -1,54 +1,46 @@
 ---
 name: ui-preview
-description: Send screenshots of UI changes to the owner in chat for human visual sign-off BEFORE the PR is merged. Applies when the project's preview deployments cannot be used for validation. Then use it on every branch that changes anything user-visible, after ui-validator, because pre-merge screenshots in chat are the only human visual gate.
+description: Write the part of the report to the owner that says what changed on screen and what to open and try in the app, and choose a few screenshots to attach to it as an aid. Use when reporting a merged change that touches anything user-visible, after ui-validator. Screenshots never gate a merge.
 ---
 
-# UI preview: pre-merge screenshots for human sign-off
+# UI preview: what changed on screen, and what to try
 
 ## Why this exists
 
-This gate applies when the project's preview deployments cannot be used for validation (for
-example, they are not wired to a working backend or login). In that case, without this gate
-the owner's first real look at a UI change is production, after merge. That turns small
-visual misses into whole new PR rounds. The ui-validator already runs the app live and
-captures screenshots. This skill closes the loop by putting a curated set of them in front
-of the owner in chat before merge.
+A UI change merges when its checks pass: CI is green, the `@claude` review is answered, and
+`validator`, `ui-validator` and `reviewer` have passed. The owner judges the change by using the
+app, live, and sends feedback. That feedback starts a new branch.
 
-If your project does have usable preview deployments, a link to the preview can replace the
-screenshots. Keep the gate itself: the owner sees the change before it merges.
+He reads the last message of a stretch of work. So the message that reports a merged UI
+change tells him what changed on screen and what to open and try. A few screenshots may go with
+it, as an aid to finding the change. They are never a gate.
 
 ## When
 
-When preview deployments cannot be used for validation: every branch that changes anything
-user-visible. Run after the `ui-validator` step, whose screenshots you reuse. Every user-visible
-change passes through `ui-validator`, so there is no branch without them. If a screenshot you need
-is missing, capture it yourself in a real browser. Seed realistic data, never lorem-ipsum placeholders.
+On every change that touches anything user-visible, in the message that reports it merged or
+ready. Run after the `ui-validator` step, whose screenshots you reuse. Every user-visible change
+passes through `ui-validator`, so there is no branch without them. If a screenshot you need is
+missing, capture it yourself in a real browser. Seed realistic data, never lorem-ipsum
+placeholders.
 
 ## Steps
 
-1. **Capture or collect.** Screenshots live in `screenshots` at the repo root, which
-   is gitignored. Use descriptive kebab-case names (`settings-notifications-320-full.png`).
-   Cover:
-   - each changed surface, at the widths that matter (the narrowest supported mobile
-     width for mobile-facing surfaces, desktop for desktop surfaces, both when a change
-     spans them).
-   - the important states and variants (empty state, error and edge copy variants, light
-     and dark theme if the product has both).
-   - when modifying existing UI, a before and after pair of the affected area if cheap to
-     produce.
-2. **Curate.** Send the 3 to 6 screenshots that show the user-visible change, not every
-   validation artifact. Prefer one full-page shot for context plus close-ups of what
-   changed.
-3. **Send in chat** with the chat's file-sending tool (in Claude Code, `SendUserFile` with
-   `display: "render"`), in one batch. Add a caption that says what to look at and
-   explicitly invites the visual check before merge (for example "Notification toggles
-   at 320px. Glance before merging.").
-4. **Note it in the PR body** with a line like "Screenshots shared in chat for pre-merge
-   visual review." Images cannot be uploaded to PR comments by the API (GitHub's
-   attachment endpoint is browser-only, and a bot can only embed already-hosted URLs),
-   so chat is the channel. The PR line exists so the record shows the gate happened.
-5. **Never commit screenshots.** `screenshots` stays gitignored. Do not move
-   captures into the repo or the docs.
+1. **Write what changed on screen.** Name each changed surface in the words the owner sees in
+   the app: the tab, the sheet, the button. Say what is new or different there, in plain words.
+2. **Write what to open and try.** Give the path through the app to each change and the thing
+   to do there, for example "Open the Day tab, tap Log food, scan a barcode the app does not
+   know." Name the states worth trying: an empty day, a refusal, the dark theme, the narrowest
+   phone.
+3. **Capture or collect screenshots.** Screenshots live in `screenshots` at the repo root,
+   which is gitignored. Use descriptive kebab-case names (`settings-notifications-320-full.png`).
+   Cover each changed surface at the widths that matter, and the important states and themes.
+4. **Choose a few.** Attach only the few that help the owner find the change, not every
+   validation artifact. Prefer one full-page shot for context plus a close-up of what changed.
+5. **Attach them to the report** with the chat's file-sending tool (in Claude Code,
+   `SendUserFile` with `display: "render"`), in one batch with that message. Give each one a
+   line saying what it shows (for example "Notification toggles at 320px, dark theme.").
+6. **Never commit screenshots.** `screenshots` stays gitignored. Do not move captures into the
+   repo or the docs.
 
 ## Keep every screenshot under 2000px on its long side
 
@@ -66,8 +58,6 @@ you want). For an image you did not capture yourself, downscale it first, for ex
 
 ## Notes
 
-- This is a presentation gate, not a replacement for ui-validator's functional gates
-  (contrast, accessibility, layout). Send screenshots even when all gates pass. The owner
-  is checking taste and intent, which no gate covers.
-- If the owner requests changes based on the screenshots, treat it like a review round on
-  the open PR. Fix on the same branch before merge, and send updated screenshots.
+- The report follows the "Reporting to Artur" section of `CLAUDE.md`. It stands alone, and a
+  screenshot that matters is attached to it again, never pointed at in an earlier message.
+- Feedback the owner sends after using the app starts a new branch from `origin/master`.

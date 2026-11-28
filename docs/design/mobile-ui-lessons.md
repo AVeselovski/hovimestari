@@ -137,7 +137,7 @@ What only an iPhone shows, from finanssi's record:
 
 How finanssi did it:
 
-- **Owner sign-off through `ui-preview`.** Curated screenshots in chat before merge, then Artur tries the build on his phone. Every Stage 4 slice had "owner confirms on his iPhone" as an exit criterion.
+- **Owner sign-off through `ui-preview`.** Curated screenshots in chat before merge, then Artur tries the build on his phone. Hovimestari does not gate on screenshots: a UI change merges when its checks pass and Artur judges it in the app (`CLAUDE.md`, Pull requests). Every Stage 4 slice had "owner confirms on his iPhone" as an exit criterion.
 - **An on-screen geometry readout.** For the date overflow, a temporary on-screen readout of the live geometry on his iPhone gave the numbers (`globals.css` comment, 2026-09-23). That is the cheapest way to measure a real device without a Mac tethered to it.
 - **Sandbox approximations before the device.** Playwright WebKit at iPhone 13 size (390×664) and Chromium at 320×568, 375×667 and 390×844, both themes. Install WebKit into the scratchpad with `PLAYWRIGHT_BROWSERS_PATH`. Emulate the keyboard by overriding `visualViewport.height` on the instance and dispatching `resize` on it (numeric keypad about 260px, text about 336px). Drive touches with CDP `Input.dispatchTouchEvent`, and in WebKit with `document.createTouch` (the `Touch` constructor throws). Source: `phone_sheet_taps.md`, `patterns.md` S1.
 - **A measurement protocol per sheet change** (`mobile-sheets-stage-4.md` §i, M1 to M9): rest position, sampled motion, swipe at 20%, 45% and 60% by drag and by flick, dirty-form refusal, scroll lock with `<main>` at 300, focus with every focusin logged, and across-state position checks.

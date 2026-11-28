@@ -20,7 +20,7 @@ apps/web/next-env.d.ts
 !.env.*.example
 secrets.json
 
-# UI screenshots are sent in chat for sign-off and never committed.
+# UI screenshots are an aid in chat reports and are never committed.
 /screenshots
 
 # Claude Code working directories.

@@ -185,7 +185,7 @@ Artur gives a prompt and lets the work run. He rarely reads what is posted while
 
 - **The message that ends a stretch of work, or asks for his input, is complete and stands alone.** It explains each thing in full: what it is, what was done, what he will see, and each open choice with its options and a recommendation. It never points at an earlier message, as in "the screenshots sent earlier" or "the two wordings above", because he has not read it. A wording, a question or a screenshot that matters is given again, in that message.
 - **Messages while the work runs are one short line** and hold no question and nothing he must not miss.
-- **He judges a screen by using the app.** Screenshots for his sign-off are few, attached to that same last message, each with a line saying what it shows, and the message says what to open and try in the app.
+- **He judges a screen by using the app.** The message says what to open and try in the app. Screenshots are an aid and never a gate: they are few, attached to that same last message, each with a line saying what it shows.
 
 ## Commit convention
 
@@ -250,7 +250,7 @@ Every agent that touches a feature is responsible for the feature catalog: read 
 
 ## Pull requests
 
-**UI changes require pre-merge screenshots** when preview deployments cannot be used for validation. Before a PR that changes anything user-visible is merged, send curated screenshots from `screenshots` to Artur in chat for visual sign-off. The `ui-preview` skill has the steps. Never commit screenshots.
+**A UI change merges when its checks pass, and Artur judges it by using the app.** A PR that changes anything user-visible is merged once CI is green, the `@claude` review is answered and the pipeline's own checks have passed: `validator`, `ui-validator` and `reviewer`. Artur tests the merged change live and sends feedback, and that feedback starts a new branch. The message that reports the merge says what changed on screen and what to open and try. It may attach a few screenshots from `screenshots`, each with a line saying what it shows. The `ui-preview` skill has the steps. Never commit screenshots.
 
 **A branch stays linear on top of `origin/master`.** When master moves while a branch is open, rebase the branch onto `origin/master` and resolve conflicts in the rebase. Never merge master into a branch: a merge commit inside a branch hides what the branch changed and breaks the squash, which reads each group's tree as if it sat on master. Rebase before squashing, so the grouped commits sit on master's tip, and run the checks again after either. The rewritten branch is pushed with `--force-with-lease`, only ever on a branch created in the current session. **The PR merges with a merge commit** (`gh pr merge --merge`), which keeps the grouped commits as they were reviewed and records the PR in history. Never squash-merge or rebase-merge on GitHub: the first flattens the groups, the second rewrites them. The branch is deleted after the merge. `git pull` rebases in every clone, set by the `prepare` script, so a pull on a branch never makes a merge commit either.
 
