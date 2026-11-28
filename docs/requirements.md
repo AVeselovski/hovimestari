@@ -43,7 +43,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-FOOD-01**: The system shall hold a food catalogue in which every food has energy in kilocalories and protein, carbohydrates and fat in grams, per 100 g.
 - **FR-FOOD-02**: The system shall include the Fineli foods in the catalogue for every user.
 - **FR-FOOD-03**: The system shall let a user search the catalogue by name in Finnish and in English, and shall match partial words.
-- **FR-FOOD-04**: The system shall let a user add a food of their own with a name and the four values per 100 g, and optionally a barcode.
+- **FR-FOOD-04**: The system shall let a user add a food of their own with a name and the four values per 100 g, and optionally a barcode. The user may start it from a Fineli or Open Food Facts food, with that food's values and portions, and change them before saving. The food it starts from does not change.
 - **FR-FOOD-05**: The system shall let a user edit and delete a food they added. Foods from Fineli and from Open Food Facts are read-only.
 - **FR-FOOD-06**: The system shall hold named portions for a food where they are known, such as one egg or one tub, each with its weight in grams, and shall let a user add portions to any food.
 - **FR-FOOD-07**: The system shall show where a food's figures come from: Fineli, Open Food Facts or the user.
@@ -59,7 +59,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-DAY-06**: The system shall accept entries on any date, past or future.
 - **FR-DAY-07**: The system shall keep the totals of a past day unchanged when a food, recipe or saved meal used on it is later edited or deleted.
 - **FR-DAY-08**: The system shall show a week at a glance, with each day's totals against the targets.
-- **FR-DAY-09**: The system shall compute every figure it shows from stored food values. The only figures typed in as totals are a saved meal's and an estimate's.
+- **FR-DAY-09**: The system shall compute every figure it shows from stored food values. The only figures typed in are a saved meal's and an estimate's totals and a user's own food's values per 100 g.
 - **FR-DAY-10**: The system shall give every entry one of two states, planned or eaten. An entry added through quick logging is eaten. An entry added to a plan is planned.
 - **FR-DAY-11**: The system shall let a user mark a planned entry as eaten in one tap, and mark everything planned on a day as eaten in one action.
 - **FR-DAY-12**: The system shall let a user change the amount of a planned entry as they mark it eaten, and turn an eaten entry back to planned.
@@ -81,7 +81,7 @@ There is no shared space between users and no administrator role in the app.
 - **FR-SCAN-02**: The system shall look the barcode up among the user's own foods first, then in Open Food Facts.
 - **FR-SCAN-03**: The system shall show the product found with its figures per 100 g and let the user adjust the amount before logging it.
 - **FR-SCAN-04**: The system shall keep a product found in Open Food Facts as a food, so that the next scan and the next search find it without a new lookup.
-- **FR-SCAN-05**: The system shall, when no product is found or its figures are incomplete, let the user enter the values from the label and save the product as a food of their own with that barcode.
+- **FR-SCAN-05**: The system shall, when no product is found, or its figures are incomplete or cannot all be right, let the user keep that barcode on a food of their own: a new one with the values from the label, a new one named or copied after searching by name, or one they already have. A shop's own number, which can change from pack to pack, such as on a weighed pack, is not kept with the food.
 - **FR-SCAN-06**: The system shall let a user type a barcode by hand where a camera is unavailable or refused.
 
 ### 3.6 Saved meals
