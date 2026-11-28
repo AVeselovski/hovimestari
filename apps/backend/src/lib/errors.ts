@@ -105,6 +105,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   portion_name_required: "Give the portion a name.",
   portion_name_too_long: "Use at most 60 characters.",
   portion_grams_invalid: "Enter a weight above zero, up to 5000 g.",
+  portions_too_many: "A food can come with at most 30 portions.",
   invalid_time_zone: "That is not a time zone this server knows.",
   entry_not_found: "This entry is no longer there.",
   entry_id_taken: "This entry id is already in use.",

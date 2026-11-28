@@ -1,4 +1,9 @@
-import { OwnFoodBodySchema, OwnFoodUpdateBodySchema, PortionBodySchema } from "@hovimestari/types";
+import {
+  MAX_NEW_FOOD_PORTIONS,
+  OwnFoodBodySchema,
+  OwnFoodUpdateBodySchema,
+  PortionBodySchema,
+} from "@hovimestari/types";
 import { z } from "zod";
 import {
   recordedAddPortion,
@@ -29,12 +34,20 @@ const Barcode = OwnFoodBodySchema.shape.barcode.describe(
 );
 const PortionName = PortionBodySchema.shape.name.describe("The portion's name, such as slice or tub.");
 const PortionGrams = PortionBodySchema.shape.grams.describe("How many grams one portion weighs, as stated.");
+// The create body's portions, each field described as add_portion describes it.
+const NewFoodPortions = z
+  .array(z.object({ name: PortionName, grams: PortionGrams }))
+  .max(MAX_NEW_FOOD_PORTIONS, { error: "portions_too_many" })
+  .optional()
+  .describe(
+    "Portions the food comes with, such as those of a food you copy. At most 30. A Fineli portion has a unit code and no name: give it a name the person reads, such as Tablespoon for RKL.",
+  );
 
 export const createOwnFoodTool = defineWriteTool({
   name: "create_own_food",
   description:
-    "Add one of the person's own foods, with the values per 100 g from its label. It is then found by search_foods and can be logged with log_food. Answers the food with its id.",
-  inputSchema: writeInput({ name: Name, per100g: Per100g, barcode: Barcode }),
+    "Add one of the person's own foods, with the values per 100 g from its label, and optionally its barcode and portions. To make a food from Fineli or Open Food Facts the person's own with their changes, read it with get_food and pass its name, values and portions, changed as the person asks. The food copied stays as it is. A food with a barcode is what the person's next lookup of that barcode finds. It is then found by search_foods and can be logged with log_food. Answers the food with its id.",
+  inputSchema: writeInput({ name: Name, per100g: Per100g, barcode: Barcode, portions: NewFoodPortions }),
   destructive: false,
   async run(args, { service, via }) {
     const { outcome, value } = await recordedCreateOwnFood(service, via, args);

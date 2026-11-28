@@ -62,6 +62,7 @@ export const ERROR_CODES = [
   "portion_name_required",
   "portion_name_too_long",
   "portion_grams_invalid",
+  "portions_too_many",
   "invalid_time_zone",
   "entry_not_found",
   "entry_id_taken",
