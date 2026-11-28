@@ -18,4 +18,5 @@
 - [Design review round trips](feedback_design_review_round_trips.md): checks to run before review: slice tables, real primitives, no-op outcomes, per-user limits
 - [Week average and unlogged days](project_week_average_unlogged.md): past empty readings unpositioned, per-reading day sets, marks gauge
 - [Recipes design](project_recipes_design.md): per-serving basis, cooks only as made, copy detaches, images in Postgres
+- [Scan misses](project_scan_misses.md): Lidl RCN-8 looked up and shared, wrong_digits is an answer not a 400, buttons at a miss
 - [Food search ranking](project_food_search_ranking.md): contribfood.csv is the commonness signal, 19-pair inflection list, Snowball and trigram measured and rejected

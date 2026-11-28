@@ -93,6 +93,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | food view, per 100 g figures, favourite star              | `app/log-sheet.md#a-food`                                               | `### A food`                                     |
 | own-food sheet, add a food, edit food                     | `app/log-sheet.md#adding-or-editing-your-own-food`                      | `### Adding or editing your own food`            |
 | typed barcode in the log sheet, the barcode block         | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
+| a miss's ways on: Search by name, Scan again              | `app/log-sheet.md#a-typed-barcode`                                      | `### A typed barcode`                            |
 | the scanner sheet, the camera button, Type the number     | `app/log-sheet.md#scanning-a-barcode`                                   | `### Scanning a barcode`                         |
 | portion sheet, add a portion                              | `app/log-sheet.md#portions-of-your-own`                                 | `### Portions of your own`                       |
 | the log sheet's status line                               | `app/log-sheet.md#the-status-line`                                      | `### The status line`                            |
@@ -105,6 +106,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | estimate sheet, add an estimate                           | `app/log-sheet.md#an-estimate`                                          | `### An estimate`                                |
 | closing sheet swallows presses, refused field into view   | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 | tall sheet, sheet with a fixed height                     | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
+| press latch, entry guard, presses that wait               | `app/shell.md#the-sheet-primitives`                                     | `### The sheet primitives`                       |
 
 ## Targets
 
@@ -135,6 +137,7 @@ Group rows by area, one `##` heading per area, in the same order as the feature 
 | Fineli, its credit and licence                            | `features/foods.md#fineli`               | `### Fineli`               |
 | Fineli import, Fineli release                             | `features/foods.md#the-fineli-import`    | `### The Fineli import`    |
 | barcode lookup, Open Food Facts product                   | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
+| digits no barcode has, a shop's own number, Lidl codes    | `features/foods.md#looking-up-a-barcode` | `### Looking up a barcode` |
 | Open Food Facts, its credit and licence                   | `features/foods.md#open-food-facts`      | `### Open Food Facts`      |
 | food visibility, food scope                               | `features/foods.md#visibility`           | `### Visibility`           |
 
