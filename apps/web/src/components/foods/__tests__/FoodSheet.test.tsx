@@ -335,7 +335,7 @@ describe("FoodSheet, a food's detail", () => {
     expect(within(figures).getByText("3.6 g")).toBeInTheDocument();
     expect(within(figures).getByText("0.2 g")).toBeInTheDocument();
     expect(screen.getByText("From Fineli")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "About the food data" })).toHaveAttribute("href", "/settings#food-data");
+    expect(screen.getByRole("link", { name: "About the data" })).toHaveAttribute("href", "/settings#food-data");
     expect(screen.queryByRole("button", { name: "Edit food" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete food" })).not.toBeInTheDocument();
   });

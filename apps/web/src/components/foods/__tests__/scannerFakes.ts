@@ -98,6 +98,17 @@ export interface FakeCamera {
   uninstall: () => void;
 }
 
+/**
+ * Gives the browser a camera API and nothing behind it, for a test that only
+ * needs the camera button and Scan again to show. Returns the undo.
+ */
+export function installCameraApiOnly(): () => void {
+  Object.defineProperty(navigator, "mediaDevices", { value: { getUserMedia: jest.fn() }, configurable: true });
+  return () => {
+    delete (navigator as unknown as { mediaDevices?: unknown }).mediaDevices;
+  };
+}
+
 /** Stubs the camera, the video, the canvas and the decoder. Returns the controls; call `uninstall` after each test. */
 export function installCamera(): FakeCamera {
   const media = navigator as unknown as { mediaDevices?: unknown };

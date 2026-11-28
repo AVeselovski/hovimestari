@@ -115,6 +115,6 @@ describe("startOf", () => {
     const { values, ...baseline } = startOf({ per100g: { energyKcal: Number.NaN, proteinG: null, fatG: 2 } });
     expect([values.energy, values.protein, values.carbs, values.fat]).toEqual(["", "", "", "2"]);
     expect(baseline.per100g).toEqual({ fatG: 2 });
-    expect(baseline.nameSaved).toBe(false);
+    expect(baseline.saved).toBe(false);
   });
 });

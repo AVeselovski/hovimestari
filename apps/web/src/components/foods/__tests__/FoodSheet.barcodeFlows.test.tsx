@@ -100,15 +100,15 @@ describe("FoodSheet, a barcode found", () => {
   it("names Open Food Facts, links to the product's page and to the credit, and offers no Edit", async () => {
     await lookUpFound();
     const link = await within(dialog()).findByRole("link", {
-      name: "See it on Open Food Facts (opens in a new tab)",
+      name: "Open Food Facts, this product's page (opens in a new tab)",
     });
     expect(link).toHaveAttribute("href", `https://world.openfoodfacts.org/product/${CODE}`);
     expect(link).toHaveAttribute("target", "_blank");
-    expect(within(dialog()).getByRole("link", { name: "About the food data" })).toHaveAttribute(
+    expect(within(dialog()).getByRole("link", { name: "About the data" })).toHaveAttribute(
       "href",
       "/settings#food-data",
     );
-    expect(within(dialog()).getByText("From Open Food Facts")).toBeInTheDocument();
+    expect(link.closest("[data-food-source]")).toHaveTextContent(/^From Open Food Facts/);
     expect(within(dialog()).queryByRole("button", { name: "Edit food" })).toBeNull();
   });
 

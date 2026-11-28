@@ -7,7 +7,8 @@ Each file is one answer of the Open Food Facts product API, recorded once by han
 | `valio-milk-6408430000258.json` | `/api/v2/product/6408430000258` | https://world.openfoodfacts.org/product/6408430000258 |
 | `upc-a-0012000161155.json`      | `/api/v2/product/0012000161155` | https://world.openfoodfacts.org/product/0012000161155 |
 | `not-found-6400000000017.json`  | `/api/v2/product/6400000000017` | None. The answer was HTTP 404                         |
+| `lidl-milk-20064020.json`       | `/api/v2/product/0000020064020` | https://world.openfoodfacts.org/product/20064020      |
 
-The milk is a drink whose figures are given per 100 ml. The UPC-A is answered under its 13-digit form.
+The milk is a drink whose figures are given per 100 ml. The UPC-A is answered under its 13-digit form. The Lidl milk is an 8-digit code of Lidl's own, asked for in its 13-digit form and answered under its 8 digits. Its file is cut down from a saved answer to the fields the client reads: the codes, the names, the brand and the `_100g` figures.
 
 The tests derive the other cases from the milk's answer in code, one field changed at a time: kilojoules only, a missing fat, numeric strings, an array where a number belongs, figures that cannot all be right, no name, long names and `no_nutrition_data`. Each derived case is written next to its test, so the fixture files stay as recorded.

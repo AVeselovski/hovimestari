@@ -1,4 +1,4 @@
-import { FOOD_SOURCES } from "@hovimestari/types";
+import { BarcodeLookupSchema, FOOD_SOURCES } from "@hovimestari/types";
 import { describe, expect, it } from "@jest/globals";
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -26,8 +26,11 @@ const catalogLinks = [...readFileSync(`${DOCS}features.md`, "utf8").matchAll(/\]
 
 /** Every snake_case word in `text`: a tool name, or a value such as a food's source. */
 const snakeCaseWords = (text: string): string[] => [...new Set(text.match(/\b[a-z]+(?:_[a-z]+)+\b/g) ?? [])].sort();
-/** The snake_case words the rules may use that name no tool: the values of a food's source. */
-const FIELD_VALUES: readonly string[] = FOOD_SOURCES.filter((source) => source.includes("_"));
+/** The snake_case words the rules may use that name no tool: the values of a food's source and of a lookup's answer. */
+const FIELD_VALUES: readonly string[] = [
+  ...FOOD_SOURCES,
+  ...BarcodeLookupSchema.options.map((answer) => answer.shape.result.value),
+].filter((value) => value.includes("_"));
 
 const DISCLAIMER = "Nothing the app returns is nutrition or medical advice.";
 const ADVICE_WORDS = /you should|recommend|advice|healthy|too much|too little|on track/;

@@ -1,10 +1,11 @@
 import { lookupBarcode, searchFoods } from "@/lib/api/foods";
 import { getSavedMeals } from "@/lib/api/savedMeals";
-import type { SavedMeal } from "@hovimestari/types";
+import type { BarcodeLookup, SavedMeal } from "@hovimestari/types";
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { AxiosError } from "axios";
 import { answerWith, failWith, installLookups, lookups, releaseLookups } from "./barcodeServer";
 import { body, dialog, field, installServer, renderSheet, settle, type } from "./foodSheetServer";
+import { installCameraApiOnly } from "./scannerFakes";
 import { refusal } from "./support";
 
 // The log sheet's barcode mode: what puts the search view in it and takes it
@@ -192,7 +193,7 @@ describe("FoodSheet in barcode mode", () => {
         expect(block()).toBe(first);
         expect(first.firstElementChild).toBe(heading);
         expect(heading).toHaveTextContent(`Barcode ${CODE}`);
-        expect(first.className.split(" ")).toContain("min-h-52");
+        expect(first.className.split(" ")).toContain("min-h-68.5");
         // Nothing comes before the block in the body's view.
         expect(body().querySelector("[data-barcode-result]")?.previousElementSibling ?? null).toBeNull();
         seen.push(first.getAttribute("data-barcode-result")!);
@@ -248,13 +249,25 @@ const states: Array<[string, () => void, string, string[]]> = [
     "not found",
     () => answerWith(CODE, { result: "not_found", barcode: CODE }),
     `No food has the barcode ${CODE}.`,
-    ["Add it from the label"],
+    ["Search by name", "Add it from the label", "Scan again"],
   ],
   [
     "a shop's own barcode",
     () => answerWith(CODE, { result: "in_store", barcode: CODE }),
-    "This barcode is the shop's own. It changes with the weight or the price, so it cannot find a product.",
-    ["Add it from the label"],
+    "This is the shop's own barcode. It can change from pack to pack, so it finds no product.",
+    ["Search by name", "Add it from the label", "Scan again"],
+  ],
+  [
+    "digits no barcode has",
+    () => answerWith(CODE, { result: "wrong_digits", barcode: CODE }),
+    "No barcode has these digits. Check them against the pack.",
+    ["Search by name", "Scan again"],
+  ],
+  [
+    "an answer a newer server sends that this build does not know",
+    () => answerWith(CODE, { result: "some_new_answer", barcode: CODE } as unknown as BarcodeLookup),
+    `No food has the barcode ${CODE}.`,
+    ["Search by name", "Scan again"],
   ],
   ...(
     [
@@ -273,25 +286,25 @@ const states: Array<[string, () => void, string, string[]]> = [
         product: { name, per100g: { energyKcal: 39, proteinG: null, carbsG: 4.9, fatG: 1.5 } },
       }),
     line,
-    ["Complete it from the label"],
+    ["Search by name", "Complete it from the label", "Scan again"],
   ]),
   [
     "Open Food Facts down",
     () => failWith(CODE, refusal(503, "barcode_lookup_unavailable")),
     "Open Food Facts did not answer.",
-    ["Try again", "Add it from the label"],
+    ["Try again", "Search by name", "Add it from the label"],
   ],
   [
     "too many lookups for the server",
     () => failWith(CODE, refusal(429, "barcode_lookup_busy")),
     "Too many lookups at once. Try again in a few seconds.",
-    ["Try again", "Add it from the label"],
+    ["Try again", "Search by name", "Add it from the label"],
   ],
   [
     "the person's hourly limit",
     () => failWith(CODE, refusal(429, "barcode_lookup_limit")),
     "You have looked up many barcodes this hour. Try again later.",
-    ["Add it from the label"],
+    ["Search by name", "Add it from the label"],
   ],
   [
     "a bare server error, as when the product could not be stored",
@@ -313,20 +326,36 @@ const states: Array<[string, () => void, string, string[]]> = [
   ],
 ];
 
-describe("FoodSheet's barcode block, state by state", () => {
-  it.each(states)("%s: says so and offers its actions", async (_state, arrange, line, buttons) => {
+/** A browser that can ask for a camera, as over https, for as long as the test runs. */
+describe.each([
+  ["where the browser can ask for a camera", true],
+  ["where it cannot, as on plain http", false],
+])("FoodSheet's barcode block, state by state, %s", (_where, camera) => {
+  let restore: (() => void) | null = null;
+  beforeEach(() => {
+    if (camera) restore = installCameraApiOnly();
+  });
+  afterEach(() => {
+    restore?.();
+    restore = null;
+  });
+
+  it.each(states)("%s: says so and offers its actions, in their one order", async (_state, arrange, line, buttons) => {
     arrange();
     renderSheet();
     type(CODE);
     lookUp();
     await says(line);
-    expect(buttonsIn(block()!)).toEqual(buttons);
+    // Scan again shows by the camera button's own rule, so never without a camera API.
+    expect(buttonsIn(block()!)).toEqual(camera ? buttons : buttons.filter((b) => b !== "Scan again"));
     // The live region says the line, and a screen reader reaches it once.
     expect(liveOf(block()!)).toBe(line);
     expect(spoken(block()!, line)).toHaveLength(1);
     expect(within(dialog()).queryByRole("button", { name: "Back" })).toBeNull();
   });
+});
 
+describe("FoodSheet's barcode block, its actions", () => {
   it("Try again sends the lookup again, and its answer takes the block's place", async () => {
     failWith(CODE, refusal(503, "barcode_lookup_unavailable"));
     renderSheet();

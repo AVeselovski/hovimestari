@@ -205,3 +205,19 @@ export async function confirmArmed(): Promise<void> {
     if (!document.querySelector("[data-armed]")) throw new Error("The confirm button is not armed yet");
   });
 }
+
+/**
+ * Waits until the press guard in `root` lets presses through: on a phone, a
+ * sheet's guarded content (`useArmedAtRest`'s `guardProps`) takes a press only
+ * once the sheet is at rest and a short delay has passed. A test that taps it
+ * right after opening is the second tap of a double tap, so a test that
+ * means a later tap waits for this first, as a reader's tap would come.
+ */
+export async function guardArmed(root: () => Element): Promise<void> {
+  await waitFor(
+    () => {
+      if (!root().querySelector('[data-press-guard="armed"]')) throw new Error("The press guard is not armed yet");
+    },
+    { timeout: 2000 },
+  );
+}

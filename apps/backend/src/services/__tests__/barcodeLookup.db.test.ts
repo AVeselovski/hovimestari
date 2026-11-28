@@ -1,5 +1,7 @@
 import { beforeAll, describe, expect, it, jest } from "@jest/globals";
+import { readFileSync } from "node:fs";
 import { format } from "node:util";
+import request from "supertest";
 import { signUp } from "../../__tests__/support/apiUser.js";
 import { fakeClock, newEan13, offBody, offStub, stubDeps, type OffStub } from "../../__tests__/support/offStub.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
@@ -26,6 +28,7 @@ await describeWithDb("barcodeLookup", (suite) => {
     const u = await signUp(suite.client);
     return { ...u, ctx: contextForUser({ id: u.id, timeZone: "Europe/Helsinki" }, NOW) as WriteContext };
   };
+  const api = () => request(suite.app);
   const setup = async () => {
     const stub = offStub();
     const clock = fakeClock();
@@ -109,10 +112,9 @@ await describeWithDb("barcodeLookup", (suite) => {
     it("sends no code with a wrong check digit, and no shop's own number", async () => {
       const { stub, deps } = await setup();
       const a = await user();
-      expect(await look(a.ctx, deps, "6408430000259")).toEqual({ result: "not_found", barcode: "6408430000259" });
+      expect(await look(a.ctx, deps, "6408430000259")).toEqual({ result: "wrong_digits", barcode: "6408430000259" });
       expect(await look(a.ctx, deps, "2912345000004")).toEqual({ result: "in_store", barcode: "2912345000004" });
       expect(await look(a.ctx, deps, "02912345000004")).toMatchObject({ result: "in_store" });
-      expect(await look(a.ctx, deps, "20000004")).toMatchObject({ result: "in_store" });
       // A GTIN-14 with indicator 1 to 8 is a case or a pack, and 9 a variable measure item.
       expect(await look(a.ctx, deps, "16408430000255")).toEqual({ result: "not_found", barcode: "16408430000255" });
       expect(await look(a.ctx, deps, "86408430000254")).toEqual({ result: "not_found", barcode: "86408430000254" });
@@ -146,6 +148,122 @@ await describeWithDb("barcodeLookup", (suite) => {
       await look(a.ctx, deps, "12345052", "upc_e");
       await look(a.ctx, deps, "12345052");
       expect(stub.calls).toEqual(["/api/v2/product/0123450000052", "/api/v2/product/0000012345052"]);
+    });
+  });
+
+  describe("Lidl's own 8-digit codes and digits no barcode has", () => {
+    const LIDL_MILK = JSON.parse(
+      readFileSync(
+        new URL("../../lib/openFoodFacts/__tests__/fixtures/lidl-milk-20064020.json", import.meta.url),
+        "utf8",
+      ),
+    ) as object;
+    const budgetsOf = (deps: LookupDeps, userId: string) => {
+      // Empties both buckets to count what was left in them, so call it last.
+      let user = 0;
+      while (deps.userBudget.has(userId) && user < 1000) {
+        deps.userBudget.take(userId);
+        user++;
+      }
+      let server = 0;
+      while (deps.serverBudget.has() && server < 1000) {
+        deps.serverBudget.take();
+        server++;
+      }
+      return { user, server };
+    };
+
+    it("looks up Lidl's milk by its 8 digits, keeps it under them, and a second user reads it with no call", async () => {
+      const { stub, deps } = await setup();
+      const [a, b] = [await user(), await user()];
+      stub.answers.set("0000020064020", { body: LIDL_MILK });
+      expect(await look(a.ctx, deps, "20064020", "ean_8")).toMatchObject({
+        result: "found",
+        newlyVisible: true,
+        food: {
+          source: "open_food_facts",
+          barcode: "20064020",
+          name: "Kotimainen Täysmaito, Pohjolan Meijeri",
+          per100g: { energyKcal: 64, proteinG: 3.2, carbsG: 4.8, fatG: 3.5 },
+        },
+      });
+      expect((await stored("20064020")).map((r) => r.barcode)).toEqual(["20064020"]);
+      expect(await look(b.ctx, deps, "20064020")).toMatchObject({ result: "found", newlyVisible: true });
+      expect(stub.calls).toEqual(["/api/v2/product/0000020064020"]);
+    });
+
+    it("answers not_found for a Lidl code Open Food Facts lacks, and asks again for none within 10 minutes", async () => {
+      const { stub, clock, deps } = await setup();
+      const a = await user();
+      expect(await look(a.ctx, deps, "20000004")).toEqual({ result: "not_found", barcode: "20000004" });
+      clock.advance(9 * 60_000);
+      expect(await look(a.ctx, deps, "20000004")).toEqual({ result: "not_found", barcode: "20000004" });
+      expect(stub.calls).toEqual(["/api/v2/product/0000020000004"]);
+    });
+
+    it("answers in_store for a mince weighed in the shop, with no call", async () => {
+      const { stub, deps } = await setup();
+      const a = await user();
+      expect(await look(a.ctx, deps, "2372941600006")).toEqual({ result: "in_store", barcode: "2372941600006" });
+      expect(stub.calls).toEqual([]);
+    });
+
+    it("answers wrong_digits for a mistyped number, sends nothing and spends from neither budget", async () => {
+      const { stub, deps } = await setup();
+      const [a, b] = [await user(), await user()];
+      expect(await look(a.ctx, deps, "6416710030209")).toEqual({ result: "wrong_digits", barcode: "6416710030209" });
+      expect(await look(a.ctx, deps, "1234567890")).toEqual({ result: "wrong_digits", barcode: "1234567890" });
+      expect(stub.calls).toEqual([]);
+      // a's budget is as full as b's, who looked nothing up, and the server's is full.
+      const left = budgetsOf(deps, a.id);
+      expect(left).toEqual({ user: 30, server: 10 });
+      expect(budgetsOf(deps, b.id).user).toBe(30);
+    });
+
+    it("answers an own food saved under a mistyped number first", async () => {
+      const { stub, deps } = await setup();
+      const a = await user();
+      const own = await ownFood(a.ctx, "6416710030209", "Filos ladolia");
+      expect(await look(a.ctx, deps, "6416710030209")).toEqual({ result: "found", food: own, newlyVisible: false });
+      expect(stub.calls).toEqual([]);
+    });
+
+    it("finds the own food saved after a miss on a Lidl code, with no call", async () => {
+      const { stub, deps } = await setup();
+      // The rahka, not the milk, which the suite's database already keeps from the test above.
+      const a = await user();
+      expect(await look(a.ctx, deps, "20423827", "ean_8")).toMatchObject({ result: "not_found" });
+      const res = await api()
+        .post("/api/v1/foods")
+        .set(a.auth)
+        .send({
+          name: "Maitorahka",
+          per100g: { energyKcal: 58, proteinG: 10, carbsG: 4, fatG: 0.2 },
+          barcode: "20423827",
+        });
+      expect(res.status).toBe(201);
+      expect(await look(a.ctx, deps, "20423827", "ean_8")).toMatchObject({
+        result: "found",
+        food: { id: res.body.id, source: "user", barcode: "20423827" },
+      });
+      expect(stub.calls).toEqual(["/api/v2/product/0000020423827"]);
+    });
+
+    it("answers not_found, never wrong_digits, for a case code and for a scan whose format disagrees", async () => {
+      const { stub, deps } = await setup();
+      const a = await user();
+      expect(await look(a.ctx, deps, "16408430000255")).toEqual({ result: "not_found", barcode: "16408430000255" });
+      // 04567006 is right only as a UPC-E, so a scan that reports it as an EAN-8 reads as nothing.
+      expect(await look(a.ctx, deps, "04567006", "ean_8")).toEqual({ result: "not_found", barcode: "04567006" });
+      expect(stub.calls).toEqual([]);
+    });
+
+    it("reads a typed code valid only as a leading-1 UPC-E as well formed, and answers not_found", async () => {
+      // A typed code reads a UPC-E only with a leading 0, so 14567003 has no reading, but its digits are a barcode's.
+      const { stub, deps } = await setup();
+      const a = await user();
+      expect(await look(a.ctx, deps, "14567003")).toEqual({ result: "not_found", barcode: "14567003" });
+      expect(stub.calls).toEqual([]);
     });
   });
 

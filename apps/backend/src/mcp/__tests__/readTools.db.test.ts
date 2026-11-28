@@ -430,6 +430,15 @@ await describeWithDb("mcp read tools", (suite) => {
         }
       });
 
+      it("answers wrong_digits for digits no barcode has, as the route does, and sends nothing", async () => {
+        const calls = stub.calls.length;
+        const answer = await data("look_up_barcode", { barcode: "6416710030209" });
+        const res = await api().post("/api/v1/foods/lookup").set(user.auth).send({ barcode: "6416710030209" });
+        expect(answer).toEqual({ result: "wrong_digits", barcode: "6416710030209" });
+        expect(res.body).toEqual(answer);
+        expect(stub.calls.length).toBe(calls);
+      });
+
       it("spends the person's own lookup budget, the one their scans in the app spend", async () => {
         const { sharedLookupDeps } = await import("../../services/writes/barcode.js");
         const looker = await userWithKey();
