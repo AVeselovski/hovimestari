@@ -1,6 +1,6 @@
 import { tap, tapClick } from "@/__tests__/helpers/tap";
 import { holdSheetExits, openSheet } from "@/__tests__/sheet";
-import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
+import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getSavedMeals } from "@/lib/api/savedMeals";
 import { act, fireEvent, waitFor, within } from "@testing-library/react";
 import { answerWith, failWith, installLookups, lookups, releaseLookups } from "./barcodeServer";

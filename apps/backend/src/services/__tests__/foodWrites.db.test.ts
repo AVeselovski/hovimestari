@@ -4,6 +4,7 @@ import { signUp } from "../../__tests__/support/apiUser.js";
 import { insertFineliFood } from "../../db/__tests__/support/seedOneOfEach.js";
 import { describeWithDb } from "../../db/__tests__/support/throwawayDb.js";
 import type { Db } from "../../db/types.js";
+import { isCheckViolation } from "../../lib/pgErrors.js";
 import type { WriteContext } from "../writes/context.js";
 
 // The writes on a real database when something changes between a service's
@@ -81,6 +82,63 @@ await describeWithDb("foodWrites", (suite) => {
     const portion = (await writes.addPortion(await contextOf(a.id), food.id, { name: "tub", grams: 200 })).value;
     return { a, b, writes, food, portion };
   }
+
+  describe("a new own food with portions", () => {
+    const portions = [
+      { name: "Tablespoon", grams: 13.5 },
+      { name: "Teaspoon", grams: 4.5 },
+      { name: "Pullo", grams: 460 },
+    ];
+    const countsOf = async (userId: string) =>
+      (
+        await suite.client.query(
+          `SELECT (SELECT count(*) FROM foods WHERE user_id = $1)::int AS foods,
+                  (SELECT count(*) FROM food_portions WHERE user_id = $1)::int AS portions`,
+          [userId],
+        )
+      ).rows[0] as { foods: number; portions: number };
+
+    it("saves them as the user's own and answers them in the food's detail", async () => {
+      const a = await signUp(suite.client);
+      const { createOwnFood } = await import("../writes/foods.js");
+      const { value } = await createOwnFood(await contextOf(a.id), { ...body("Oliiviöljy Filos"), portions });
+      expect(value.portions).toEqual(
+        // The detail lists own portions by name.
+        [portions[2], portions[0], portions[1]].map((p) => ({
+          id: expect.any(String),
+          unit: null,
+          name: p.name,
+          grams: p.grams,
+          isOwn: true,
+        })),
+      );
+      const { rows } = await suite.client.query("SELECT user_id, fineli_unit FROM food_portions WHERE food_id = $1", [
+        value.id,
+      ]);
+      expect(rows).toEqual(Array(3).fill({ user_id: a.id, fineli_unit: null }));
+    });
+
+    it("saves nothing when one of them is refused", async () => {
+      const a = await signUp(suite.client);
+      const { createOwnFood } = await import("../writes/foods.js");
+      // The schema refuses grams 0 before a route calls the service: the database's CHECK refuses it here.
+      const bad = [portions[0], { name: "Empty", grams: 0 }, portions[1]];
+      const refused = await createOwnFood(await contextOf(a.id), { ...body("Oliiviöljy"), portions: bad }).then(
+        () => null,
+        (err: unknown) => err,
+      );
+      expect(isCheckViolation(refused, "food_portions_grams_positive")).toBe(true);
+      expect(await countsOf(a.id)).toEqual({ foods: 0, portions: 0 });
+    });
+
+    it("creates the food with none when it comes with none", async () => {
+      const a = await signUp(suite.client);
+      const { createOwnFood } = await import("../writes/foods.js");
+      const { value } = await createOwnFood(await contextOf(a.id), body("Oliiviöljy"));
+      expect(value.portions).toEqual([]);
+      expect(await countsOf(a.id)).toEqual({ foods: 1, portions: 0 });
+    });
+  });
 
   describe("a name search could never find", () => {
     // The shared schema refuses these before a route calls the service. The

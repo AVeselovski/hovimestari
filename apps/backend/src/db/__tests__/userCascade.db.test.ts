@@ -66,6 +66,40 @@ await describeWithDb("userCascade", (suite) => {
     expect(favourites.rows[0].n).toBe(0);
   });
 
+  it("removes a copy of a Fineli food and the portions it came with, and keeps the Fineli food and its portion", async () => {
+    const gone = await insertUser(suite.client);
+    const fineli = await insertFineliFood(suite.client, 900_003);
+    const { createOwnFood } = await import("../../services/writes/foods.js");
+    const { contextForUser } = await import("../../lib/requestContext.js");
+    const ctx = {
+      ...contextForUser({ id: gone, timeZone: "Europe/Helsinki" }, new Date("2026-11-28T10:00:00Z")),
+      db: suite.db,
+    };
+    const copy = await createOwnFood(ctx, {
+      name: "Oma rahka",
+      per100g: { energyKcal: 59.31, proteinG: 10.5, carbsG: 3.6, fatG: 0.2 },
+      barcode: "6416710030208",
+      portions: [
+        { name: "Medium portion", grams: 200 },
+        { name: "Tub", grams: 250 },
+      ],
+    });
+    const owned = "SELECT count(*)::int AS n FROM food_portions WHERE user_id = $1";
+    expect((await suite.client.query(owned, [gone])).rows[0].n).toBe(2);
+
+    await suite.client.query("DELETE FROM users WHERE id = $1", [gone]);
+
+    expect((await suite.client.query(owned, [gone])).rows[0].n).toBe(0);
+    const foods = await suite.client.query("SELECT id FROM foods WHERE id = ANY($1::uuid[])", [
+      [copy.value.id, fineli],
+    ]);
+    expect(foods.rows).toEqual([{ id: fineli }]);
+    const portions = await suite.client.query("SELECT fineli_unit, user_id FROM food_portions WHERE food_id = $1", [
+      fineli,
+    ]);
+    expect(portions.rows).toEqual([{ fineli_unit: "PORTM", user_id: null }]);
+  });
+
   it("reads the composite key from entries to saved_meals as one cascading edge", async () => {
     const report = await walkCascadeGraph(suite.client);
     const { rows } = await suite.client.query(

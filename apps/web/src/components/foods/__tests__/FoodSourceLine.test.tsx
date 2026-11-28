@@ -39,6 +39,17 @@ describe("FoodSourceLine", () => {
     expect(within(r).queryByRole("link")).toBeNull();
   });
 
+  it("names an own food's barcode beside My food, as tall as the words, so a person sees what a scan finds", () => {
+    const r = row("user", "6416710030208");
+    expect([...r.children].map((c) => c.textContent)).toEqual(["My food", "Barcode 6416710030208"]);
+    expect(tokens(r.children[1])).toEqual(expect.arrayContaining(["min-h-11", "items-center"]));
+    expect(within(r).queryByRole("link")).toBeNull();
+  });
+
+  it("names no barcode on a Fineli or Open Food Facts food's row, where the source says where it is from", () => {
+    expect(row("open_food_facts", "6408430000258")).not.toHaveTextContent("Barcode");
+  });
+
   it("links a Fineli food to the credit for the food data", () => {
     const r = row("fineli");
     expect(r).toHaveTextContent(/^From FineliAbout the data$/);

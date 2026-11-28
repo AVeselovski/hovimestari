@@ -4,7 +4,7 @@ import { controlSheetAnimations, holdSheetExits } from "@/__tests__/sheet";
 import { renderDay, rowNames, seededClient } from "@/components/day/__tests__/harness";
 import { uuid } from "@/components/foods/__tests__/support";
 import { useAuth } from "@/contexts/AuthContext";
-import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
+import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getDay } from "@/lib/api/days";
 import { addEntry, removeEntry } from "@/lib/api/entries";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";

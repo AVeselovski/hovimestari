@@ -6,7 +6,7 @@ import { renderDay, rowNames } from "@/components/day/__tests__/harness";
 import { QUARK } from "@/components/day/__tests__/support";
 import { detailOf } from "@/components/foods/__tests__/support";
 import { useAuth } from "@/contexts/AuthContext";
-import { ARM_DELAY_MS } from "@/hooks/useArmedAtRest";
+import { ARM_DELAY_MS } from "@/hooks/usePressGuard";
 import { getDay } from "@/lib/api/days";
 import { addEntry } from "@/lib/api/entries";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods, setFavourite } from "@/lib/api/foods";
