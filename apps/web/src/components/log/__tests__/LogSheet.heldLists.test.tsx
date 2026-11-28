@@ -31,8 +31,8 @@ import {
 
 // An open list never reorders under the finger (components/log/heldList.tsx).
 // While the log sheet is open, no read that lands in the background changes
-// the order or the set of rows in Recent, Favourites, Recipes, Saved meals or
-// Your foods: an unconfirmed "+", the window coming back into focus, the
+// the order or the set of rows in Recent, Favourites, Recipes, My meals or
+// My foods: an unconfirmed "+", the window coming back into focus, the
 // connection coming back, or any read at all. A row's own data changes in
 // place. The next open shows what was read.
 
@@ -69,7 +69,7 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-const LISTS = ["Recent", "Favourites", "Recipes", "Saved meals", "Your foods"] as const;
+const LISTS = ["Recent", "Favourites", "Recipes", "My meals", "My foods"] as const;
 
 let world: RecipeWorld;
 let favourites: FavouriteFood[];
@@ -147,8 +147,8 @@ const FRESH = {
   Recent: ["Shakshuka", "Shake", "Banana", "Quark"],
   Favourites: ["Pasta", "Oats"],
   Recipes: ["Shakshuka", "Borscht", "Lentil soup"],
-  "Saved meals": ["Arctic soup", "Shake"],
-  "Your foods": ["Apple cake", "Rye bread"],
+  "My meals": ["Arctic soup", "Shake"],
+  "My foods": ["Apple cake", "Rye bread"],
 };
 
 /** Waits until every read in flight has landed, and a moment more for TanStack's notify timer. */
@@ -197,7 +197,7 @@ describe("An open list in the log sheet never reorders under the finger", () => 
     await openLogSheet();
     await settle(client);
     // An add leaves the user's own foods as they were read: nothing made them stale.
-    expect(rows()).toEqual({ ...FRESH, "Your foods": before["Your foods"] });
+    expect(rows()).toEqual({ ...FRESH, "My foods": before["My foods"] });
   });
 
   it("after an unconfirmed '+' and a close with no other write: the next open shows the recent items read as it closed", async () => {
@@ -305,8 +305,8 @@ describe("An open list in the log sheet never reorders under the finger", () => 
     const before = rows();
     // Every read after the save hangs, so only the save's answer can put the meal in the list.
     jest.mocked(getSavedMeals).mockImplementation(() => new Promise(() => {}));
-    fireEvent.click(within(opened).getByRole("button", { name: "New saved meal" }));
-    const stacked = await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(opened).getByRole("button", { name: "New meal" }));
+    const stacked = await screen.findByRole("dialog", { name: "New meal" });
     for (const [label, value] of [
       ["Name", "Arctic soup"],
       ["Calories", "300"],
@@ -317,10 +317,10 @@ describe("An open list in the log sheet never reorders under the finger", () => 
       fireEvent.change(within(stacked).getByLabelText(label, { selector: "input" }), { target: { value } });
     }
     fireEvent.click(within(stacked).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     expect(createSavedMeal).toHaveBeenCalledTimes(1);
     await act(() => new Promise((r) => setTimeout(r, 50)));
-    expect(rows()).toEqual({ ...before, "Saved meals": ["Arctic soup", ...before["Saved meals"]] });
+    expect(rows()).toEqual({ ...before, "My meals": ["Arctic soup", ...before["My meals"]] });
   });
 
   it("on a phone, follows a read that lands while the sheet slides in, then holds once it is at rest", async () => {
@@ -387,19 +387,19 @@ describe("A food or a saved meal found gone in the open log sheet", () => {
     expect(rows()).toEqual({ ...before, Recent: ["Quark", "Shake", "Shakshuka"], Favourites: ["Oats"] });
   });
 
-  it("'+' on a recent saved meal that is gone: the notice shows and the row leaves Recent and Saved meals", async () => {
+  it("'+' on a recent saved meal that is gone: the notice shows and the row leaves Recent and My meals", async () => {
     const client = appClient();
     renderDay(client);
     await openLogSheet();
     await settle(client);
     const before = rows();
-    expect(before["Saved meals"]).toEqual(["Shake"]);
+    expect(before["My meals"]).toEqual(["Shake"]);
     world.server.meals.delete(world.shake.id);
     fireEvent.click(plus("Log Shake again, 1 meal"));
     expect(await within(sheet()).findByText("This saved meal is no longer available.")).toBeInTheDocument();
     await waitFor(() => expect(rows().Recent).toEqual(["Quark", "Banana", "Shakshuka"]));
     await settle(client);
-    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Banana", "Shakshuka"], "Saved meals": [] });
+    expect(rows()).toEqual({ ...before, Recent: ["Quark", "Banana", "Shakshuka"], "My meals": [] });
   });
 
   it("Log from the view of a food that is gone: back to browsing with the notice, without the row", async () => {
@@ -486,7 +486,7 @@ describe("The first read of the log sheet's lists", () => {
     expect(againButtons()).toHaveLength(0);
     // The headings and the create actions are there to see and to press.
     for (const list of LISTS) expect(within(sheet()).getByRole("region", { name: list })).toBeInTheDocument();
-    expect(within(sheet()).getByRole("button", { name: "New saved meal" })).toBeInTheDocument();
+    expect(within(sheet()).getByRole("button", { name: "New meal" })).toBeInTheDocument();
     await act(async () => recents.resolve(world.server.recentList()));
     await act(() => new Promise((r) => setTimeout(r, 50)));
     // One list still has no answer: the one that has waits with the rest.
@@ -497,8 +497,8 @@ describe("The first read of the log sheet's lists", () => {
       Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
       Recipes: ["Shakshuka", "Lentil soup"],
-      "Saved meals": ["Shake"],
-      "Your foods": ["Rye bread"],
+      "My meals": ["Shake"],
+      "My foods": ["Rye bread"],
     });
   });
 
@@ -612,10 +612,10 @@ describe("The first read of the log sheet's lists", () => {
       Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
       Recipes: ["Shakshuka", "Lentil soup"],
-      "Saved meals": [],
-      "Your foods": ["Rye bread"],
+      "My meals": [],
+      "My foods": ["Rye bread"],
     });
-    expect(within(within(sheet()).getByRole("region", { name: "Saved meals" })).getByText(line)).toBeInTheDocument();
+    expect(within(within(sheet()).getByRole("region", { name: "My meals" })).getByText(line)).toBeInTheDocument();
   });
 
   it("shows the rows in its first render when every list is cached", async () => {
@@ -632,8 +632,8 @@ describe("The first read of the log sheet's lists", () => {
       Recent: ["Quark", "Banana", "Shake", "Shakshuka"],
       Favourites: ["Oats"],
       Recipes: ["Shakshuka", "Lentil soup"],
-      "Saved meals": ["Shake"],
-      "Your foods": ["Rye bread"],
+      "My meals": ["Shake"],
+      "My foods": ["Rye bread"],
     });
     expect(guard()).toHaveAttribute("data-lists-guard", "armed");
     // No wait, so no delay: a press at once logs the row under it.

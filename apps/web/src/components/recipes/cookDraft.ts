@@ -264,6 +264,11 @@ const sameWritten = (a: { amount: number; unit: string } | null, b: { amount: nu
  * from the entry as the sheet first saw it, so a state chosen, stored and
  * then put back sends no mark, and only the meant state can tell it from
  * the one stored.
+ *
+ * The lines are compared by index, which relies on the server answering a
+ * batch's lines in their stored position: `cookLinesOf` in
+ * `apps/backend/src/services/reads/cooks.ts` orders them by `position`,
+ * and the write stores them in the order the request carried them.
  */
 export function sameBatch(body: CookBody, held: Cook, opening: OpeningState | null): boolean {
   if (held.date !== body.date || held.servings !== body.servings || held.lines.length !== body.lines.length) {

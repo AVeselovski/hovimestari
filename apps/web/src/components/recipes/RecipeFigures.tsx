@@ -2,20 +2,35 @@
 
 import { MacroDot, type Macro } from "@/components/figures/MacroDot";
 import { Icon } from "@/components/Icon";
-import { btnText, cardClass, cardInSheetClass, stepperButton, stepperField } from "@/components/ui/styles";
+import {
+  cardClass,
+  cardInSheetClass,
+  stepperButton,
+  stepperField,
+  stepperGroup,
+  stepperRevert,
+  stepperRow,
+  stepperTitle,
+} from "@/components/ui/styles";
 import { formatKcal, formatMacroGrams } from "@/lib/foodFormat";
 import { MAX_RECIPE_SERVINGS, type Figures } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
 // RecipeFigures: a recipe's figures card. One table: a row per figure, its
-// dot in the macro's hue, then one serving's figure and the whole recipe's.
-// The recipe page puts a servings stepper over it: at another number of
-// servings the second column reads "For 4 servings", and "Back to 2" shows
-// beside the stepper. The editor shows the card without the stepper, with
-// the figures as they are typed, or empty slots of the same height while
-// they cannot be computed.
+// dot in the macro's hue, then one serving's figure and the total's. The two
+// column headings are "Per serving" and "Total", one line each, in every
+// state and in every host: the recipe page, the recipe editor and the as
+// made sheet. The total is for the servings shown: the recipe's own, the as
+// made sheet's batch, or the number in the page's servings stepper. The
+// recipe page puts that stepper over the table, on one row with its title:
+// "Servings" at the start, and at the end a button that puts the recipe's
+// own servings back, a minus, the number and a plus. A change of servings is
+// said aloud as "For 4 servings" with the four figures. The editor and the
+// as made sheet show the card without the stepper, with the figures as they
+// are typed, or empty slots of the same height while they cannot be
+// computed.
 //
 // Nothing in the card changes its height, so stepping never moves what is
 // under it:
@@ -30,10 +45,15 @@ import type { ReactElement } from "react";
 //   Read aloud, a cell always has its unit. In a form sheet (`inSheet`),
 //   whose body is 8px narrower than a page, the card gives that room and
 //   4px more back from its sides, so the label fits there too.
-// - On a phone a column heading may take two lines, and keeps two lines'
-//   room. From `md` it is one line.
-// - "Back to 2" keeps its room while hidden, and the stepper keeps its room
-//   while the recipe is still being read (`stepperRoom`).
+// - A heading never wraps. On a phone "Per serving" is wider than its
+//   column, and runs from the column's end back over the empty corner
+//   before it.
+// - The button that puts the servings back keeps its room while hidden, so
+//   the minus, the number and the plus never move, and the stepper is one
+//   width (`stepperGroup`). Where the row is too narrow for the title and
+//   the stepper, under 354px of page, the stepper takes a line under the
+//   title, at that width in every state. The row keeps its room, wrapped or
+//   not, while the recipe is still being read (`stepperRoom`).
 //
 // The figures are rounded for display only, kcal to a whole number and grams
 // with one decimal, as everywhere a figure shows.
@@ -52,7 +72,7 @@ export interface ServingsStepper {
   text: string;
   /** The servings the figures are for: the field's value once it is a whole number from 1 to 100. */
   shown: number;
-  /** The recipe's own servings, which "Back to" returns to. */
+  /** The recipe's own servings, which the revert button returns to. */
   servings: number;
   /** The person has changed the servings on this page, so a change of figures is said aloud. */
   touched: boolean;
@@ -64,7 +84,7 @@ export interface ServingsStepper {
 export interface RecipeFiguresProps {
   /** One serving, or null for empty slots of the same height. */
   perServing: Figures | null;
-  /** All the servings shown: the whole recipe, or the stepper's number of servings. */
+  /** The total for all the servings shown: the recipe's own, a batch's, or the stepper's number of servings. */
   whole: Figures | null;
   stepper?: ServingsStepper;
   /** Keeps the stepper's room while there is no stepper yet, as the recipe is read. */
@@ -77,11 +97,11 @@ export interface RecipeFiguresProps {
   note?: ReactElement | null;
   /** The card is in a form sheet, whose body is narrower than a page: on a phone it keeps less room at its sides, and it takes the surface the sheet is not on. */
   inSheet?: boolean;
-  /** The second column's heading where it is not a whole recipe, such as "Whole batch". */
-  wholeLabel?: string;
 }
 
-const headCell = "pb-2 text-right align-bottom font-semibold max-md:h-12 md:whitespace-nowrap";
+const headCell = "pb-2 text-right align-bottom font-semibold";
+/** A heading's words: one line, ending at its column's end. Wider than the column, they run back over what is before it. */
+const headWords = "flex justify-end whitespace-nowrap";
 const figureCell = "py-2 text-right font-mono text-sm whitespace-nowrap text-ink tabular-nums md:text-base";
 /** The room before each figure column: 12px before one serving's on a phone, 16px elsewhere. */
 const beforeFirst = "pl-3 md:pl-4";
@@ -96,12 +116,10 @@ export function RecipeFigures({
   headingId,
   note,
   inSheet = false,
-  wholeLabel,
 }: RecipeFiguresProps): ReactElement {
   const t = useTranslations("recipes.page");
   const tFigures = useTranslations("figures");
   const scaled = stepper !== undefined && stepper.shown !== stepper.servings;
-  const wholeHeading = scaled ? t("forServings", { count: stepper.shown }) : (wholeLabel ?? t("whole"));
   const labelOf = (macro: Macro): ReactElement =>
     macro === "carbs" ? (
       // "Carbs" on a phone, where the column is narrow, and "Carbohydrates" aloud and from md.
@@ -138,14 +156,20 @@ export function RecipeFigures({
       {stepper ? (
         <Stepper stepper={stepper} scaled={scaled} />
       ) : (
-        stepperRoom && <div aria-hidden="true" data-stepper-room="" className={stepperBlock} />
+        stepperRoom && (
+          // The row's room while the recipe is read: its title unseen and the stepper's box, so it wraps as the row will.
+          <div aria-hidden="true" data-stepper-room="" className={`${stepperRow} ${stepperBlock} invisible`}>
+            <span className={stepperTitle}>{t("servings")}</span>
+            <span className={stepperGroup} />
+          </div>
+        )
       )}
       {/* On the page from the start, and filled once the stepper is touched: a live region that arrives filled may not be read. */}
       {(stepper || stepperRoom) && (
         <p aria-live="polite" className="sr-only" data-figures-said="">
           {stepper?.touched && whole
             ? t("figuresSaid", {
-                heading: wholeHeading,
+                heading: t("forServings", { count: stepper.shown }),
                 kcal: formatKcal(whole.energyKcal),
                 protein: formatMacroGrams(whole.proteinG),
                 carbs: formatMacroGrams(whole.carbsG),
@@ -164,10 +188,10 @@ export function RecipeFigures({
           <tr className="text-sm leading-5 text-ink-muted">
             <td className="pb-2" />
             <th scope="col" className={`${headCell} ${beforeFirst}`}>
-              {t("perServing")}
+              <span className={headWords}>{t("perServing")}</span>
             </th>
-            <th scope="col" className={`${headCell} ${beforeSecond}`} data-whole-heading="">
-              {wholeHeading}
+            <th scope="col" className={`${headCell} ${beforeSecond}`}>
+              <span className={headWords}>{t("total")}</span>
             </th>
           </tr>
         </thead>
@@ -197,34 +221,41 @@ export function RecipeFigures({
   );
 }
 
-/** The stepper's block: the label's row, 44px, then the stepper's, 48px. Its room, empty, has the same height. */
-const stepperBlock = "mb-4 h-24";
+/** The room under the stepper's row, before the table. */
+const stepperBlock = "mb-4";
 
 function Stepper({ stepper, scaled }: { stepper: ServingsStepper; scaled: boolean }): ReactElement {
   const t = useTranslations("recipes.page");
+  const fewerRef = useRef<HTMLButtonElement>(null);
   const atMin = stepper.shown <= 1;
   const atMax = stepper.shown >= MAX_RECIPE_SERVINGS;
   const step = (by: number) => stepper.onStep(Math.min(MAX_RECIPE_SERVINGS, Math.max(1, stepper.shown + by)));
   return (
-    <div className={stepperBlock}>
-      <div className="flex h-11 items-center justify-between gap-3">
-        <label htmlFor={stepper.id} className="text-base font-semibold text-ink">
-          {t("servings")}
-        </label>
-        {/* Its room is kept while hidden, so it never moves what is beside or under it. */}
+    <div data-stepper-row="" className={`${stepperRow} ${stepperBlock}`}>
+      <label htmlFor={stepper.id} className={stepperTitle}>
+        {t("servings")}
+      </label>
+      <div className={stepperGroup}>
+        {/* Its room is kept while hidden, so the minus, the number and the plus never move. */}
         <button
           type="button"
-          onClick={() => stepper.onStep(stepper.servings)}
+          data-stepper-revert=""
+          aria-label={t("backTo", { count: stepper.servings })}
+          title={t("backTo", { count: stepper.servings })}
           aria-hidden={scaled ? undefined : true}
           tabIndex={scaled ? undefined : -1}
-          className={`${btnText} ${scaled ? "" : "invisible"}`}
+          onClick={() => {
+            stepper.onStep(stepper.servings);
+            // The button hides as the servings go back, so focus moves to the minus beside it.
+            fewerRef.current?.focus();
+          }}
+          className={`${stepperRevert} ${scaled ? "" : "invisible"}`}
         >
-          {t("backTo", { count: stepper.servings })}
+          <Icon name="revert" className="size-5" />
         </button>
-      </div>
-      <div className="mt-1 flex items-center gap-2">
         {/* At its limit a button keeps focus and does nothing, so stepping down to 1 never drops focus to the page. */}
         <button
+          ref={fewerRef}
           type="button"
           aria-label={t("fewer")}
           aria-controls={stepper.id}

@@ -17,7 +17,7 @@ import { SavedMealRow } from "./SavedMealRow";
 import { SourceChips } from "./SourceChips";
 
 // ---------------------------------------------------------------------------
-// SavedMealList: the log sheet's "Saved meals" while browsing. The active
+// SavedMealList: the log sheet's "My meals" while browsing. The active
 // meals by name, each with its figures per meal and a "+" that logs it with
 // its last count, else 1 meal. The source chips sit above them when the
 // meals name two sources or more, and the chosen one keeps its meals alone.
@@ -74,6 +74,7 @@ export function SavedMealList({
   sayUnavailable,
 }: SavedMealListProps): ReactElement {
   const t = useTranslations("log.browse");
+  const tLists = useTranslations("lists");
   const query = useQuery(savedMealsQuery(false));
   // The order and the chips this list showed hold while it can be pressed (heldList.tsx).
   const meals = useHeldList(query.data?.meals, (meal) => meal.id);
@@ -83,8 +84,8 @@ export function SavedMealList({
   const chosen = meals ? activeSource(meals, source) : null;
   const shown = meals ? mealFilter(meals, "", chosen) : undefined;
   return (
-    <section aria-label={t("savedMeals")} data-list="meals">
-      <h3 className={`${sectionTitle} mb-1`}>{t("savedMeals")}</h3>
+    <section aria-label={tLists("myMeals")} data-list="meals">
+      <h3 className={`${sectionTitle} mb-1`}>{tLists("myMeals")}</h3>
       {sources.length >= 2 && <SourceChips sources={sources} value={chosen} onChange={onSource} />}
       {shown === undefined ? (
         unavailable && sayUnavailable && <p className={fieldHintClass}>{t("recentUnavailable")}</p>

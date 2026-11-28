@@ -1498,6 +1498,57 @@ Smaller things in the same batch:
 - **`editRecents`** writes nothing when no recent recipe changed. TanStack already kept the old object for an equal answer, so the gain is that no observer is told.
 - **Tests added by mutation**: the log form starts again for another recipe (`viewKey`), the foods are titled when only a recipe matches, a bound takes one decimal, the Recipes list's line is not said twice, the count is said when only a bound narrows the list. Each was seen red under its mutation.
 
+### After the owner's test (feedback round)
+
+Artur tested the round on his iPhone on 2026-11-24 and sent twelve changes. The orchestrator took the open decisions. Branch `fix/recipes-round-feedback`.
+
+- **The tab is the Library.** `shell.tabs.recipes` reads "Library", in the tab bar, the rail and the page title. The address stays `/recipes`, the segment stays Recipes, the icon stays. File names stay (`RecipesTab.tsx`, `docs/app/recipes.md`).
+- **One height for the segments, the action and the search field: 48 px.** `segmentedTrayFieldHeight` and `segmentButtonFieldHeight`: 2 px of padding round options drawn 42 px, pressed over the tray's 48. The padding needs `!`: the tray's own `p-1` wins otherwise, and the tray measured 52 px in the first browser run.
+- **Actions and titles.** New recipe, New meal, New food (`recipes.action.*`). Search: "Search my recipes", "Search my meals", "Search my foods". List titles: "My meals", "My foods" (`recipes.titles.*`). The sheets' own titles say the same since the copy round below, so `SavedMealSheet`'s `newTitle` and `OwnFoodSheet`'s `addTitle` are gone.
+- **Filter left the chip row.** `RecipeFilterButton`: a 48 px square after the search field, a funnel, in the accent with a corner badge (`cornerBadge`, absolute, 5 px over the corner) while a bound or a sort other than name is in force. The order and bounds moved from `RecipeList` state to `RecipesTab`, which also holds the sheet. They reset when the segment changes, as they did when the list unmounted with them. The chip row is `pageChipRow`, the page's whole width. `chipRowPinnedEnd`, `chipRowScroller` and `chipRowEnd` are gone. This settles the TODO item on Filter's place. At 1280 with 14 tags the chips take three lines, 156 px, where the pinned Filter cost a fourth.
+- **Edit is `btnCompact`**: 40 px tall, target 44. The target is placed from inside the 1 px edge, so it is `-inset-y-0.75`. `-inset-y-0.5` measured 42 px. The top row is 44 px.
+- **"Last on a day: Sun 22 Nov" is the page's last line.** It left the header with its kept room. It shows only for a recipe that has been on a day. As the last line, its coming moves nothing. The list row's "On a day Sat 21 Nov", under the order by the latest day, is unchanged.
+- **Servings row.** `stepperRow`, `stepperTitle`, `stepperGroup`, `stepperRevert`. The stepper is 214 px: a 44 px revert button whose room is always kept, the minus, a 56 px field and the plus, 6 px apart. A first cut at 232 px (48 px revert, 64 px field, 8 px gaps) wrapped at 360. At 214 the row is one line from 354 px of screen and wraps at 320, in every state. After a revert, focus goes to the minus, since the button hides. The page's name row is `min-h-11` at every width: with `min-h-10` the card moved 4 px on a phone when a page opened cold by its address got its star.
+- **Headings "Per serving" and "Total".** Artur asked for "Recipe" as the second heading. It is "Total" because the column is for the servings chosen. One rule in the three hosts: the as made sheet's "Whole batch" is "Total" too, and `wholeLabel` is gone. A heading is one line: its words sit in a flex box that ends at the column's end, so "Per serving", 74 px in a 52 px column on a phone, runs back over the empty corner. Text aligned right overflows to the right, which is why the box is a flex one. The live region still says "For 4 servings: ..." on a change.
+- **The page's end is 58 px, half of 116, under the date line only.** `PageContainer clearToast={summary?.lastPutOn ? "half" : "full"}`, and `--spacing-toast-clearance-half` is `calc(var(--spacing-toast-clearance) / 2)`. A recipe never on a day ends in Delete recipe, an action, so it keeps the whole room. Measured after the fix batch: never on a day, Delete recipe is clear of a one, two and three line toast at 320 and 390. With the date line, a one or two line toast covers only the line. A three-line toast (a long name at 320, 108 px) covers the bottom 13 px of Delete recipe's 44 px target. Accepted with the half room Artur asked for.
+- **The date line is gone.** Artur dropped "Last on a day" from the recipe's page on 2026-11-26: "just drop it, I really don't see the benefit for now". The page ends in Delete recipe, always over the half room (`clearToast="half"`), his earlier ask. Measured on a production build in dark at 320 by 568 and 390 by 844, page at its end: a one-line toast (60 px) covers the bottom 9 px of Delete recipe's 44 px target, a two-line toast (84 px) 33 px, a three-line toast (108 px) all 44. A toast stays 6 s from showing, paused while pointed at or focused. `lastPutOn` stays in the API, the tools and the Library's latest-day sort and row. The two bullets above describe the line as it was.
+
+**The log sheet follows the Library's names** (Artur, 2026-11-25). The rule: a label, button, section heading or sheet title that names one of the person's lists, or starts or edits an item in one, says what the Library says. A sentence addressed to the person keeps "your" and keeps "saved meal" as the thing's name. What an assistant reads is untouched.
+
+Changed, each in the catalog only:
+
+- `log.browse.savedMeals` "Saved meals" to "My meals": the log sheet's list and the heading over the meals a search finds.
+- `log.browse.newMeal` and `log.mealSheet.titleNew` "New saved meal" to "New meal".
+- `log.mealSheet.titleEdit` "Edit saved meal" to "Edit meal", in the log sheet and the Library.
+- `foods.sheet.ownFoods` "Your foods" to "My foods", in the log sheet and the recipe editor's food search.
+- `foods.sheet.addOwn` "Add your own food" and `foods.ownFood.titleAdd` "Add a food" to "New food".
+- `foods.detail.copyToOwn` "Copy to your foods" to "Copy to my foods".
+
+Keys: each sheet has one title key again, since the Library and the log sheet open the same sheet. The names the Library and the log sheet share are one key each, in the `lists` namespace: `lists.myMeals`, `lists.myFoods`, `lists.newRecipe`, `lists.newMeal`, `lists.newFood`. One key encodes "the log sheet follows the Library". They replaced `recipes.action.*`, `recipes.titles.*`, `log.browse.newMeal`, `log.browse.savedMeals`, `foods.sheet.addOwn` and `foods.sheet.ownFoods`. The Library's action reads its key by segment through literal calls, so the orphan sweep checks all three. The sheet titles (`log.mealSheet.titleNew`, `foods.ownFood.titleAdd`) stay their own keys.
+
+Left, as sentences:
+
+- The lines for a server out of reach: `recipes.mealsUnavailable`, `recipes.foodsUnavailable`, `log.browse.recentUnavailable`, `foods.sheet.listsUnavailable`, `log.archived.unavailable`.
+- Notices and hints: `log.mealGone`, `entries.sheet.mealGone`, `entries.sheet.foodGone`, `foods.barcode.lookUpHint`.
+- `foods.sheet.addQuery` "Add “rahka” as your own food", which says what happens to the typed text.
+- `log.results.mealCount` "1 saved meal found.", a status a screen reader hears.
+- Refusals: `errors.saved_meal_not_found`, `errors.barcode_taken`, `errors.food_read_only`.
+- Settings, Connected AI: `readHint`, `writeHint`, `readOnlyLine`, `consentRead.reads`, `consentWrite.reads`, `consentWrite.changes`.
+
+Chosen, and filed in TODO.md with the sentences: `foods.detail.sourceOwn` reads "My food", as Artur asked in the source line's own item. The heading over a search's meals reads "My meals" while the count says "saved meal".
+
+A phone's recipe row keeps "315 kcal · 22.3 g protein" with no "per serving": Artur said it is fine, and the TODO item is gone.
+
+Measured at 320, 360, 390 and 1280 in both themes. Scripts and numbers: the running report of the round. Card heights: 338 at 320, 290 at 360 and 390, 306 at 1280 (358 and 354 before).
+
+#### Fix batch after the branch's checks
+
+- Pressing the chosen Recipes segment again changes nothing (`choose` returns early). It used to drop the order and bounds and keep the chips. The roving keys already skipped the chosen segment.
+- The page gutter is `--page-pad-left` and `--page-pad-right` in `globals.css`, the safe-area insets plus 1rem, and from `md` 2rem on the left and the inset plus 2rem on the right. `PAGE_GUTTER_CLASS` and `pageChipRow` read them, so the chip row reaches the screen's edge on a phone held sideways. Portrait is unchanged to the pixel.
+- `EntryList` takes `when: "past" | "today" | "future" | null`. While today is not known the empty line keeps its room and says nothing. Seen with a day in the cache and no answer naming today yet.
+- `PageContainer clearToast` is `"full" | "half"`.
+- Filter's spoken name is "Filter, 2 on".
+
 ## R4a, as built
 
 Notes for R4b, the validation and the review. Where this section and f.5, f.6 or e.4 differ, this section is what the code does. Where a line here and "After the checks (fix round)" at its end differ, the fix round is what the code does.

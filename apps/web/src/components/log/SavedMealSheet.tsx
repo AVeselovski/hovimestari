@@ -46,7 +46,7 @@ import { useSavedMealDelete } from "./useSavedMealDelete";
 // ---------------------------------------------------------------------------
 // SavedMealSheet: a saved meal's name, where it comes from and its figures
 // for one meal. Stacked on the log sheet, which passes `logging`, or on its
-// own on the Recipes tab, which does not.
+// own in the Library, which does not.
 //
 // - New, with `logging`: "Save and log" (or "Save and add to plan" while Planned is chosen)
 //   saves the meal and logs one of it in one request, then both sheets close
@@ -63,7 +63,7 @@ import { useSavedMealDelete } from "./useSavedMealDelete";
 //   first, in a confirmation stacked on this sheet (`useSavedMealDelete`).
 //   On a delete this sheet closes itself, then tells the host, as every
 //   form sheet with a Delete does.
-// - `archive`, which only the Recipes tab passes: "Archive meal" or
+// - `archive`, which only the Library passes: "Archive meal" or
 //   "Restore meal" at the end of the form. The button turns in place, with
 //   focus kept on it. The sheet awaits the answer and keeps the meal's
 //   archived state itself, and a failure shows on its own error line.

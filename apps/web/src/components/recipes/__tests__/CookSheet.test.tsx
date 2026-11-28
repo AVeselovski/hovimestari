@@ -279,7 +279,10 @@ describe("CookSheet", () => {
       ]);
       // The recipe's own figures, and under them the recipe's serving as a line.
       expect(figureCells()).toEqual(cellsOf(recipe.perServing, recipe.whole));
-      expect(sheet().querySelector("[data-whole-heading]")).toHaveTextContent("Whole batch");
+      // The card's headings are the recipe page's and the editor's: one rule in every host.
+      expect(
+        [...sheet().querySelectorAll('[data-recipe-figures] thead th[scope="col"]')].map((th) => th.textContent),
+      ).toEqual(["Per serving", "Total"]);
       expect(sheet().querySelector("[data-recipe-serving]")).toHaveTextContent(
         "Recipe: 365 kcal · 21.8 g protein per serving",
       );

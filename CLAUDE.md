@@ -164,7 +164,7 @@ Process language (decision numbers, slice numbers, citations) belongs in `docs/d
 **The design direction is a working direction.** Artur confirmed it for now. Follow it as it stands and expect it to change:
 
 - **Identity carries over from the earlier app.** Nordic kitchen counter: warm paper background, dark forest-green ink, an oxblood accent. Display type is Fraunces, body type is Instrument Sans, figures and lists use JetBrains Mono. The palette values are in `docs/design/legacy-brief.md` under Design language. The dark theme is new and is designed with the first screens.
-- **Layout follows a four-tab phone shell**, in the manner of the reference screens from the pivot conversation: a day or plan tab, a recipes tab, a groceries tab and settings. Below the `md` breakpoint, dialogs are bottom sheets.
+- **Layout follows a four-tab phone shell**, in the manner of the reference screens from the pivot conversation: a day or plan tab, a library tab holding recipes, meals and foods, a groceries tab and settings. Below the `md` breakpoint, dialogs are bottom sheets.
 - **No gradients, no glass effects, no decorative shadows.**
 - **Hue carries meaning, and nothing else borrows a meaning's hue.** Energy, protein, carbohydrates and fat each get one hue, chosen in the first UI design doc and listed in `docs/app/colors.md`. From then on no decorative surface uses those hues. Selection uses the accent, because selected is not the same as on target.
 - **A gauge states a position, never a verdict.** A day under its protein floor is shown as a distance, not as a failure. No red for "over" and no green for "good". This is the no-advice rule in visual form.

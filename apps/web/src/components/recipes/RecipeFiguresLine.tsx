@@ -13,7 +13,7 @@ import { useRecipeMeta } from "./useRecipeMeta";
 // each figure after its dot in the macro's hue, in the monospaced face. The
 // line keeps one line at every width, so rows with names of one length are
 // one height: on a phone it reads "365 kcal" and "21.8 g protein", and from
-// `md` it ends "per serving". Read aloud it always does. The Recipes tab's
+// `md` it ends "per serving". Read aloud it always does. The Library's
 // rows and the log sheet's recipe rows both draw it.
 //
 // A word is never cut. The two figures and the words after them are three

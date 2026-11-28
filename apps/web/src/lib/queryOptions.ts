@@ -191,7 +191,7 @@ export function savedMealsQuery(archived: boolean) {
 }
 
 /**
- * The user's recipes: the active ones, or the archived ones. The Recipes tab
+ * The user's recipes: the active ones, or the archived ones. The Library
  * filters and sorts them on the device, so one read serves every search,
  * chip and sort, and the log sheet's Recipes list and its search too. Their figures follow their foods, so a food write reads
  * them again.

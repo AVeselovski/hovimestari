@@ -16,7 +16,7 @@ Saved meals are listed in Finnish alphabetical order, where å, ä and ö come a
 
 ### Saving and logging a meal
 
-[The log sheet](../app/log-sheet.md) logs saved meals, and [the Recipes tab](../app/recipes.md) keeps them. In the log sheet a new meal is saved and logged in one action, so a delivered lunch typed in once is in the day and in the saved meals. It can also be saved without logging there. The Recipes tab has no day, so a new meal there is saved only. One press on a meal's **+** logs it again with its last count, or one meal when it was never eaten. Opened, a meal logs any number of meals, eaten or planned.
+[The log sheet](../app/log-sheet.md) logs saved meals, and [the Library](../app/recipes.md) keeps them. In the log sheet a new meal is saved and logged in one action, so a delivered lunch typed in once is in the day and in the saved meals. It can also be saved without logging there. The Library has no day, so a new meal there is saved only. One press on a meal's **+** logs it again with its last count, or one meal when it was never eaten. Opened, a meal logs any number of meals, eaten or planned.
 
 An edit changes the meal everywhere it is listed. Its planned entries from today on take the new figures, and every other entry keeps [the figures it was added with](days.md#figures-that-stay).
 
@@ -42,7 +42,7 @@ Archiving a saved meal moves it from the list to the archived list. An archived 
 
 A saved meal can be edited and deleted. Editing or deleting one that days use follows the rules for figures that stay. Days it was logged on keep their figures after a delete.
 
-The meal's edit sheet has **Delete** in its footer wherever it opens, and it asks first. In the log sheet the meal view has **Delete meal** too. Both run one delete. A meal already deleted on another device counts as deleted. On the Recipes tab the edit sheet also has **Archive meal**, or **Restore meal** for an archived one, at the end of its form. The button turns in place, and a failure shows on the sheet's error line. In the log sheet the meal view archives instead.
+The meal's edit sheet has **Delete** in its footer wherever it opens, and it asks first. In the log sheet the meal view has **Delete meal** too. Both run one delete. A meal already deleted on another device counts as deleted. In the Library the edit sheet also has **Archive meal**, or **Restore meal** for an archived one, at the end of its form. The button turns in place, and a failure shows on the sheet's error line. In the log sheet the meal view archives instead.
 
 ## How it works
 
@@ -56,7 +56,7 @@ The web app reads the list once and filters it on the device (`apps/web/src/comp
 
 ### Writes from the web app
 
-The log sheet and the Recipes tab send every saved meal write, through the same sheet and the same helpers. While the app asks the server for today, a write waits, as on the Day tab. Each puts its own answer into the cached lists and the recent items in place first, through `apps/web/src/lib/mealCache.ts`, so no row moves under the thumb, then reads again what only the server knows, through the functions in `apps/web/src/lib/invalidation.ts`.
+The log sheet and the Library send every saved meal write, through the same sheet and the same helpers. While the app asks the server for today, a write waits, as on the Day tab. Each puts its own answer into the cached lists and the recent items in place first, through `apps/web/src/lib/mealCache.ts`, so no row moves under the thumb, then reads again what only the server knows, through the functions in `apps/web/src/lib/invalidation.ts`.
 
 - **Save and log** sends `POST /saved-meals/log`, and **Save meal** `POST /saved-meals`, each with the ids made as the sheet opened. Save and log is [an add](quick-logging.md#writes-from-the-web-app): its day goes into the cache from the answer. The saved meals are then read again, for the new meal's place in the Finnish order. A **Save meal** that could not confirm reads the saved meals again.
 - **Pressed again after a save that could not confirm**, with the form changed, the sheet first brings what the earlier send may have written up to date (`apps/web/src/components/log/mealSends.ts`). It sends `PUT /saved-meals/:id` when the meal changed, where a 404 means nothing landed, since the meal and its entry are one transaction. It sends `DELETE /entries/:id`, through `withdrawAdd`, when an entry from an earlier Save and log would keep figures or a state the press no longer asks for. The entry takes a new id only when the `DELETE` removed one. A 404 keeps the id, so an earlier request that lands after the press replays it. Then the press itself is sent.
@@ -93,4 +93,4 @@ Requirements: FR-MEAL-01 to FR-MEAL-04 (requirements 3.6)
 ## Where it appears
 
 - [The log sheet](../app/log-sheet.md): the saved meals while browsing and in the results, with their source chips, each logged again in one press or opened to log a number of meals. A new meal saved alone or saved and logged in one request, an edit, archiving, restoring and deleting, and the archived meals.
-- [The Recipes tab](../app/recipes.md): the Meals segment, with the saved meals and the archived meals in one list each, a search over their names and sources, a new meal saved without logging, and an edit, archiving, restoring and deleting from the meal's edit sheet.
+- [The Library](../app/recipes.md): the Meals segment, with the saved meals and the archived meals in one list each, a search over their names and sources, a new meal saved without logging, and an edit, archiving, restoring and deleting from the meal's edit sheet.

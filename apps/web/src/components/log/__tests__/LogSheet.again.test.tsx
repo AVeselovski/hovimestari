@@ -97,7 +97,7 @@ describe("The log sheet's lists", () => {
     const dialog = await openLogSheet();
     expect(within(dialog).getByRole("region", { name: "Recent" })).toHaveTextContent("Last 250 g");
     expect(within(dialog).getByRole("region", { name: "Favourites" })).toHaveTextContent("Last 80 g");
-    expect(within(dialog).getByRole("region", { name: "Your foods" })).toHaveTextContent("Rye bread");
+    expect(within(dialog).getByRole("region", { name: "My foods" })).toHaveTextContent("Rye bread");
     expect(getRecents).toHaveBeenCalledTimes(1);
     expect(getFavouriteFoods).toHaveBeenCalledTimes(1);
     expect(getOwnFoods).toHaveBeenCalledTimes(1);

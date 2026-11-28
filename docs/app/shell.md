@@ -6,7 +6,7 @@ The frame every signed-in screen sits in: a page title at the top of most tabs, 
 
 ### The tabs
 
-**Day** opens first, at `/`. **Recipes**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. The **Day** tab leads back to the day it last showed, and pressed on the Day tab it goes to today, as [Coming back to the tab](day.md#coming-back-to-the-tab) says. [Day](day.md) shows one day, its summary and its entries. [Recipes](recipes.md) keeps the recipes, the saved meals and your own foods, and [a recipe's page](recipe.md), at `/recipes/<id>`, is under the Recipes tab too. Groceries says "Nothing here yet.".
+**Day** opens first, at `/`. **Library**, **Groceries** and **Settings** follow. The current tab is drawn in the accent colour. The **Day** tab leads back to the day it last showed, and pressed on the Day tab it goes to today, as [Coming back to the tab](day.md#coming-back-to-the-tab) says. [Day](day.md) shows one day, its summary and its entries. [Library](recipes.md), at `/recipes`, keeps the recipes, the saved meals and your own foods, and [a recipe's page](recipe.md), at `/recipes/<id>`, is under the Library too. Groceries says "Nothing here yet.".
 
 ### The header
 
@@ -62,7 +62,7 @@ No signed-in page puts user data in its server-rendered HTML. Each renders on th
 - The rail's wordmark sits on the page title's baseline.
 - A page's own header that stays in view while the page scrolls, such as the Day tab's, sits at z-index 20, inside `<main>`. The header, the tab bar and the rail sit at 30, the toast at 40, and the sheets at 50. The ladder is in `apps/web/src/components/ui/styles.ts`.
 - The tab bar's cell height is the token `--spacing-tab-bar`, which the toast's place above it reads too.
-- The room a page keeps at its end for a toast is the token `--spacing-toast-clearance`, which `PageContainer` takes with `clearToast`.
+- The room a page keeps at its end for a toast is the token `--spacing-toast-clearance`, which `PageContainer` takes with `clearToast="full"`. `--spacing-toast-clearance-half` is half of it, for `clearToast="half"`.
 
 `tabs.ts` lists the four tabs, their paths and icons, and `tabOf()` names the tab a path belongs to.
 
@@ -103,7 +103,7 @@ Every form sheet runs `describeFormSheetContract` from `apps/web/src/__tests__/f
 
 ### Safe areas
 
-The header pads by `--safe-top` and the side insets, the tab bar by `--safe-bottom` and the side insets, the rail by `--safe-top` and `--safe-left`, the page gutter by the side insets, and a sheet's footer by `--safe-bottom`. The tokens come from `globals.css`, which is the only file that reads the device's insets.
+The header pads by `--safe-top` and the side insets, the tab bar by `--safe-bottom` and the side insets, the rail by `--safe-top` and `--safe-left`, the page gutter by the side insets (`--page-pad-left` and `--page-pad-right`, which a page's chip row bleeds through), and a sheet's footer by `--safe-bottom`. The tokens come from `globals.css`, which is the only file that reads the device's insets.
 
 ### Data and refresh
 

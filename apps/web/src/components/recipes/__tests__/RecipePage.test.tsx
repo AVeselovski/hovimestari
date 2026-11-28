@@ -5,12 +5,14 @@ import { FakeDays, recordToasts, seededClient, serve } from "@/components/day/__
 import { TODAY } from "@/components/day/__tests__/support";
 import { detailOf, fineliFood } from "@/components/foods/__tests__/support";
 import { TodayProvider } from "@/components/targets/TodayProvider";
+import { PAGE_TOAST_END_HALF_CLASS } from "@/components/ui/PageContainer";
+import { btnCompact, stepperGroup } from "@/components/ui/styles";
 import { ToastProvider, ToastRegion } from "@/components/ui/Toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { TodayContext } from "@/hooks/useToday";
 import { getFavouriteFoods, getFood, getOwnFoods, searchFoods } from "@/lib/api/foods";
 import { deleteRecipe, getRecipe, setRecipeArchived, setRecipeFavourite } from "@/lib/api/recipes";
-import { addDays, formatDayShort } from "@/lib/localDate";
+import { addDays } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import { recipeSummaryOf } from "@/lib/recipeCache";
 import type { Recipe, RecipeList } from "@hovimestari/types";
@@ -123,12 +125,17 @@ function figureRows(): string[][] {
     [...tr.children].map((cell) => (cell.textContent ?? "").replace(/\s+/g, " ").trim()),
   );
 }
-const heading = () => document.querySelector("[data-whole-heading]")!.textContent;
+/** The card's two column headings, which never change: one serving, then the total for the servings shown. */
+const headings = () =>
+  [...document.querySelectorAll('[data-recipe-figures] thead th[scope="col"]')].map((th) => th.textContent);
+const HEADINGS = ["Per serving", "Total"];
+/** The stepper's controls, in order: the revert button, the minus, the number and the plus. */
+const stepperParts = () => [...document.querySelector("[data-stepper-row]")!.lastElementChild!.children];
 const lineAmounts = () =>
   [...document.querySelectorAll("[data-ingredient-rows] li")].map((li) => li.textContent?.replace(/\s+/g, " ").trim());
 
 describe("The recipe page", () => {
-  it("shows the server's figures per serving and for the whole recipe, the lines, the method and the notes", async () => {
+  it("shows the server's figures per serving and in total, the lines, the method and the notes", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { level: 2, name: "Shakshuka" })).toBeInTheDocument();
     await waitFor(() => expect(lineAmounts()).toHaveLength(5));
@@ -139,7 +146,7 @@ describe("The recipe page", () => {
       ["CarbsCarbohydrates g", "9.9 g", "19.7 g"],
       ["Fat g", "25.7 g", "51.4 g"],
     ]);
-    expect(heading()).toBe("Whole recipe");
+    expect(headings()).toEqual(HEADINGS);
     expect(screen.getByText("Serves 2")).toBeInTheDocument();
     expect(lineAmounts()).toEqual([
       "Kananmuna240 g",
@@ -162,8 +169,15 @@ describe("The recipe page", () => {
   it("scales the lines and the figures with the stepper, from the basis, and goes back to the recipe's servings", async () => {
     renderPage();
     await waitFor(() => expect(lineAmounts()).toHaveLength(5));
+    // Nothing to go back to yet: the revert button keeps its room, unseen, unnamed and out of the Tab order.
+    const [revert, minus, number, plus] = stepperParts();
+    expect(revert).toHaveAttribute("aria-hidden", "true");
+    expect(revert).toHaveAttribute("tabindex", "-1");
+    expect(revert.classList.contains("invisible")).toBe(true);
+    expect(screen.queryByRole("button", { name: /^Back to/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "More servings" }));
-    expect(heading()).toBe("For 3 servings");
+    // The headings say the same at every number of servings.
+    expect(headings()).toEqual(HEADINGS);
     // Three servings from the basis: 1095 kcal and 65.3 g, never 65.4, three times the rounded serving.
     expect(figureRows().map((r) => r[2])).toEqual(["1095 kcal", "65.3 g", "29.6 g", "77.1 g"]);
     expect(figureRows().map((r) => r[1])).toEqual(["365 kcal", "21.8 g", "9.9 g", "25.7 g"]);
@@ -173,23 +187,37 @@ describe("The recipe page", () => {
       "Feta90 g",
       "Oliiviöljy22.5 g",
     ]);
-    const back = screen.getByRole("button", { name: "Back to 2" });
+    // The button says what it does, and is the element whose room was kept, before the same minus, number and plus.
+    const back = screen.getByRole("button", { name: "Back to 2 servings" });
+    expect(back).toBe(revert);
+    expect(back.classList.contains("invisible")).toBe(false);
+    expect(back).not.toHaveAttribute("aria-hidden");
+    expect(stepperParts()).toEqual([revert, minus, number, plus]);
+    back.focus();
     fireEvent.click(back);
-    expect(heading()).toBe("Whole recipe");
+    expect(headings()).toEqual(HEADINGS);
     expect(figureRows().map((r) => r[2])).toEqual(["730 kcal", "43.6 g", "19.7 g", "51.4 g"]);
     expect(lineAmounts()[0]).toBe("Kananmuna240 g");
+    // It hides again in place, and focus goes to the minus beside it, never to the page.
+    expect(stepperParts()).toEqual([revert, minus, number, plus]);
+    expect(revert.classList.contains("invisible")).toBe(true);
+    expect(minus).toHaveFocus();
   });
 
   it("takes a typed number of servings, and keeps the last whole number while the field holds anything else", async () => {
     renderPage();
     await waitFor(() => expect(lineAmounts()).toHaveLength(5));
     const field = screen.getByLabelText("Servings") as HTMLInputElement;
+    const totals = () => figureRows().map((r) => r[2]);
+    const own = totals();
     fireEvent.change(field, { target: { value: "4" } });
-    expect(heading()).toBe("For 4 servings");
+    expect(totals()).toEqual(["1460 kcal", "87.1 g", "39.5 g", "102.8 g"]);
+    expect(screen.getByRole("button", { name: "Back to 2 servings" })).toBeInTheDocument();
     fireEvent.change(field, { target: { value: "" } });
-    expect(heading()).toBe("Whole recipe");
+    expect(totals()).toEqual(own);
     fireEvent.change(field, { target: { value: "101" } });
-    expect(heading()).toBe("Whole recipe");
+    expect(totals()).toEqual(own);
+    expect(headings()).toEqual(HEADINGS);
     fireEvent.blur(field);
     expect(field.value).toBe("2");
   });
@@ -237,7 +265,7 @@ describe("The recipe page", () => {
     }
   });
 
-  it("asks before a delete, then leaves for the Recipes tab", async () => {
+  it("asks before a delete, then leaves for the Library", async () => {
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Delete recipe" }));
     const confirm = await screen.findByRole("dialog", { name: "Delete Shakshuka?" });
@@ -294,29 +322,39 @@ describe("The recipe page", () => {
     expect(screen.getByRole("button", { name: "Archive recipe" })).toBeInTheDocument();
   });
 
-  it("shows the day in its header after planning from the page, and takes it away on Undo", async () => {
-    renderPage();
+  it("ends in Delete recipe over half a toast's room, with no date line, before and after the recipe is on a day", async () => {
+    const client = renderPage();
     const saturday = addDays(TODAY, 5);
-    const line = `On a day ${formatDayShort(saturday, undefined, TODAY)}`;
-    const onDay = () => document.querySelector("[data-recipe-on-day]");
     const log = await screen.findByRole("button", { name: "Log" });
     await waitFor(() => expect(lineAmounts()).toHaveLength(5));
-    // The line's room is there before the recipe is on a day, so nothing under it moves when it shows.
-    expect(onDay()).not.toBeNull();
-    expect(onDay()!.textContent).toBe("");
+    const page = document.querySelector("[data-recipe-page]")!;
+    // The page's end room: its padding classes on the container around the page.
+    const endRoom = () =>
+      [...page.closest(".pb-toast-clearance, .pb-toast-clearance-half, .pb-12")!.classList].filter((c) =>
+        c.startsWith("pb-"),
+      );
+    const endsInDelete = () =>
+      expect(page.lastElementChild).toContainElement(screen.getByRole("button", { name: "Delete recipe" }));
+    // A recipe never on a day.
+    expect(client.getQueryData<Recipe>(queryKeys.recipeDetail(shak.id))?.lastPutOn).toBeNull();
+    endsInDelete();
+    expect(page).not.toHaveTextContent(/on a day/i);
+    expect(endRoom()).toEqual([PAGE_TOAST_END_HALF_CLASS]);
     fireEvent.click(log);
     const sheet = await screen.findByRole("dialog", { name: "Log Shakshuka" });
     fireEvent.change(within(sheet).getByLabelText("Date"), { target: { value: saturday } });
     const add = within(sheet).getByRole("button", { name: "Add to plan" });
     await waitFor(() => expect(add).not.toHaveAttribute("aria-disabled"));
     fireEvent.click(add);
-    await waitFor(() => expect(onDay()!.textContent).toBe(line));
-    fireEvent.click(await screen.findByRole("button", { name: "Undo" }));
-    await waitFor(() => expect(days.entries).toHaveLength(0));
-    await waitFor(() => expect(onDay()!.textContent).toBe(""));
+    // The page reads the recipe again and now holds a latest day, and still shows none, in the same room.
+    await waitFor(() => expect(client.getQueryData<Recipe>(queryKeys.recipeDetail(shak.id))?.lastPutOn).toBe(saturday));
+    endsInDelete();
+    expect(page).not.toHaveTextContent(/on a day/i);
+    expect(document.querySelector("[data-recipe-on-day]")).toBeNull();
+    expect(endRoom()).toEqual([PAGE_TOAST_END_HALF_CLASS]);
   });
 
-  it("goes back to the Recipes tab from a page opened by its address", async () => {
+  it("goes back to the Library from a page opened by its address", async () => {
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Back" }));
     expect(router.push).toHaveBeenCalledWith("/recipes");
@@ -447,10 +485,13 @@ describe("The recipe page", () => {
         expect(tokens(unit)).not.toContain("md:hidden");
       }
     }
-    // Back keeps Edit's height, so Edit arriving with the recipe moves nothing under it.
+    // The row is as tall as Back, and Edit is lower, so Edit arriving with the recipe moves nothing under it.
     const topRow = screen.getByRole("button", { name: "Back" }).parentElement!;
-    expect(tokens(topRow)).toContain("min-h-12");
-    expect(tokens(screen.getByRole("button", { name: "Edit" }))).toContain("h-12");
+    expect(tokens(topRow)).toContain("min-h-11");
+    expect(tokens(screen.getByRole("button", { name: "Back" }))).toContain("min-h-11");
+    // Edit is the compact button: drawn 40px tall and pressed over 44, measured in a browser.
+    const edit = screen.getByRole("button", { name: "Edit" });
+    expect(tokens(edit)).toEqual(btnCompact.split(" "));
   });
 
   it("keeps the shell's title as the one level 1 heading, and names the browser's title after the recipe", async () => {
@@ -540,16 +581,17 @@ describe("The recipe page", () => {
     const fewer = screen.getByRole("button", { name: "Fewer servings" });
     fewer.focus();
     fireEvent.click(fewer);
-    expect(heading()).toBe("For 1 serving");
+    expect(figureRows().map((r) => r[2])).toEqual(figureRows().map((r) => r[1]));
     // At its limit the button says so and stays a button focus can be on.
     expect(fewer).toHaveAttribute("aria-disabled", "true");
     expect(fewer).not.toBeDisabled();
     expect(fewer).toHaveFocus();
     fireEvent.click(fewer);
-    expect(heading()).toBe("For 1 serving");
+    expect(headings()).toEqual(HEADINGS);
+    // Aloud, the total names its servings.
     expect(said()).toBe("For 1 serving: 365 kcal, 21.8 g protein, 9.9 g carbohydrates, 25.7 g fat.");
     fireEvent.click(screen.getByRole("button", { name: "More servings" }));
-    expect(said()).toBe("Whole recipe: 730 kcal, 43.6 g protein, 19.7 g carbohydrates, 51.4 g fat.");
+    expect(said()).toBe("For 2 servings: 730 kcal, 43.6 g protein, 19.7 g carbohydrates, 51.4 g fat.");
   });
 
   it("keeps the stepper's room in the card while the recipe is read cold, and says the card is busy", async () => {
@@ -557,7 +599,12 @@ describe("The recipe page", () => {
     renderPage();
     const card = document.querySelector("[data-recipe-figures]")!;
     expect(card).toHaveAttribute("aria-busy", "true");
-    expect(card.querySelector("[data-stepper-room]")).not.toBeNull();
+    // The room is the stepper's row, unseen: its title and the stepper's width, so it wraps as the row will.
+    const room = card.querySelector("[data-stepper-room]")!;
+    expect(room).toHaveAttribute("aria-hidden", "true");
+    expect(room.classList.contains("invisible")).toBe(true);
+    expect(room.textContent).toBe("Servings");
+    expect(room.lastElementChild!.className).toBe(stepperGroup);
     // The live region is there already, empty.
     expect(card.querySelector("[data-figures-said]")!.textContent).toBe("");
     expect(card.querySelectorAll("tbody tr")).toHaveLength(4);

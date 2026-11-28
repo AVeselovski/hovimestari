@@ -91,7 +91,7 @@ describe("the create sheet", () => {
     expect(dialog).toHaveTextContent("It cannot delete your foods or saved meals.");
     // No promise of an approval the app does not have yet.
     expect(dialog).not.toHaveTextContent("asks you first");
-    expect(dialog).not.toHaveTextContent("Recipes tab");
+    expect(dialog).not.toHaveTextContent("Library");
 
     const select = within(dialog).getByLabelText("Key expires after");
     fireEvent.change(select, { target: { value: "365" } });

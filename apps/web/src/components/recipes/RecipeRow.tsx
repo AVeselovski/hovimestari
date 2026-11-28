@@ -11,7 +11,7 @@ import { RecipeFiguresLine } from "./RecipeFiguresLine";
 import { useRecipeMeta } from "./useRecipeMeta";
 
 // ---------------------------------------------------------------------------
-// RecipeRow: one recipe in the Recipes tab's list, a link to its page, at
+// RecipeRow: one recipe in the Library's list, a link to its page, at
 // least 56 pixels tall. Its name, two lines at most, then "Serves 2 · 25 min",
 // then one serving's calories and protein, each figure after its dot in the
 // macro's hue, in the monospaced face. The figures keep one line at every

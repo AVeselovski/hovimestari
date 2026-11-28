@@ -3,7 +3,7 @@ import { dayEntriesActions } from "@/components/ui/styles";
 import type { EntryActions } from "@/hooks/useEntryActions";
 import type { Entry } from "@hovimestari/types";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { EntryList } from "../EntryList";
+import { EntryList, type DayWhen } from "../EntryList";
 import { TODAY, dayOf, fakeEntryActions, foodEntry, recipeEntry } from "./support";
 
 // ---------------------------------------------------------------------------
@@ -18,11 +18,11 @@ const head = () => document.querySelector<HTMLElement>("[data-entries-head]")!;
 const copy = () => screen.getByRole("button", { name: "Copy" });
 const tokens = (el: Element) => el.className.split(/\s+/);
 
-function list(entries: Entry[], overrides: { future?: boolean; actions?: EntryActions; onCopy?: jest.Mock } = {}) {
+function list(entries: Entry[], overrides: { when?: DayWhen | null; actions?: EntryActions; onCopy?: jest.Mock } = {}) {
   return (
     <EntryList
       entries={entries}
-      future={overrides.future ?? false}
+      when={overrides.when === undefined ? "today" : overrides.when}
       actions={overrides.actions ?? fakeEntryActions()}
       onOpen={jest.fn()}
       onCopy={overrides.onCopy ?? jest.fn()}
@@ -58,7 +58,7 @@ describe("EntryList, Copy", () => {
   });
 
   it("shows on a future day with planned entries, where Mark all eaten does not", () => {
-    render(list([foodEntry("Oats", 80, { status: "planned" })], { future: true }));
+    render(list([foodEntry("Oats", 80, { status: "planned" })], { when: "future" }));
     expect(copy()).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Mark all eaten" })).toBeNull();
   });
@@ -67,7 +67,7 @@ describe("EntryList, Copy", () => {
     const { rerender } = render(list([]));
     expect(screen.queryByRole("button", { name: "Copy" })).toBeNull();
     rerender(
-      <EntryList entries={null} future={false} actions={fakeEntryActions()} onOpen={jest.fn()} onCopy={jest.fn()} />,
+      <EntryList entries={null} when="today" actions={fakeEntryActions()} onOpen={jest.fn()} onCopy={jest.fn()} />,
     );
     expect(screen.queryByRole("button", { name: "Copy" })).toBeNull();
   });
@@ -83,6 +83,35 @@ describe("EntryList, Copy", () => {
     expect(copy()).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(copy());
     expect(onCopy).not.toHaveBeenCalled();
+  });
+});
+
+describe("EntryList, an empty day", () => {
+  beforeEach(() => clockFrom(`${TODAY}T12:00:00Z`));
+  afterEach(() => jest.restoreAllMocks());
+
+  it("says Nothing logged. before today, Nothing logged yet. today and Nothing planned yet. ahead", () => {
+    const { rerender } = render(list([], { when: "past" }));
+    expect(screen.getByText("Nothing logged.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing logged yet.")).toBeNull();
+    rerender(list([]));
+    expect(screen.getByText("Nothing logged yet.")).toBeInTheDocument();
+    rerender(list([], { when: "future" }));
+    expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
+  });
+
+  it("keeps the empty line's room and says nothing while today is not known", () => {
+    render(list([], { when: null }));
+    const line = document.querySelector("[data-entries-empty]");
+    expect(line).not.toBeNull();
+    expect(line).toHaveTextContent(/^$/);
+  });
+
+  it("centres its one line under the heading, logged or planned", () => {
+    const { rerender } = render(list([]));
+    expect(tokens(screen.getByText("Nothing logged yet."))).toContain("text-center");
+    rerender(list([], { when: "future" }));
+    expect(tokens(screen.getByText("Nothing planned yet."))).toContain("text-center");
   });
 });
 

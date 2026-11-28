@@ -2,19 +2,20 @@ import { fakeAuth } from "@/__tests__/helpers/auth";
 import { deferred } from "@/__tests__/helpers/queryClient";
 import { getSheetBackdrop, pressOutsideSheet } from "@/__tests__/sheet";
 import { TODAY } from "@/components/day/__tests__/support";
-import { chipOff, chipOn, chipRowEnd } from "@/components/ui/styles";
+import { cornerBadge, iconButtonBesideField, iconButtonOff, iconButtonOn, pageChipRow } from "@/components/ui/styles";
 import { useAuth } from "@/contexts/AuthContext";
 import { getRecipes as getRecipesApi } from "@/lib/api/recipes";
 import { formatDayShort } from "@/lib/localDate";
 import { readListPlace } from "@/lib/recipeNav";
 import { filterRecipes, sortRecipes, type Recipe, type RecipeList } from "@hovimestari/types";
-import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { RecipeFilterButton } from "../RecipeFilterButton";
 import { EGG, FETA, OIL, recipeOf, TOMATO } from "./recipeFixtures";
 import { FakeRecipes, serveRecipes } from "./recipeServer";
 import { pinClock, renderRecipes, serveFoods, serveMeals } from "./recipesHarness";
 
-// The Recipes tab's filter sheet and sorts: the Filter chip and its count,
-// the draft the sheet holds, Clear, the bounds and the orders, the row's
+// The Library's filter sheet and sorts: Filter beside the search field and
+// its count, the chip row it left, the draft the sheet holds, Clear, the bounds and the orders, the row's
 // third line, and the filter kept on the way to a recipe and back. The list
 // is filtered and sorted by the shared functions, so every expected list
 // here is what those functions give for the same recipes.
@@ -127,7 +128,11 @@ const recipeNames = () =>
 /** What the shared filter and sort give for the server's recipes: the list the screen must show. */
 const expected = (filter: Parameters<typeof filterRecipes>[1], sort: Parameters<typeof sortRecipes>[1]) =>
   sortRecipes(filterRecipes(summaries(), filter), sort).map((r) => r.name);
-const filterChip = () => document.querySelector<HTMLElement>("[data-recipe-filter]")!;
+const filterButton = () => document.querySelector<HTMLElement>("[data-recipe-filter]")!;
+/** The count on Filter's corner, or null while nothing is in force. */
+const filterCount = () => filterButton().querySelector("[data-recipe-filter-count]")?.textContent ?? null;
+const searchRow = () => document.querySelector<HTMLElement>("[data-recipes-search-row]")!;
+const chipRow = () => document.querySelector<HTMLElement>("[data-recipe-chips]")!;
 const sheet = () => screen.getByRole("dialog", { name: "Filter recipes" });
 const sheetOpen = () => document.querySelector('[role="dialog"][data-open]') !== null;
 const sortSelect = () => within(sheet()).getByLabelText("Sort by") as HTMLSelectElement;
@@ -143,43 +148,110 @@ async function renderLoaded(client?: Parameters<typeof renderRecipes>[0]): Promi
 }
 
 async function openFilter(): Promise<void> {
-  fireEvent.click(filterChip());
+  fireEvent.click(filterButton());
   await screen.findByRole("dialog", { name: "Filter recipes" });
 }
 
-describe("The Filter chip", () => {
-  it("ends the chip row from the first frame, reads Filter and is not chosen while nothing is in force", () => {
+describe("Filter, beside the search field", () => {
+  it("ends the search row from the first frame, named Filter and plain while nothing is in force", () => {
     jest.mocked(getRecipesApi).mockReturnValueOnce(new Promise(() => {}));
     renderRecipes();
-    const row = document.querySelector<HTMLElement>("[data-recipe-chips]")!;
-    const chips = within(row).getAllByRole("button");
-    expect(chips.at(-1)).toBe(filterChip());
-    expect(filterChip()).toHaveAccessibleName("Filter");
-    expect(filterChip()).toHaveAttribute("aria-haspopup", "dialog");
-    expect(has(filterChip(), chipOff)).toBe(true);
-    expect(has(filterChip(), chipOn)).toBe(false);
+    // The row's two children: the search field, which takes the row, then Filter.
+    expect([...searchRow().children]).toHaveLength(2);
+    expect(searchRow().firstElementChild).toContainElement(screen.getByLabelText("Search my recipes"));
+    expect(searchRow().lastElementChild).toBe(filterButton());
+    expect(filterButton()).toHaveAccessibleName("Filter");
+    expect(filterButton()).toHaveAttribute("aria-haspopup", "dialog");
+    expect(has(filterButton(), iconButtonOff)).toBe(true);
+    expect(has(filterButton(), iconButtonOn)).toBe(false);
+    expect(filterCount()).toBeNull();
   });
 
-  it("stays outside the chips that scroll or wrap, so it keeps its place however many tags there are", async () => {
+  it("leaves the chip row to the chips: one group across the page, which scrolls on a phone and wraps from md", async () => {
     await renderLoaded();
-    const row = document.querySelector<HTMLElement>("[data-recipe-chips]")!;
-    // The row's two children: the chips that scroll on a phone, then Filter.
-    expect([...row.children]).toEqual([row.firstElementChild, filterChip()]);
-    // "Show only" names the chips that narrow the list. Filter opens a dialog, so it stands outside that group.
-    const group = screen.getByRole("group", { name: "Show only" });
-    expect(group).toBe(row.firstElementChild);
-    expect(group.contains(filterChip())).toBe(false);
-    expect(row).not.toHaveAttribute("role");
-    expect(row.firstElementChild!.className.split(/\s+/)).toEqual(
-      expect.arrayContaining(["overflow-x-auto", "flex-1", "md:flex-wrap"]),
-    );
-    // One width with and without its count, so a count that comes and goes moves no chip.
-    expect(has(filterChip(), chipRowEnd)).toBe(true);
+    // "Show only" names the chips that narrow the list. Filter opens a dialog, and is not one of them.
+    expect(screen.getByRole("group", { name: "Show only" })).toBe(chipRow());
+    expect(chipRow().contains(filterButton())).toBe(false);
     expect(
-      within(row.firstElementChild as HTMLElement)
+      within(chipRow())
         .getAllByRole("button")
         .map((b) => b.textContent),
     ).toEqual(["Favourites", "Breakfast"]);
+    // Every child of the row is a chip: nothing is pinned at its end to cut one.
+    expect([...chipRow().children].every((child) => child.tagName === "BUTTON")).toBe(true);
+    expect(has(chipRow(), pageChipRow)).toBe(true);
+  });
+
+  it("is one box plain, in force and with a two-digit count: the count hangs on its corner, out of its flow", async () => {
+    await renderLoaded();
+    const box = (el: Element) => [...el.classList].filter((token) => iconButtonBesideField.split(" ").includes(token));
+    const plain = box(filterButton());
+    expect(plain).toEqual(iconButtonBesideField.split(" "));
+    await openFilter();
+    type("Protein at least", "10");
+    show();
+    await waitFor(() => expect(filterCount()).toBe("1"));
+    // The same element, with the same box recipe, and the chip row where it was in the page's order.
+    expect(box(filterButton())).toEqual(plain);
+    const badge = filterButton().querySelector("[data-recipe-filter-count]")!;
+    expect(has(badge, cornerBadge)).toBe(true);
+    expect(badge).toHaveAttribute("aria-hidden", "true");
+    // A count of any length is drawn by the same button.
+    const alone = render(<RecipeFilterButton inForce={12} onOpen={() => {}} />);
+    const wide = within(alone.container).getByRole("button", { name: "Filter, 12 on" });
+    expect(box(wide)).toEqual(plain);
+    expect(wide.querySelector("[data-recipe-filter-count]")).toHaveTextContent("12");
+    alone.unmount();
+  });
+
+  it("is on the Recipes segment only, and the search row is the same element on every segment", async () => {
+    serveFoods([]);
+    serveMeals([]);
+    await renderLoaded();
+    const row = searchRow();
+    await openFilter();
+    type("Protein at least", "10");
+    show();
+    await waitFor(() => expect(filterCount()).toBe("1"));
+    for (const [segment, label] of [
+      ["Meals", "Search my meals"],
+      ["Foods", "Search my foods"],
+    ] as const) {
+      fireEvent.click(screen.getByRole("tab", { name: segment }));
+      expect(searchRow()).toBe(row);
+      expect(document.querySelector("[data-recipe-filter]")).toBeNull();
+      // The field is the row's one child, so it takes the whole row.
+      expect([...row.children]).toHaveLength(1);
+      expect(row.firstElementChild).toContainElement(screen.getByLabelText(label));
+    }
+    fireEvent.click(screen.getByRole("tab", { name: "Recipes" }));
+    expect(searchRow()).toBe(row);
+    expect(row.lastElementChild).toBe(filterButton());
+    // A filter lasts as long as the recipes show: back from another segment, the list is by name with no bound.
+    expect(filterCount()).toBeNull();
+    await waitFor(() => expect(recipeNames()).toHaveLength(5));
+  });
+
+  it("keeps the sort and the bounds when the chosen Recipes segment is pressed again, by pointer or by key", async () => {
+    await renderLoaded();
+    await openFilter();
+    fireEvent.change(sortSelect(), { target: { value: "protein" } });
+    type("Protein at least", "3");
+    show();
+    await waitFor(() => expect(filterCount()).toBe("2"));
+    const before = recipeNames();
+    expect(before).toEqual(expected({ archived: false, minProteinG: 3 }, "protein"));
+    const name = filterButton().getAttribute("aria-label");
+    const recipesTab = screen.getByRole("tab", { name: "Recipes" });
+    fireEvent.click(recipesTab);
+    expect(recipeNames()).toEqual(before);
+    expect(filterCount()).toBe("2");
+    expect(filterButton()).toHaveAttribute("aria-label", name!);
+    // Home on the first segment lands on the chosen one: the roving keys change nothing either.
+    fireEvent.keyDown(recipesTab, { key: "Home" });
+    expect(recipeNames()).toEqual(before);
+    expect(filterCount()).toBe("2");
+    expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
   it("counts each bound set and a sort other than name, is drawn as chosen, and says the count aloud", async () => {
@@ -187,22 +259,22 @@ describe("The Filter chip", () => {
     await openFilter();
     type("Protein at least", "10");
     show();
-    await waitFor(() => expect(filterChip()).toHaveTextContent("Filter · 1"));
-    expect(filterChip()).toHaveAccessibleName("Filter, 1 set");
-    expect(has(filterChip(), chipOn)).toBe(true);
+    await waitFor(() => expect(filterCount()).toBe("1"));
+    expect(filterButton()).toHaveAccessibleName("Filter, 1 on");
+    expect(has(filterButton(), iconButtonOn)).toBe(true);
     await openFilter();
     fireEvent.change(sortSelect(), { target: { value: "protein" } });
     type("Calories at most", "600");
     show();
-    await waitFor(() => expect(filterChip()).toHaveTextContent("Filter · 3"));
-    expect(filterChip()).toHaveAccessibleName("Filter, 3 set");
+    await waitFor(() => expect(filterCount()).toBe("3"));
+    expect(filterButton()).toHaveAccessibleName("Filter, 3 on");
     // A sort alone keeps it on.
     await openFilter();
     type("Protein at least", "");
     type("Calories at most", "");
     show();
-    await waitFor(() => expect(filterChip()).toHaveTextContent("Filter · 1"));
-    expect(has(filterChip(), chipOn)).toBe(true);
+    await waitFor(() => expect(filterCount()).toBe("1"));
+    expect(has(filterButton(), iconButtonOn)).toBe(true);
   });
 });
 
@@ -237,13 +309,13 @@ describe("The filter sheet", () => {
     fireEvent.change(sortSelect(), { target: { value: "protein" } });
     // The list under the sheet, row for row, and the chip, are as they were.
     expect(recipeNames()).toEqual(before);
-    expect(filterChip()).toHaveTextContent(/^Filter$/);
+    expect(filterCount()).toBeNull();
     show();
     const narrowed = expected({ archived: false, minProteinG: 20, maxEnergyKcal: 550 }, "protein");
     expect(narrowed).toEqual(["Feta bake"]);
     await waitFor(() => expect(recipeNames()).toEqual(narrowed));
     await waitFor(() => expect(sheetOpen()).toBe(false));
-    expect(filterChip()).toHaveTextContent("Filter · 3");
+    expect(filterCount()).toBe("3");
   });
 
   it("Cancel leaves the list and the chip as they were, and the next open starts from what is in force", async () => {
@@ -260,7 +332,7 @@ describe("The filter sheet", () => {
     fireEvent.click(within(sheet()).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(sheetOpen()).toBe(false));
     expect(recipeNames()).toEqual(inForce);
-    expect(filterChip()).toHaveTextContent("Filter · 1");
+    expect(filterCount()).toBe("1");
     await openFilter();
     expect(bound("Protein at least").value).toBe("20");
     expect(sortSelect().value).toBe("name");
@@ -280,12 +352,12 @@ describe("The filter sheet", () => {
     expect(sortSelect().value).toBe("name");
     // Still the filtered list, and the sheet still open.
     expect(recipeNames()).toEqual(inForce);
-    expect(filterChip()).toHaveTextContent("Filter · 2");
+    expect(filterCount()).toBe("2");
     expect(sheetOpen()).toBe(true);
     show();
     await waitFor(() => expect(recipeNames()).toEqual(expected({ archived: false }, "name")));
-    expect(filterChip()).toHaveTextContent(/^Filter$/);
-    expect(has(filterChip(), chipOff)).toBe(true);
+    expect(filterCount()).toBeNull();
+    expect(has(filterButton(), iconButtonOff)).toBe(true);
   });
 
   it("keeps a figure as it is shown: at least 28.4 g keeps the recipe that shows 28.4 g", async () => {
@@ -313,7 +385,7 @@ describe("The filter sheet", () => {
     expect(bound("Protein at most")).toHaveFocus();
     expect(sheetOpen()).toBe(true);
     expect(recipeNames()).toEqual(before);
-    expect(filterChip()).toHaveTextContent(/^Filter$/);
+    expect(filterCount()).toBeNull();
     // Typing in the refused field takes its line away.
     type("Protein at most", "30");
     expect(within(sheet()).queryByText("Enter a number, one decimal at most.")).toBeNull();
@@ -339,8 +411,8 @@ describe("The filter sheet", () => {
       dismiss();
       await waitFor(() => expect(sheetOpen()).toBe(false));
       expect(recipeNames()).toEqual(inForce);
-      expect(filterChip()).toHaveTextContent("Filter · 1");
-      expect(filterChip()).toHaveFocus();
+      expect(filterCount()).toBe("1");
+      expect(filterButton()).toHaveFocus();
     }
     // The next open starts from what is in force, not from the draft that was dropped.
     await openFilter();
@@ -363,7 +435,7 @@ describe("The filter sheet", () => {
     await waitFor(() => expect(recipeNames()).toEqual(expected({ archived: false, minProteinG: 28.4 }, "name")));
   });
 
-  it("gives focus back to the Filter chip by every way out", async () => {
+  it("gives focus back to Filter by every way out", async () => {
     await renderLoaded();
     for (const leave of [
       () => fireEvent.click(within(sheet()).getByRole("button", { name: "Cancel" })),
@@ -378,7 +450,7 @@ describe("The filter sheet", () => {
       await openFilter();
       leave();
       await waitFor(() => expect(sheetOpen()).toBe(false));
-      expect(filterChip()).toHaveFocus();
+      expect(filterButton()).toHaveFocus();
     }
   });
 });
@@ -437,7 +509,7 @@ describe("The list under a sort", () => {
     fireEvent.click(screen.getByRole("button", { name: "Favourites" }));
     expect(recipeNames()).toEqual(expected({ archived: false, minProteinG: 10, favourites: true }, "energy"));
     fireEvent.click(screen.getByRole("button", { name: "Favourites" }));
-    fireEvent.change(screen.getByLabelText("Search recipes"), { target: { value: "e" } });
+    fireEvent.change(screen.getByLabelText("Search my recipes"), { target: { value: "e" } });
     expect(recipeNames()).toEqual(expected({ archived: false, minProteinG: 10, q: "e" }, "energy"));
   });
 
@@ -461,14 +533,14 @@ describe("The list under a sort", () => {
     fireEvent.change(sortSelect(), { target: { value: "energy" } });
     show();
     expect(await screen.findByText("No recipe matches.")).toBeInTheDocument();
-    expect(filterChip()).toHaveTextContent("Filter · 2");
+    expect(filterCount()).toBe("2");
     fireEvent.click(screen.getByRole("button", { name: "Clear search and filters" }));
     expect(recipeNames()).toEqual(expected({ archived: false }, "name"));
     expect(expected({ archived: false }, "name")).not.toEqual(expected({ archived: false }, "energy"));
     // Nothing is left in force, so Filter reads plain and is not drawn as chosen.
-    expect(filterChip()).toHaveTextContent(/^Filter$/);
-    expect(has(filterChip(), chipOff)).toBe(true);
-    expect(screen.getByLabelText("Search recipes")).toHaveFocus();
+    expect(filterCount()).toBeNull();
+    expect(has(filterButton(), iconButtonOff)).toBe(true);
+    expect(screen.getByLabelText("Search my recipes")).toHaveFocus();
   });
 });
 
@@ -511,7 +583,7 @@ describe("The filter on the way to a recipe and back", () => {
     await goBack();
     renderRecipes(first.client);
     expect(recipeNames()).toEqual(["Eggs", "Feta bake"]);
-    expect(filterChip()).toHaveTextContent("Filter · 3");
+    expect(filterCount()).toBe("3");
     expect(rowOf("Eggs").querySelector("[data-recipe-last-on]")).not.toBeNull();
     expect(scrolledTo).toEqual([260]);
     expect(rowOf("Feta bake")).toHaveFocus();
@@ -529,7 +601,7 @@ describe("The filter on the way to a recipe and back", () => {
     window.history.pushState(null, "", "/recipes");
     await renderLoaded(first.client);
     expect(recipeNames()).toEqual(expected({ archived: false }, "name"));
-    expect(filterChip()).toHaveTextContent(/^Filter$/);
+    expect(filterCount()).toBeNull();
     expect(document.querySelector("[data-recipe-last-on]")).toBeNull();
     expect(scrolledTo).toEqual([0]);
   });
@@ -556,7 +628,7 @@ describe("A kept place and a list that answers late", () => {
     expect(scrolledTo).toEqual([0]);
     expect(readListPlace()).toBeNull();
     // The person is already typing when the list answers.
-    const search = screen.getByLabelText("Search recipes") as HTMLInputElement;
+    const search = screen.getByLabelText("Search my recipes") as HTMLInputElement;
     expect(search.value).toBe("e");
     search.focus();
     await act(async () => read.resolve(recipeServer.list(false)));
@@ -567,7 +639,7 @@ describe("A kept place and a list that answers late", () => {
     expect(scrolledTo).toEqual([0]);
     expect(search).toHaveFocus();
     // What the place held of the list itself is kept: the search, the sort and the bound.
-    expect(filterChip()).toHaveTextContent("Filter · 2");
+    expect(filterCount()).toBe("2");
     expect(recipeNames()).toEqual(expected({ archived: false, q: "e", minProteinG: 10 }, "protein"));
   });
 });

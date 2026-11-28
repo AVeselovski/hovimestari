@@ -35,7 +35,8 @@ describe("tabOf", () => {
 describe("AppShell", () => {
   it.each([
     ["/", "Day"],
-    ["/recipes", "Recipes"],
+    // The second tab is the Library: it holds recipes, saved meals and own foods. Its address is still /recipes.
+    ["/recipes", "Library"],
     ["/groceries", "Groceries"],
     ["/settings", "Settings"],
   ])("on %s titles the page %s and marks that tab current in both navs", (path, label) => {

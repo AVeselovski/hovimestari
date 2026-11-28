@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink } from "@/components/ui/ExternalLink";
-import { linkClass } from "@/components/ui/styles";
+import { foodSourceRow, linkClass } from "@/components/ui/styles";
 import { openFoodFactsUrl } from "@/lib/barcode";
 import type { FoodSource } from "@hovimestari/types";
 import { useTranslations } from "next-intl";
@@ -14,7 +14,8 @@ export const FOOD_DATA_HREF = "/settings#food-data";
 const linkTarget = `${linkClass} inline-flex min-h-11 items-center`;
 
 /**
- * Where a food's figures come from. A Fineli food links to the credit in
+ * Where a food's figures come from, in one row for every source. An own
+ * food's row says so and links nowhere. A Fineli food links to the credit in
  * Settings. An Open Food Facts food links to its own page there, in a new
  * tab, once its barcode is known from the detail, and to the credit.
  * `onLeave` runs as the credit's link is followed, so the sheet the line
@@ -31,18 +32,21 @@ export function FoodSourceLine({
   onLeave: () => void;
 }): ReactElement {
   const t = useTranslations("foods.detail");
-  if (source === "user") return <p className="text-sm text-ink-muted">{t("sourceOwn")}</p>;
+  const label = { user: t("sourceOwn"), fineli: t("sourceFineli"), open_food_facts: t("sourceOpenFoodFacts") }[source];
   return (
-    <p className="flex flex-wrap items-center gap-x-3 text-sm text-ink-muted">
-      <span>{source === "fineli" ? t("sourceFineli") : t("sourceOpenFoodFacts")}</span>
+    <p data-food-source="" className={foodSourceRow}>
+      {/* As tall as a link, so the words sit at one height on every source, on a line of their own too. */}
+      <span className="inline-flex min-h-11 items-center">{label}</span>
       {source === "open_food_facts" && barcode && (
         <ExternalLink href={openFoodFactsUrl(barcode)} className={linkTarget}>
           {t("seeOnOpenFoodFacts")}
         </ExternalLink>
       )}
-      <Link href={FOOD_DATA_HREF} onClick={onLeave} className={linkTarget}>
-        {t("aboutData")}
-      </Link>
+      {source !== "user" && (
+        <Link href={FOOD_DATA_HREF} onClick={onLeave} className={linkTarget}>
+          {t("aboutData")}
+        </Link>
+      )}
     </p>
   );
 }

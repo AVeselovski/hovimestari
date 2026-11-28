@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { PageContainer } from "@/components/ui/PageContainer";
 import {
   backButton,
+  btnCompact,
   btnPrimary,
   btnSecondary,
   btnText,
@@ -23,7 +24,6 @@ import { useSheetTarget } from "@/hooks/useSheetTarget";
 import { useToday } from "@/hooks/useToday";
 import { getErrorCode } from "@/lib/errors";
 import { OfflineError } from "@/lib/failure";
-import { formatDayShort } from "@/lib/localDate";
 import { queryKeys } from "@/lib/queryKeys";
 import { recipeQuery } from "@/lib/queryOptions";
 import { markOpenedInApp, scrollPageToTop, setFocusAfterDelete, takeOpenedInApp } from "@/lib/recipeNav";
@@ -52,11 +52,10 @@ import { useRecipeMeta } from "./useRecipeMeta";
 
 // ---------------------------------------------------------------------------
 // RecipePage: one recipe, at /recipes/<id>. Top to bottom: Back and Edit;
-// the name in the display face with its star; "Serves 2 · 25 min", the tags
-// and the last day it is on; the figures card with its servings stepper;
-// Log and Log as made; the ingredients, scaled with the stepper; the
-// method's numbered steps and the notes; then Duplicate, Archive recipe and
-// Delete recipe.
+// the name in the display face with its star; "Serves 2 · 25 min" and the
+// tags; the figures card with its servings stepper; Log and Log as made; the
+// ingredients, scaled with the stepper; the method's numbered steps and the
+// notes; and last, Duplicate, Archive recipe and Delete recipe.
 //
 // - The stepper scales the lines with `scaleRecipe` and the figures with
 //   `entryFigures` on the recipe's basis, the figures a day shows for that
@@ -65,9 +64,9 @@ import { useRecipeMeta } from "./useRecipeMeta";
 // - Opened from a row, the page shows the row's name, servings and figures
 //   from the list at once, and the rest in its room as the recipe is read.
 //   A read that fails says so where the rest would show.
-// - The last day's line keeps its room while the recipe is on no day, so
-//   the line showing after a Log from this page moves nothing under it.
-//   Every entry write reads the recipe again (lib/invalidation.ts).
+// - The page ends in Delete recipe, over half a toast's room
+//   (`clearToast="half"`), the room the owner chose. A tall toast can cover
+//   part of Delete recipe while it shows.
 // - The shell's title, the tab's name, is the page's one level 1 heading.
 //   The recipe's name is the level 2 heading under it, and takes focus as
 //   the page arrives, so a keyboard and a screen reader start at the recipe.
@@ -77,11 +76,11 @@ import { useRecipeMeta } from "./useRecipeMeta";
 //   is read first, since a save sends the whole recipe and would write an
 //   older copy over an edit made elsewhere, such as by a connected assistant.
 // - Back goes back where the page was opened from inside the app, the list
-//   or the day as it was left (lib/recipeNav.ts), else to the Recipes tab.
+//   or the day as it was left (lib/recipeNav.ts), else to the Library.
 // - An archived recipe says so under its name and can still be logged. A
 //   deleted one, opened from a day's entry, says days it was on keep their
 //   figures, and offers nothing to change.
-// - After a delete the page leaves for the Recipes tab, where the next row
+// - After a delete the page leaves for the Library, where the next row
 //   takes focus.
 // - The star and Archive wait while the app asks the server for today, and
 //   say so (`aria-disabled`).
@@ -146,7 +145,7 @@ export function RecipePage({ id }: { id: string }): ReactElement {
     onReadFailed: (line) => toast.show({ message: line }),
   });
 
-  /** After a delete: the Recipes tab, where the next row by name takes focus, else the one before, else New recipe. */
+  /** After a delete: the Library, where the next row by name takes focus, else the one before, else New recipe. */
   function leave(gone: RecipeSummary): void {
     const rows = sortRecipes(
       client.getQueryData<RecipeList>(queryKeys.recipeList(gone.archived))?.recipes ?? [],
@@ -200,9 +199,9 @@ export function RecipePage({ id }: { id: string }): ReactElement {
   const failedLine = query.fetchStatus === "paused" || offline ? t("offline") : t("unavailable");
   const unreachable = summary === undefined && failed;
 
-  // The row keeps Edit's height, 48px, so Edit arriving with the recipe moves nothing under it.
+  // The row is as tall as Back, 44px, and Edit is lower, so Edit arriving with the recipe moves nothing under it.
   const topRow = (
-    <div className="flex min-h-12 items-center justify-between gap-3">
+    <div className="flex min-h-11 items-center justify-between gap-3">
       <button type="button" onClick={back} className={`${backButton} -ml-2`}>
         <Icon name="chevronLeft" className="size-5" strokeWidth={2} />
         {t("back")}
@@ -212,7 +211,7 @@ export function RecipePage({ id }: { id: string }): ReactElement {
           type="button"
           aria-busy={opening === "edit" || undefined}
           onClick={(e) => void openEditor(e.currentTarget, "edit")}
-          className={btnSecondary}
+          className={btnCompact}
         >
           {t("edit")}
         </button>
@@ -258,7 +257,7 @@ export function RecipePage({ id }: { id: string }): ReactElement {
   const archived = summary?.archived ?? false;
 
   return (
-    <PageContainer clearToast>
+    <PageContainer clearToast="half">
       {topRow}
       <div className="mt-4 space-y-6" data-recipe-page="">
         <header>
@@ -266,7 +265,7 @@ export function RecipePage({ id }: { id: string }): ReactElement {
             <h2
               ref={nameRef}
               tabIndex={-1}
-              className="min-h-10 min-w-0 flex-1 font-display text-3xl font-medium break-words text-ink outline-hidden md:min-h-11 md:text-4xl"
+              className="min-h-11 min-w-0 flex-1 font-display text-3xl font-medium break-words text-ink outline-hidden md:text-4xl"
             >
               {summary?.name}
             </h2>
@@ -292,12 +291,6 @@ export function RecipePage({ id }: { id: string }): ReactElement {
               ))}
             </ul>
           )}
-          {/* Its room is kept while the recipe is on no day, so the line showing moves nothing under it. */}
-          <p data-recipe-on-day="" className="mt-2 min-h-5 text-sm text-ink-muted">
-            {summary?.lastPutOn
-              ? t("onDay", { date: formatDayShort(summary.lastPutOn, undefined, today ?? undefined) })
-              : null}
-          </p>
           {deleted ? (
             <p className={`${noticeClass} mt-4`}>{t("deletedNote")}</p>
           ) : archived ? (

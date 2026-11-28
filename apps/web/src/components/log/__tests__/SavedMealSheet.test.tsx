@@ -83,7 +83,7 @@ describe("SavedMealSheet, new", () => {
   });
   describeFormSheetContract({
     endsInLine: true,
-    name: /^new saved meal$/i,
+    name: /^new meal$/i,
     panelClass: "md:max-w-lg",
     renderSheet: (p) => (
       <SavedMealSheet
@@ -289,7 +289,7 @@ describe("SavedMealSheet", () => {
   it("opens an edit on the meal's own values, with no state choice, and saves with Save meal", async () => {
     jest.mocked(updateSavedMeal).mockResolvedValue({ ...bowl, name: "Chicken bowl, large" });
     const h = renderSheet({ meal: bowl, initialName: bowl.name });
-    expect(screen.getByRole("dialog", { name: "Edit saved meal" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Edit meal" })).toBeInTheDocument();
     expect(input("From (optional)").value).toBe("Wolt");
     expect(input("Fat").value).toBe("22.5");
     expect(within(dialog()).queryByRole("radiogroup")).toBeNull();

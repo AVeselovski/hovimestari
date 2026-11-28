@@ -306,7 +306,7 @@ export async function afterEntryWrite(
     // The latest day a recipe is on moves with every add, removal, restore, move
     // and copy of one of its entries. A removal's answer no longer holds the
     // entry, so the write cannot say whether a recipe was touched: every cached
-    // recipe read is read again, which is none away from the Recipes tab.
+    // recipe read is read again, which is none away from the Library.
     queryKeys.recipes(),
   ]);
   return { settled };
@@ -354,7 +354,7 @@ export async function putDaysInRanges(client: QueryClient, days: readonly Day[],
  *
  * The recipes are marked stale too: an add of a recipe's entry that did land
  * moved the latest day that recipe is on. Nothing is read now. A recipe's
- * page and the Recipes tab read again when they next show.
+ * page and the Library read again when they next show.
  */
 export async function afterAddUnconfirmed(client: QueryClient, date: string, meal = false): Promise<void> {
   const lists = [queryKeys.log(), ...(meal ? [queryKeys.savedMeals()] : [])];

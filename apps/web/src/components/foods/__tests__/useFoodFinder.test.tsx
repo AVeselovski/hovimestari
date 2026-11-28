@@ -99,7 +99,7 @@ describe("useFoodFinder", () => {
     await settle();
     expect(browse()).not.toBeNull();
     expect(searchFoods).not.toHaveBeenCalled();
-    for (const name of [/^Log/, /^Add to plan/, /^New saved meal/, /^Add an estimate/]) {
+    for (const name of [/^Log/, /^Add to plan/, /^New meal/, /^Add an estimate/]) {
       expect(within(host()).queryByRole("button", { name })).toBeNull();
     }
   });
@@ -119,7 +119,7 @@ describe("useFoodFinder", () => {
     type("kaurajuoma");
     await settle();
     fireEvent.click(await within(host()).findByRole("button", { name: /Add .kaurajuoma. as your own food/ }));
-    const own = await screen.findByRole("dialog", { name: /a food/i });
+    const own = await screen.findByRole("dialog", { name: "New food" });
     expect((within(own).getByLabelText("Name") as HTMLInputElement).value).toBe("kaurajuoma");
   });
 
@@ -145,7 +145,7 @@ describe("useFoodFinder", () => {
     type("kaurajuoma");
     await settle();
     fireEvent.click(await within(host()).findByRole("button", { name: /Add .kaurajuoma. as your own food/ }));
-    const own = await screen.findByRole("dialog", { name: /a food/i });
+    const own = await screen.findByRole("dialog", { name: "New food" });
     for (const [label, value] of [
       ["Energy", "40"],
       ["Protein", "1"],

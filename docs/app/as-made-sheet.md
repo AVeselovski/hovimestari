@@ -28,7 +28,7 @@ What counts as changed, added and left out is in [logging as made](../features/r
 
 ### Figures
 
-The figures card of [a recipe's page](recipe.md#servings-and-figures) without its stepper: "Per serving" and "Whole batch", a row for calories, protein, carbohydrates and fat. They follow the lines and **It gave** as they change, and they are the figures the batch is stored with. While **It gave** holds no whole number from 1 to 100 the figures are empty. Under them, muted, the recipe's own serving: "Recipe: 365 kcal · 21.8 g protein per serving".
+The figures card of [a recipe's page](recipe.md#servings-and-figures) without its stepper: "Per serving" and "Total", the whole batch, a row for calories, protein, carbohydrates and fat. They follow the lines and **It gave** as they change, and they are the figures the batch is stored with. While **It gave** holds no whole number from 1 to 100 the figures are empty. Under them, muted, the recipe's own serving: "Recipe: 365 kcal · 21.8 g protein per serving".
 
 ### Servings from this batch
 

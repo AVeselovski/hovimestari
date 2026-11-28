@@ -175,7 +175,7 @@ describe("FoodSheet, searching", () => {
     type("Mummon pulla");
     expect(await screen.findByText("No food matches “Mummon pulla”.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add “Mummon pulla” as your own food" }));
-    const sheet = await screen.findByRole("dialog", { name: "Add a food" });
+    const sheet = await screen.findByRole("dialog", { name: "New food" });
     expect(within(sheet).getByLabelText("Name")).toHaveValue("Mummon pulla");
     expect(within(sheet).getByLabelText("Energy")).toHaveValue("");
   });
@@ -365,7 +365,7 @@ describe("FoodSheet, a food's detail", () => {
     details[mine.id] = detailOf(mine);
     renderSheet();
     await openDetail("Oma rahka");
-    expect(screen.getByText("Your own food")).toBeInTheDocument();
+    expect(screen.getByText("My food")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Edit food" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Delete food" }));
     const confirm = await screen.findByRole("dialog", { name: "Delete Oma rahka?" });
@@ -394,8 +394,8 @@ describe("FoodSheet, a food's detail", () => {
     details[saved.id] = saved;
     jest.mocked(createFood).mockResolvedValue(saved);
     renderSheet();
-    fireEvent.click(await screen.findByRole("button", { name: "Add your own food" }));
-    const sheet = await screen.findByRole("dialog", { name: "Add a food" });
+    fireEvent.click(await screen.findByRole("button", { name: "New food" }));
+    const sheet = await screen.findByRole("dialog", { name: "New food" });
     fireEvent.change(within(sheet).getByLabelText("Name"), { target: { value: "Mummon pulla" } });
     fireEvent.change(within(sheet).getByLabelText("Energy"), { target: { value: "350" } });
     fireEvent.change(within(sheet).getByLabelText("Protein"), { target: { value: "8" } });

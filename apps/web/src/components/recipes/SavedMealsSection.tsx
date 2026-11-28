@@ -13,8 +13,9 @@ import { useTranslations } from "next-intl";
 import { useId, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
-// SavedMealsSection: the Recipes tab's saved meals. The active meals by name,
-// each row with its source and its figures per meal, opening its edit sheet.
+// SavedMealsSection: the Library's saved meals, under "My meals". The active
+// meals by name, each row with its source and its figures per meal, opening
+// its edit sheet.
 // Under them "Archived meals" opens the archived list in place, read on its
 // first open, each row with Restore. While the list loads it keeps one
 // line's room (`listLineFrame`), the height of the empty list, under the
@@ -56,6 +57,7 @@ export function SavedMealsSection({
   onClearQuery,
 }: SavedMealsSectionProps): ReactElement {
   const t = useTranslations("recipes");
+  const tLists = useTranslations("lists");
   const tMatch = useTranslations("recipes.noMatch");
   const tBrowse = useTranslations("log.browse");
   const figures = useMealFigures();
@@ -67,7 +69,7 @@ export function SavedMealsSection({
   return (
     <section aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className={`${sectionTitle} mb-1`}>
-        {tBrowse("savedMeals")}
+        {tLists("myMeals")}
       </h2>
       {meals === undefined ? (
         <div className={listLineFrame}>{unavailable && <p className={fieldHintClass}>{t("mealsUnavailable")}</p>}</div>

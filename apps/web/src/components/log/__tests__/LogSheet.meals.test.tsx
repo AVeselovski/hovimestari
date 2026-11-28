@@ -132,14 +132,27 @@ async function search(text: string): Promise<void> {
 }
 
 describe("Browsing the log sheet", () => {
-  it("puts New saved meal and Add an estimate first under the search field, then Recent, Favourites, Recipes, Saved meals, Your foods", async () => {
+  it("puts New meal and Add an estimate first under the search field, then Recent, Favourites, Recipes, My meals, My foods", async () => {
     renderDay();
     await openLogSheet();
     const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
     const first = [...body.querySelectorAll("button")].slice(0, 2).map((b) => b.textContent);
-    expect(first).toEqual(["New saved meal", "Add an estimate"]);
+    expect(first).toEqual(["New meal", "Add an estimate"]);
     const lists = [...body.querySelectorAll("section[data-list]")].map((s) => s.getAttribute("data-list"));
     expect(lists).toEqual(["recent", "favourites", "recipes", "meals", "own"]);
+  });
+
+  it("names the person's lists as the Library does: My meals and My foods, each the heading and the name of its list", async () => {
+    renderDay();
+    await openLogSheet();
+    const body = sheet().querySelector<HTMLElement>("[data-sheet-body]")!;
+    const named = (list: string): (string | null | undefined)[] => {
+      const section = body.querySelector<HTMLElement>(`section[data-list="${list}"]`)!;
+      return [section.querySelector("h3")?.textContent, section.getAttribute("aria-label")];
+    };
+    expect(named("meals")).toEqual(["My meals", "My meals"]);
+    expect(named("own")).toEqual(["My foods", "My foods"]);
+    expect(within(body).getByRole("button", { name: "New food" })).toBeInTheDocument();
   });
 
   it("says what the search field finds: its label whole, and a placeholder short enough for a narrow phone", async () => {
@@ -157,13 +170,13 @@ describe("Browsing the log sheet", () => {
     await screen.findByText("Oats");
     await waitFor(() => expect(mealCalls(false)).toBe(1));
     await openLogSheet();
-    expect(rowsOf("Saved meals").map((t) => t.split(/Wolt|Foodora|Home/)[0])).toEqual([
+    expect(rowsOf("My meals").map((t) => t.split(/Wolt|Foodora|Home/)[0])).toEqual([
       "Chicken bowl",
       "Salmon soup",
       "Shake",
     ]);
-    expect(region("Saved meals")).toHaveTextContent("600 kcal · 40.0 g protein per meal");
-    expect(within(region("Saved meals")).getByRole("button", { name: "Archived meals" })).toBeInTheDocument();
+    expect(region("My meals")).toHaveTextContent("600 kcal · 40.0 g protein per meal");
+    expect(within(region("My meals")).getByRole("button", { name: "Archived meals" })).toBeInTheDocument();
     expect(mealCalls(false)).toBe(1);
     expect(mealCalls(true)).toBe(0);
   });
@@ -172,17 +185,17 @@ describe("Browsing the log sheet", () => {
     world.server.meals.clear();
     renderDay();
     await openLogSheet();
-    expect(region("Saved meals")).toHaveTextContent("Meals you save appear here.");
-    expect(within(region("Saved meals")).getByRole("button", { name: "Archived meals" })).toBeInTheDocument();
+    expect(region("My meals")).toHaveTextContent("Meals you save appear here.");
+    expect(within(region("My meals")).getByRole("button", { name: "Archived meals" })).toBeInTheDocument();
   });
 
   it("logs a saved meal with '+' at its last count, else one meal", async () => {
     renderDay();
     await openLogSheet();
     expect(
-      within(region("Saved meals")).getByRole("button", { name: "Log Chicken bowl again, 2 meals" }),
+      within(region("My meals")).getByRole("button", { name: "Log Chicken bowl again, 2 meals" }),
     ).toBeInTheDocument();
-    fireEvent.click(within(region("Saved meals")).getByRole("button", { name: "Log Salmon soup, 1 meal" }));
+    fireEvent.click(within(region("My meals")).getByRole("button", { name: "Log Salmon soup, 1 meal" }));
     await screen.findByText("Logged Salmon soup, 1 meal.");
     expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({
       kind: "saved_meal",
@@ -194,7 +207,7 @@ describe("Browsing the log sheet", () => {
   it("filters the meals by the source chip, and the results by it too", async () => {
     renderDay();
     await openLogSheet();
-    const chips = within(region("Saved meals")).getByRole("radiogroup", { name: "Where meals come from" });
+    const chips = within(region("My meals")).getByRole("radiogroup", { name: "Where meals come from" });
     expect(
       within(chips)
         .getAllByRole("radio")
@@ -202,7 +215,7 @@ describe("Browsing the log sheet", () => {
     ).toEqual(["All", "Foodora", "Home", "Wolt"]);
     expect(within(chips).getByRole("radio", { name: "All" })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(within(chips).getByRole("radio", { name: "Wolt" }));
-    expect(rowsOf("Saved meals").map((t) => t.split("Wolt")[0])).toEqual(["Chicken bowl"]);
+    expect(rowsOf("My meals").map((t) => t.split("Wolt")[0])).toEqual(["Chicken bowl"]);
     // "o" is in every meal's name; Wolt keeps one.
     await search("o o");
     expect(
@@ -216,16 +229,16 @@ describe("Browsing the log sheet", () => {
     world.server.meals.set(porridge.id, porridge);
     const { client } = renderDay();
     await openLogSheet();
-    const chips = within(region("Saved meals")).getByRole("radiogroup", { name: "Where meals come from" });
+    const chips = within(region("My meals")).getByRole("radiogroup", { name: "Where meals come from" });
     fireEvent.click(within(chips).getByRole("radio", { name: "Wolt" }));
-    expect(rowsOf("Saved meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl"]);
+    expect(rowsOf("My meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl"]);
     // Archived on another device: Wolt is the one source left. The open list holds its chips and rows.
     soup.archived = true;
     await act(() => client.refetchQueries({ queryKey: ["savedMeals"] }));
     // TanStack tells the list on a timer: let it.
     await act(() => new Promise((r) => setTimeout(r, 50)));
-    expect(within(region("Saved meals")).getByRole("radiogroup")).toBeInTheDocument();
-    expect(rowsOf("Saved meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl"]);
+    expect(within(region("My meals")).getByRole("radiogroup")).toBeInTheDocument();
+    expect(rowsOf("My meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl"]);
     // The results filter what was read, and let go of Wolt.
     await search("porridge");
     expect(
@@ -233,8 +246,8 @@ describe("Browsing the log sheet", () => {
     ).toHaveLength(1);
     // Browsing shown again starts from what was read: the chips go, and the meal with no source shows.
     fireEvent.change(searchField(), { target: { value: "" } });
-    await waitFor(() => expect(within(region("Saved meals")).queryByRole("radiogroup")).toBeNull());
-    expect(rowsOf("Saved meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl", "Porridge"]);
+    await waitFor(() => expect(within(region("My meals")).queryByRole("radiogroup")).toBeNull());
+    expect(rowsOf("My meals").map((t) => t.split(/Wolt|\d/)[0])).toEqual(["Chicken bowl", "Porridge"]);
   });
 
   it("shows no chips with fewer than two sources", async () => {
@@ -242,7 +255,7 @@ describe("Browsing the log sheet", () => {
     world.server.meals.set(bowl.id, bowl);
     renderDay();
     await openLogSheet();
-    expect(within(region("Saved meals")).queryByRole("radiogroup")).toBeNull();
+    expect(within(region("My meals")).queryByRole("radiogroup")).toBeNull();
   });
 });
 
@@ -284,7 +297,7 @@ describe("The log sheet's results", () => {
       within(body)
         .getAllByRole("heading")
         .map((h) => h.textContent),
-    ).toEqual(["Saved meals", "Foods", "Other matches"]);
+    ).toEqual(["My meals", "Foods", "Other matches"]);
     // The offer to add the text comes after the near foods, outside both sections.
     const add = within(sheet()).getByRole("button", { name: "Add “salmon” as your own food" });
     expect(foods).not.toContainElement(add);
@@ -305,17 +318,17 @@ describe("The log sheet's results", () => {
     await openLogSheet();
     await search("Pizza night");
     fireEvent.click(within(sheet()).getByRole("button", { name: "Save “Pizza night” as a meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    await screen.findByRole("dialog", { name: "New meal" });
     expect(field("Name").value).toBe("Pizza night");
-    fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    fireEvent.click(within(dialog("New meal")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     fireEvent.click(within(sheet()).getByRole("button", { name: "Add “Pizza night” as an estimate" }));
     await screen.findByRole("dialog", { name: "Add an estimate" });
     expect(field("Name").value).toBe("Pizza night");
   });
 });
 
-describe("A new saved meal from the log sheet", () => {
+describe("A new meal from the log sheet", () => {
   it("is made and logged in one request in seven taps and five typed values; both sheets close and focus lands on the launcher", async () => {
     renderDay();
     await screen.findByText("Oats");
@@ -327,8 +340,8 @@ describe("A new saved meal from the log sheet", () => {
     };
     tap(launcher);
     await within(await screen.findByRole("dialog", { name: "Log food" })).findByRole("region", { name: "Recent" });
-    tap(within(sheet()).getByRole("button", { name: "New saved meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    tap(within(sheet()).getByRole("button", { name: "New meal" }));
+    await screen.findByRole("dialog", { name: "New meal" });
     tap(field("Name"));
     fireEvent.change(field("Name"), { target: { value: "Wolt bowl" } });
     fireEvent.keyDown(field("Name"), { key: "Enter" });
@@ -342,13 +355,13 @@ describe("A new saved meal from the log sheet", () => {
       tap(field(label));
       fireEvent.change(field(label), { target: { value } });
     }
-    tap(within(dialog("New saved meal")).getByRole("button", { name: "Save and log" }));
+    tap(within(dialog("New meal")).getByRole("button", { name: "Save and log" }));
     await screen.findByText("Saved Wolt bowl and logged 1 meal.");
     expect(taps).toBe(7);
     expect(saveAndLog).toHaveBeenCalledTimes(1);
     expect(addEntry).not.toHaveBeenCalled();
     expect(createSavedMeal).not.toHaveBeenCalled();
-    expect(screen.queryByRole("dialog", { name: /log food|new saved meal|add an estimate/i })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /log food|new meal|add an estimate/i })).toBeNull();
     expect(launcher).toHaveFocus();
     expect(rowNames()).toEqual(["Oats", "Wolt bowl"]);
   });
@@ -358,14 +371,14 @@ describe("A new saved meal from the log sheet", () => {
     try {
       renderDay();
       await openLogSheet();
-      fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-      await screen.findByRole("dialog", { name: "New saved meal" });
+      fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+      await screen.findByRole("dialog", { name: "New meal" });
       fireEvent.change(field("Name"), { target: { value: "Bowl" } });
       for (const label of ["Calories", "Protein", "Carbohydrates", "Fat"]) {
         fireEvent.change(field(label), { target: { value: "10" } });
       }
       const parent = dialog("Log food");
-      const child = dialog("New saved meal");
+      const child = dialog("New meal");
       const state = (el: HTMLElement) =>
         !el.isConnected ? "gone" : el.hasAttribute("data-closed") ? "closed" : "open";
       const seen: string[] = [];
@@ -386,13 +399,13 @@ describe("A new saved meal from the log sheet", () => {
   it("says so in the toast, which removes the entry from the day and leaves the meal saved", async () => {
     renderDay();
     await openLogSheet();
-    fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+    await screen.findByRole("dialog", { name: "New meal" });
     fireEvent.change(field("Name"), { target: { value: "Bowl" } });
     for (const label of ["Calories", "Protein", "Carbohydrates", "Fat"]) {
       fireEvent.change(field(label), { target: { value: "10" } });
     }
-    fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name: "Save and log" }));
+    fireEvent.click(within(dialog("New meal")).getByRole("button", { name: "Save and log" }));
     await screen.findByText("Saved Bowl and logged 1 meal.");
     fireEvent.click(screen.getByRole("button", { name: "Remove from day" }));
     await waitFor(() => expect(removeEntry).toHaveBeenCalledTimes(1));
@@ -403,19 +416,19 @@ describe("A new saved meal from the log sheet", () => {
   it("Save meal saves without logging, keeps the log sheet open, says so on its status line, and lists the meal", async () => {
     renderDay();
     await openLogSheet();
-    fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+    await screen.findByRole("dialog", { name: "New meal" });
     fireEvent.change(field("Name"), { target: { value: "Acai bowl" } });
     for (const label of ["Calories", "Protein", "Carbohydrates", "Fat"]) {
       fireEvent.change(field(label), { target: { value: "10" } });
     }
-    fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name: "Save meal" }));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull());
+    fireEvent.click(within(dialog("New meal")).getByRole("button", { name: "Save meal" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull());
     expect(createSavedMeal).toHaveBeenCalledTimes(1);
     expect(saveAndLog).not.toHaveBeenCalled();
     expect(addEntry).not.toHaveBeenCalled();
     expect(statusLine()).toHaveTextContent("Saved Acai bowl.");
-    await waitFor(() => expect(rowsOf("Saved meals")[0]).toContain("Acai bowl"));
+    await waitFor(() => expect(rowsOf("My meals")[0]).toContain("Acai bowl"));
     expect(world.server.entries.map((e) => e.name)).toEqual(["Oats"]);
   });
 
@@ -423,17 +436,14 @@ describe("A new saved meal from the log sheet", () => {
     searchParams = new URLSearchParams({ date: "2026-11-18" });
     renderDay();
     await openLogSheet(/^Add to plan$/);
-    fireEvent.click(within(sheet()).getByRole("button", { name: "New saved meal" }));
-    await screen.findByRole("dialog", { name: "New saved meal" });
+    fireEvent.click(within(sheet()).getByRole("button", { name: "New meal" }));
+    await screen.findByRole("dialog", { name: "New meal" });
     fireEvent.change(field("Name"), { target: { value: "Bowl" } });
     for (const label of ["Calories", "Protein", "Carbohydrates", "Fat"]) {
       fireEvent.change(field(label), { target: { value: "10" } });
     }
-    expect(within(dialog("New saved meal")).getByRole("radio", { name: "Eaten" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    fireEvent.click(within(dialog("New saved meal")).getByRole("button", { name: "Save and add to plan" }));
+    expect(within(dialog("New meal")).getByRole("radio", { name: "Eaten" })).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(within(dialog("New meal")).getByRole("button", { name: "Save and add to plan" }));
     await screen.findByText("Saved Bowl and added it to the plan.");
     expect(jest.mocked(saveAndLog).mock.calls[0][0].entry).toMatchObject({ date: "2026-11-18", status: "planned" });
     expect(screen.getByRole("button", { name: "Remove from plan" })).toBeInTheDocument();
@@ -457,7 +467,7 @@ describe("Add an estimate", () => {
     }
     fireEvent.click(within(dialog("Add an estimate")).getByRole("button", { name: "Save estimate" }));
     await screen.findByText("Logged Restaurant dinner.");
-    expect(screen.queryByRole("dialog", { name: /log food|new saved meal|add an estimate/i })).toBeNull();
+    expect(screen.queryByRole("dialog", { name: /log food|new meal|add an estimate/i })).toBeNull();
     expect(jest.mocked(addEntry).mock.calls[0][0]).toMatchObject({ kind: "estimate", date: TODAY, status: "eaten" });
     expect(rowNames()).toEqual(["Oats", "Restaurant dinner"]);
     expect(screen.getByText("Estimate")).toBeInTheDocument();
@@ -476,12 +486,12 @@ describe("The log sheet on a phone, its create actions", () => {
       await waitFor(() => expect(launcher).not.toHaveAttribute("aria-disabled"));
       fireEvent.click(launcher);
       await within(await screen.findByRole("dialog")).findByRole("region", { name: "Recent" });
-      const create = () => within(sheet()).getByRole("button", { name: "New saved meal" });
+      const create = () => within(sheet()).getByRole("button", { name: "New meal" });
       const guard = () => sheet().querySelector("[data-press-guard]");
       fireEvent.pointerDown(create());
       fireEvent.click(create());
       await act(async () => {});
-      expect(screen.queryByRole("dialog", { name: "New saved meal" })).toBeNull();
+      expect(screen.queryByRole("dialog", { name: "New meal" })).toBeNull();
       // The delay passes, the entry ends (Base UI may ask for the animations more than once): armed.
       act(() => jest.advanceTimersByTime(ARM_DELAY_MS));
       await waitFor(() => {
@@ -490,7 +500,7 @@ describe("The log sheet on a phone, its create actions", () => {
       });
       fireEvent.pointerDown(create());
       fireEvent.click(create());
-      expect(await screen.findByRole("dialog", { name: "New saved meal" })).toBeInTheDocument();
+      expect(await screen.findByRole("dialog", { name: "New meal" })).toBeInTheDocument();
     } finally {
       animations.restore();
       restorePhone();

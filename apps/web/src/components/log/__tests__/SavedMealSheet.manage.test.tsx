@@ -7,7 +7,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { SavedMealSheet, type MealSheetArchive } from "../SavedMealSheet";
 import type { ArchiveOutcome } from "../useMealActions";
 
-// The saved meal sheet without `logging`, as the Recipes tab mounts it: save
+// The saved meal sheet without `logging`, as the Library mounts it: save
 // only, Delete in the footer with its confirmation stacked on the sheet, and
 // `archive`. The log sheet's own use of the sheet is in SavedMealSheet.test.tsx.
 
@@ -32,7 +32,7 @@ beforeEach(() => {
   jest.mocked(updateSavedMeal).mockReset();
 });
 
-/** The sheet as the Recipes tab mounts it: a new meal, or with `meal` its edit, with `archive` when given. */
+/** The sheet as the Library mounts it: a new meal, or with `meal` its edit, with `archive` when given. */
 function renderSheet({
   meal,
   archive,

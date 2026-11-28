@@ -26,6 +26,12 @@ export const FIGURE_CELL = "h-6.5 pt-1.5 text-right align-top whitespace-nowrap 
 export const EMPTY_CELL =
   "h-6.5 pt-1.5 pl-3 align-top text-sm leading-5 whitespace-nowrap text-ink-muted md:h-8 md:pt-2 md:text-base md:leading-6";
 
+/**
+ * The room on each side of the rule over the average row: one cell above the
+ * rule and one under it, so the average stands apart from Sunday.
+ */
+export const RULE_GAP_CELL = "h-3 p-0 md:h-4";
+
 /** A gauge cell across a macro's two columns. */
 export const GAUGE_CELL = "h-4.5 pt-0.5 pl-3 align-top md:h-5";
 

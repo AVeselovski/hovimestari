@@ -9,9 +9,10 @@ import { useTranslations } from "next-intl";
 import { useId, type ReactElement } from "react";
 
 // ---------------------------------------------------------------------------
-// OwnFoodsSection: the Recipes tab's own foods, by name, each row with its
-// energy and protein per 100 g and the star of a favourite, opening its edit
-// sheet. Every row here is the user's own, so the rows leave "Yours" out.
+// OwnFoodsSection: the Library's own foods, under "My foods", by name, each
+// row with its energy and protein per 100 g and the star of a favourite,
+// opening its edit sheet. Every row here is the user's own, so the rows leave
+// "Yours" out.
 // While the list loads it keeps one line's room (`listLineFrame`). An empty
 // list and a list that cannot be read each say so in a line. A row whose
 // food is being read to open its sheet shows it is busy. The Foods
@@ -41,6 +42,7 @@ export function OwnFoodsSection({
   onClearQuery,
 }: OwnFoodsSectionProps): ReactElement {
   const t = useTranslations("recipes");
+  const tLists = useTranslations("lists");
   const tMatch = useTranslations("recipes.noMatch");
   const tFoods = useTranslations("foods.sheet");
   const id = useId();
@@ -52,7 +54,7 @@ export function OwnFoodsSection({
   return (
     <section aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className={`${sectionTitle} mb-1`}>
-        {tFoods("ownFoods")}
+        {tLists("myFoods")}
       </h2>
       {foods === undefined ? (
         <div className={listLineFrame}>{unavailable && <p className={fieldHintClass}>{t("foodsUnavailable")}</p>}</div>

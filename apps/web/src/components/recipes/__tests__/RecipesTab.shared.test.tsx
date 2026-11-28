@@ -13,7 +13,7 @@ import type { FoodList, SavedMealList } from "@hovimestari/types";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { pinClock, renderRecipes, rowNames, savedMeal, serveFoods, serveMeals, topSheet } from "./recipesHarness";
 
-// One copy of the data: the Recipes tab and the log sheet read the same
+// One copy of the data: the Library and the log sheet read the same
 // cached lists, so a write in one shows in the other without a read. Each
 // test holds every list read after the write, so only the cache can show it.
 
@@ -87,7 +87,7 @@ function holdListReads(): void {
   jest.mocked(getOwnFoods).mockReturnValue(new Promise(() => {}));
 }
 
-it("a meal renamed on the Recipes tab shows renamed in the log sheet, from the one cached list", async () => {
+it("a meal renamed in the Library shows renamed in the log sheet, from the one cached list", async () => {
   const bowl = savedMeal("Chicken bowl", "Wolt");
   serveFoods([]);
   serveMeals([bowl]);
@@ -103,17 +103,17 @@ it("a meal renamed on the Recipes tab shows renamed in the log sheet, from the o
     return found;
   });
   fireEvent.click(row);
-  const sheet = await screen.findByRole("dialog", { name: "Edit saved meal" });
+  const sheet = await screen.findByRole("dialog", { name: "Edit meal" });
   fireEvent.change(field("Name"), { target: { value: "Chicken bowl, large" } });
   holdListReads();
   fireEvent.click(within(sheet).getByRole("button", { name: "Save meal" }));
-  await waitFor(() => expect(openSheet("Edit saved meal")).toBeNull());
-  await waitFor(() => expect(rowNames("Saved meals", "recipes-meals")).toEqual(["Chicken bowl, large"]));
+  await waitFor(() => expect(openSheet("Edit meal")).toBeNull());
+  await waitFor(() => expect(rowNames("My meals", "recipes-meals")).toEqual(["Chicken bowl, large"]));
   page.unmount();
 
   renderDay(client);
   const log = await openLogSheet();
-  const meals = within(log).getByRole("region", { name: "Saved meals" });
+  const meals = within(log).getByRole("region", { name: "My meals" });
   await waitFor(() => expect(meals).toHaveTextContent("Chicken bowl, large"));
   // The log sheet's rows log, so they carry no "Opens it to edit.".
   expect(log.querySelector("[aria-description]")).toBeNull();
@@ -122,13 +122,13 @@ it("a meal renamed on the Recipes tab shows renamed in the log sheet, from the o
   ]);
 });
 
-it("a food renamed in the log sheet shows renamed on the Recipes tab, from the one cached list", async () => {
+it("a food renamed in the log sheet shows renamed in the Library, from the one cached list", async () => {
   const [rye] = serveFoods(["Rye bread"]);
   serveMeals([]);
   const client = seededClient();
   const day = renderDay(client);
   const log = await openLogSheet();
-  const own = within(log).getByRole("region", { name: "Your foods" });
+  const own = within(log).getByRole("region", { name: "My foods" });
   const ryeRow = await within(own).findByRole("button", { name: /^Rye bread/ });
   expect(ryeRow).not.toHaveAttribute("aria-description");
   fireEvent.click(ryeRow);
@@ -142,7 +142,7 @@ it("a food renamed in the log sheet shows renamed on the Recipes tab, from the o
 
   renderRecipes(client);
   fireEvent.click(screen.getByRole("tab", { name: "Foods" }));
-  await waitFor(() => expect(rowNames("Your foods", "recipes-foods")).toEqual(["Barley bread"]));
+  await waitFor(() => expect(rowNames("My foods", "recipes-foods")).toEqual(["Barley bread"]));
   expect(client.getQueryData<FoodList>(queryKeys.foodOwn())?.foods.map((f) => [f.id, f.name])).toEqual([
     [rye.id, "Barley bread"],
   ]);

@@ -3,7 +3,7 @@ import { sortRecipes, tagKey, type RecipeSummary } from "@hovimestari/types";
 // ---------------------------------------------------------------------------
 // A person's tags, compared one way everywhere on screen, the way the server
 // keeps a recipe's tags once: by lower case (`tagKey`). "Dinner" and
-// "dinner" are one tag: one chip on the Recipes tab, one chip under the
+// "dinner" are one tag: one chip in the Library, one chip under the
 // editor's tag field, and one tag on a recipe. An accent makes another
 // letter, so "Häät" and "Haat" are two tags, each with its chip.
 // ---------------------------------------------------------------------------
